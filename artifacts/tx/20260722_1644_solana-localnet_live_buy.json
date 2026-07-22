@@ -1,0 +1,101 @@
+{
+  "generated_at": "2026-07-22T16:44:36",
+  "network": "solana-localnet",
+  "rpc_url": "http://127.0.0.1:8899",
+  "wallets": {
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "6URRzqYUeJDkL8f52ys9LGN4NdS9uX36V9N7F1U7Lx7R",
+    "stock": "5nMkYFoRszp4fAmZPqFuWid96fnFGpL79X3sMnAJ5HLr",
+    "stock_symbol": "tAAPL"
+  },
+  "mandate": {
+    "budget_total_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "signature": "2sVayDyuNRdmeJMQJV3Cw3ApVwscjxQHQPMfWUM38mJiVwRkpdckCJC9iHV6gAveMMMd4fFmsH23DEooisoueNB3"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 5.99442484,
+      "usdc": "910",
+      "stock": "0.5146"
+    },
+    "broker": {
+      "sol": 5.99442984,
+      "usdc": "90",
+      "stock": "99.4854"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 5.99440984,
+      "usdc": "820",
+      "stock": "1.0292"
+    },
+    "broker": {
+      "sol": 5.99441484,
+      "usdc": "180",
+      "stock": "98.9708"
+    }
+  },
+  "trades": [
+    {
+      "order_id": "ord_96dfe12ed1",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "직전 가격인 180.00 USDC에서 177.30 USDC로 하락하며 매수 조건인 178 USDC 이하에 도달하고 예산이 남아있어 매수를 결정합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1692",
+      "price_usdc": "177.30",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "Lmq3eArsP8sUFLSy7Hdoy8p8SNWaorVUiUSUHqKEP5q8vHNW3Tuxqxunojqoo5hf2y85z78d6AVaJsaQ6dna9pH",
+      "delivery_tx": "5vgPmi7tBZdr2y35eUfuts6Nofcm5NVG2v2ybtC7Grah9GtBcxhywe7cBHCVpisHi8ELegTMnk2UbYHwVc7ewqY6",
+      "explorer_payment": "https://explorer.solana.com/tx/Lmq3eArsP8sUFLSy7Hdoy8p8SNWaorVUiUSUHqKEP5q8vHNW3Tuxqxunojqoo5hf2y85z78d6AVaJsaQ6dna9pH?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/5vgPmi7tBZdr2y35eUfuts6Nofcm5NVG2v2ybtC7Grah9GtBcxhywe7cBHCVpisHi8ELegTMnk2UbYHwVc7ewqY6?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_599ee364f4",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "가격이 180.00 USDC에서 177.30 USDC를 거쳐 174.60 USDC까지 하락하며 매수 기준인 178 USDC 이하에 진입했으므로 매수를 결정합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1718",
+      "price_usdc": "174.60",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "2A4phDgmzNACLGe4dsyaoCSPKmpDDzxpzEgxp8tuvWgHZqjPLNuog1A4DqDi1WA8Dnuz3yzftNRJuD7xVFCNTmYN",
+      "delivery_tx": "28RyGTbE3ngWwsSHKqzNHM6B68Uak5cxQh2MGHHMZtykTyfM2YN18KFVBQRTLFU7Pya5GfZ74RzkKQmpmM3B6zs2",
+      "explorer_payment": "https://explorer.solana.com/tx/2A4phDgmzNACLGe4dsyaoCSPKmpDDzxpzEgxp8tuvWgHZqjPLNuog1A4DqDi1WA8Dnuz3yzftNRJuD7xVFCNTmYN?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/28RyGTbE3ngWwsSHKqzNHM6B68Uak5cxQh2MGHHMZtykTyfM2YN18KFVBQRTLFU7Pya5GfZ74RzkKQmpmM3B6zs2?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_91ba9839b0",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "현재가가 172.80 USDC로 매수 기준인 178 USDC 이하이고 지속적인 하락세를 보이고 있어 매수를 진행합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1736",
+      "price_usdc": "172.80",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "4h9Gz3GAHFwrfjNv4D7ASaZNHTxK6X5zBe11PaLnjVSSfkgcSvcmDZywjVupr8KEWahQn2XNNmHudRRyQh2zSxjh",
+      "delivery_tx": "3YLsjhRGSUrYzLH7HaY8KVK9J1rR5SxTYW5NNDxbG3SGBSMtKUmGSqSpRG1NKysW371wgnK1ysCazbASfQM1FnFJ",
+      "explorer_payment": "https://explorer.solana.com/tx/4h9Gz3GAHFwrfjNv4D7ASaZNHTxK6X5zBe11PaLnjVSSfkgcSvcmDZywjVupr8KEWahQn2XNNmHudRRyQh2zSxjh?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/3YLsjhRGSUrYzLH7HaY8KVK9J1rR5SxTYW5NNDxbG3SGBSMtKUmGSqSpRG1NKysW371wgnK1ysCazbASfQM1FnFJ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    }
+  ],
+  "cross_check": {
+    "usdc_spent_onchain": "90",
+    "usdc_spent_expected": "90.00",
+    "usdc_ok": true,
+    "stock_received_onchain": "0.5146",
+    "stock_expected": "0.5146",
+    "stock_ok": true
+  }
+}

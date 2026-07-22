@@ -32,6 +32,12 @@ class Config:
 
     wallet_dir: str = _get("WALLET_DIR", "secrets")
 
+    # Gemini (무료 티어) — 키가 있으면 매매 판단을 Gemini 가 수행, 없으면 규칙 기반
+    gemini_api_key: str = _get("GEMINI_API_KEY", "")
+    gemini_model: str = _get("GEMINI_MODEL", "gemini-flash-latest")
+    # "developer"(AIza 키) / "vertex"(AQ. 등 express 키) / 빈값=키 형식으로 자동 판별
+    gemini_mode: str = _get("GEMINI_MODE", "")
+
 
 CFG = Config()
 

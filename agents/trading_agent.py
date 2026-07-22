@@ -29,6 +29,7 @@ class Decision:
     action: str          # "buy" / "sell" / "hold"
     reason: str
     spend_usdc: Decimal = Decimal(0)
+    source: str = "rule"  # "gemini" / "rule" / "rule-fallback"
 
 
 @dataclass
@@ -47,6 +48,7 @@ class TradingAgent:
         strategy: Strategy,
         usdc_decimals: int,
         network: str,
+        brain=None,  # GeminiDecider (없으면 규칙 기반)
     ):
         self.kp = keypair
         self.auth = authorizer
@@ -54,20 +56,53 @@ class TradingAgent:
         self.usdc_decimals = usdc_decimals
         self.network = network
         self.position = Position(symbol="")
+        self.brain = brain
+        self._history: list[Decimal] = []  # 직전 시세 (Gemini 판단 근거)
 
     @property
     def pubkey(self) -> Pubkey:
         return self.kp.pubkey()
 
-    # 1) 판단 (규칙 기반 스텁 → 추후 Gemini)
+    # 1) 판단 — Gemini(있으면) → 실패 시 규칙 폴백
     def decide(self, symbol: str, price: Decimal) -> Decision:
         self.position.symbol = symbol
+        history = list(self._history)
+        self._history.append(price)
+        if len(self._history) > 8:
+            self._history.pop(0)
+
+        if self.brain is not None:
+            try:
+                d = self.brain.decide(
+                    symbol, price, history, self.strategy,
+                    self.auth.remaining_usdc, self.position,
+                )
+                return self._sanitize(d)
+            except Exception as e:
+                d = self._decide_by_rule(symbol, price)
+                d.source = "rule-fallback"
+                d.reason += f" — Gemini 호출 실패({type(e).__name__}) → 규칙 폴백"
+                return d
+        return self._decide_by_rule(symbol, price)
+
+    def _decide_by_rule(self, symbol: str, price: Decimal) -> Decision:
         if price <= self.strategy.buy_below and self.auth.remaining_usdc > 0:
             spend = min(self.strategy.spend_per_trade_usdc, self.auth.remaining_usdc)
             return Decision("buy", f"가격 {price} ≤ 매수기준 {self.strategy.buy_below}", spend)
         if price >= self.strategy.sell_above and self.position.quantity > 0:
             return Decision("sell", f"가격 {price} ≥ 매도기준 {self.strategy.sell_above}")
         return Decision("hold", f"조건 미충족 (가격 {price})")
+
+    def _sanitize(self, d: Decision) -> Decision:
+        """Gemini 응답을 한도 안으로 강제 (AP2 mandate 가 최종 관문이지만 이중 방어)."""
+        if d.action == "buy":
+            if self.auth.remaining_usdc <= 0:
+                return Decision("hold", f"{d.reason} (예산 소진 → 보류)", source=d.source)
+            spend = d.spend_usdc if d.spend_usdc > 0 else self.strategy.spend_per_trade_usdc
+            d.spend_usdc = min(spend, self.strategy.spend_per_trade_usdc, self.auth.remaining_usdc)
+        if d.action == "sell" and self.position.quantity <= 0:
+            return Decision("hold", f"{d.reason} (보유 수량 없음 → 보류)", source=d.source)
+        return d
 
     # 2) payment-required → 한도 승인 + 결제 서명 → payment-submitted
     def build_payment(

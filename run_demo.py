@@ -65,7 +65,7 @@ def print_snapshot(snap: dict, symbol: str) -> None:
         print(f"  {name:7s}: {b['sol']:.4f} SOL / {b['usdc']} USDC / {b['stock']} {symbol}")
 
 
-async def main(live: bool, ticks: int) -> None:
+async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
     print(f"\n=== AutoTrader Agent 데모  (모드: {'LIVE ' + CFG.network if live else 'DRY-RUN'}) ===")
 
     # --- 지갑 ---
@@ -74,6 +74,20 @@ async def main(live: bool, ticks: int) -> None:
     broker_kp = _load_or_new(os.path.join(wd, "broker.json"))
     print(f"Trading(구매) 지갑 : {trading_kp.pubkey()}")
     print(f"Broker(판매)  지갑 : {broker_kp.pubkey()}")
+
+    # --- 판단 두뇌: Gemini (키 있으면) / 규칙 기반 ---
+    brain = None
+    brain_label = "규칙 기반 (GEMINI_API_KEY 미설정)"
+    if not use_gemini:
+        brain_label = "규칙 기반 (--no-gemini)"
+    elif CFG.gemini_api_key:
+        try:
+            from agents.gemini_decider import GeminiDecider
+            brain = GeminiDecider(CFG.gemini_api_key, CFG.gemini_model, CFG.gemini_mode)
+            brain_label = f"Gemini ({CFG.gemini_model}, {brain.mode} 모드, 실패 시 규칙 폴백)"
+        except Exception as e:
+            brain_label = f"규칙 기반 (Gemini 초기화 실패: {type(e).__name__})"
+    print(f"판단 모듈   : {brain_label}")
 
     usdc_mint = Pubkey.from_string(CFG.usdc_mint)
     stock_mint = Pubkey.from_string(CFG.stock_mint) if CFG.stock_mint else None
@@ -100,7 +114,7 @@ async def main(live: bool, ticks: int) -> None:
         buy_below=Decimal("178"), sell_above=Decimal("185"),
         spend_per_trade_usdc=Decimal("30"),
     )
-    trading = TradingAgent(trading_kp, authorizer, strategy, CFG.usdc_decimals, CFG.network)
+    trading = TradingAgent(trading_kp, authorizer, strategy, CFG.usdc_decimals, CFG.network, brain=brain)
     broker = BrokerAgent(
         broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
     )
@@ -126,7 +140,7 @@ async def main(live: bool, ticks: int) -> None:
         for t in range(ticks):
             price = feed.get_price(symbol)
             decision = trading.decide(symbol, price)
-            hr(f"틱 {t+1}  |  {symbol} = {price} USDC  →  판단: {decision.action.upper()}")
+            hr(f"틱 {t+1}  |  {symbol} = {price} USDC  →  판단: {decision.action.upper()}  [{decision.source}]")
             print(f"  이유: {decision.reason}")
 
             if decision.action != "buy":
@@ -173,6 +187,8 @@ async def main(live: bool, ticks: int) -> None:
             trades.append({
                 "order_id": completed.order_id,
                 "side": "buy",
+                "decision_source": decision.source,
+                "decision_reason": decision.reason,
                 "symbol": symbol,
                 "quantity": str(quote.quantity),
                 "price_usdc": str(quote.price_usdc),
@@ -245,7 +261,8 @@ async def main(live: bool, ticks: int) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--live", action="store_true", help="devnet 에 실제 브로드캐스트")
+    ap.add_argument("--live", action="store_true", help="클러스터에 실제 브로드캐스트")
     ap.add_argument("--ticks", type=int, default=4, help="시세 틱 수")
+    ap.add_argument("--no-gemini", action="store_true", help="Gemini 없이 규칙 기반으로만 판단")
     args = ap.parse_args()
-    asyncio.run(main(args.live, args.ticks))
+    asyncio.run(main(args.live, args.ticks, use_gemini=not args.no_gemini))

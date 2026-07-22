@@ -6,5 +6,5 @@ solana>=0.36.6,<0.39
 solders>=0.26,<0.28
 python-dotenv>=1.0.0
 
-# --- Next steps (Gemini free tier) ---
-# google-genai
+# --- Gemini free tier (runtime AI brain) ---
+google-genai>=1.0.0

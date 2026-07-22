@@ -94,7 +94,8 @@ solana-agent/
 ├── run_demo.py             # 엔드투엔드 데모 오케스트레이터 (드라이런/--live)
 ├── config.py               # .env 로드, 단위 변환
 ├── agents/
-│   ├── trading_agent.py    # 구매: 판단(Strategy 내장, Gemini 교체 지점)→AP2 승인→x402 서명
+│   ├── trading_agent.py    # 구매: 판단(Gemini+규칙 폴백)→AP2 승인→x402 서명
+│   ├── gemini_decider.py   # Gemini 판단 모듈 (무료 티어 API, 0722 적용)
 │   └── broker_agent.py     # 판매: 견적→payment-required→검증(verify는 payments/)→정산·전달
 ├── market/
 │   └── price_feed.py       # 읽기전용 시세 데이터 (목 → 실피드 교체 지점)

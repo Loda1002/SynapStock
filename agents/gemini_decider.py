@@ -1,0 +1,90 @@
+"""Gemini 판단 모듈 — TradingAgent 의 규칙 스텁을 대체하는 두뇌.
+
+Gemini API(무료 티어)를 호출해 시세·규칙·예산을 보고 매수/매도/보류를 판단한다.
+호출이 실패하면 TradingAgent 가 규칙 기반으로 폴백하므로(데모데이 네트워크 대비)
+데모는 어떤 상황에도 멈추지 않는다.
+
+주의: 이 판단은 사용자가 정의한 규칙의 실행이며 투자 조언이 아니다(데모용).
+"""
+from __future__ import annotations
+import json
+from decimal import Decimal
+from typing import List
+
+from agents.trading_agent import Decision, Strategy
+from shared.models import Position
+
+PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 아래 사용자 규칙을 엄격히 적용해
+매수(buy)/매도(sell)/보류(hold)를 판단한다. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
+
+[사용자 규칙]
+- 가격이 {buy_below} USDC 이하이고 예산이 남아 있으면 매수를 고려한다
+- 가격이 {sell_above} USDC 이상이고 보유 수량이 있으면 매도를 고려한다
+- 1회 매수 금액은 {spend} USDC 를 넘지 않는다
+
+[현재 상태]
+- 종목: {symbol}
+- 현재가: {price} USDC
+- 직전 가격 흐름(과거→최근): {history}
+- 남은 총예산: {remaining} USDC
+- 보유 수량: {position_qty} (평균단가 {position_avg} USDC)
+
+규칙 위반 판단은 금지. 가격 흐름을 근거로 한국어 한 문장의 이유를 만들어라.
+JSON 만 출력: {{"action":"buy"|"sell"|"hold","reason":"한국어 한 문장","spend_usdc":숫자}}"""
+
+
+class GeminiDecider:
+    """Gemini API 호출 래퍼. mode: developer(AIza 키) / vertex(AQ. 등 새 형식 키)."""
+
+    def __init__(self, api_key: str, model: str, mode: str = ""):
+        from google import genai  # 지연 임포트 — 미설치여도 규칙 모드는 동작
+        self.mode = mode or ("developer" if api_key.startswith("AIza") else "vertex")
+        kwargs = {"api_key": api_key}
+        if self.mode == "vertex":
+            kwargs["vertexai"] = True
+        self.client = genai.Client(**kwargs)
+        self.model = model
+
+    def decide(
+        self,
+        symbol: str,
+        price: Decimal,
+        history: List[Decimal],
+        strategy: Strategy,
+        remaining_usdc: Decimal,
+        position: Position,
+    ) -> Decision:
+        from google.genai import types
+
+        prompt = PROMPT.format(
+            buy_below=strategy.buy_below,
+            sell_above=strategy.sell_above,
+            spend=strategy.spend_per_trade_usdc,
+            symbol=symbol,
+            price=price,
+            history=" → ".join(str(p) for p in history) if history else "(첫 틱)",
+            remaining=remaining_usdc,
+            position_qty=position.quantity,
+            position_avg=position.avg_price_usdc,
+        )
+        resp = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json",
+            ),
+        )
+        data = json.loads(resp.text)
+
+        action = str(data.get("action", "hold")).lower()
+        if action not in ("buy", "sell", "hold"):
+            action = "hold"
+        reason = str(data.get("reason", "")).strip() or "이유 미제공"
+        spend = Decimal(0)
+        if action == "buy":
+            try:
+                spend = Decimal(str(data.get("spend_usdc", strategy.spend_per_trade_usdc)))
+            except Exception:
+                spend = strategy.spend_per_trade_usdc
+        return Decision(action=action, reason=reason, spend_usdc=spend, source="gemini")
