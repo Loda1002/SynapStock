@@ -1,0 +1,10 @@
+# --- MVP core (no GCP required) ---
+# NOTE: keep this file ASCII-only. pip decodes it with the OS locale codec
+# (cp949 on Korean Windows), so non-ASCII comments break `pip install -r`.
+# solana 0.39+ requires Python >=3.11; this range also works on Python 3.10.
+solana>=0.36.6,<0.39
+solders>=0.26,<0.28
+python-dotenv>=1.0.0
+
+# --- Next steps (Gemini free tier) ---
+# google-genai

@@ -1,0 +1,11 @@
+이 저장소는 구글클라우드X솔라나 AI 에이전틱 해커톤 프로젝트(AutoTrader Agent)야. 오늘부터 이 폴더에서 Claude Code로 개발을 이어간다.
+
+먼저 다음을 순서대로 해줘:
+
+1. CLAUDE.md와 docs/ 전체를 읽고 규칙·현재 상태를 파악해.
+2. 저장소 실제 구조를 훑고 docs/architecture.md 6번(폴더 구조 안)과 다른 점을 정리해줘. 기존 README가 있으면 docs/README_template.md와 병합 계획도 세워줘.
+3. 환경 점검: python 버전, requirements 설치 가능 여부, solana CLI 설치 여부(없으면 설치 명령 제시 — 실행은 내가 승인), .env.example 변수명이 실제 코드와 맞는지 대조해서 맞게 고쳐줘.
+4. 오프라인 데모(run_demo.py)를 실행해서 기존 MVP가 이 환경에서 그대로 통과하는지 확인해줘.
+5. 여기까지 결과를 보고한 뒤, CLAUDE.md의 "다음 단계" 1번(라이브 실행으로 실제 트랜잭션 해시 확보)을 위한 구현 계획을 제시하고 내 승인을 받아줘. localnet 먼저, devnet은 SOL 확보 후.
+
+주의: 지갑 키 생성 시 secrets/ 아래에 두고 절대 커밋하지 마. 모호한 요구사항은 질문 3~4개로 먼저 인터뷰해줘.

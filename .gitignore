@@ -1,0 +1,18 @@
+# 지갑 개인키·시크릿 — 절대 커밋 금지 (배포 시 Secret Manager 사용)
+secrets/
+.wallets/
+*.key
+*.keypair.json
+*-keypair.json
+
+# solana-test-validator (localnet) 원장 데이터
+test-ledger/
+
+# env
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Claude Code 로컬 설정 (머신 전용)
+.claude/settings.local.json

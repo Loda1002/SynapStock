@@ -1,0 +1,95 @@
+{
+  "generated_at": "2026-07-22T15:47:36",
+  "network": "solana-localnet",
+  "rpc_url": "http://127.0.0.1:8899",
+  "wallets": {
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "6URRzqYUeJDkL8f52ys9LGN4NdS9uX36V9N7F1U7Lx7R",
+    "stock": "5nMkYFoRszp4fAmZPqFuWid96fnFGpL79X3sMnAJ5HLr",
+    "stock_symbol": "tAAPL"
+  },
+  "mandate": {
+    "budget_total_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "signature": "3fyR1FVQWJKeC7DKzqwoKjqt5YS4ZyEhhWfLzXuCJVNSmq8NC2MWJLe9BTbYQtPMMhRGwpiHgRSaPx4q5Ms9zq3h"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 5.99647912,
+      "usdc": "1000",
+      "stock": "0"
+    },
+    "broker": {
+      "sol": 5.99648412,
+      "usdc": "0",
+      "stock": "100"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 5.99442484,
+      "usdc": "910",
+      "stock": "0.5146"
+    },
+    "broker": {
+      "sol": 5.99442984,
+      "usdc": "90",
+      "stock": "99.4854"
+    }
+  },
+  "trades": [
+    {
+      "order_id": "ord_32a8e83f43",
+      "side": "buy",
+      "symbol": "tAAPL",
+      "quantity": "0.1692",
+      "price_usdc": "177.30",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "4uBNKn7Zvv5jkcrayq2P5ifj8jkg8ZRzRUwsie8umB2VK11Mqyz6yyLhK8dAe4KRfygoXkvCPXaEQf83mJzZHXGJ",
+      "delivery_tx": "2f45dVwh1f1A5LWuC5bSRMVRJXkdBd9X5iypQgNzgDg88fZGVjoPRxK31zMfHSCKiVDXzV3iNQ2T2mPjjy5Y4i78",
+      "explorer_payment": "https://explorer.solana.com/tx/4uBNKn7Zvv5jkcrayq2P5ifj8jkg8ZRzRUwsie8umB2VK11Mqyz6yyLhK8dAe4KRfygoXkvCPXaEQf83mJzZHXGJ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/2f45dVwh1f1A5LWuC5bSRMVRJXkdBd9X5iypQgNzgDg88fZGVjoPRxK31zMfHSCKiVDXzV3iNQ2T2mPjjy5Y4i78?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_93864e86cd",
+      "side": "buy",
+      "symbol": "tAAPL",
+      "quantity": "0.1718",
+      "price_usdc": "174.60",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "47eRx4BUqH6tDYtMC9yXCKkae1xBpmZapUJ7xHXMbF6ehw7yk9QZ9JmnhgCyBNnsABftrZNW1rhiBf5r4Km6QWC8",
+      "delivery_tx": "4GaxhK5eX7CPkze8Zh9pQxgUkzH1azpUJDCFbmPqna3fFc7ep2Je5QjaLaa2Mf1C64L4KQL4RC1W8Px9xTThvnWM",
+      "explorer_payment": "https://explorer.solana.com/tx/47eRx4BUqH6tDYtMC9yXCKkae1xBpmZapUJ7xHXMbF6ehw7yk9QZ9JmnhgCyBNnsABftrZNW1rhiBf5r4Km6QWC8?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/4GaxhK5eX7CPkze8Zh9pQxgUkzH1azpUJDCFbmPqna3fFc7ep2Je5QjaLaa2Mf1C64L4KQL4RC1W8Px9xTThvnWM?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_89ebdde0cf",
+      "side": "buy",
+      "symbol": "tAAPL",
+      "quantity": "0.1736",
+      "price_usdc": "172.80",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "34917MmuftG1ahnEm8QCLryr6M7USDeafhJUTAcCAZ6zNLNACNNe8eyaT71VQ6Bo7zyenDSWfJmhqtEj74hCxRjY",
+      "delivery_tx": "4PNVNzsrEHmu9xRSC483UN3vWj9rkWkUiWkskwUz4NEjgQXqLwA1UkemKzdQ6nT6UiwtZpUuD8oQexJ8JzVmoHez",
+      "explorer_payment": "https://explorer.solana.com/tx/34917MmuftG1ahnEm8QCLryr6M7USDeafhJUTAcCAZ6zNLNACNNe8eyaT71VQ6Bo7zyenDSWfJmhqtEj74hCxRjY?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/4PNVNzsrEHmu9xRSC483UN3vWj9rkWkUiWkskwUz4NEjgQXqLwA1UkemKzdQ6nT6UiwtZpUuD8oQexJ8JzVmoHez?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    }
+  ],
+  "cross_check": {
+    "usdc_spent_onchain": "90",
+    "usdc_spent_expected": "90.00",
+    "usdc_ok": true,
+    "stock_received_onchain": "0.5146",
+    "stock_expected": "0.5146",
+    "stock_ok": true
+  }
+}
