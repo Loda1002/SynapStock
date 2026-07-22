@@ -39,7 +39,7 @@
 1. 웹 서비스화: FastAPI 백엔드(상태 API + 실시간 이벤트) + 무디자인 대시보드 뼈대 (디자인 시안은 며칠 뒤 수령 예정 — 뼈대에 스킨만 교체하는 구조로)
 2. Cloud Run 배포 + Secret Manager(지갑키) + Firestore(포지션/영수증) — 사용자 GCP $300 크레딧 확보됨
 3. 디자인 적용(시안 수령 후) + 멀티종목·멀티턴 협상(여유 시)
-4. devnet 최종 검증(디스코드 SOL 수령 후): .env 전환 → setup → live → explorer 링크 증빙
+4. devnet 최종 검증: .env 전환 → setup → live → explorer 링크 증빙 (디스코드 SOL 요청 완료 0722 — **사용 시점은 로컬 UI/UX 적용 테스트 완료 후**, 사용자 결정)
 5. 제출물: README 병합 + 소개서 + 데모 영상 + public 전환 + 15분 리허설 (8/3 23:59)
 
 ## 세션 운영
