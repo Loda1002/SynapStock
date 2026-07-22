@@ -127,3 +127,10 @@ class PaymentAuthorizer:
         ).sign(self.agent_kp)
         self.spent_usdc += amount_usdc
         return closed
+
+    def credit_sale(self, amount_usdc: Decimal) -> None:
+        """매도 대금 환입 — 예산(budget_total)은 '순투입 한도'로 해석한다.
+
+        판 만큼 spent 가 줄어 다시 매수에 쓸 수 있다. 0 밑으로는 내려가지 않음
+        (매수 원금보다 비싸게 팔아도 한도가 늘어나지는 않는다)."""
+        self.spent_usdc = max(Decimal(0), self.spent_usdc - amount_usdc)

@@ -133,6 +133,27 @@ class TradingAgent:
         )
         return PaymentSubmitted(order_id=required.order_id, payment=payload)
 
+    # 2') 매도: 주식 전송 트랜잭션 서명 (AP2 는 '지출' 한도이므로 매도엔 미적용)
+    def build_stock_transfer(
+        self,
+        required: PaymentRequired,
+        blockhash: Hash,
+    ) -> PaymentSubmitted:
+        reqs = required.requirements
+        tx = x.build_transfer_transaction(
+            payer=self.kp,
+            mint=Pubkey.from_string(reqs.asset),      # 주식 민트
+            dest_owner=Pubkey.from_string(reqs.pay_to),
+            amount=reqs.amount,
+            decimals=reqs.decimals,
+            blockhash=blockhash,
+        )
+        payload = PaymentPayload(
+            network=self.network,
+            serialized_transaction=x.encode_payload(tx),
+        )
+        return PaymentSubmitted(order_id=required.order_id, payment=payload)
+
     # 3) 정산 완료 반영
     def on_completed(self, completed: PaymentCompleted, quote_symbol: str,
                      quantity: Decimal, price: Decimal, total_usdc: Decimal) -> Receipt:
@@ -140,6 +161,19 @@ class TradingAgent:
             self.position.apply_buy(quantity, price)
         return Receipt(
             order_id=completed.order_id, symbol=quote_symbol, side="buy",
+            quantity=quantity, total_usdc=total_usdc,
+            tx_signature=completed.tx_signature, confirmed=completed.confirmed,
+            note="" if completed.confirmed else "dry-run: 미브로드캐스트(로컬 서명만)",
+        )
+
+    # 3') 매도 완료 반영 — 포지션 차감 + 매도 대금을 예산에 환입
+    def on_sale_completed(self, completed: PaymentCompleted, quote_symbol: str,
+                          quantity: Decimal, price: Decimal, total_usdc: Decimal) -> Receipt:
+        if completed.status == "settled":
+            self.position.apply_sell(quantity)
+            self.auth.credit_sale(total_usdc)
+        return Receipt(
+            order_id=completed.order_id, symbol=quote_symbol, side="sell",
             quantity=quantity, total_usdc=total_usdc,
             tx_signature=completed.tx_signature, confirmed=completed.confirmed,
             note="" if completed.confirmed else "dry-run: 미브로드캐스트(로컬 서명만)",

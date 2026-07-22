@@ -20,12 +20,16 @@
   (수취인/금액/민트/서명 확인)
 - **Gemini 매매 판단**(무료 티어, `gemini-flash-latest`): 시세 흐름·규칙·예산을 보고
   매수/매도/보류를 결정하고 이유를 생성 — API 장애 시 규칙 기반 **자동 폴백**
+- **매도 사이클**: 주식토큰 전송 → 브로커 온체인 검증 → USDC 지급, 매도 대금은
+  AP2 예산에 환입(예산 = 순투입 한도)
+- **거부 케이스 4종**(`scripts/demo_rejections.py`): 건별 한도 초과 · mandate 위변조 ·
+  결제 금액 부족 · 미허용 종목 — 전부 돈이 나가기 전에 차단
 - 실브로드캐스트 경로 포함(`--live`, localnet/devnet 공용)
 
 ## 아직 안 붙은 것 (다음 단계)
 
-- Cloud Run 배포, Secret Manager(지갑키), Firestore(포지션/영수증)
-- 웹 대시보드(프론트), 멀티종목·멀티턴 협상, 매도 사이클
+- 웹 서비스화(FastAPI + 대시보드) → Cloud Run 배포, Secret Manager, Firestore
+- 멀티종목·멀티턴 협상
 
 ---
 
@@ -52,6 +56,8 @@ solana-test-validator --reset          # 터미널 1 (WSL)
 # 터미널 2 (.env: SOLANA_RPC_URL=http://127.0.0.1:8899 / SOLANA_NETWORK=solana-localnet)
 python scripts/setup_devnet.py         # 지갑(secrets/) + 민트 + 잔액 준비 + .env 기록
 python run_demo.py --live              # 실제 매수 브로드캐스트 + 잔액 교차검증 + 아카이브
+python run_demo.py --live --ticks 8    # 매수→매도 풀사이클 (틱 7에서 매도 트리거)
+python scripts/demo_rejections.py      # 거부 4종 데모 (네트워크 불필요)
 ```
 
 실행이 끝나면 `artifacts/tx/`에 트랜잭션 해시·전후 잔액·교차검증 결과가 JSON으로 남는다.

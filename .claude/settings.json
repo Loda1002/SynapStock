@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Test-Path *)",
+      "mcp__mcp-registry__search_mcp_registry"
+    ]
+  }
+}

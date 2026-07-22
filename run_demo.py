@@ -143,6 +143,55 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
             hr(f"틱 {t+1}  |  {symbol} = {price} USDC  →  판단: {decision.action.upper()}  [{decision.source}]")
             print(f"  이유: {decision.reason}")
 
+            # --- 매도 사이클: 주식 전송 → 브로커 검증 → USDC 지급 ---
+            if decision.action == "sell" and trading.position.quantity > 0:
+                qty = trading.position.quantity
+                quote = broker.sell_quote(symbol, qty, price)
+                print(f"  [A2A] Trading→Broker: '{symbol} {qty} 주 되사줘'")
+                print(f"        Broker 제안: {quote.quantity} {symbol} @ {quote.price_usdc} = {quote.total_usdc} USDC")
+
+                required = broker.make_stock_required(quote)
+                print(f"  [x402 #1 payment-required(매도)] order={required.order_id} "
+                      f"주식 {required.requirements.amount}(base) → {required.requirements.pay_to[:8]}…")
+
+                blockhash = await x.get_latest_blockhash(client) if live else Hash.default()
+                submitted = trading.build_stock_transfer(required, blockhash)
+                print(f"  [x402 #2 payment-submitted] 주식 전송 서명 제출 "
+                      f"(len={len(submitted.payment.serialized_transaction)} b64)")
+
+                completed = await broker.settle_sale(
+                    submitted, required.requirements, quote.total_usdc, live=live, client=client,
+                )
+                status = "온체인 확정" if completed.confirmed else ("검증통과·미브로드캐스트" if not live else "실패")
+                print(f"  [x402 #3 payment-completed] status={completed.status} ({status})")
+                print(f"        주식 전송 tx: {completed.tx_signature}")
+                if completed.delivery_tx_signature:
+                    print(f"        USDC 지급 tx: {completed.delivery_tx_signature}")
+
+                receipt = trading.on_sale_completed(completed, symbol, qty, price, quote.total_usdc)
+                print(f"  [영수증] {receipt.side} {receipt.quantity} {receipt.symbol} "
+                      f"/ {receipt.total_usdc} USDC / 확정={receipt.confirmed}"
+                      + (f" / {receipt.note}" if receipt.note else ""))
+                print(f"  [AP2] 매도 대금 환입 → 잔여 예산 {authorizer.remaining_usdc} USDC")
+
+                trades.append({
+                    "order_id": completed.order_id,
+                    "side": "sell",
+                    "decision_source": decision.source,
+                    "decision_reason": decision.reason,
+                    "symbol": symbol,
+                    "quantity": str(qty),
+                    "price_usdc": str(quote.price_usdc),
+                    "total_usdc": str(quote.total_usdc),
+                    "status": completed.status,
+                    "confirmed": completed.confirmed,
+                    "payment_tx": completed.tx_signature,
+                    "delivery_tx": completed.delivery_tx_signature,
+                    "explorer_payment": explorer_tx_url(completed.tx_signature) if completed.confirmed else "",
+                    "explorer_delivery": explorer_tx_url(completed.delivery_tx_signature) if completed.delivery_tx_signature else "",
+                })
+                continue
+
             if decision.action != "buy":
                 continue
 
@@ -220,14 +269,19 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
         hr("온체인 잔액 (실행 후) · 교차 검증")
         print_snapshot(snap_after, symbol)
         confirmed_trades = [t for t in trades if t["confirmed"]]
-        spent = sum((Decimal(t["total_usdc"]) for t in confirmed_trades), Decimal(0))
-        qty = sum((Decimal(t["quantity"]) for t in confirmed_trades), Decimal(0))
+        buys = [t for t in confirmed_trades if t["side"] == "buy"]
+        sells = [t for t in confirmed_trades if t["side"] == "sell"]
+        net_spent = (sum((Decimal(t["total_usdc"]) for t in buys), Decimal(0))
+                     - sum((Decimal(t["total_usdc"]) for t in sells), Decimal(0)))
+        net_qty = (sum((Decimal(t["quantity"]) for t in buys), Decimal(0))
+                   - sum((Decimal(t["quantity"]) for t in sells), Decimal(0)))
         usdc_out = Decimal(snap_before["trading"]["usdc"]) - Decimal(snap_after["trading"]["usdc"])
         stock_in = Decimal(snap_after["trading"]["stock"]) - Decimal(snap_before["trading"]["stock"])
-        ok_usdc = usdc_out == spent
-        ok_stock = stock_in == qty
-        print(f"  구매자 USDC 지출(온체인) {usdc_out} == 체결 합계 {spent} : {'PASS' if ok_usdc else 'FAIL'}")
-        print(f"  구매자 주식 수령(온체인) {stock_in} == 체결 수량 {qty} : {'PASS' if ok_stock else 'FAIL'}")
+        ok_usdc = usdc_out == net_spent
+        ok_stock = stock_in == net_qty
+        print(f"  구매자 USDC 순지출(온체인) {usdc_out} == 체결 순합계 {net_spent} "
+              f"(매수 {len(buys)}건 − 매도 {len(sells)}건) : {'PASS' if ok_usdc else 'FAIL'}")
+        print(f"  구매자 주식 순증감(온체인) {stock_in} == 체결 순수량 {net_qty} : {'PASS' if ok_stock else 'FAIL'}")
 
         os.makedirs(os.path.join("artifacts", "tx"), exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M")
@@ -247,8 +301,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
             "balances_after": snap_after,
             "trades": trades,
             "cross_check": {
-                "usdc_spent_onchain": str(usdc_out), "usdc_spent_expected": str(spent), "usdc_ok": ok_usdc,
-                "stock_received_onchain": str(stock_in), "stock_expected": str(qty), "stock_ok": ok_stock,
+                "usdc_net_out_onchain": str(usdc_out), "usdc_net_out_expected": str(net_spent), "usdc_ok": ok_usdc,
+                "stock_net_in_onchain": str(stock_in), "stock_net_in_expected": str(net_qty), "stock_ok": ok_stock,
             },
         }
         with open(archive_path, "w", encoding="utf-8") as f:

@@ -42,9 +42,14 @@ class BrokerAgent:
     def pubkey(self) -> Pubkey:
         return self.kp.pubkey()
 
-    # 1) 견적
+    # 1) 견적 (매수: 예산 → 수량)
     def quote(self, symbol: str, spend_usdc: Decimal, price_usdc: Decimal) -> Quote:
         quantity = (spend_usdc / price_usdc).quantize(Decimal("0.0001"))
+        total = (quantity * price_usdc).quantize(Decimal("0.01"))
+        return Quote(symbol=symbol, price_usdc=price_usdc, quantity=quantity, total_usdc=total)
+
+    # 1') 매도 견적 (수량 → 대금) — 브로커가 주식을 되사줌
+    def sell_quote(self, symbol: str, quantity: Decimal, price_usdc: Decimal) -> Quote:
         total = (quantity * price_usdc).quantize(Decimal("0.01"))
         return Quote(symbol=symbol, price_usdc=price_usdc, quantity=quantity, total_usdc=total)
 
@@ -65,6 +70,80 @@ class BrokerAgent:
             order_id=order_id, symbol=quote.symbol,
             quantity=str(quote.quantity), price_usdc=str(quote.price_usdc),
             requirements=reqs,
+        )
+
+    # 2') 매도용 payment-required — "주식을 이만큼 보내면 USDC 로 되사준다"
+    def make_stock_required(self, quote: Quote) -> PaymentRequired:
+        if self.stock_mint is None:
+            raise ValueError("stock_mint 미설정 — 매도 견적 불가")
+        order_id = f"ord_{uuid.uuid4().hex[:10]}"
+        amount = to_base_units(quote.quantity, self.stock_decimals)
+        reqs = PaymentRequirements(
+            scheme="exact",
+            network=self.network,
+            asset=str(self.stock_mint),          # 매도는 '주식'이 지불 자산
+            amount=amount,
+            pay_to=str(self.pubkey),
+            resource=f"USDC-BUYBACK:{quote.symbol} x{quote.quantity} @ {quote.price_usdc}",
+            decimals=self.stock_decimals,
+        )
+        return PaymentRequired(
+            order_id=order_id, symbol=quote.symbol,
+            quantity=str(quote.quantity), price_usdc=str(quote.price_usdc),
+            requirements=reqs,
+        )
+
+    # 3') 매도 정산 — 주식 수령 검증 → USDC 지급
+    async def settle_sale(
+        self,
+        submitted: PaymentSubmitted,
+        requirements: PaymentRequirements,
+        total_usdc: Decimal,
+        live: bool,
+        client=None,
+    ) -> PaymentCompleted:
+        tx = x.decode_payload(submitted.payment.serialized_transaction)
+
+        ok, reason, amount = x.verify_payment(
+            tx,
+            expected_mint=Pubkey.from_string(requirements.asset),  # 주식 민트
+            expected_dest_owner=self.pubkey,
+            min_amount=requirements.amount,
+        )
+        if not ok:
+            return PaymentCompleted(
+                order_id=submitted.order_id, tx_signature="", confirmed=False,
+                delivered_asset=str(self.usdc_mint), delivered_amount=0,
+                status="failed",
+            )
+
+        seller_pubkey = tx.message.account_keys[0]
+        stock_sig = x.signature_str(tx)
+        payout_sig = ""
+        confirmed = False
+        payout_amount = to_base_units(total_usdc, self.usdc_decimals)
+
+        if live and client is not None:
+            stock_sig, confirmed = await x.submit_and_confirm(client, tx)
+            if confirmed:
+                # USDC 지급 (broker → seller)
+                bh = await x.get_latest_blockhash(client)
+                payout_tx = x.build_transfer_transaction(
+                    payer=self.kp, mint=self.usdc_mint, dest_owner=seller_pubkey,
+                    amount=payout_amount, decimals=self.usdc_decimals, blockhash=bh,
+                )
+                payout_sig, paid = await x.submit_and_confirm(client, payout_tx)
+                if not paid:
+                    payout_sig = ""
+
+        return PaymentCompleted(
+            order_id=submitted.order_id,
+            tx_signature=stock_sig,               # 판매자가 보낸 주식 전송 tx
+            confirmed=confirmed,
+            delivered_asset=str(self.usdc_mint),  # 브로커가 지급한 자산
+            delivered_amount=payout_amount,
+            delivery_tx_signature=payout_sig,     # USDC 지급 tx
+            status="settled" if (not live or confirmed) else "failed",
         )
 
     # 3) 결제 검증 + 정산 + 주식 전달
