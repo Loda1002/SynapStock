@@ -108,6 +108,7 @@ input[type="number"], input[type="text"], input[type="time"] {
 }
 .swatch-up { background: var(--buy); }
 .swatch-down { background: var(--sell); }
+.swatch-ma1 { background: var(--ma1); }
 .swatch-ma5 { background: var(--ma5); }
 .swatch-ma10 { background: var(--ma10); }
 .swatch-ma20 { background: var(--ma20); }
@@ -118,6 +119,7 @@ input[type="number"], input[type="text"], input[type="time"] {
 .chart .candle-up { fill: var(--buy); stroke: var(--buy); }
 .chart .candle-down { fill: var(--sell); stroke: var(--sell); }
 .chart .candle-warmup { opacity: .4; }  /* 세션 시작 전 워밍업 이력 — 반투명 */
+.chart .ma1 { fill: none; stroke: var(--ma1); stroke-width: 1.2; opacity: .85; }
 .chart .ma5 { fill: none; stroke: var(--ma5); stroke-width: 2; }
 .chart .ma10 { fill: none; stroke: var(--ma10); stroke-width: 1.5; stroke-dasharray: 4 2; }
 .chart .ma20 { fill: none; stroke: var(--ma20); stroke-width: 2; stroke-dasharray: 5 3; }

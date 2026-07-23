@@ -334,8 +334,9 @@
     }
 
     const closes = candles.map((c) => c.c);
-    // 표시 이동평균 5/10/20/50 — 100/200일선은 판단용으로만 계산(차트 창이 60봉이라 미표시)
-    const maLines = [[5, "ma5"], [10, "ma10"], [20, "ma20"], [50, "ma50"]]
+    // 표시 이동평균 1/5/10/20/50 — MA1은 종가 연결선(캔들이 흔들려도 흐름이 보이게),
+    // 100/200일선은 판단용으로만 계산(차트 창이 60봉이라 미표시)
+    const maLines = [[1, "ma1"], [5, "ma5"], [10, "ma10"], [20, "ma20"], [50, "ma50"]]
       .map(([p, cls]) => [movingAvg(closes, p), cls]);
     let min = Math.min(...candles.map((c) => c.l));
     let max = Math.max(...candles.map((c) => c.h));
