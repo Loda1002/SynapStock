@@ -22,7 +22,7 @@ def make_agent(**strategy_kwargs) -> TradingAgent:
         allowed_symbols=[SYMBOL],
     ).sign(kp)
     strategy = Strategy(
-        buy_below=Decimal("178"), sell_above=Decimal("185"),
+        buy_dip_pct=Decimal("2"), take_profit_pct=Decimal("3"),
         spend_per_trade_usdc=Decimal("30"), mode="dca",
         dca_amount_usdc=Decimal("10"), **strategy_kwargs,
     )

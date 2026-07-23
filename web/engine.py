@@ -34,8 +34,8 @@ from web import events as ev
 from web.briefing import generate_briefing_text
 from web.events import EventBus
 
-# 데모 규칙 기본값 — run_demo.py 의 Strategy 와 동일 (한도 설정 화면은 P2 A3)
-DEFAULT_RULES = {"buy_below": "178", "sell_above": "185", "spend_per_trade": "30"}
+# 데모 규칙 기본값 — 지표 기준 (매수: MA5 −%, 매도: 평단 +%). run_demo.py 와 동일.
+DEFAULT_RULES = {"buy_dip_pct": "2", "take_profit_pct": "3", "spend_per_trade": "30"}
 
 MAX_DECISIONS = 500   # A6 타임라인 메모리 상한
 MAX_PRICE_POINTS = 120
@@ -236,8 +236,8 @@ class TradingEngine:
         auth = PaymentAuthorizer(mandate, agent_kp=trading_kp)
 
         strategy = Strategy(
-            buy_below=Decimal(DEFAULT_RULES["buy_below"]),
-            sell_above=Decimal(DEFAULT_RULES["sell_above"]),
+            buy_dip_pct=Decimal(DEFAULT_RULES["buy_dip_pct"]),
+            take_profit_pct=Decimal(DEFAULT_RULES["take_profit_pct"]),
             spend_per_trade_usdc=Decimal(DEFAULT_RULES["spend_per_trade"]),
             mode=strat_type,
             dca_unit=dca_unit,

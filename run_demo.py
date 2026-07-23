@@ -111,7 +111,7 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
 
     # --- 에이전트 구성 ---
     strategy = Strategy(
-        buy_below=Decimal("178"), sell_above=Decimal("185"),
+        buy_dip_pct=Decimal("2"), take_profit_pct=Decimal("3"),
         spend_per_trade_usdc=Decimal("30"),
     )
     trading = TradingAgent(trading_kp, authorizer, strategy, CFG.usdc_decimals, CFG.network,

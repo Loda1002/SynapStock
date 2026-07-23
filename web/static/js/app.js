@@ -171,7 +171,7 @@
     const strat = s.strategy || { type: "condition" };
     const ruleText = strat.type === "dca"
       ? `적립형: ${dcaSchedule(strat)} ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`
-      : `조건형: ${s.symbol} 이 ${s.rules.buy_below} USDC 이하면 ${s.rules.spend_per_trade} USDC 어치 매수, ${s.rules.sell_above} USDC 이상이면 전량 매도`;
+      : `조건형: ${s.symbol} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${s.rules.spend_per_trade} USDC 어치 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
     el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc}) · 브로커 수수료 ${feePct}%`;
 
     el.symbol.textContent = s.symbol;
@@ -309,7 +309,8 @@
   function drawChart() {
     const svg = el.chart;
     svg.textContent = "";
-    const isDaily = candles.some((c) => c.t);
+    // 일봉 판별: ts 가 날짜만(YYYY-MM-DD)이면 실데이터 일봉, ISO 시각이면 목 틱 집계
+    const isDaily = candles.some((c) => c.t && !c.t.includes("T"));
     const warmCount = candles.filter((c) => c.w).length;
     el.candleInfo.textContent = candles.length
       ? (isDaily

@@ -19,10 +19,14 @@ from shared.models import Position
 PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 아래 사용자 규칙을 엄격히 적용해
 매수(buy)/매도(sell)/보류(hold)를 판단한다. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
 
-[사용자 규칙]
-- 가격이 {buy_below} USDC 이하이고 예산이 남아 있으면 매수를 고려한다
-- 가격이 {sell_above} USDC 이상이고 보유 수량이 있으면 매도를 고려한다
+[사용자 규칙 — 지표 기준]
+- 매수: 현재가가 5일 이동평균(MA5) 대비 {buy_dip_pct}% 이상 낮으면(즉 {buy_threshold} USDC 이하) 매수를 고려한다
+- 매도: 현재가가 보유 평균단가 대비 {take_profit_pct}% 이상 높으면(즉 {take_profit_line}) 매도를 고려한다
 - 1회 매수 금액은 {spend} USDC 를 넘지 않는다
+- 매수·매도 조건이 동시에 성립하면 이익 확정(매도)이 우선이다
+
+[지표]
+- MA5: {ma5} USDC · MA20: {ma20}
 
 [현재 상태]
 - 종목: {symbol}
@@ -186,15 +190,23 @@ class GeminiDecider:
         remaining_usdc: Decimal,
         position: Position,
         fee_bps: int = 0,
+        indicators: dict | None = None,
     ) -> Decision:
         remaining = int(self._cooldown_until - time.time())
         if remaining > 0:
             raise RuntimeError(f"무료 티어 한도 초과 — 쿨다운 {remaining}초 남음(자동 재시도)")
 
+        ind = indicators or {}
+        tp = ind.get("take_profit")
         fee_rate = Decimal(fee_bps) / Decimal(10000)
         prompt = PROMPT.format(
-            buy_below=strategy.buy_below,
-            sell_above=strategy.sell_above,
+            buy_dip_pct=strategy.buy_dip_pct,
+            take_profit_pct=strategy.take_profit_pct,
+            buy_threshold=ind.get("buy_threshold", "-"),
+            take_profit_line=(f"{tp} USDC 이상" if tp is not None
+                              else "현재 보유 없음 — 매도 불가"),
+            ma5=ind.get("ma5", "-"),
+            ma20=ind.get("ma20") or "-(워밍업 부족)",
             spend=strategy.spend_per_trade_usdc,
             symbol=symbol,
             price=price,

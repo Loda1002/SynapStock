@@ -35,14 +35,19 @@ class Decision:
 
 @dataclass
 class Strategy:
-    """매매 전략 — condition(조건형, 임계값+Gemini 판단) / dca(적립형, 주기 정액 매수).
+    """매매 전략 — condition(조건형, 지표 규칙+Gemini 판단) / dca(적립형, 주기 정액 매수).
+
+    조건형 규칙(2026-07-23 지표 기준 전환 — 절대가 178/185 는 목 시세 전용이었음):
+      매수 = 현재가가 5일 이동평균(MA5) 대비 buy_dip_pct% 이상 낮을 때 (싸졌을 때)
+      매도 = 현재가가 보유 평균단가 대비 take_profit_pct% 이상 높을 때 (익절)
+    어떤 종목·가격대에도 동작하며, % 값은 사용자 설정값이다.
 
     B7: 적립형은 판단 없이 주기마다 정액 매수만 한다(매도 없음).
     주기 기준(dca_unit)은 사람이 고른다 — ticks(N틱마다) / minutes(N분마다) /
     daily(매일 지정 시각). AP2 mandate 검사는 어느 모드든 같은 결제 경로를 지난다."""
-    buy_below: Decimal
-    sell_above: Decimal
-    spend_per_trade_usdc: Decimal
+    buy_dip_pct: Decimal = Decimal("2")       # 매수: MA5 대비 −N%
+    take_profit_pct: Decimal = Decimal("3")   # 매도: 평단 대비 +N%
+    spend_per_trade_usdc: Decimal = Decimal("30")
     mode: str = "condition"                    # "condition" / "dca"
     dca_unit: str = "ticks"                    # "ticks" / "minutes" / "daily"
     dca_every_ticks: int = 5                   # ticks: N틱마다
@@ -86,10 +91,32 @@ class TradingAgent:
         """재생 피드의 워밍업 봉 종가를 주입 — 첫 틱부터 MA5/MA20 이 계산되게 한다."""
         self._history = list(prices)[-self.HISTORY_MAX:]
 
+    # ---------- 지표 (규칙·Gemini 판단 공용) ----------
+
+    def _ma(self, period: int) -> Optional[Decimal]:
+        """단순 이동평균 — _history(현재가 포함) 마지막 period 개. 부족하면 None."""
+        if len(self._history) < period:
+            return None
+        window = self._history[-period:]
+        return (sum(window) / Decimal(period)).quantize(Decimal("0.01"))
+
+    def indicators(self) -> dict:
+        """현재 틱 지표 묶음 — decide() 안(현재가 append 이후)에서 호출한다.
+
+        buy_threshold = MA5 × (1 − buy_dip_pct%) / take_profit = 평단 × (1 + take_profit_pct%).
+        MA 미성립(워밍업)이나 무보유면 해당 값은 None."""
+        s = self.strategy
+        ma5, ma20 = self._ma(5), self._ma(20)
+        buy_th = ((ma5 * (1 - s.buy_dip_pct / 100)).quantize(Decimal("0.01"))
+                  if ma5 is not None else None)
+        pos = self.position
+        tp = ((pos.avg_price_usdc * (1 + s.take_profit_pct / 100)).quantize(Decimal("0.01"))
+              if pos.quantity > 0 and pos.avg_price_usdc > 0 else None)
+        return {"ma5": ma5, "ma20": ma20, "buy_threshold": buy_th, "take_profit": tp}
+
     # 1) 판단 — 적립형이면 스케줄 매수, 조건형이면 Gemini(있으면) → 실패 시 규칙 폴백
     def decide(self, symbol: str, price: Decimal) -> Decision:
         self.position.symbol = symbol
-        history = list(self._history)
         self._history.append(price)
         if len(self._history) > self.HISTORY_MAX:
             self._history.pop(0)
@@ -97,21 +124,26 @@ class TradingAgent:
         if self.strategy.mode == "dca":
             return self._decide_dca()
 
+        ind = self.indicators()
+        if ind["buy_threshold"] is None:
+            # MA5 미성립 — 지표 워밍업 (재생 피드는 워밍업 주입으로 첫 틱부터 성립)
+            return Decision("hold", f"지표 워밍업 — MA5 계산까지 {5 - len(self._history)}봉 더 필요")
+
         if self.brain is not None:
             try:
                 d = self.brain.decide(
-                    symbol, price, history[-8:], self.strategy,
+                    symbol, price, self._history[-9:-1], self.strategy,
                     self.auth.remaining_usdc, self.position,
-                    fee_bps=self.fee_bps,
+                    fee_bps=self.fee_bps, indicators=ind,
                 )
                 return self._sanitize(d)
             except Exception as e:
-                d = self._decide_by_rule(symbol, price)
+                d = self._decide_by_rule(symbol, price, ind)
                 d.source = "rule-fallback"
                 detail = str(e).replace("\n", " ")[:100]  # 실제 원인 표면화 (예: 429 쿼터 초과)
                 d.reason += f" — Gemini 호출 실패({type(e).__name__}: {detail}) → 규칙 폴백"
                 return d
-        return self._decide_by_rule(symbol, price)
+        return self._decide_by_rule(symbol, price, ind)
 
     # B7 적립형 — 가격 판단 없이 주기(틱/분/매일 시각)마다 정액 매수 (매도 없음)
     def _dca_due(self) -> tuple[bool, str]:
@@ -175,13 +207,22 @@ class TradingAgent:
             return f"매일 {s.dca_at_time}"
         return f"{s.dca_every_ticks}틱마다"
 
-    def _decide_by_rule(self, symbol: str, price: Decimal) -> Decision:
-        if price <= self.strategy.buy_below and self.auth.remaining_usdc > 0:
-            spend = min(self.strategy.spend_per_trade_usdc, self.auth.remaining_usdc)
-            return Decision("buy", f"가격 {price} ≤ 매수기준 {self.strategy.buy_below}", spend)
-        if price >= self.strategy.sell_above and self.position.quantity > 0:
-            return Decision("sell", f"가격 {price} ≥ 매도기준 {self.strategy.sell_above}")
-        return Decision("hold", f"조건 미충족 (가격 {price})")
+    def _decide_by_rule(self, symbol: str, price: Decimal, ind: dict) -> Decision:
+        """지표 규칙 — 익절(매도)을 먼저 검사한다: 급반등 구간에서 매수·매도 조건이
+        동시에 성립하면 이익 확정이 우선이다."""
+        s = self.strategy
+        tp, buy_th = ind["take_profit"], ind["buy_threshold"]
+        if tp is not None and price >= tp:
+            return Decision(
+                "sell",
+                f"가격 {price} ≥ 익절기준 {tp} (평단 {self.position.avg_price_usdc} +{s.take_profit_pct}%)")
+        if price <= buy_th and self.auth.remaining_usdc > 0:
+            spend = min(s.spend_per_trade_usdc, self.auth.remaining_usdc)
+            return Decision(
+                "buy", f"가격 {price} ≤ 매수기준 {buy_th} (MA5 {ind['ma5']} −{s.buy_dip_pct}%)", spend)
+        hold = f"조건 미충족 — 가격 {price} · 매수기준 {buy_th}(MA5−{s.buy_dip_pct}%)"
+        hold += f" · 익절기준 {tp}" if tp is not None else " · 보유 없음(매도 조건 없음)"
+        return Decision("hold", hold)
 
     def _sanitize(self, d: Decision) -> Decision:
         """Gemini 응답을 한도 안으로 강제 (AP2 mandate 가 최종 관문이지만 이중 방어)."""
