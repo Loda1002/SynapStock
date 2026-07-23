@@ -32,7 +32,14 @@
       <option value="dca">적립형 (주기 정액 매수)</option>
     </select>
     <span class="dca-params hidden" data-dca-params>
-      <input data-dca-ticks type="number" min="1" step="1" value="5" aria-label="적립 주기(틱)">틱마다
+      <select data-dca-unit aria-label="적립 주기 기준">
+        <option value="ticks">틱 기준</option>
+        <option value="minutes">시간 기준</option>
+        <option value="daily">매일 지정 시각</option>
+      </select>
+      <span data-dca-ticks-wrap><input data-dca-ticks type="number" min="1" step="1" value="5" aria-label="적립 주기(틱)">틱마다</span>
+      <span class="hidden" data-dca-minutes-wrap><input data-dca-minutes type="number" min="1" step="1" value="60" aria-label="적립 주기(분)">분마다</span>
+      <span class="hidden" data-dca-time-wrap>매일 <input data-dca-time type="time" value="09:00" aria-label="적립 시각"></span>
       <input data-dca-amount type="number" min="0" step="any" value="10" aria-label="회당 금액(USDC)">USDC
     </span>
     <button class="btn" data-btn-start>▶ 세션 시작</button>

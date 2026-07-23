@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -36,13 +37,17 @@ class Decision:
 class Strategy:
     """매매 전략 — condition(조건형, 임계값+Gemini 판단) / dca(적립형, 주기 정액 매수).
 
-    B7: 적립형은 판단 없이 N틱마다 정액 매수만 한다(매도 없음).
-    AP2 mandate 검사는 두 모드 모두 동일한 결제 경로를 그대로 통과한다."""
+    B7: 적립형은 판단 없이 주기마다 정액 매수만 한다(매도 없음).
+    주기 기준(dca_unit)은 사람이 고른다 — ticks(N틱마다) / minutes(N분마다) /
+    daily(매일 지정 시각). AP2 mandate 검사는 어느 모드든 같은 결제 경로를 지난다."""
     buy_below: Decimal
     sell_above: Decimal
     spend_per_trade_usdc: Decimal
     mode: str = "condition"                    # "condition" / "dca"
-    dca_every_ticks: int = 5                   # 적립형: N틱마다
+    dca_unit: str = "ticks"                    # "ticks" / "minutes" / "daily"
+    dca_every_ticks: int = 5                   # ticks: N틱마다
+    dca_every_minutes: int = 60                # minutes: N분마다
+    dca_at_time: str = "09:00"                 # daily: 매일 HH:MM (서버 로컬 시각)
     dca_amount_usdc: Decimal = Decimal("10")   # 적립형: 회당 정액
 
 
@@ -66,8 +71,11 @@ class TradingAgent:
         self.brain = brain
         self.fee_bps = fee_bps
         self._history: list[Decimal] = []  # 직전 시세 (Gemini 판단 근거)
-        self._dca_tick = 0                 # B7 적립형: 다음 매수까지 틱 카운터
+        self._dca_tick = 0                 # B7 적립형(ticks): 다음 매수까지 틱 카운터
         self._dca_round = 0                # B7 적립형: 누적 회차
+        self._dca_next_at: Optional[datetime] = None  # 적립형(minutes): 다음 집행 시각
+        self._dca_last_date = ""           # 적립형(daily): 마지막 집행 날짜
+        self._now = datetime.now           # 테스트에서 가짜 시계로 교체 가능
 
     @property
     def pubkey(self) -> Pubkey:
@@ -100,16 +108,46 @@ class TradingAgent:
                 return d
         return self._decide_by_rule(symbol, price)
 
-    # B7 적립형 — 가격 판단 없이 N틱마다 정액 매수 (매도 없음)
-    def _decide_dca(self) -> Decision:
-        every = max(1, self.strategy.dca_every_ticks)
-        amount = self.strategy.dca_amount_usdc
+    # B7 적립형 — 가격 판단 없이 주기(틱/분/매일 시각)마다 정액 매수 (매도 없음)
+    def _dca_due(self) -> tuple[bool, str]:
+        """이번 틱이 적립 시점인지 — (실행 여부, 대기 사유)."""
+        s = self.strategy
+        if s.dca_unit == "minutes":
+            every = max(1, s.dca_every_minutes)
+            now = self._now()
+            if self._dca_next_at is None:
+                self._dca_next_at = now          # 세션 시작 직후 1회차를 바로 집행
+            if now < self._dca_next_at:
+                left = int((self._dca_next_at - now).total_seconds())
+                return False, f"적립 대기 — 다음 정액 매수까지 {left // 60}분 {left % 60}초"
+            self._dca_next_at = now + timedelta(minutes=every)
+            return True, ""
+        if s.dca_unit == "daily":
+            now = self._now()
+            try:
+                hh, mm = (int(v) for v in s.dca_at_time.split(":"))
+                target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+            except ValueError:
+                return False, f"적립 보류 — 시각 형식 오류({s.dca_at_time}), HH:MM 이어야 합니다"
+            today = now.strftime("%Y-%m-%d")
+            if self._dca_last_date == today:
+                return False, f"적립 대기 — 오늘({today}) {s.dca_at_time} 정액 매수 완료, 내일 재개"
+            if now < target:
+                return False, f"적립 대기 — 매일 {s.dca_at_time} 정액 매수 (오늘 아직 미도래)"
+            self._dca_last_date = today
+            return True, ""
+        every = max(1, s.dca_every_ticks)        # 기본: 틱 기준
         self._dca_tick += 1
         if self._dca_tick < every:
-            return Decision(
-                "hold", f"적립 대기 — 다음 정액 매수까지 {every - self._dca_tick}틱",
-                source="dca")
+            return False, f"적립 대기 — 다음 정액 매수까지 {every - self._dca_tick}틱"
         self._dca_tick = 0
+        return True, ""
+
+    def _decide_dca(self) -> Decision:
+        amount = self.strategy.dca_amount_usdc
+        due, wait_reason = self._dca_due()
+        if not due:
+            return Decision("hold", wait_reason, source="dca")
         if self.auth.remaining_usdc <= 0:
             return Decision("hold", "적립 보류 — 예산 소진", source="dca")
         if amount > self.auth.remaining_usdc:
@@ -120,8 +158,17 @@ class TradingAgent:
         self._dca_round += 1
         return Decision(
             "buy",
-            f"적립식 {self._dca_round}회차 — {every}틱마다 {amount} USDC 정액 매수",
+            f"적립식 {self._dca_round}회차 — {self.dca_schedule_label()} {amount} USDC 정액 매수",
             amount, source="dca")
+
+    def dca_schedule_label(self) -> str:
+        """사람이 읽는 적립 주기 문구 (타임라인·로그·UI 공용)."""
+        s = self.strategy
+        if s.dca_unit == "minutes":
+            return f"{s.dca_every_minutes}분마다"
+        if s.dca_unit == "daily":
+            return f"매일 {s.dca_at_time}"
+        return f"{s.dca_every_ticks}틱마다"
 
     def _decide_by_rule(self, symbol: str, price: Decimal) -> Decision:
         if price <= self.strategy.buy_below and self.auth.remaining_usdc > 0:

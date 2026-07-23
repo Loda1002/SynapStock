@@ -76,9 +76,14 @@ async def get_decisions():
 # ---------- 컨트롤 API ----------
 
 class StrategyBody(BaseModel):
-    """B7 전략 선택 — condition(조건형) / dca(적립형: N틱마다 정액 매수)."""
+    """B7 전략 선택 — condition(조건형) / dca(적립형: 주기마다 정액 매수).
+
+    적립 주기 기준(dca_unit): ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM)."""
     type: str = "condition"
+    dca_unit: str = "ticks"
     dca_every_ticks: int = 5
+    dca_every_minutes: int = 60
+    dca_at_time: str = "09:00"
     dca_amount_usdc: str = "10"   # Decimal 정밀 변환용 문자열
 
 

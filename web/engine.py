@@ -117,13 +117,31 @@ class TradingEngine:
         strat_type = scfg.get("type", "condition")
         if strat_type not in ("condition", "dca"):
             raise EngineError("strategy.type 은 'condition' 또는 'dca' 여야 합니다.")
+        # 적립 주기 기준 — ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM)
+        dca_unit = scfg.get("dca_unit", "ticks")
+        if dca_unit not in ("ticks", "minutes", "daily"):
+            raise EngineError("적립 주기는 'ticks' / 'minutes' / 'daily' 중 하나여야 합니다.")
+        dca_at_time = str(scfg.get("dca_at_time", "09:00"))
         try:
             dca_every = int(scfg.get("dca_every_ticks", 5))
+            dca_minutes = int(scfg.get("dca_every_minutes", 60))
             dca_amount = Decimal(str(scfg.get("dca_amount_usdc", "10")))
         except (ValueError, InvalidOperation):
             raise EngineError("적립식 파라미터가 숫자 형식이 아닙니다.")
-        if strat_type == "dca" and (dca_every < 1 or dca_amount <= 0):
-            raise EngineError("적립식은 주기 1틱 이상, 회당 금액 0 초과여야 합니다.")
+        if strat_type == "dca":
+            if dca_amount <= 0:
+                raise EngineError("적립식 회당 금액은 0보다 커야 합니다.")
+            if dca_unit == "ticks" and dca_every < 1:
+                raise EngineError("적립 주기는 1틱 이상이어야 합니다.")
+            if dca_unit == "minutes" and dca_minutes < 1:
+                raise EngineError("적립 주기는 1분 이상이어야 합니다.")
+            if dca_unit == "daily":
+                try:
+                    hh, mm = (int(v) for v in dca_at_time.split(":"))
+                    if not (0 <= hh < 24 and 0 <= mm < 60):
+                        raise ValueError
+                except ValueError:
+                    raise EngineError("적립 시각은 HH:MM 형식(00:00~23:59)이어야 합니다.")
 
         usdc_mint = Pubkey.from_string(CFG.usdc_mint)
         if live and not CFG.stock_mint:
@@ -136,9 +154,12 @@ class TradingEngine:
 
         # 판단 두뇌 — run_demo 와 동일한 선택 로직 (Gemini, 실패 시 규칙 폴백)
         # 적립형(dca)은 판단 없이 스케줄 매수라 Gemini 를 쓰지 않는다
+        schedule_label = ({"minutes": f"{dca_minutes}분마다",
+                           "daily": f"매일 {dca_at_time}"}
+                          .get(dca_unit, f"{dca_every}틱마다"))
         brain = None
         if strat_type == "dca":
-            brain_label = f"적립식 스케줄 ({dca_every}틱마다 {dca_amount} USDC, Gemini 미사용)"
+            brain_label = f"적립식 스케줄 ({schedule_label} {dca_amount} USDC, Gemini 미사용)"
         elif CFG.gemini_api_key:
             try:
                 from agents.gemini_decider import GeminiDecider
@@ -164,7 +185,10 @@ class TradingEngine:
             sell_above=Decimal(DEFAULT_RULES["sell_above"]),
             spend_per_trade_usdc=Decimal(DEFAULT_RULES["spend_per_trade"]),
             mode=strat_type,
+            dca_unit=dca_unit,
             dca_every_ticks=dca_every,
+            dca_every_minutes=dca_minutes,
+            dca_at_time=dca_at_time,
             dca_amount_usdc=dca_amount,
         )
         trading = TradingAgent(
@@ -208,8 +232,12 @@ class TradingEngine:
         self.brain_label = brain_label
         self.strategy_info = {
             "type": strat_type,
+            "dca_unit": dca_unit,
             "dca_every_ticks": dca_every,
+            "dca_every_minutes": dca_minutes,
+            "dca_at_time": dca_at_time,
             "dca_amount_usdc": str(dca_amount),
+            "schedule_label": schedule_label,   # 사람이 읽는 주기 문구 (UI 공용)
         }
         self.tick_interval = CFG.web_tick_interval_sec
         self.last_archive_path = ""

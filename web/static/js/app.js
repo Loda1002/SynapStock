@@ -14,7 +14,13 @@
     modeSelect: $("[data-mode-select]"),
     strategySelect: $("[data-strategy-select]"),
     dcaParams: $("[data-dca-params]"),
+    dcaUnit: $("[data-dca-unit]"),
     dcaTicks: $("[data-dca-ticks]"),
+    dcaTicksWrap: $("[data-dca-ticks-wrap]"),
+    dcaMinutes: $("[data-dca-minutes]"),
+    dcaMinutesWrap: $("[data-dca-minutes-wrap]"),
+    dcaTime: $("[data-dca-time]"),
+    dcaTimeWrap: $("[data-dca-time-wrap]"),
     dcaAmount: $("[data-dca-amount]"),
     btnStart: $("[data-btn-start]"),
     btnStop: $("[data-btn-stop]"),
@@ -140,6 +146,15 @@
     });
   }
 
+  // 적립 주기 문구 — 서버가 준 schedule_label 우선(틱/분/매일 시각 공용)
+  function dcaSchedule(st) {
+    if (!st) return "";
+    if (st.schedule_label) return st.schedule_label;
+    if (st.dca_unit === "minutes") return `${st.dca_every_minutes}분마다`;
+    if (st.dca_unit === "daily") return `매일 ${st.dca_at_time}`;
+    return `${st.dca_every_ticks}틱마다`;
+  }
+
   function renderState(s) {
     lastState = s;
     const eng = s.engine || {};
@@ -150,7 +165,7 @@
     const feePct = s.fees ? (s.fees.fee_bps / 100) : 0;
     const strat = s.strategy || { type: "condition" };
     const ruleText = strat.type === "dca"
-      ? `적립형: ${strat.dca_every_ticks}틱마다 ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`
+      ? `적립형: ${dcaSchedule(strat)} ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`
       : `조건형: ${s.symbol} 이 ${s.rules.buy_below} USDC 이하면 ${s.rules.spend_per_trade} USDC 어치 매수, ${s.rules.sell_above} USDC 이상이면 전량 매도`;
     el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc}) · 브로커 수수료 ${feePct}%`;
 
@@ -209,7 +224,10 @@
     el.btnStop.disabled = !running;
     el.modeSelect.disabled = running;
     el.strategySelect.disabled = running;
+    el.dcaUnit.disabled = running;
     el.dcaTicks.disabled = running;
+    el.dcaMinutes.disabled = running;
+    el.dcaTime.disabled = running;
     el.dcaAmount.disabled = running;
     // 긴급정지·재개는 세션 실행 중에만 — 대기 중에는 비활성 (정지 상태는 세션 단위)
     el.pausedBadge.classList.toggle("hidden", s.trading_enabled || !running);
@@ -574,7 +592,7 @@
       case "engine_started": {
         const st = d.strategy || {};
         const stText = st.type === "dca"
-          ? `적립형(${st.dca_every_ticks}틱마다 ${st.dca_amount_usdc} USDC)` : "조건형";
+          ? `적립형(${dcaSchedule(st)} ${st.dca_amount_usdc} USDC)` : "조건형";
         const srcNote = st.type === "dca"
           ? "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용"
           : "판단 출처 gemini / rule";
@@ -637,16 +655,25 @@
     return r.json();
   }
 
-  el.strategySelect.addEventListener("change", () => {
+  function syncDcaInputs() {
     el.dcaParams.classList.toggle("hidden", el.strategySelect.value !== "dca");
-  });
+    const unit = el.dcaUnit.value;
+    el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
+    el.dcaMinutesWrap.classList.toggle("hidden", unit !== "minutes");
+    el.dcaTimeWrap.classList.toggle("hidden", unit !== "daily");
+  }
+  el.strategySelect.addEventListener("change", syncDcaInputs);
+  el.dcaUnit.addEventListener("change", syncDcaInputs);
   el.btnStart.addEventListener("click", async () => {
     el.btnStart.disabled = true;
     const s = await post("/api/engine/start", {
       mode: el.modeSelect.value,
       strategy: {
         type: el.strategySelect.value,
+        dca_unit: el.dcaUnit.value,
         dca_every_ticks: parseInt(el.dcaTicks.value, 10) || 5,
+        dca_every_minutes: parseInt(el.dcaMinutes.value, 10) || 60,
+        dca_at_time: el.dcaTime.value || "09:00",
         dca_amount_usdc: el.dcaAmount.value || "10",
       },
     });
