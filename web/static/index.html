@@ -46,7 +46,7 @@
   <section class="card" data-card="position">
     <h2>포지션</h2>
     <p class="big"><span data-pos-qty>0</span> <span class="unit" data-pos-symbol></span></p>
-    <p class="sub">평균단가 <span data-pos-avg>—</span> USDC</p>
+    <p class="sub">평균단가(수수료 포함) <span data-pos-avg>—</span> USDC</p>
   </section>
 
   <section class="card" data-card="budget">
@@ -63,6 +63,7 @@
     <h2>손익 (실현)</h2>
     <p class="big"><span data-pnl>0</span> <span class="unit">USDC</span></p>
     <p class="sub">수익률 <span data-return-pct>0</span>% · 누적 매수 <span data-cum-buy>0</span> USDC</p>
+    <p class="sub">브로커 수수료 <span data-fee-rate>—</span> · 누적 수수료 <span data-cum-fee>0</span> USDC <span class="unit">(브로커 수익)</span></p>
   </section>
 
   <section class="card card-wide" data-card="decisions">
@@ -81,12 +82,12 @@
       <table>
         <thead>
           <tr>
-            <th>시각</th><th>방향</th><th>수량</th><th>단가</th><th>총액(USDC)</th>
+            <th>시각</th><th>방향</th><th>수량</th><th>단가</th><th>수수료</th><th>총액(USDC)</th>
             <th>판단</th><th>상태</th><th>결제 tx</th><th>전달 tx</th>
           </tr>
         </thead>
         <tbody data-trades-body>
-          <tr class="empty-row"><td colspan="9">아직 거래가 없습니다 — 세션을 시작하세요.</td></tr>
+          <tr class="empty-row"><td colspan="10">아직 거래가 없습니다 — 세션을 시작하세요.</td></tr>
         </tbody>
       </table>
     </div>

@@ -41,7 +41,7 @@
 2. Cloud Run 배포 + Secret Manager(지갑키) + Firestore(포지션/영수증) — 사용자 GCP $300 크레딧 확보됨
 3. P3 대화형·감시(B1 자연어 규칙, B6 에이전트 챗, B4 리스크 가드) + 디자인 적용(시안 수령 후 `web/static/css/theme.css` 교체) + 멀티종목·멀티턴(여유 시)
 4. devnet 최종 검증: .env 전환 → setup → live → explorer 링크 증빙 (디스코드 SOL 요청 완료 0722 — **사용 시점은 로컬 UI/UX 적용 테스트 완료 후**, 사용자 결정)
-5. 제출물: README 병합 + 소개서 + 데모 영상 + public 전환 + 15분 리허설 (8/3 23:59)
+5. 제출물: README 병합 + 소개서 + 데모 영상 + public 전환 + 15분 리허설 (8/3 23:59) — **소개서 수익모델 수치 확정 시 수수료율 0.3% vs 0.1% 재검토를 사용자에게 물어볼 것**(`docs/feature_spec.md` 미결정 메모)
 
 ## 세션 운영
 

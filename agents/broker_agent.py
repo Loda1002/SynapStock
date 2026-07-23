@@ -7,7 +7,7 @@
 """
 from __future__ import annotations
 import uuid
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 from typing import Optional
 
 from solders.keypair import Keypair
@@ -30,6 +30,7 @@ class BrokerAgent:
         stock_mint: Optional[Pubkey],
         stock_decimals: int,
         network: str,
+        fee_bps: int = 0,   # A8 브로커 수수료 (30 = 0.3%) — 브로커 수익모델
     ):
         self.kp = keypair
         self.usdc_mint = usdc_mint
@@ -37,21 +38,33 @@ class BrokerAgent:
         self.stock_mint = stock_mint
         self.stock_decimals = stock_decimals
         self.network = network
+        self.fee_bps = fee_bps
 
     @property
     def pubkey(self) -> Pubkey:
         return self.kp.pubkey()
 
-    # 1) 견적 (매수: 예산 → 수량)
-    def quote(self, symbol: str, spend_usdc: Decimal, price_usdc: Decimal) -> Quote:
-        quantity = (spend_usdc / price_usdc).quantize(Decimal("0.0001"))
-        total = (quantity * price_usdc).quantize(Decimal("0.01"))
-        return Quote(symbol=symbol, price_usdc=price_usdc, quantity=quantity, total_usdc=total)
+    @property
+    def _fee_rate(self) -> Decimal:
+        return Decimal(self.fee_bps) / Decimal(10000)
 
-    # 1') 매도 견적 (수량 → 대금) — 브로커가 주식을 되사줌
+    # 1) 견적 (매수: 예산 → 수량) — 수수료 포함 총액이 spend_usdc 를 넘지 않게 수량을 내림
+    def quote(self, symbol: str, spend_usdc: Decimal, price_usdc: Decimal) -> Quote:
+        quantity = (spend_usdc / (price_usdc * (1 + self._fee_rate))).quantize(
+            Decimal("0.0001"), rounding=ROUND_DOWN)
+        subtotal = (quantity * price_usdc).quantize(Decimal("0.01"))
+        fee = (subtotal * self._fee_rate).quantize(Decimal("0.01"))
+        return Quote(symbol=symbol, price_usdc=price_usdc, quantity=quantity,
+                     total_usdc=subtotal + fee,   # 구매자 지불 총액 (AP2 검사 기준)
+                     subtotal_usdc=subtotal, fee_usdc=fee, fee_bps=self.fee_bps)
+
+    # 1') 매도 견적 (수량 → 대금) — 브로커가 되사주되 수수료를 대금에서 차감
     def sell_quote(self, symbol: str, quantity: Decimal, price_usdc: Decimal) -> Quote:
-        total = (quantity * price_usdc).quantize(Decimal("0.01"))
-        return Quote(symbol=symbol, price_usdc=price_usdc, quantity=quantity, total_usdc=total)
+        subtotal = (quantity * price_usdc).quantize(Decimal("0.01"))
+        fee = (subtotal * self._fee_rate).quantize(Decimal("0.01"))
+        return Quote(symbol=symbol, price_usdc=price_usdc, quantity=quantity,
+                     total_usdc=subtotal - fee,   # 판매자 수령액
+                     subtotal_usdc=subtotal, fee_usdc=fee, fee_bps=self.fee_bps)
 
     # 2) payment-required 발행
     def make_payment_required(self, quote: Quote) -> PaymentRequired:
@@ -63,7 +76,7 @@ class BrokerAgent:
             asset=str(self.usdc_mint),
             amount=amount,
             pay_to=str(self.pubkey),
-            resource=f"STOCK:{quote.symbol} x{quote.quantity}",
+            resource=f"STOCK:{quote.symbol} x{quote.quantity} (fee {quote.fee_usdc} USDC incl.)",
             decimals=self.usdc_decimals,
         )
         return PaymentRequired(
@@ -84,7 +97,8 @@ class BrokerAgent:
             asset=str(self.stock_mint),          # 매도는 '주식'이 지불 자산
             amount=amount,
             pay_to=str(self.pubkey),
-            resource=f"USDC-BUYBACK:{quote.symbol} x{quote.quantity} @ {quote.price_usdc}",
+            resource=(f"USDC-BUYBACK:{quote.symbol} x{quote.quantity} @ {quote.price_usdc}"
+                      f" (fee {quote.fee_usdc} USDC deducted)"),
             decimals=self.stock_decimals,
         )
         return PaymentRequired(

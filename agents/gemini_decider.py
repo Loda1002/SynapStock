@@ -31,6 +31,11 @@ PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 
 - 남은 총예산: {remaining} USDC
 - 보유 수량: {position_qty} (평균단가 {position_avg} USDC)
 
+[거래 비용 — 브로커 수수료 {fee_pct}%]
+- 매수 시 실제 지불액 = 대금 + 수수료 (실효 매수가 {eff_buy} USDC/주)
+- 매도 시 실제 수령액 = 대금 - 수수료 (실효 매도가 {eff_sell} USDC/주)
+- 수수료를 반영한 실효 가격 기준으로 손익을 판단하라
+
 규칙 위반 판단은 금지. 가격 흐름을 근거로 한국어 한 문장의 이유를 만들어라.
 JSON 만 출력: {{"action":"buy"|"sell"|"hold","reason":"한국어 한 문장","spend_usdc":숫자}}"""
 
@@ -64,6 +69,7 @@ class GeminiDecider:
         strategy: Strategy,
         remaining_usdc: Decimal,
         position: Position,
+        fee_bps: int = 0,
     ) -> Decision:
         from google.genai import types
 
@@ -71,6 +77,7 @@ class GeminiDecider:
         if remaining > 0:
             raise RuntimeError(f"무료 티어 한도 초과 — 쿨다운 {remaining}초 남음(자동 재시도)")
 
+        fee_rate = Decimal(fee_bps) / Decimal(10000)
         prompt = PROMPT.format(
             buy_below=strategy.buy_below,
             sell_above=strategy.sell_above,
@@ -81,6 +88,9 @@ class GeminiDecider:
             remaining=remaining_usdc,
             position_qty=position.quantity,
             position_avg=position.avg_price_usdc,
+            fee_pct=fee_rate * 100,
+            eff_buy=(price * (1 + fee_rate)).quantize(Decimal("0.01")),
+            eff_sell=(price * (1 - fee_rate)).quantize(Decimal("0.01")),
         )
         try:
             resp = self.client.models.generate_content(

@@ -30,6 +30,10 @@ class Config:
     budget_usdc: Decimal = Decimal(_get("BUDGET_USDC", "100"))
     per_trade_max_usdc: Decimal = Decimal(_get("PER_TRADE_MAX_USDC", "50"))
 
+    # A8 브로커 수수료 (bps, 30 = 0.3%) — 소개서 수익모델 수치와 일치시킬 것
+    # ※ 0.1%(10) 인하안은 제출 전 재검토 (docs/feature_spec.md 미결정 메모)
+    broker_fee_bps: int = int(_get("BROKER_FEE_BPS", "30"))
+
     wallet_dir: str = _get("WALLET_DIR", "secrets")
 
     # Gemini (무료 티어) — 키가 있으면 매매 판단을 Gemini 가 수행, 없으면 규칙 기반

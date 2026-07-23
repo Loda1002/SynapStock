@@ -32,6 +32,8 @@
     pnl: $("[data-pnl]"),
     returnPct: $("[data-return-pct]"),
     cumBuy: $("[data-cum-buy]"),
+    feeRate: $("[data-fee-rate]"),
+    cumFee: $("[data-cum-fee]"),
     decisionFeed: $("[data-decision-feed]"),
     eventLog: $("[data-event-log]"),
     tradesBody: $("[data-trades-body]"),
@@ -78,7 +80,8 @@
     el.engineStatus.textContent = { idle: "엔진 대기", running: "엔진 실행 중", stopping: "종료 중…" }[eng.status] || eng.status;
     el.engineStatus.classList.toggle("badge-ok", eng.status === "running");
     el.brain.textContent = "판단: " + (eng.brain || "—");
-    el.rules.textContent = `규칙: ${s.symbol} 이 ${s.rules.buy_below} USDC 이하면 ${s.rules.spend_per_trade} USDC 어치 매수, ${s.rules.sell_above} USDC 이상이면 전량 매도 · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc})`;
+    const feePct = s.fees ? (s.fees.fee_bps / 100) : 0;
+    el.rules.textContent = `규칙: ${s.symbol} 이 ${s.rules.buy_below} USDC 이하면 ${s.rules.spend_per_trade} USDC 어치 매수, ${s.rules.sell_above} USDC 이상이면 전량 매도 · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc}) · 브로커 수수료 ${feePct}%`;
 
     el.symbol.textContent = s.symbol;
     el.posSymbol.textContent = s.symbol;
@@ -102,6 +105,10 @@
     el.pnl.className = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "";
     el.returnPct.textContent = s.pnl.return_pct;
     el.cumBuy.textContent = s.pnl.cum_buy_usdc;
+    if (s.fees) {
+      el.feeRate.textContent = feePct + "%";
+      el.cumFee.textContent = s.fees.cum_fee_usdc;
+    }
 
     if (s.wallets.trading) el.walletTrading.textContent = shortKey(s.wallets.trading);
     if (s.wallets.broker) el.walletBroker.textContent = shortKey(s.wallets.broker);
@@ -159,6 +166,12 @@
     tr.appendChild(make("td", "side-" + t.side, t.side === "buy" ? "매수" : "매도"));
     tr.appendChild(make("td", null, t.quantity));
     tr.appendChild(make("td", null, t.price_usdc));
+    const feeTd = make("td", null, t.fee_usdc !== undefined ? (t.side === "buy" ? "+" : "−") + t.fee_usdc : "—");
+    feeTd.title = t.subtotal_usdc !== undefined
+      ? (t.side === "buy" ? `소계 ${t.subtotal_usdc} + 수수료 ${t.fee_usdc} = ${t.total_usdc}`
+                          : `소계 ${t.subtotal_usdc} − 수수료 ${t.fee_usdc} = 수령 ${t.total_usdc}`)
+      : "";
+    tr.appendChild(feeTd);
     tr.appendChild(make("td", null, t.total_usdc + (t.realized_pnl_usdc ? ` (실현 ${num(t.realized_pnl_usdc) >= 0 ? "+" : ""}${t.realized_pnl_usdc})` : "")));
     const srcTd = make("td");
     srcTd.appendChild(make("span", "src src-" + (t.decision_source || "rule"), t.decision_source));
@@ -196,9 +209,14 @@
       case "decision":
         addDecision(d);
         break;
-      case "quote":
-        addLog(evt.ts, `[A2A 견적] (${d.side === "buy" ? "매수" : "매도"}) ${d.request} → ${d.quantity} ${d.symbol} @ ${d.price_usdc} = ${d.total_usdc} USDC`);
+      case "quote": {
+        const feePart = d.fee_usdc !== undefined
+          ? (d.side === "buy" ? `${d.subtotal_usdc} + 수수료 ${d.fee_usdc} = 총 ${d.total_usdc}`
+                              : `${d.subtotal_usdc} − 수수료 ${d.fee_usdc} = 수령 ${d.total_usdc}`)
+          : `${d.total_usdc}`;
+        addLog(evt.ts, `[A2A 견적] (${d.side === "buy" ? "매수" : "매도"}) ${d.request} → ${d.quantity} ${d.symbol} @ ${d.price_usdc} = ${feePart} USDC`);
         break;
+      }
       case "x402_required":
         addLog(evt.ts, `[x402 ① 요구] ${d.order_id} — ${d.resource} · 수취 ${shortKey(d.pay_to)}`, "log-muted");
         break;

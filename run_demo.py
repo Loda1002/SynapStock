@@ -114,10 +114,13 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
         buy_below=Decimal("178"), sell_above=Decimal("185"),
         spend_per_trade_usdc=Decimal("30"),
     )
-    trading = TradingAgent(trading_kp, authorizer, strategy, CFG.usdc_decimals, CFG.network, brain=brain)
+    trading = TradingAgent(trading_kp, authorizer, strategy, CFG.usdc_decimals, CFG.network,
+                           brain=brain, fee_bps=CFG.broker_fee_bps)
     broker = BrokerAgent(
         broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
+        fee_bps=CFG.broker_fee_bps,
     )
+    print(f"브로커 수수료: {CFG.broker_fee_bps} bps ({Decimal(CFG.broker_fee_bps) / 100}%) — 매수 가산·매도 차감")
     feed = MockPriceFeed()
 
     # --- 라이브면 클라이언트 준비 + 실행 전 잔액 스냅샷 ---
@@ -148,7 +151,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
                 qty = trading.position.quantity
                 quote = broker.sell_quote(symbol, qty, price)
                 print(f"  [A2A] Trading→Broker: '{symbol} {qty} 주 되사줘'")
-                print(f"        Broker 제안: {quote.quantity} {symbol} @ {quote.price_usdc} = {quote.total_usdc} USDC")
+                print(f"        Broker 제안: {quote.quantity} {symbol} @ {quote.price_usdc}"
+                      f" = {quote.subtotal_usdc} − 수수료 {quote.fee_usdc} = 수령 {quote.total_usdc} USDC")
 
                 required = broker.make_stock_required(quote)
                 print(f"  [x402 #1 payment-required(매도)] order={required.order_id} "
@@ -182,6 +186,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
                     "symbol": symbol,
                     "quantity": str(qty),
                     "price_usdc": str(quote.price_usdc),
+                    "subtotal_usdc": str(quote.subtotal_usdc),
+                    "fee_usdc": str(quote.fee_usdc),
                     "total_usdc": str(quote.total_usdc),
                     "status": completed.status,
                     "confirmed": completed.confirmed,
@@ -198,7 +204,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
             # (A2A #0) 견적 요청 → Broker 견적
             quote = broker.quote(symbol, decision.spend_usdc, price)
             print(f"  [A2A] Trading→Broker: '{symbol} 을 {decision.spend_usdc} USDC 어치 견적 줘'")
-            print(f"        Broker 견적: {quote.quantity} {symbol} @ {quote.price_usdc} = {quote.total_usdc} USDC")
+            print(f"        Broker 견적: {quote.quantity} {symbol} @ {quote.price_usdc}"
+                  f" = {quote.subtotal_usdc} + 수수료 {quote.fee_usdc} = 총 {quote.total_usdc} USDC")
 
             # (A2A #1) payment-required
             required = broker.make_payment_required(quote)
@@ -226,8 +233,11 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
             if completed.delivery_tx_signature:
                 print(f"        주식 전달 tx: {completed.delivery_tx_signature}")
 
+            # 평단은 수수료 포함 실효 단가로 반영 (웹 엔진과 동일)
+            eff_price = ((quote.total_usdc / quote.quantity).quantize(Decimal("0.01"))
+                         if quote.quantity > 0 else price)
             receipt = trading.on_completed(
-                completed, symbol, quote.quantity, price, quote.total_usdc,
+                completed, symbol, quote.quantity, eff_price, quote.total_usdc,
             )
             print(f"  [영수증] {receipt.side} {receipt.quantity} {receipt.symbol} "
                   f"/ {receipt.total_usdc} USDC / 확정={receipt.confirmed}"
@@ -241,6 +251,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
                 "symbol": symbol,
                 "quantity": str(quote.quantity),
                 "price_usdc": str(quote.price_usdc),
+                "subtotal_usdc": str(quote.subtotal_usdc),
+                "fee_usdc": str(quote.fee_usdc),
                 "total_usdc": str(quote.total_usdc),
                 "status": completed.status,
                 "confirmed": completed.confirmed,
@@ -296,6 +308,11 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
                 "budget_total_usdc": str(CFG.budget_usdc),
                 "per_trade_max_usdc": str(CFG.per_trade_max_usdc),
                 "signature": open_mandate.signature,
+            },
+            "broker_fee": {
+                "fee_bps": CFG.broker_fee_bps,
+                "total_fees_usdc": str(sum(
+                    (Decimal(t["fee_usdc"]) for t in trades if t["confirmed"]), Decimal(0))),
             },
             "balances_before": snap_before,
             "balances_after": snap_after,

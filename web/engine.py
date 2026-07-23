@@ -65,6 +65,7 @@ class TradingEngine:
         self.price_history: List[Dict[str, str]] = []
         self.realized_pnl = Decimal(0)              # A7 실현손익
         self.cum_buy_usdc = Decimal(0)              # A7 수익률 분모(누적 매수금액)
+        self.total_fees = Decimal(0)                # A8 누적 브로커 수수료 (수익모델 증명)
         self.started_at: str = ""
         self.brain_label: str = ""
 
@@ -129,9 +130,11 @@ class TradingEngine:
             spend_per_trade_usdc=Decimal(DEFAULT_RULES["spend_per_trade"]),
         )
         trading = TradingAgent(
-            trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain)
+            trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain,
+            fee_bps=CFG.broker_fee_bps)
         broker = BrokerAgent(
-            broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network)
+            broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
+            fee_bps=CFG.broker_fee_bps)
 
         client = None
         snap_before = None
@@ -158,6 +161,7 @@ class TradingEngine:
         self.price_history = []
         self.realized_pnl = Decimal(0)
         self.cum_buy_usdc = Decimal(0)
+        self.total_fees = Decimal(0)
         self.started_at = _now()
         self.brain_label = brain_label
         self.tick_interval = CFG.web_tick_interval_sec
@@ -175,6 +179,7 @@ class TradingEngine:
             "brain": brain_label,
             "budget_total_usdc": str(CFG.budget_usdc),
             "per_trade_max_usdc": str(CFG.per_trade_max_usdc),
+            "fee_bps": CFG.broker_fee_bps,
             "rules": DEFAULT_RULES,
             "mandate_verified": mandate.verify(),
             "wallets": {"trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
@@ -265,6 +270,8 @@ class TradingEngine:
             "request": f"'{symbol} 을 {decision.spend_usdc} USDC 어치 견적 줘'",
             "symbol": symbol, "quantity": str(quote.quantity),
             "price_usdc": str(quote.price_usdc), "total_usdc": str(quote.total_usdc),
+            "subtotal_usdc": str(quote.subtotal_usdc), "fee_usdc": str(quote.fee_usdc),
+            "fee_bps": quote.fee_bps,
         })
 
         required = self._broker.make_payment_required(quote)
@@ -291,9 +298,13 @@ class TradingEngine:
 
         completed = await self._broker.settle(
             submitted, required.requirements, quote.quantity, live=live, client=self._client)
-        self._trading.on_completed(completed, symbol, quote.quantity, price, quote.total_usdc)
+        # 평단은 수수료 포함 실효 단가(total/qty)로 반영 — 실현손익이 수수료 차감 후 순손익이 된다
+        eff_price = ((quote.total_usdc / quote.quantity).quantize(Decimal("0.01"))
+                     if quote.quantity > 0 else price)
+        self._trading.on_completed(completed, symbol, quote.quantity, eff_price, quote.total_usdc)
         if completed.status == "settled":
             self.cum_buy_usdc += quote.total_usdc
+            self.total_fees += quote.fee_usdc
 
         self._complete_trade("buy", symbol, quote.quantity, quote, completed, decision)
 
@@ -309,6 +320,8 @@ class TradingEngine:
             "request": f"'{symbol} {qty} 주 되사줘'",
             "symbol": symbol, "quantity": str(quote.quantity),
             "price_usdc": str(quote.price_usdc), "total_usdc": str(quote.total_usdc),
+            "subtotal_usdc": str(quote.subtotal_usdc), "fee_usdc": str(quote.fee_usdc),
+            "fee_bps": quote.fee_bps,
         })
 
         required = self._broker.make_stock_required(quote)
@@ -332,8 +345,10 @@ class TradingEngine:
 
         realized = None
         if completed.status == "settled":
+            # 수령액(수수료 차감)과 실효 평단(수수료 포함) 기준 → 순손익
             realized = (quote.total_usdc - avg_before * qty).quantize(Decimal("0.01"))
             self.realized_pnl += realized
+            self.total_fees += quote.fee_usdc
 
         self._complete_trade("sell", symbol, qty, quote, completed, decision, realized)
 
@@ -353,6 +368,9 @@ class TradingEngine:
             "symbol": symbol,
             "quantity": str(qty),
             "price_usdc": str(quote.price_usdc),
+            "subtotal_usdc": str(quote.subtotal_usdc),
+            "fee_usdc": str(quote.fee_usdc),
+            "fee_bps": quote.fee_bps,
             "total_usdc": str(quote.total_usdc),
             "status": completed.status,
             "confirmed": completed.confirmed,
@@ -431,6 +449,10 @@ class TradingEngine:
                 "per_trade_max_usdc": str(CFG.per_trade_max_usdc),
                 "signature": self._mandate.signature,
             },
+            "broker_fee": {  # A8: 수수료 합계 = 브로커 수익 (수익모델 증빙)
+                "fee_bps": CFG.broker_fee_bps,
+                "total_fees_usdc": str(self.total_fees),
+            },
             "balances_before": self._snap_before,
             "balances_after": snap_after,
             "trades": self.trades,
@@ -478,6 +500,10 @@ class TradingEngine:
                 "realized_usdc": str(self.realized_pnl),
                 "return_pct": str(return_pct),
                 "cum_buy_usdc": str(self.cum_buy_usdc),
+            },
+            "fees": {  # A8 수수료 투명화 — 브로커 수익모델 증명
+                "fee_bps": CFG.broker_fee_bps,
+                "cum_fee_usdc": str(self.total_fees),
             },
             "rules": DEFAULT_RULES,
             "counts": {"trades": len(self.trades), "decisions": len(self.decisions)},

@@ -48,7 +48,8 @@ class TradingAgent:
         strategy: Strategy,
         usdc_decimals: int,
         network: str,
-        brain=None,  # GeminiDecider (없으면 규칙 기반)
+        brain=None,       # GeminiDecider (없으면 규칙 기반)
+        fee_bps: int = 0,  # A8 브로커 수수료 — Gemini 에 실효 가격 근거로 제공
     ):
         self.kp = keypair
         self.auth = authorizer
@@ -57,6 +58,7 @@ class TradingAgent:
         self.network = network
         self.position = Position(symbol="")
         self.brain = brain
+        self.fee_bps = fee_bps
         self._history: list[Decimal] = []  # 직전 시세 (Gemini 판단 근거)
 
     @property
@@ -76,6 +78,7 @@ class TradingAgent:
                 d = self.brain.decide(
                     symbol, price, history, self.strategy,
                     self.auth.remaining_usdc, self.position,
+                    fee_bps=self.fee_bps,
                 )
                 return self._sanitize(d)
             except Exception as e:
