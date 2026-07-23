@@ -29,6 +29,7 @@ MANDATE_UPDATED = "mandate_updated"  # A3 한도 변경 (재서명, 변경 이�
 TRADING_PAUSED = "trading_paused"    # A2 긴급정지 (actor: human / risk-guard)
 TRADING_RESUMED = "trading_resumed"
 BALANCES = "balances"                # 라이브 온체인 잔액 스냅샷
+BRIEFING = "briefing"                # B2 데일리 브리핑 (Gemini 리포트/템플릿 폴백)
 ERROR = "error"
 
 

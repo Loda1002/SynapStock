@@ -47,6 +47,8 @@ class Config:
     web_port: int = int(_get("WEB_PORT", "8000"))
     # 시세 틱 간격(초) — Gemini 무료 티어 분당 호출 제한을 고려한 기본값
     web_tick_interval_sec: float = float(_get("WEB_TICK_INTERVAL_SEC", "8"))
+    # B2 데일리 브리핑 자동 생성 시각(HH:MM, 서버 로컬) — 장 마감 시각, 하루 1회
+    daily_briefing_time: str = _get("DAILY_BRIEFING_TIME", "16:00")
 
 
 CFG = Config()

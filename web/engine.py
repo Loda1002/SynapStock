@@ -31,6 +31,7 @@ from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy, Decision
 from run_demo import _load_or_new, explorer_tx_url, snapshot_balances
 from web import events as ev
+from web.briefing import generate_briefing_text
 from web.events import EventBus
 
 # 데모 규칙 기본값 — run_demo.py 의 Strategy 와 동일 (한도 설정 화면은 P2 A3)
@@ -74,6 +75,10 @@ class TradingEngine:
         self.started_at: str = ""
         self.brain_label: str = ""
         self.strategy_info: Dict[str, Any] = {"type": "condition"}  # B7 세션 전략
+        self.reject_count = 0                       # B2 브리핑용: AP2 거부 횟수
+        self.pause_count = 0                        # B2 브리핑용: 긴급정지 횟수
+        self.last_briefing: Optional[Dict[str, Any]] = None  # B2 최근 브리핑
+        self._last_daily_briefing_date = ""         # B2 장 마감 자동 생성 중복 방지
 
         # 세션 구성물 (start 에서 생성)
         self._task: Optional[asyncio.Task] = None
@@ -190,6 +195,8 @@ class TradingEngine:
         self.cum_buy_usdc = Decimal(0)
         self.total_fees = Decimal(0)
         self.mandate_history = []
+        self.reject_count = 0
+        self.pause_count = 0
         self.started_at = _now()
         self.brain_label = brain_label
         self.strategy_info = {
@@ -239,6 +246,7 @@ class TradingEngine:
         if self.trading_enabled:
             self.trading_enabled = False
             self.pause_info = {"actor": actor, "ts": _now()}
+            self.pause_count += 1
             self.bus.emit(ev.TRADING_PAUSED, {"actor": actor})
         return self.state_snapshot()
 
@@ -295,6 +303,101 @@ class TradingEngine:
             self.mandate_history.append(rec)  # 세션 아카이브에 포함될 변경 이력
         self.bus.emit(ev.MANDATE_UPDATED, rec)
         return self.state_snapshot()
+
+    # ---------- B2 데일리 브리핑 ----------
+
+    def _briefing_stats(self) -> Dict[str, Any]:
+        """브리핑 근거 데이터 — 현재(실행 중) 또는 직전 세션의 집계."""
+        settled = [t for t in self.trades if t["status"] == "settled"]
+        buys = [t for t in settled if t["side"] == "buy"]
+        sells = [t for t in settled if t["side"] == "sell"]
+        pos = self._trading.position if self._trading else None
+        return_pct = (
+            (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
+            if self.cum_buy_usdc > 0 else Decimal(0))
+        by_action: Dict[str, int] = {}
+        by_source: Dict[str, int] = {}
+        for d in self.decisions:
+            by_action[d["action"]] = by_action.get(d["action"], 0) + 1
+            by_source[d["source"]] = by_source.get(d["source"], 0) + 1
+        return {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "session_started_at": self.started_at,
+            "engine_status": self.status,
+            "mode": self.mode, "network": CFG.network, "symbol": CFG.stock_symbol,
+            "strategy": self.strategy_info,
+            "ticks": self.tick,
+            "buy_count": len(buys), "sell_count": len(sells),
+            "buy_total_usdc": str(sum((Decimal(t["total_usdc"]) for t in buys), Decimal(0))),
+            "sell_total_usdc": str(sum((Decimal(t["total_usdc"]) for t in sells), Decimal(0))),
+            "realized_pnl_usdc": str(self.realized_pnl),
+            "return_pct": str(return_pct),
+            "budget_total_usdc": str(self.budget_total),
+            "budget_remaining_usdc": str(self._auth.remaining_usdc if self._auth else self.budget_total),
+            "cum_fee_usdc": str(self.total_fees),
+            "ap2_reject_count": self.reject_count,
+            "pause_count": self.pause_count,
+            "position_qty": str(pos.quantity) if pos else "0",
+            "position_avg_usdc": str(pos.avg_price_usdc) if pos else "0",
+            "last_price_usdc": self.price_history[-1]["price"] if self.price_history else None,
+            "decisions_by_action": by_action,
+            "decisions_by_source": by_source,
+        }
+
+    async def generate_briefing(self, trigger: str = "manual") -> Dict[str, Any]:
+        """브리핑 생성 → BRIEFING 이벤트 + artifacts/briefings/ 저장.
+        trigger: manual(버튼) / session-end(세션 종료) / market-close(장 마감 시각)"""
+        if not self.trades and not self.decisions:
+            raise EngineError("브리핑할 데이터가 없습니다 — 먼저 세션을 실행하세요.")
+        stats = self._briefing_stats()
+        # Gemini 호출은 blocking — 이벤트 루프를 막지 않게 워커 스레드에서
+        text, source = await asyncio.to_thread(generate_briefing_text, stats)
+        rec: Dict[str, Any] = {"ts": _now(), "trigger": trigger, "source": source, "text": text}
+        try:
+            rec["archive"] = self._save_briefing(rec, stats)
+        except Exception as e:
+            rec["archive"] = ""
+            self.bus.emit(ev.ERROR, {"message": f"브리핑 저장 실패: {type(e).__name__}: {e}"})
+        self.last_briefing = rec
+        self.bus.emit(ev.BRIEFING, rec)
+        return rec
+
+    def _save_briefing(self, rec: Dict[str, Any], stats: Dict[str, Any]) -> str:
+        os.makedirs(os.path.join("artifacts", "briefings"), exist_ok=True)
+        # 초 단위 타임스탬프 — 같은 분에 여러 번(수동+자동) 생성해도 덮어쓰지 않게
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = os.path.join("artifacts", "briefings", f"{ts}_briefing.md")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(f"# 데일리 브리핑 {stats['date']}\n\n")
+            f.write(f"- 생성: {rec['ts']} / 트리거: {rec['trigger']} / 출처: {rec['source']}\n\n")
+            f.write(rec["text"] + "\n\n")
+            f.write("## 근거 데이터\n\n```json\n")
+            f.write(json.dumps(stats, ensure_ascii=False, indent=2, default=str))
+            f.write("\n```\n")
+        return path
+
+    async def _auto_briefing(self, trigger: str) -> None:
+        try:
+            await self.generate_briefing(trigger)
+        except EngineError:
+            pass  # 데이터 없음 — 조용히 스킵
+        except Exception as e:
+            self.bus.emit(ev.ERROR, {"message": f"자동 브리핑 실패: {type(e).__name__}: {e}"})
+
+    async def maybe_daily_briefing(self) -> None:
+        """장 마감 시각(DAILY_BRIEFING_TIME) 이후 하루 1회 자동 생성 — 서버 루프가 주기 호출."""
+        try:
+            hh, mm = CFG.daily_briefing_time.split(":")
+            now = datetime.now()
+            target = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+        except ValueError:
+            return  # 형식 오류면 자동 생성 비활성
+        today = now.strftime("%Y-%m-%d")
+        if now < target or self._last_daily_briefing_date == today:
+            return
+        self._last_daily_briefing_date = today  # 데이터가 없어도 오늘은 1회로 간주
+        if self.trades or self.decisions:
+            await self._auto_briefing("market-close")
 
     # ---------- 루프 ----------
 
@@ -367,6 +470,7 @@ class TradingEngine:
             blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
             submitted = self._trading.build_payment(required, blockhash)
         except MandateError as e:
+            self.reject_count += 1
             self.bus.emit(ev.MANDATE_REJECTED, {
                 "side": "buy", "order_id": required.order_id, "reason": str(e),
             })
@@ -495,6 +599,9 @@ class TradingEngine:
                 "trades": len(self.trades), "ticks": self.tick,
                 "archive": archive_path, "cross_check": cross,
             })
+            # B2: 세션 종료 시 자동 브리핑 — 백그라운드로 생성해 stop 응답을 막지 않는다
+            if self.trades or self.decisions:
+                asyncio.create_task(self._auto_briefing("session-end"))
 
     def _archive(self, snap_after: dict) -> tuple[str, Dict[str, Any]]:
         """run_demo 와 동일한 순변화 교차검증 + artifacts/tx/ 증빙 아카이브."""
@@ -590,6 +697,7 @@ class TradingEngine:
             },
             "rules": DEFAULT_RULES,
             "strategy": getattr(self, "strategy_info", None) or {"type": "condition"},
+            "last_briefing": self.last_briefing,  # B2 최근 브리핑 (새로고침 복원용)
             "counts": {"trades": len(self.trades), "decisions": len(self.decisions)},
             "wallets": {
                 "trading": str(self._trading_kp.pubkey()) if self._trading_kp else "",

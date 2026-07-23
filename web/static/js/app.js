@@ -52,6 +52,9 @@
     walletBroker: $("[data-wallet-broker]"),
     btnNotify: $("[data-btn-notify]"),
     toasts: $("[data-toasts]"),
+    btnBriefing: $("[data-btn-briefing]"),
+    briefingMeta: $("[data-briefing-meta]"),
+    briefingText: $("[data-briefing-text]"),
   };
 
   const MAX_FEED_ITEMS = 100;
@@ -129,6 +132,8 @@
 
     if (s.wallets.trading) el.walletTrading.textContent = shortKey(s.wallets.trading);
     if (s.wallets.broker) el.walletBroker.textContent = shortKey(s.wallets.broker);
+
+    if (s.last_briefing) renderBriefing(s.last_briefing);  // B2 새로고침 복원
 
     // A3 한도 설정 카드 — 입력 중(포커스)일 때는 값을 덮어쓰지 않는다
     const running = eng.status === "running";
@@ -224,6 +229,15 @@
       td.textContent = "—";
     }
     return td;
+  }
+
+  // ---------- B2 데일리 브리핑 ----------
+  const TRIGGER_LABEL = { "manual": "수동", "session-end": "세션 종료 자동", "market-close": "장 마감 자동" };
+  function renderBriefing(b) {
+    el.briefingMeta.textContent =
+      `${timeOf(b.ts)} 생성 · ${TRIGGER_LABEL[b.trigger] || b.trigger} · 출처 ${b.source === "gemini" ? "Gemini" : "템플릿 폴백"}` +
+      (b.archive ? ` · 저장 ${b.archive}` : "");
+    el.briefingText.textContent = b.text || "";
   }
 
   // ---------- A4 거래 알림 (토스트 + Web Notification) ----------
@@ -351,6 +365,11 @@
       case "balances":
         addLog(evt.ts, `[온체인 잔액·${d.stage === "before" ? "시작" : "종료"}] trading: ${d.balances.trading.usdc} USDC / ${d.balances.trading.stock} 주 · broker: ${d.balances.broker.usdc} USDC / ${d.balances.broker.stock} 주`, "log-muted");
         break;
+      case "briefing":
+        renderBriefing(d);
+        addLog(evt.ts, `[브리핑] ${TRIGGER_LABEL[d.trigger] || d.trigger} 생성 (출처: ${d.source})${d.archive ? ` · ${d.archive}` : ""}`, "log-ok");
+        notify(evt, "데일리 브리핑 도착", (d.text || "").slice(0, 80) + ((d.text || "").length > 80 ? "…" : ""), "ok");
+        break;
       case "error":
         addLog(evt.ts, `[오류] ${d.message}`, "log-danger");
         notify(evt, "오류", d.message, "danger");
@@ -424,6 +443,14 @@
       actor: "human",
     });
     if (s) renderState(s);
+  });
+  el.btnBriefing.addEventListener("click", async () => {
+    el.btnBriefing.disabled = true;
+    el.briefingMeta.textContent = "브리핑 생성 중… (Gemini 호출)";
+    const b = await post("/api/briefing");
+    if (b) renderBriefing(b);
+    else el.briefingMeta.textContent = "브리핑 생성 실패 — 세션 데이터가 있는지 확인하세요.";
+    el.btnBriefing.disabled = false;
   });
 
   // ---------- 시작 ----------

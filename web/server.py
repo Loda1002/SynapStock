@@ -24,9 +24,21 @@ bus = EventBus()
 engine = TradingEngine(bus)
 
 
+async def _daily_briefing_loop() -> None:
+    """B2: 장 마감 시각(DAILY_BRIEFING_TIME) 하루 1회 자동 브리핑 — 30초마다 시각 체크."""
+    while True:
+        await asyncio.sleep(30)
+        try:
+            await engine.maybe_daily_briefing()
+        except Exception:
+            pass  # 루프는 죽지 않는다 — 개별 실패는 엔진이 ERROR 이벤트로 알림
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    daily_task = asyncio.create_task(_daily_briefing_loop())
     yield
+    daily_task.cancel()
     # 서버 종료 시 실행 중 세션을 정리(라이브면 아카이브까지)
     if engine.status == "running":
         try:
@@ -122,6 +134,15 @@ async def update_mandate(body: MandateBody):
         raise HTTPException(status_code=400, detail="한도 값이 숫자 형식이 아닙니다.")
     try:
         return engine.update_limits(budget, per_trade, body.actor)
+    except EngineError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/briefing")
+async def create_briefing():
+    """B2 수동 '오늘 요약' — 현재(또는 직전) 세션 데이터로 브리핑 생성."""
+    try:
+        return await engine.generate_briefing(trigger="manual")
     except EngineError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
