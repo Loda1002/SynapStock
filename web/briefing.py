@@ -18,6 +18,7 @@ PROMPT = """너는 자율 주식매매 에이전트 서비스의 리포트 작�
 [작성 규칙]
 - 4~7문장, 친근한 존댓말. 마크다운·이모지·제목 없이 순수 문장으로만.
 - 반드시 포함: 거래 횟수(매수/매도), 실현손익과 수익률, 남은 예산, 누적 브로커 수수료.
+- 보유 수량이 남아 있으면 평가손익(unrealized_pnl_usdc)과 총자산(total_asset_usdc)도 언급하라.
 - AP2 거부(ap2_reject_count)나 긴급정지(pause_count)가 1건 이상이면 언급하고, 0이면 생략.
 - 숫자는 데이터에 있는 값만 사용하라(지어내기 금지). 단위는 USDC.
 """
@@ -33,6 +34,10 @@ def _fallback_text(stats: Dict[str, Any]) -> str:
         f"남은 예산은 {stats['budget_remaining_usdc']} USDC 입니다.",
         f"누적 브로커 수수료는 {stats['cum_fee_usdc']} USDC 입니다.",
     ]
+    if stats.get("position_qty") not in (None, "0"):
+        lines.append(
+            f"보유 {stats['position_qty']} 주의 평가손익은 {stats.get('unrealized_pnl_usdc')} USDC, "
+            f"총자산은 {stats.get('total_asset_usdc')} USDC 입니다.")
     if stats.get("ap2_reject_count"):
         lines.append(f"AP2 한도 거부가 {stats['ap2_reject_count']}건 있었습니다 (한도 밖 결제는 기계적으로 차단).")
     if stats.get("pause_count"):

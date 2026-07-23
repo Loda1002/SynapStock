@@ -321,6 +321,7 @@ class TradingEngine:
         return_pct = (
             (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
             if self.cum_buy_usdc > 0 else Decimal(0))
+        val = self._valuation(pos, self._auth.remaining_usdc if self._auth else self.budget_total)
         by_action: Dict[str, int] = {}
         by_source: Dict[str, int] = {}
         for d in self.decisions:
@@ -338,6 +339,9 @@ class TradingEngine:
             "sell_total_usdc": str(sum((Decimal(t["total_usdc"]) for t in sells), Decimal(0))),
             "realized_pnl_usdc": str(self.realized_pnl),
             "return_pct": str(return_pct),
+            "unrealized_pnl_usdc": val["unrealized_pnl_usdc"],   # 평가손익(미실현)
+            "position_value_usdc": val["position_net_value_usdc"],
+            "total_asset_usdc": val["total_asset_usdc"],
             "budget_total_usdc": str(self.budget_total),
             "budget_remaining_usdc": str(self._auth.remaining_usdc if self._auth else self.budget_total),
             "cum_fee_usdc": str(self.total_fees),
@@ -667,6 +671,33 @@ class TradingEngine:
 
     # ---------- 상태 스냅샷 (GET /api/state) ----------
 
+    def _valuation(self, pos, remaining: Decimal) -> Dict[str, Any]:
+        """평가손익(미실현) · 총자산 — 실현손익과 같은 기준으로 계산한다.
+
+        지금 전량 매도하면 받을 금액(수수료 차감) − 실효 평단 × 보유수량.
+        평단이 이미 매수 수수료를 포함하므로 이 값이 곧 수수료 반영 후 순손익이다.
+        총자산 = 가용 현금(AP2 잔여 예산) + 보유 주식의 매도 예상 수령액."""
+        qty = pos.quantity if pos else Decimal(0)
+        price = Decimal(self.price_history[-1]["price"]) if self.price_history else Decimal(0)
+        fee_rate = Decimal(CFG.broker_fee_bps) / Decimal(10000)
+        gross = (qty * price).quantize(Decimal("0.01"))
+        net = (qty * price * (1 - fee_rate)).quantize(Decimal("0.01"))
+        cost = ((pos.avg_price_usdc if pos else Decimal(0)) * qty).quantize(Decimal("0.01"))
+        unrealized = net - cost
+        pct = (unrealized / cost * 100).quantize(Decimal("0.01")) if cost > 0 else Decimal(0)
+        return {
+            "market_price_usdc": str(price),
+            "position_value_usdc": str(gross),       # 현재가 × 보유수량
+            "position_net_value_usdc": str(net),     # 지금 매도 시 수령 예상액
+            "cost_basis_usdc": str(cost),
+            "unrealized_pnl_usdc": str(unrealized),
+            "unrealized_pct": str(pct),
+            "cash_usdc": str(remaining),             # 가용 현금 = AP2 잔여 예산
+            "total_asset_usdc": str(remaining + net),
+            "onchain_usdc": (self._snap_last["trading"]["usdc"]
+                             if self._snap_last else None),  # 라이브: 최근 스냅샷
+        }
+
     def state_snapshot(self) -> Dict[str, Any]:
         pos = self._trading.position if self._trading else None
         spent = self._auth.spent_usdc if self._auth else Decimal(0)
@@ -703,6 +734,7 @@ class TradingEngine:
                 "return_pct": str(return_pct),
                 "cum_buy_usdc": str(self.cum_buy_usdc),
             },
+            "valuation": self._valuation(pos, remaining),  # 평가손익(미실현) · 총자산
             "fees": {  # A8 수수료 투명화 — 브로커 수익모델 증명
                 "fee_bps": CFG.broker_fee_bps,
                 "cum_fee_usdc": str(self.total_fees),

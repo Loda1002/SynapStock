@@ -38,6 +38,14 @@
     cumBuy: $("[data-cum-buy]"),
     feeRate: $("[data-fee-rate]"),
     cumFee: $("[data-cum-fee]"),
+    unrealized: $("[data-unrealized]"),
+    unrealizedPct: $("[data-unrealized-pct]"),
+    positionValue: $("[data-position-value]"),
+    positionValue2: $("[data-position-value2]"),
+    totalAsset: $("[data-total-asset]"),
+    cash: $("[data-cash]"),
+    onchainRow: $("[data-onchain-row]"),
+    onchainUsdc: $("[data-onchain-usdc]"),
     mandateForm: $("[data-mandate-form]"),
     mandateBudget: $("[data-mandate-budget]"),
     mandatePerTrade: $("[data-mandate-per-trade]"),
@@ -60,6 +68,7 @@
   const MAX_FEED_ITEMS = 100;
   const MAX_LOG_ITEMS = 200;
   let prices = [];          // 스파크라인용 최근 가격
+  let lastState = null;     // 최근 /api/state — 틱 사이 평가손익 재계산에 사용
   let lastEventId = 0;
   const pageLoadedAt = Date.now();  // A4: SSE 히스토리 재생분 알림 제외 기준
 
@@ -90,7 +99,45 @@
     } catch (e) { /* 서버 재기동 중 등 — SSE 재연결이 복구 */ }
   }
 
+  /* ---------- 평가손익(미실현) · 총자산 ----------
+     기준은 실현손익과 동일: 지금 전량 매도하면 받을 금액(수수료 차감) − 실효 평단 × 수량.
+     서버(web/engine.py _valuation)가 같은 식으로 계산하며, 여기서는 틱 사이 갱신용으로
+     같은 식을 다시 적용한다(두 곳을 함께 고쳐야 한다). */
+  function renderValuation(v) {
+    if (!v) return;
+    const u = num(v.unrealized_pnl_usdc);
+    el.unrealized.textContent = (u > 0 ? "+" : "") + v.unrealized_pnl_usdc;
+    el.unrealized.className = u > 0 ? "pos" : u < 0 ? "neg" : "";
+    el.unrealizedPct.textContent = (u > 0 ? "+" : "") + v.unrealized_pct + "%";
+    el.positionValue.textContent = v.position_net_value_usdc;
+    el.positionValue2.textContent = v.position_net_value_usdc;
+    el.totalAsset.textContent = v.total_asset_usdc;
+    el.cash.textContent = v.cash_usdc;
+    el.onchainRow.classList.toggle("hidden", !v.onchain_usdc);
+    if (v.onchain_usdc) el.onchainUsdc.textContent = v.onchain_usdc;
+  }
+
+  function valuationAtPrice(price) {
+    if (!lastState || !lastState.valuation) return null;
+    const s = lastState;
+    const qty = num(s.position.quantity), avg = num(s.position.avg_price_usdc);
+    const feeRate = (s.fees ? s.fees.fee_bps : 0) / 10000;
+    const net = qty * price * (1 - feeRate), cost = qty * avg;
+    const unreal = net - cost, cash = num(s.budget.remaining_usdc);
+    const f2 = (n) => n.toFixed(2);
+    return Object.assign({}, s.valuation, {
+      market_price_usdc: String(price),
+      position_value_usdc: f2(qty * price),
+      position_net_value_usdc: f2(net),
+      unrealized_pnl_usdc: f2(unreal),
+      unrealized_pct: cost > 0 ? f2((unreal / cost) * 100) : "0.00",
+      cash_usdc: s.budget.remaining_usdc,
+      total_asset_usdc: f2(cash + net),
+    });
+  }
+
   function renderState(s) {
+    lastState = s;
     const eng = s.engine || {};
     el.net.textContent = (eng.network || "—") + (eng.mode ? " · " + (eng.mode === "live" ? "라이브" : "드라이런") : "");
     el.engineStatus.textContent = { idle: "엔진 대기", running: "엔진 실행 중", stopping: "종료 중…" }[eng.status] || eng.status;
@@ -129,6 +176,7 @@
       el.feeRate.textContent = feePct + "%";
       el.cumFee.textContent = s.fees.cum_fee_usdc;
     }
+    renderValuation(s.valuation);
 
     if (s.wallets.trading) el.walletTrading.textContent = shortKey(s.wallets.trading);
     if (s.wallets.broker) el.walletBroker.textContent = shortKey(s.wallets.broker);
@@ -370,6 +418,7 @@
         prices.push(num(d.price));
         if (prices.length > 60) prices.shift();
         drawSparkline();
+        renderValuation(valuationAtPrice(num(d.price)));  // 시세가 움직이면 평가손익도 갱신
         break;
       case "decision":
         addDecision(d);
