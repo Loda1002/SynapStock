@@ -55,6 +55,13 @@ class Config:
     # "developer"(AIza 키) / "vertex"(AQ. 등 express 키) / 빈값=키 형식으로 자동 판별
     gemini_mode: str = _get("GEMINI_MODE", "")
 
+    # Firestore 영속화 (Cloud Run 배포용) — 기본 OFF: 로컬은 GCP 없이 기존 그대로 동작.
+    # Cloud Run 에서는 FIRESTORE_ENABLED=1 만 주면 서비스 계정(ADC)으로 자동 인증된다.
+    firestore_enabled: bool = _get("FIRESTORE_ENABLED", "").lower() in ("1", "true", "yes")
+    firestore_project: str = _get("FIRESTORE_PROJECT", "")      # 빈값 = ADC 프로젝트 자동
+    firestore_database: str = _get("FIRESTORE_DATABASE", "")    # 빈값 = (default)
+    firestore_prefix: str = _get("FIRESTORE_PREFIX", "autotrader")  # 컬렉션 접두사
+
     # 웹 대시보드 (web/server.py)
     web_port: int = int(_get("WEB_PORT", "8000"))
     # 시세 틱 간격(초) — Gemini 무료 티어 분당 호출 제한을 고려한 기본값

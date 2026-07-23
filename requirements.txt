@@ -12,3 +12,6 @@ google-genai>=1.0.0
 # --- Web dashboard (FastAPI + SSE) ---
 fastapi>=0.110,<1.0
 uvicorn>=0.29
+
+# --- Cloud Run persistence (Firestore, off by default via FIRESTORE_ENABLED) ---
+google-cloud-firestore>=2.16

@@ -2,6 +2,12 @@
 
 실행: python -m scripts.test_dca_schedule
 """
+import sys
+
+# 판단 근거(자유 문장)에는 cp949 밖 문자가 올 수 있다(예: TA 근거의 em-dash).
+# 한국어 Windows 콘솔에서 크래시하지 않게, 인코딩 불가 문자만 ? 로 대체해 출력한다.
+sys.stdout.reconfigure(errors="replace")
+
 from datetime import datetime, timedelta
 from decimal import Decimal
 

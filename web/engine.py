@@ -33,6 +33,7 @@ from run_demo import _load_or_new, explorer_tx_url, snapshot_balances
 from web import events as ev
 from web.briefing import generate_briefing_text
 from web.events import EventBus
+from web.store import BaseStore, jsonable
 
 # 데모 규칙 기본값 — 지표 기준 (매수: MA5 −%, 매도: 평단 +%). run_demo.py 와 동일.
 DEFAULT_RULES = {"buy_dip_pct": "2", "take_profit_pct": "3", "spend_per_trade": "30"}
@@ -55,8 +56,11 @@ class EngineError(Exception):
 
 
 class TradingEngine:
-    def __init__(self, bus: EventBus):
+    def __init__(self, bus: EventBus, store: Optional[BaseStore] = None):
         self.bus = bus
+        self.store = store or BaseStore()    # 영속화 (기본 no-op — 로컬 무변경)
+        self.session_id: str = ""            # 영속 문서 키 (start 에서 발급)
+        self._store_warned = False           # 저장 실패 경고는 1회만 (스팸 방지)
         self.status: str = "idle"            # idle / running / stopping
         self.mode: str = ""                  # dry / live
         self.trading_enabled: bool = True    # A2 긴급정지 플래그
@@ -151,6 +155,54 @@ class TradingEngine:
             "warmup_bars": len(feed.warmup_bars),
         }
         return feed, info
+
+    # ---------- 영속화 (Firestore — 실패해도 매매 루프는 계속) ----------
+
+    def _persist(self, coro) -> None:
+        """스토어 쓰기 fire-and-forget. 저장 실패는 1회만 ERROR 이벤트로 알리고
+        이후엔 store.last_error 에만 남긴다 — 영속화 장애가 매매를 멈추지 않는다."""
+        if not self.store.enabled:
+            coro.close()  # 미실행 코루틴 경고 방지
+            return
+
+        async def run():
+            try:
+                await coro
+            except Exception as e:
+                self.store.last_error = f"{type(e).__name__}: {e}"
+                if not self._store_warned:
+                    self._store_warned = True
+                    self.bus.emit(ev.ERROR, {
+                        "message": f"영속 저장 실패(매매는 계속): {self.store.last_error}"})
+
+        asyncio.create_task(run())
+
+    async def restore_from_store(self) -> None:
+        """서버 부팅 시 1회 — 한도 기본값·최근 브리핑을 Firestore 에서 복원한다.
+        (세션·거래 이력은 /api/history 로 조회 — 현재 세션 화면과 섞지 않는다)"""
+        if not self.store.enabled:
+            return
+        try:
+            await asyncio.wait_for(self.store.ping(), timeout=10)
+            d = await self.store.load_defaults()
+            if d:
+                try:
+                    self.budget_total = Decimal(str(d["budget_total_usdc"]))
+                    self.per_trade_max = Decimal(str(d["per_trade_max_usdc"]))
+                except (KeyError, InvalidOperation):
+                    pass  # 필드 없거나 형식 이상 — .env 기본값 유지
+            b = await self.store.load_last_briefing()
+            if b:
+                self.last_briefing = {
+                    k: b[k] for k in ("ts", "trigger", "source", "text", "archive")
+                    if k in b}
+                self.last_briefing["restored"] = True  # 재시작 복원본 표시
+            # 콘솔 print 는 cp949(한국어 Windows)에서도 안전하게 ASCII 구두점만 쓴다
+            print(f"[store] 부팅 복원 완료: 한도 {self.budget_total}/{self.per_trade_max} USDC, "
+                  f"브리핑 {'있음' if self.last_briefing else '없음'}")
+        except Exception as e:
+            self.store.last_error = f"{type(e).__name__}: {e}"
+            print(f"[store] 부팅 복원 실패(기본값으로 계속): {self.store.last_error}")
 
     # ---------- 라이프사이클 ----------
 
@@ -303,6 +355,7 @@ class TradingEngine:
         self.reject_count = 0
         self.pause_count = 0
         self.started_at = _now()
+        self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_{mode}"
         self.brain_label = brain_label
         self.strategy_info = {
             "type": strat_type,
@@ -421,6 +474,12 @@ class TradingEngine:
         if applied == "immediate":
             self.mandate_history.append(rec)  # 세션 아카이브에 포함될 변경 이력
         self.bus.emit(ev.MANDATE_UPDATED, rec)
+        # 한도는 재시작 후에도 유지 — 다음 부팅 때 restore_from_store 가 복원
+        self._persist(self.store.save_defaults({
+            "budget_total_usdc": str(budget_total),
+            "per_trade_max_usdc": str(per_trade_max),
+            "updated_by": actor,
+        }))
         return self.state_snapshot()
 
     # ---------- B2 데일리 브리핑 ----------
@@ -483,6 +542,7 @@ class TradingEngine:
             self.bus.emit(ev.ERROR, {"message": f"브리핑 저장 실패: {type(e).__name__}: {e}"})
         self.last_briefing = rec
         self.bus.emit(ev.BRIEFING, rec)
+        self._persist(self.store.save_briefing(rec, stats))
         return rec
 
     def _save_briefing(self, rec: Dict[str, Any], stats: Dict[str, Any]) -> str:
@@ -744,6 +804,7 @@ class TradingEngine:
         }
         self.trades.append(row)
         self.bus.emit(ev.TRADE, row)
+        self._persist(self.store.save_trade(self.session_id, row))
 
     # ---------- 세션 마무리 (라이브: 교차검증 + 아카이브) ----------
 
@@ -771,6 +832,18 @@ class TradingEngine:
             self.status = "idle"
             self._task = None
             self.last_archive_path = archive_path
+            # 세션 요약 영속화 (dry 포함) — 재시작·재배포 후에도 /api/history 로 남는다.
+            # 세션 문서는 핵심 증빙이라 fire-and-forget 이 아니라 짧게 기다려 확정한다.
+            if self.store.enabled and (self.tick or self.trades or self.decisions):
+                try:
+                    await asyncio.wait_for(
+                        self.store.save_session(
+                            self.session_id, self._session_summary(archive_path, cross)),
+                        timeout=5)
+                except Exception as e:
+                    self.store.last_error = f"{type(e).__name__}: {e}"
+                    self.bus.emit(ev.ERROR, {
+                        "message": f"세션 영속 저장 실패: {self.store.last_error}"})
             # 긴급정지는 세션 단위 상태 — 세션이 끝나면 해제한다.
             # (해제하지 않으면 대기 화면·다음 접속에도 "🛑 매매 정지됨" 배지가 남는다)
             was_paused = not self.trading_enabled
@@ -836,6 +909,37 @@ class TradingEngine:
             json.dump(archive, f, ensure_ascii=False, indent=2, default=str)
         return path, cross
 
+    def _session_summary(self, archive_path: str, cross: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Firestore sessions 문서 — artifacts/tx 아카이브의 DB판 (dry 세션 포함).
+        판단 로그는 문서 1MB 한도 보호를 위해 최근 300건까지만 담는다."""
+        pos = self._trading.position if self._trading else None
+        return_pct = (
+            (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
+            if self.cum_buy_usdc > 0 else Decimal(0))
+        return jsonable({
+            "session_id": self.session_id,
+            "mode": self.mode, "network": CFG.network, "symbol": CFG.stock_symbol,
+            "started_at": self.started_at, "ended_at": _now(),
+            "ticks": self.tick, "brain": self.brain_label,
+            "strategy": self.strategy_info, "feed": self.feed_info,
+            "budget_total_usdc": str(self.budget_total),
+            "per_trade_max_usdc": str(self.per_trade_max),
+            "realized_pnl_usdc": str(self.realized_pnl),
+            "return_pct": str(return_pct),
+            "cum_buy_usdc": str(self.cum_buy_usdc),
+            "total_fees_usdc": str(self.total_fees),
+            "fee_bps": CFG.broker_fee_bps,
+            "reject_count": self.reject_count, "pause_count": self.pause_count,
+            "position_qty": str(pos.quantity) if pos else "0",
+            "position_avg_usdc": str(pos.avg_price_usdc) if pos else "0",
+            "trade_count": len(self.trades), "decision_count": len(self.decisions),
+            "trades": self.trades,
+            "decisions": self.decisions[-300:],
+            "mandate_history": self.mandate_history,
+            "archive_path": archive_path,       # 라이브 세션의 로컬 증빙 파일 경로
+            "cross_check": cross,               # 라이브: 온체인 순변화 교차검증 결과
+        })
+
     # ---------- 상태 스냅샷 (GET /api/state) ----------
 
     def _valuation(self, pos, remaining: Decimal) -> Dict[str, Any]:
@@ -878,6 +982,13 @@ class TradingEngine:
                 "status": self.status, "mode": self.mode, "network": CFG.network,
                 "tick": self.tick, "tick_interval_sec": self.tick_interval,
                 "started_at": self.started_at, "brain": self.brain_label,
+                "session_id": self.session_id,
+            },
+            "persistence": {  # Firestore 영속화 상태 (Cloud Run 재시작 대비)
+                "enabled": self.store.enabled,
+                "backend": self.store.backend,
+                "detail": self.store.detail,
+                "last_error": self.store.last_error,
             },
             "trading_enabled": self.trading_enabled,
             "pause_info": self.pause_info,

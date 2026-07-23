@@ -17,11 +17,13 @@ from pydantic import BaseModel
 from config import CFG
 from web.engine import TradingEngine, EngineError
 from web.events import EventBus
+from web.store import build_store
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 bus = EventBus()
-engine = TradingEngine(bus)
+store = build_store()          # Firestore(FIRESTORE_ENABLED=1) 또는 no-op
+engine = TradingEngine(bus, store)
 
 
 async def _daily_briefing_loop() -> None:
@@ -36,6 +38,8 @@ async def _daily_briefing_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # 부팅 복원 — 한도 기본값·최근 브리핑 (Cloud Run 재시작·재배포 대비)
+    await engine.restore_from_store()
     daily_task = asyncio.create_task(_daily_briefing_loop())
     yield
     daily_task.cancel()
@@ -71,6 +75,41 @@ async def get_trades():
 @app.get("/api/decisions")
 async def get_decisions():
     return {"decisions": engine.decisions}    # A6 판단 타임라인
+
+
+# ---------- 이력 조회 (Firestore 영속 — 재시작·재배포 후에도 남는 데이터) ----------
+
+def _clamp(n: int, lo: int, hi: int) -> int:
+    return max(lo, min(hi, n))
+
+
+@app.get("/api/history/sessions")
+async def history_sessions(limit: int = 20):
+    """지난 세션 요약 목록 (최신순). 영속화 비활성이면 빈 목록 + enabled=false."""
+    return {"enabled": store.enabled,
+            "sessions": await store.recent_sessions(_clamp(limit, 1, 100))}
+
+
+@app.get("/api/history/sessions/{session_id}")
+async def history_session_detail(session_id: str):
+    """세션 상세 — 거래·판단 로그 전체 포함 (artifacts/tx 아카이브의 DB판)."""
+    doc = await store.get_session(session_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다.")
+    return doc
+
+
+@app.get("/api/history/trades")
+async def history_trades(limit: int = 50):
+    """세션 경계를 넘는 체결 이력 (최신순) — 주간/월별 수익 집계의 데이터 원천."""
+    return {"enabled": store.enabled,
+            "trades": await store.recent_trades(_clamp(limit, 1, 200))}
+
+
+@app.get("/api/history/briefings")
+async def history_briefings(limit: int = 10):
+    return {"enabled": store.enabled,
+            "briefings": await store.recent_briefings(_clamp(limit, 1, 50))}
 
 
 # ---------- 컨트롤 API ----------
