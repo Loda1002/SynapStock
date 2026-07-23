@@ -36,6 +36,9 @@ class Config:
 
     wallet_dir: str = _get("WALLET_DIR", "secrets")
 
+    # Alpha Vantage (무료 키) — scripts/fetch_market_data.py 일봉 수집용 (런타임 미사용)
+    alphavantage_api_key: str = _get("ALPHAVANTAGE_API_KEY", "")
+
     # Gemini (무료 티어) — 키가 있으면 매매 판단을 Gemini 가 수행, 없으면 규칙 기반
     gemini_api_key: str = _get("GEMINI_API_KEY", "")
     # flash-latest(=3.6-flash)는 무료 티어가 하루 20회뿐 — 라이트 별칭이 한도가 넉넉함
