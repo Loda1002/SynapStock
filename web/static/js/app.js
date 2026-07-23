@@ -75,6 +75,8 @@
     btnBriefing: $("[data-btn-briefing]"),
     briefingMeta: $("[data-briefing-meta]"),
     briefingText: $("[data-briefing-text]"),
+    grid: $("main.grid"),
+    btnLayoutReset: $("[data-btn-layout-reset]"),
   };
 
   const MAX_FEED_ITEMS = 100;
@@ -774,7 +776,95 @@
     el.btnBriefing.disabled = false;
   });
 
+  /* ---------- 카드 모듈 배치 ----------
+     모든 기능 카드는 data-card 모듈이다. 순서의 단일 출처는 DEFAULT_LAYOUT —
+     디자인 시안의 배치가 어떻게 오든 이 배열만 바꾸면 기본 배치가 바뀐다.
+     사용자는 카드 제목(h2)을 끌어 재배치할 수 있고 localStorage 에 저장된다.
+     (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
+  const LAYOUT_KEY = "autotrader_layout_v1";
+  const DEFAULT_LAYOUT = ["price", "session", "position", "budget", "pnl", "valuation",
+                          "mandate", "decisions", "log", "briefing", "trades"];
+
+  const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
+
+  function applyLayout(order) {
+    const map = {};
+    cardEls().forEach((c) => { map[c.dataset.card] = c; });
+    const seen = new Set();
+    for (const id of order) {
+      if (map[id] && !seen.has(id)) { el.grid.appendChild(map[id]); seen.add(id); }
+    }
+    for (const id of Object.keys(map)) {
+      if (!seen.has(id)) el.grid.appendChild(map[id]);  // 새로 생긴 카드는 맨 뒤로
+    }
+  }
+
+  function saveLayout() {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(cardEls().map((c) => c.dataset.card)));
+  }
+
+  function loadLayout() {
+    try {
+      const v = JSON.parse(localStorage.getItem(LAYOUT_KEY));
+      if (Array.isArray(v) && v.length) return v;
+    } catch (e) { /* 손상된 저장값 — 기본 배치로 */ }
+    return DEFAULT_LAYOUT;
+  }
+
+  let draggedCard = null;
+  function initCardDrag() {
+    for (const card of cardEls()) {
+      const handle = card.querySelector("h2");
+      if (!handle) continue;
+      handle.classList.add("drag-handle");
+      handle.title = "잡아 끌어 카드 위치를 바꿀 수 있습니다";
+      // 제목을 누른 동안만 카드가 draggable — 카드 안 텍스트 선택·스크롤과 충돌 방지
+      handle.addEventListener("mousedown", () => card.setAttribute("draggable", "true"));
+      card.addEventListener("dragstart", (e) => {
+        draggedCard = card;
+        card.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", card.dataset.card); } catch (err) { /* 일부 브라우저 */ }
+      });
+      card.addEventListener("dragend", () => {
+        card.removeAttribute("draggable");
+        card.classList.remove("dragging");
+        draggedCard = null;
+        cardEls().forEach((c) => c.classList.remove("drop-target"));
+        saveLayout();
+      });
+      card.addEventListener("dragover", (e) => {
+        if (!draggedCard || draggedCard === card) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        card.classList.add("drop-target");
+      });
+      card.addEventListener("dragleave", () => card.classList.remove("drop-target"));
+      card.addEventListener("drop", (e) => {
+        if (!draggedCard || draggedCard === card) return;
+        e.preventDefault();
+        card.classList.remove("drop-target");
+        const cards = cardEls();
+        const from = cards.indexOf(draggedCard), to = cards.indexOf(card);
+        el.grid.insertBefore(draggedCard, from < to ? card.nextSibling : card);
+        saveLayout();
+      });
+    }
+    // 드래그 없이 제목만 클릭했다 뗀 경우 draggable 잔류 제거
+    document.addEventListener("mouseup", () => {
+      if (!draggedCard) cardEls().forEach((c) => c.removeAttribute("draggable"));
+    });
+  }
+
+  el.btnLayoutReset.addEventListener("click", () => {
+    localStorage.removeItem(LAYOUT_KEY);
+    applyLayout(DEFAULT_LAYOUT);
+    toast("배치 초기화", "카드 배치를 기본값으로 되돌렸습니다.");
+  });
+
   // ---------- 시작 ----------
+  applyLayout(loadLayout());
+  initCardDrag();
   renderNotifyBtn();
   fetchState();
   connect();

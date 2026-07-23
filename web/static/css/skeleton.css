@@ -24,7 +24,13 @@ code { font-family: var(--mono); font-size: var(--fs-small); }
 .brand .tagline { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-small); }
 .statusbar { display: flex; gap: 6px; flex-wrap: wrap; }
 .controls { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center; }
-.rules { flex-basis: 100%; margin: 0; color: var(--muted); font-size: var(--fs-small); }
+.rules { margin: 8px 0 0; color: var(--muted); font-size: var(--fs-small); }
+
+/* ---- 세션 설정 카드 (컨트롤 모듈) ---- */
+.stack { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.stack select { width: 100%; }
+.stack .row { display: flex; gap: 6px; }
+.stack .row .btn { flex: 1; }
 
 /* ---- 배지·버튼 ---- */
 .badge {
@@ -67,6 +73,13 @@ input[type="number"], input[type="text"], input[type="time"] {
 .card h2 { margin: 0 0 8px; font-size: var(--fs-base); }
 .card-wide { grid-column: span 2; }
 .card-full { grid-column: 1 / -1; }
+
+/* 카드 모듈 재배치 — 제목(h2)이 드래그 핸들. HTML5 DnD 라 데스크톱 전용(터치 미지원). */
+.drag-handle { cursor: grab; user-select: none; }
+.drag-handle:active { cursor: grabbing; }
+.card.dragging { opacity: .5; }
+.card.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.btn-small { padding: 2px 8px; font-size: var(--fs-small); }
 @media (max-width: 900px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .card-wide { grid-column: 1 / -1; }

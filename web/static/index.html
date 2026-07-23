@@ -24,43 +24,15 @@
     <span class="badge badge-danger hidden" data-paused-badge>🛑 매매 정지됨</span>
   </div>
   <div class="controls">
-    <select data-mode-select aria-label="실행 모드">
-      <option value="dry">드라이런 (온체인 전송 없음)</option>
-      <option value="live">라이브 (실제 온체인 tx)</option>
-    </select>
-    <select data-feed-select aria-label="시세 피드">
-      <option value="replay">실데이터 재생 (일봉)</option>
-      <option value="mock">목 시세 (데모 패턴)</option>
-    </select>
-    <select data-strategy-select aria-label="매매 전략">
-      <option value="condition">조건형 (AI 판단 매수·매도)</option>
-      <option value="dca">적립형 (주기 정액 매수)</option>
-    </select>
-    <select data-decision-mode aria-label="AI 판단 모드"
-            title="엄격: 규칙 충족 여부만 판단 / 추세: 규칙 신호가 떠도 추세가 나쁘면 AI가 보류 가능 (한도 차단은 항상 AP2가 기계적으로 수행)">
-      <option value="strict">AI 엄격 (규칙 그대로)</option>
-      <option value="trend">AI 추세 (보류 재량)</option>
-    </select>
-    <span class="dca-params hidden" data-dca-params>
-      <select data-dca-unit aria-label="적립 주기 기준">
-        <option value="ticks">틱 기준</option>
-        <option value="minutes">시간 기준</option>
-        <option value="daily">매일 지정 시각</option>
-      </select>
-      <span data-dca-ticks-wrap><input data-dca-ticks type="number" min="1" step="1" value="5" aria-label="적립 주기(틱)">틱마다</span>
-      <span class="hidden" data-dca-minutes-wrap><input data-dca-minutes type="number" min="1" step="1" value="60" aria-label="적립 주기(분)">분마다</span>
-      <span class="hidden" data-dca-time-wrap>매일 <input data-dca-time type="time" value="09:00" aria-label="적립 시각"></span>
-      <input data-dca-amount type="number" min="0" step="any" value="10" aria-label="회당 금액(USDC)">USDC
-    </span>
-    <button class="btn" data-btn-start>▶ 세션 시작</button>
-    <button class="btn" data-btn-stop disabled>■ 세션 종료</button>
     <button class="btn btn-emergency" data-btn-pause>🛑 긴급정지</button>
     <button class="btn btn-resume hidden" data-btn-resume>▶ 매매 재개</button>
     <button class="btn" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림: 꺼짐</button>
   </div>
-  <p class="rules" data-rules>규칙: —</p>
 </header>
 
+<!-- 카드(모듈) 그리드 — 모든 기능은 data-card 모듈로 분리되어 있고,
+     기본 순서는 app.js DEFAULT_LAYOUT, 사용자는 카드 제목을 끌어 재배치(localStorage 저장).
+     디자인 시안의 배치가 어떤 순서로 오든 DEFAULT_LAYOUT 배열만 바꾸면 적용된다. -->
 <main class="grid">
   <section class="card card-full" data-card="price">
     <div class="price-head">
@@ -78,6 +50,45 @@
     </div>
     <svg class="chart" data-chart viewBox="0 0 640 260" role="img"
          aria-label="캔들차트 — 시가·고가·저가·종가와 이동평균선"></svg>
+  </section>
+
+  <section class="card" data-card="session">
+    <h2>세션 설정 <span class="sub">모드 · 시세 · 전략</span></h2>
+    <div class="stack">
+      <select data-mode-select aria-label="실행 모드">
+        <option value="dry">드라이런 (온체인 전송 없음)</option>
+        <option value="live">라이브 (실제 온체인 tx)</option>
+      </select>
+      <select data-feed-select aria-label="시세 피드">
+        <option value="replay">실데이터 재생 (일봉)</option>
+        <option value="mock">목 시세 (데모 패턴)</option>
+      </select>
+      <select data-strategy-select aria-label="매매 전략">
+        <option value="condition">조건형 (AI 판단 매수·매도)</option>
+        <option value="dca">적립형 (주기 정액 매수)</option>
+      </select>
+      <select data-decision-mode aria-label="AI 판단 모드"
+              title="엄격: 규칙 충족 여부만 판단 / 추세: 규칙 신호가 떠도 추세가 나쁘면 AI가 보류 가능 (한도 차단은 항상 AP2가 기계적으로 수행)">
+        <option value="strict">AI 엄격 (규칙 그대로)</option>
+        <option value="trend">AI 추세 (보류 재량)</option>
+      </select>
+      <span class="dca-params hidden" data-dca-params>
+        <select data-dca-unit aria-label="적립 주기 기준">
+          <option value="ticks">틱 기준</option>
+          <option value="minutes">시간 기준</option>
+          <option value="daily">매일 지정 시각</option>
+        </select>
+        <span data-dca-ticks-wrap><input data-dca-ticks type="number" min="1" step="1" value="5" aria-label="적립 주기(틱)">틱마다</span>
+        <span class="hidden" data-dca-minutes-wrap><input data-dca-minutes type="number" min="1" step="1" value="60" aria-label="적립 주기(분)">분마다</span>
+        <span class="hidden" data-dca-time-wrap>매일 <input data-dca-time type="time" value="09:00" aria-label="적립 시각"></span>
+        <input data-dca-amount type="number" min="0" step="any" value="10" aria-label="회당 금액(USDC)">USDC
+      </span>
+      <div class="row">
+        <button class="btn" data-btn-start>▶ 세션 시작</button>
+        <button class="btn" data-btn-stop disabled>■ 세션 종료</button>
+      </div>
+    </div>
+    <p class="rules" data-rules>규칙: —</p>
   </section>
 
   <section class="card" data-card="position">
@@ -173,6 +184,8 @@
 
 <footer class="foot">
   <span data-conn-status>서버 연결 대기…</span>
+  <span>💡 카드 제목을 잡아 끌면 배치를 바꿀 수 있습니다
+    <button class="btn btn-small" data-btn-layout-reset title="카드 배치를 기본값으로 되돌립니다">배치 초기화</button></span>
   <span class="wallets">지갑 <code data-wallet-trading>—</code> ⇄ <code data-wallet-broker>—</code></span>
 </footer>
 
