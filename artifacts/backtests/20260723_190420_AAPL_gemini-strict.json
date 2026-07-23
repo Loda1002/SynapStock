@@ -1,0 +1,335 @@
+{
+  "generated_at": "2026-07-23T19:04:20",
+  "config": {
+    "source": "AAPL 일봉 재생 2026-06-01~2026-07-22 (36봉)",
+    "file": "C:\\Users\\Tedd\\Desktop\\홍익대학교\\프로젝트\\[Google Cloud X Solana] AI 에이전틱 해커톤\\solana-agent\\data\\market\\AAPL_daily.csv",
+    "from": "2026-06-01",
+    "to": "2026-07-22",
+    "bars_played": 36,
+    "brain": "gemini",
+    "mode": "strict",
+    "rules": {
+      "buy_dip_pct": "2",
+      "take_profit_pct": "3",
+      "spend_per_trade": "30"
+    },
+    "budget_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "fee_bps": 30
+  },
+  "metrics": {
+    "realized_pnl_usdc": "4.29",
+    "unrealized_pnl_usdc": "0.00",
+    "total_pnl_usdc": "4.29",
+    "return_on_budget_pct": "4.29",
+    "buy_count": 4,
+    "sell_count": 1,
+    "win_rate_pct": "100",
+    "max_drawdown_pct": "8.05",
+    "cum_buy_usdc": "99.99",
+    "fees_usdc": "0.61",
+    "ap2_rejects": 0,
+    "gemini_fallbacks": 0,
+    "decisions_by_action": {
+      "hold": 31,
+      "buy": 4,
+      "sell": 1
+    },
+    "decisions_by_source": {
+      "gemini": 36
+    },
+    "position_left_qty": "0"
+  },
+  "trades": [
+    {
+      "date": "2026-06-08",
+      "side": "buy",
+      "qty": "0.0991",
+      "price": "301.54",
+      "total": "29.97"
+    },
+    {
+      "date": "2026-06-09",
+      "side": "buy",
+      "qty": "0.0999",
+      "price": "290.55",
+      "total": "29.12"
+    },
+    {
+      "date": "2026-06-10",
+      "side": "buy",
+      "qty": "0.1025",
+      "price": "291.58",
+      "total": "29.98"
+    },
+    {
+      "date": "2026-06-12",
+      "side": "buy",
+      "qty": "0.0374",
+      "price": "291.13",
+      "total": "10.92"
+    },
+    {
+      "date": "2026-07-02",
+      "side": "sell",
+      "qty": "0.3389",
+      "price": "308.63",
+      "total": "104.28",
+      "realized": "4.29"
+    }
+  ],
+  "decisions": [
+    {
+      "date": "2026-06-01",
+      "price": "306.31",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준을 충족하지 못해 보류합니다"
+    },
+    {
+      "date": "2026-06-02",
+      "price": "315.20",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 높고 매수 및 매도 기준 조건을 충족하지 않으므로 보류한다."
+    },
+    {
+      "date": "2026-06-03",
+      "price": "310.26",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 2퍼센트 이상 낮지 않고 보유 수량이 없어 매도 조건도 충족되지 않아 보류합니다."
+    },
+    {
+      "date": "2026-06-04",
+      "price": "311.23",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준 가격을 충족하지 못했습니다."
+    },
+    {
+      "date": "2026-06-05",
+      "price": "307.34",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준인 303.87 USDC 이하를 충족하지 못해 보류합니다."
+    },
+    {
+      "date": "2026-06-08",
+      "price": "301.54",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮아 매수 조건을 충족하며 예산 한도 내에서 매수를 진행합니다."
+    },
+    {
+      "date": "2026-06-09",
+      "price": "290.55",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮아 매수 조건을 충족하며 예산 한도 내에서 추가 매수를 진행한다."
+    },
+    {
+      "date": "2026-06-10",
+      "price": "291.58",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2퍼센트 이상 낮아 매수 조건을 충족하며 남은 예산 한도 내에서 추가 매수를 진행한다."
+    },
+    {
+      "date": "2026-06-11",
+      "price": "295.63",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수 기준인 291.38 USDC와 매도 기준인 304.28 USDC 사이의 박스권에 위치하여 조건에 부합하지 않기 때문에 보류합니다."
+    },
+    {
+      "date": "2026-06-12",
+      "price": "291.13",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 2% 이상 낮은 조건을 충족하며 예산의 한계로 10.93 USDC만큼 매수합니다."
+    },
+    {
+      "date": "2026-06-15",
+      "price": "296.42",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 조건의 임계값에 도달하지 않았고 남은 예산도 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-06-16",
+      "price": "299.24",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2% 이상 낮지 않고 보유 평균단가 대비 3% 이상 높지 않아 매수와 매도 조건 모두 충족되지 않습니다."
+    },
+    {
+      "date": "2026-06-17",
+      "price": "295.95",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 기준 조건을 충족하지 않고 남은 총예산이 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-06-18",
+      "price": "298.01",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수 기준인 290.23 USDC 이하와 매도 기준인 303.89 USDC 이상 모두 해당하지 않아 보류합니다."
+    },
+    {
+      "date": "2026-06-22",
+      "price": "297.01",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 기준 조건을 충족하지 않고 남은 예산도 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-06-23",
+      "price": "294.30",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 조건의 기준 가격에 미달하고 예산도 부족하여 관망합니다."
+    },
+    {
+      "date": "2026-06-24",
+      "price": "293.08",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 조건에 도달하지 않았고 남은 예산도 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-06-25",
+      "price": "275.15",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "보유 평단 대비 손익률이 -6.74퍼센트로 매도 조건에 미달하고 남은 총예산이 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-06-26",
+      "price": "283.78",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 낮지만 남은 총예산이 부족하여 매수를 진행할 수 없습니다."
+    },
+    {
+      "date": "2026-06-29",
+      "price": "281.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 조건인 279.90 USDC 이상이고 매도 조건인 303.89 USDC 미만이면서 남은 예산이 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-06-30",
+      "price": "289.36",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수 기준인 278.93 USDC 이하와 매도 기준인 303.89 USDC 이상 모두 해당하지 않으며 남은 예산도 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-07-01",
+      "price": "294.38",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 조건에 해당하지 않으며 남은 예산도 부족하여 보류합니다."
+    },
+    {
+      "date": "2026-07-02",
+      "price": "308.63",
+      "action": "sell",
+      "source": "gemini",
+      "reason": "현재가가 보유 평균단가 대비 3% 이상 높앀데다 이익 확정 조거이 우선하기 때문에 매도를 선택합니다."
+    },
+    {
+      "date": "2026-07-06",
+      "price": "312.66",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 높아 매수 조건에 부합하지 않고 보유 수량도 없어 매도할 수 없으므로 보류한다."
+    },
+    {
+      "date": "2026-07-07",
+      "price": "310.66",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮아야 하는 매수 조건을 충족하지 못하고 보유 수량도 없어 보류합니다."
+    },
+    {
+      "date": "2026-07-08",
+      "price": "313.39",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 높고 매수 기준 가격을 상회하여 보류합니다."
+    },
+    {
+      "date": "2026-07-09",
+      "price": "316.22",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 높고 매수 기준인 306.06 USDC 이하를 충족하지 않아 보류합니다"
+    },
+    {
+      "date": "2026-07-10",
+      "price": "315.32",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준 가격을 초과하여 보류합니다."
+    },
+    {
+      "date": "2026-07-13",
+      "price": "317.31",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 높고 매수 기준인 308.29 USDC 이하를 충족하지 않으며 보유 수량이 없어 매도할 수 없습니다"
+    },
+    {
+      "date": "2026-07-14",
+      "price": "314.86",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준 가격을 충족하지 못했습니다"
+    },
+    {
+      "date": "2026-07-15",
+      "price": "327.50",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준을 충족하지 못하고 보유 수량도 없어 보류한다"
+    },
+    {
+      "date": "2026-07-16",
+      "price": "333.26",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준을 충족하지 못해 보류합니다"
+    },
+    {
+      "date": "2026-07-17",
+      "price": "333.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 높고 매수 기준 가격을 초과하여 보류합니다."
+    },
+    {
+      "date": "2026-07-20",
+      "price": "326.59",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균 대비 2퍼센트 이상 낮은 매수 조건을 충족하지 못해 관망합니다."
+    },
+    {
+      "date": "2026-07-21",
+      "price": "327.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮은 매수 기준을 충족하지 못했기 때문에 보류합니다."
+    },
+    {
+      "date": "2026-07-22",
+      "price": "325.89",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2퍼센트 이상 낮은 매수 기준인 322.85 USDC 이하를 충족하지 못해 보류합니다."
+    }
+  ]
+}

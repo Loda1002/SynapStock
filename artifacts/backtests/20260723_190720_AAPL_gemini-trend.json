@@ -1,0 +1,322 @@
+{
+  "generated_at": "2026-07-23T19:07:20",
+  "config": {
+    "source": "AAPL 일봉 재생 2026-06-01~2026-07-22 (36봉)",
+    "file": "C:\\Users\\Tedd\\Desktop\\홍익대학교\\프로젝트\\[Google Cloud X Solana] AI 에이전틱 해커톤\\solana-agent\\data\\market\\AAPL_daily.csv",
+    "from": "2026-06-01",
+    "to": "2026-07-22",
+    "bars_played": 36,
+    "brain": "gemini",
+    "mode": "trend",
+    "rules": {
+      "buy_dip_pct": "2",
+      "take_profit_pct": "3",
+      "spend_per_trade": "30"
+    },
+    "budget_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "fee_bps": 30
+  },
+  "metrics": {
+    "realized_pnl_usdc": "1.65",
+    "unrealized_pnl_usdc": "0.00",
+    "total_pnl_usdc": "1.65",
+    "return_on_budget_pct": "1.65",
+    "buy_count": 2,
+    "sell_count": 1,
+    "win_rate_pct": "100",
+    "max_drawdown_pct": "5.00",
+    "cum_buy_usdc": "59.59",
+    "fees_usdc": "0.36",
+    "ap2_rejects": 0,
+    "gemini_fallbacks": 1,
+    "decisions_by_action": {
+      "hold": 33,
+      "buy": 2,
+      "sell": 1
+    },
+    "decisions_by_source": {
+      "gemini": 35,
+      "rule-fallback": 1
+    },
+    "position_left_qty": "0"
+  },
+  "trades": [
+    {
+      "date": "2026-06-08",
+      "side": "buy",
+      "qty": "0.0991",
+      "price": "301.54",
+      "total": "29.97"
+    },
+    {
+      "date": "2026-06-11",
+      "side": "buy",
+      "qty": "0.0999",
+      "price": "295.63",
+      "total": "29.62"
+    },
+    {
+      "date": "2026-07-02",
+      "side": "sell",
+      "qty": "0.1990",
+      "price": "308.63",
+      "total": "61.24",
+      "realized": "1.65"
+    }
+  ],
+  "decisions": [
+    {
+      "date": "2026-06-01",
+      "price": "306.31",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 303.81 USDC보다 높아 규칙 조건이 충족되지 않았습니다."
+    },
+    {
+      "date": "2026-06-02",
+      "price": "315.20",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선과 매수 기준가보다 높아 규칙에 부합하지 않으므로 보류한다."
+    },
+    {
+      "date": "2026-06-03",
+      "price": "310.26",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 아래에 있으나 최근 낙폭과대 이후 반등 흐름을 보이고 있어 바닥을 더 확인하기 위해 매수를 보류합니다."
+    },
+    {
+      "date": "2026-06-04",
+      "price": "311.23",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 위에 있어 매수 조건에 해당하지 않으므로 보류합니다"
+    },
+    {
+      "date": "2026-06-05",
+      "price": "307.34",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수 기준인 303.87 USDC보다 높아 규칙 조건이 충족되지 않았으므로 보류한다."
+    },
+    {
+      "date": "2026-06-08",
+      "price": "301.54",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮고 예산 범위 내이므로 매수를 진행합니다"
+    },
+    {
+      "date": "2026-06-09",
+      "price": "290.55",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2퍼센트 이상 낮아 매수 조건이 충족되었으나 최근 5봉 등락률이 마이너스 7점 82퍼센트로 낙폭이 계속 커지는 하락 추세여서 바닥 확인을 위해 보류한다."
+    },
+    {
+      "date": "2026-06-10",
+      "price": "291.58",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수 기준인 294.44 USDC를 하회하나 최근 5봉 등락률이 마이너스 6.02퍼센트로 낙폭이 계속 커지고 있어 바닥 확인까지 보류한다"
+    },
+    {
+      "date": "2026-06-11",
+      "price": "295.63",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 2퍼센트 이상 낮아 매수 조건이 충족되었으나 하락 추세가 이어져 소액 예산 내에서 분할 매수를 집행한다."
+    },
+    {
+      "date": "2026-06-12",
+      "price": "291.13",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 낮아 매수 조건에 근접했으나 낙폭이 커지는 하락 추세 속에서 바닥 확인이 필요하므로 보류한다"
+    },
+    {
+      "date": "2026-06-15",
+      "price": "296.42",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "매수 및 매도 규칙의 조건이 충족되지 않았고 추세 변화를 지켜보기 위해 보류한다"
+    },
+    {
+      "date": "2026-06-16",
+      "price": "299.24",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 기준 조건을 충족하지 않고 완만한 횡보 추세를 보여 보류합니다."
+    },
+    {
+      "date": "2026-06-17",
+      "price": "295.95",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 규칙의 기준 가격대에 도달하지 않았고 추세 변화를 관망할 필요가 있어 보류한다."
+    },
+    {
+      "date": "2026-06-18",
+      "price": "298.01",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수와 매도 기준 가격에 도달하지 않았고 보유 평단 대비 손익률도 미미하여 관망이 필요하다."
+    },
+    {
+      "date": "2026-06-22",
+      "price": "297.01",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수와 매도 기준 가격대에 도달하지 않았고 보유 평단 대비 손익률도 미미하여 추세를 관망하기 위해 보류합니다."
+    },
+    {
+      "date": "2026-06-23",
+      "price": "294.30",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "매수 조건인 290.96 USDC를 밑돌지 않았고 낙폭이 이어져 바닥 확인이 필요하므로 보류한다"
+    },
+    {
+      "date": "2026-06-24",
+      "price": "293.08",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "매수 조건인 MA5 대비 2퍼센트 하락은 충족했으나 최근 5봉 등락률이 마이너스 이점이므로 낙폭 확대 가능성을 고려해 바닥 확인까지 보류한다"
+    },
+    {
+      "date": "2026-06-25",
+      "price": "275.15",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준가인 285.68 USDC보다 낮으나 최근 5봉 등락률이 마이너스 7퍼센트 넘게 급락하며 하락 추세가 지속되고 있어 바닥 확인을 위해 보류합니다."
+    },
+    {
+      "date": "2026-06-26",
+      "price": "283.78",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 2% 이상 낮은 매수 조건에 해당하나 최근 낙폭이 커지고 있어 바닥 확인까지 보류합니다."
+    },
+    {
+      "date": "2026-06-29",
+      "price": "281.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2퍼센트 이상 낮아 매수 조건에 해당하지만 최근 5봉 등락률이 마이너스 5퍼센트를 넘어서며 낙폭이 지속되는 하락 추세이므로 바닥 확인을 위해 매수를 보류한다."
+    },
+    {
+      "date": "2026-06-30",
+      "price": "289.36",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수 기준인 278.93 USDC와 매도 기준인 308.43 USDC 사이의 박스권에 위치하여 규칙 조건이 충족되지 않았습니다."
+    },
+    {
+      "date": "2026-07-01",
+      "price": "294.38",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수 기준인 279.18 USDC 이하에 도달했으나 최근 급락 후 반등하는 추세여서 바닥 확인을 위해 보류합니다."
+    },
+    {
+      "date": "2026-07-02",
+      "price": "308.63",
+      "action": "sell",
+      "source": "gemini",
+      "reason": "현재가가 보유 평균단가 대비 3퍼센트 이상 높아 매도 조건이 충족되었고 상승 추세 속에서 이익을 확정하기 위함이다"
+    },
+    {
+      "date": "2026-07-06",
+      "price": "312.66",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균선과 매수 기준가보다 높아 매수 조건에 부합하지 않으며 보유 수량이 없어 보류합니다."
+    },
+    {
+      "date": "2026-07-07",
+      "price": "310.66",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 높아 매수 조거에 충족하지 않고 보유 수량이 없어 매도할 수 없으므로 보류합니다."
+    },
+    {
+      "date": "2026-07-08",
+      "price": "313.39",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선과 매수 기준가인 301.78 USDC를 크게 상회하는 강한 상승 추세가 지속되고 있어 신규 매수 조건에 부합하지 않기 때문에 보류합니다."
+    },
+    {
+      "date": "2026-07-09",
+      "price": "316.22",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선과 매수 기준 가격인 306.06 USDC를 상회하고 있어 매수 규칙 조건을 충족하지 못하므로 보류합니다."
+    },
+    {
+      "date": "2026-07-10",
+      "price": "315.32",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균을 상회하며 상승 추세가 이어지고 있어 매수 기준에 부합하지 않으므로 보류한다."
+    },
+    {
+      "date": "2026-07-13",
+      "price": "317.31",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 높아 매수 규칙 조건이 충족되지 않았으며 보유 수량도 없어 매도할 수 없습니다."
+    },
+    {
+      "date": "2026-07-14",
+      "price": "314.86",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 부근에서 완만한 등락을 보이고 있어 매수 기준인 309.11 USDC 이하 조건을 충족하지 못했습니다."
+    },
+    {
+      "date": "2026-07-15",
+      "price": "327.50",
+      "action": "hold",
+      "source": "rule-fallback",
+      "reason": "조건 미충족 — 가격 327.50 · 매수기준 311.88(MA5−2%) · 보유 없음(매도 조건 없음) — Gemini 호출 실패(ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please ) → 규칙 폴백"
+    },
+    {
+      "date": "2026-07-16",
+      "price": "333.26",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균선 위에 있어 매수 조건에 해당하지 않으며 강한 상승 추세가 이어지고 있으나 신규 매수 기준을 충족하지 않아 보류한다."
+    },
+    {
+      "date": "2026-07-17",
+      "price": "333.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선과 매수 기준가인 318.82 USDC를 크게 상회하는 강한 상승 추세이므로 매수 신호가 충족되지 않아 보류합니다."
+    },
+    {
+      "date": "2026-07-20",
+      "price": "326.59",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2퍼센트 이상 낮은 매수 조건에 미달하여 보류합니다."
+    },
+    {
+      "date": "2026-07-21",
+      "price": "327.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 아래이나 직전 급등 이후 가격 변동성이 커서 바닥 확인을 위해 매수를 보류합니다."
+    },
+    {
+      "date": "2026-07-22",
+      "price": "325.89",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 아래에 있어 매수 조건에 근접했으나 최근 가격 하락 변동성이 커서 바닥 확인을 위해 보류합니다."
+    }
+  ]
+}
