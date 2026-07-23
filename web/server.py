@@ -63,8 +63,16 @@ async def get_decisions():
 
 # ---------- 컨트롤 API ----------
 
+class StrategyBody(BaseModel):
+    """B7 전략 선택 — condition(조건형) / dca(적립형: N틱마다 정액 매수)."""
+    type: str = "condition"
+    dca_every_ticks: int = 5
+    dca_amount_usdc: str = "10"   # Decimal 정밀 변환용 문자열
+
+
 class StartBody(BaseModel):
     mode: str = "dry"      # dry / live
+    strategy: StrategyBody = StrategyBody()
 
 
 class ActorBody(BaseModel):
@@ -74,7 +82,7 @@ class ActorBody(BaseModel):
 @app.post("/api/engine/start")
 async def engine_start(body: StartBody):
     try:
-        return await engine.start(body.mode)
+        return await engine.start(body.mode, body.strategy.model_dump())
     except EngineError as e:
         code = 409 if "이미 실행" in str(e) else 400
         raise HTTPException(status_code=code, detail=str(e))

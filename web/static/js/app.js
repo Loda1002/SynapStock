@@ -12,6 +12,10 @@
     brain: $("[data-brain]"),
     pausedBadge: $("[data-paused-badge]"),
     modeSelect: $("[data-mode-select]"),
+    strategySelect: $("[data-strategy-select]"),
+    dcaParams: $("[data-dca-params]"),
+    dcaTicks: $("[data-dca-ticks]"),
+    dcaAmount: $("[data-dca-amount]"),
     btnStart: $("[data-btn-start]"),
     btnStop: $("[data-btn-stop]"),
     btnPause: $("[data-btn-pause]"),
@@ -90,7 +94,11 @@
     el.engineStatus.classList.toggle("badge-ok", eng.status === "running");
     el.brain.textContent = "판단: " + (eng.brain || "—");
     const feePct = s.fees ? (s.fees.fee_bps / 100) : 0;
-    el.rules.textContent = `규칙: ${s.symbol} 이 ${s.rules.buy_below} USDC 이하면 ${s.rules.spend_per_trade} USDC 어치 매수, ${s.rules.sell_above} USDC 이상이면 전량 매도 · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc}) · 브로커 수수료 ${feePct}%`;
+    const strat = s.strategy || { type: "condition" };
+    const ruleText = strat.type === "dca"
+      ? `적립형: ${strat.dca_every_ticks}틱마다 ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`
+      : `조건형: ${s.symbol} 이 ${s.rules.buy_below} USDC 이하면 ${s.rules.spend_per_trade} USDC 어치 매수, ${s.rules.sell_above} USDC 이상이면 전량 매도`;
+    el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc}) · 브로커 수수료 ${feePct}%`;
 
     el.symbol.textContent = s.symbol;
     el.posSymbol.textContent = s.symbol;
@@ -138,6 +146,9 @@
     el.btnStart.disabled = running || eng.status === "stopping";
     el.btnStop.disabled = !running;
     el.modeSelect.disabled = running;
+    el.strategySelect.disabled = running;
+    el.dcaTicks.disabled = running;
+    el.dcaAmount.disabled = running;
     el.pausedBadge.classList.toggle("hidden", s.trading_enabled);
     el.btnPause.classList.toggle("hidden", !s.trading_enabled);
     el.btnResume.classList.toggle("hidden", s.trading_enabled);
@@ -322,10 +333,14 @@
         notify(evt, "매매 재개", `주체: ${d.actor}`, "ok");
         fetchState();
         break;
-      case "engine_started":
-        addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "드라이런"} · ${d.network} · ${d.symbol} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
+      case "engine_started": {
+        const st = d.strategy || {};
+        const stText = st.type === "dca"
+          ? `적립형(${st.dca_every_ticks}틱마다 ${st.dca_amount_usdc} USDC)` : "조건형";
+        addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "드라이런"} · ${d.network} · ${d.symbol} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
         fetchState();
         break;
+      }
       case "engine_stopped":
         addLog(evt.ts, `[세션 종료] 틱 ${d.ticks} · 체결 ${d.trades}건` +
           (d.archive ? ` · 증빙 ${d.archive}` : "") +
@@ -373,9 +388,19 @@
     return r.json();
   }
 
+  el.strategySelect.addEventListener("change", () => {
+    el.dcaParams.classList.toggle("hidden", el.strategySelect.value !== "dca");
+  });
   el.btnStart.addEventListener("click", async () => {
     el.btnStart.disabled = true;
-    const s = await post("/api/engine/start", { mode: el.modeSelect.value });
+    const s = await post("/api/engine/start", {
+      mode: el.modeSelect.value,
+      strategy: {
+        type: el.strategySelect.value,
+        dca_every_ticks: parseInt(el.dcaTicks.value, 10) || 5,
+        dca_amount_usdc: el.dcaAmount.value || "10",
+      },
+    });
     if (s) renderState(s); else el.btnStart.disabled = false;
   });
   el.btnStop.addEventListener("click", async () => {

@@ -51,6 +51,9 @@ input[type="number"], input[type="text"], input[type="time"] {
   width: 100%; max-width: 220px;
 }
 .field { display: block; margin: 6px 0; font-size: var(--fs-small); color: var(--muted); }
+/* B7 적립형 파라미터 (헤더 컨트롤 안의 짧은 입력들) */
+.dca-params { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-small); color: var(--muted); }
+.dca-params input { width: 64px; max-width: 64px; }
 
 /* ---- 카드 그리드 ---- */
 .grid {
@@ -112,6 +115,7 @@ input[type="number"], input[type="text"], input[type="time"] {
 .src-gemini { background: var(--badge-gemini); }
 .src-rule { background: var(--badge-rule); }
 .src-rule-fallback { background: var(--badge-fallback); }
+.src-dca { background: var(--badge-dca); }
 .feed .act { font-weight: 700; margin-right: 4px; }
 .act-buy { color: var(--buy); }
 .act-sell { color: var(--sell); }

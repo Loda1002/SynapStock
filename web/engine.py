@@ -16,7 +16,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from solders.hash import Hash
@@ -73,6 +73,7 @@ class TradingEngine:
         self.total_fees = Decimal(0)                # A8 누적 브로커 수수료 (수익모델 증명)
         self.started_at: str = ""
         self.brain_label: str = ""
+        self.strategy_info: Dict[str, Any] = {"type": "condition"}  # B7 세션 전략
 
         # 세션 구성물 (start 에서 생성)
         self._task: Optional[asyncio.Task] = None
@@ -92,12 +93,26 @@ class TradingEngine:
 
     # ---------- 라이프사이클 ----------
 
-    async def start(self, mode: str) -> Dict[str, Any]:
+    async def start(self, mode: str,
+                    strategy_cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if self.status != "idle":
             raise EngineError("엔진이 이미 실행 중입니다 — 먼저 세션을 종료하세요.")
         if mode not in ("dry", "live"):
             raise EngineError("mode 는 'dry' 또는 'live' 여야 합니다.")
         live = mode == "live"
+
+        # B7 전략 선택 — condition(조건형, 현행) / dca(적립형, N틱마다 정액 매수)
+        scfg = strategy_cfg or {}
+        strat_type = scfg.get("type", "condition")
+        if strat_type not in ("condition", "dca"):
+            raise EngineError("strategy.type 은 'condition' 또는 'dca' 여야 합니다.")
+        try:
+            dca_every = int(scfg.get("dca_every_ticks", 5))
+            dca_amount = Decimal(str(scfg.get("dca_amount_usdc", "10")))
+        except (ValueError, InvalidOperation):
+            raise EngineError("적립식 파라미터가 숫자 형식이 아닙니다.")
+        if strat_type == "dca" and (dca_every < 1 or dca_amount <= 0):
+            raise EngineError("적립식은 주기 1틱 이상, 회당 금액 0 초과여야 합니다.")
 
         usdc_mint = Pubkey.from_string(CFG.usdc_mint)
         if live and not CFG.stock_mint:
@@ -109,15 +124,19 @@ class TradingEngine:
         broker_kp = _load_or_new(os.path.join(wd, "broker.json"))
 
         # 판단 두뇌 — run_demo 와 동일한 선택 로직 (Gemini, 실패 시 규칙 폴백)
+        # 적립형(dca)은 판단 없이 스케줄 매수라 Gemini 를 쓰지 않는다
         brain = None
-        brain_label = "규칙 기반 (GEMINI_API_KEY 미설정)"
-        if CFG.gemini_api_key:
+        if strat_type == "dca":
+            brain_label = f"적립식 스케줄 ({dca_every}틱마다 {dca_amount} USDC, Gemini 미사용)"
+        elif CFG.gemini_api_key:
             try:
                 from agents.gemini_decider import GeminiDecider
                 brain = GeminiDecider(CFG.gemini_api_key, CFG.gemini_model, CFG.gemini_mode)
                 brain_label = f"Gemini ({CFG.gemini_model}, {brain.mode} 모드, 실패 시 규칙 폴백)"
             except Exception as e:
                 brain_label = f"규칙 기반 (Gemini 초기화 실패: {type(e).__name__})"
+        else:
+            brain_label = "규칙 기반 (GEMINI_API_KEY 미설정)"
 
         # AP2 mandate — 사용자가 설정한 한도에 서명 (예산=순투입 한도, A3 로 변경 가능)
         mandate = OpenPaymentMandate(
@@ -133,6 +152,9 @@ class TradingEngine:
             buy_below=Decimal(DEFAULT_RULES["buy_below"]),
             sell_above=Decimal(DEFAULT_RULES["sell_above"]),
             spend_per_trade_usdc=Decimal(DEFAULT_RULES["spend_per_trade"]),
+            mode=strat_type,
+            dca_every_ticks=dca_every,
+            dca_amount_usdc=dca_amount,
         )
         trading = TradingAgent(
             trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain,
@@ -170,6 +192,11 @@ class TradingEngine:
         self.mandate_history = []
         self.started_at = _now()
         self.brain_label = brain_label
+        self.strategy_info = {
+            "type": strat_type,
+            "dca_every_ticks": dca_every,
+            "dca_amount_usdc": str(dca_amount),
+        }
         self.tick_interval = CFG.web_tick_interval_sec
         self.last_archive_path = ""
         self._usdc_mint, self._stock_mint = usdc_mint, stock_mint
@@ -187,6 +214,7 @@ class TradingEngine:
             "per_trade_max_usdc": str(self.per_trade_max),
             "fee_bps": CFG.broker_fee_bps,
             "rules": DEFAULT_RULES,
+            "strategy": self.strategy_info,
             "mandate_verified": mandate.verify(),
             "wallets": {"trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
             "tick_interval_sec": self.tick_interval,
@@ -497,6 +525,7 @@ class TradingEngine:
             "wallets": {"trading": str(self._trading_kp.pubkey()), "broker": str(self._broker_kp.pubkey())},
             "mints": {"usdc": str(self._usdc_mint), "stock": str(self._stock_mint),
                       "stock_symbol": CFG.stock_symbol},
+            "strategy": getattr(self, "strategy_info", None),
             "mandate": {
                 "budget_total_usdc": str(self._mandate.budget_total_usdc),
                 "per_trade_max_usdc": str(self._mandate.per_trade_max_usdc),
@@ -560,6 +589,7 @@ class TradingEngine:
                 "cum_fee_usdc": str(self.total_fees),
             },
             "rules": DEFAULT_RULES,
+            "strategy": getattr(self, "strategy_info", None) or {"type": "condition"},
             "counts": {"trades": len(self.trades), "decisions": len(self.decisions)},
             "wallets": {
                 "trading": str(self._trading_kp.pubkey()) if self._trading_kp else "",

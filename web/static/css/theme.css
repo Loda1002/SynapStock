@@ -31,6 +31,7 @@
   --badge-gemini: #7c5cff;
   --badge-rule: #6b7480;
   --badge-fallback: #c97e0a;
+  --badge-dca: #0f7ea8;
 
   /* 타이포·형태 */
   --font: system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
@@ -63,5 +64,6 @@
     --badge-gemini: #9d86ff;
     --badge-rule: #7d8590;
     --badge-fallback: #f0b429;
+    --badge-dca: #2fa8d5;
   }
 }

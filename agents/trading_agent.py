@@ -34,10 +34,16 @@ class Decision:
 
 @dataclass
 class Strategy:
-    """데모용 규칙. (Gemini 로 교체 예정)"""
+    """매매 전략 — condition(조건형, 임계값+Gemini 판단) / dca(적립형, 주기 정액 매수).
+
+    B7: 적립형은 판단 없이 N틱마다 정액 매수만 한다(매도 없음).
+    AP2 mandate 검사는 두 모드 모두 동일한 결제 경로를 그대로 통과한다."""
     buy_below: Decimal
     sell_above: Decimal
     spend_per_trade_usdc: Decimal
+    mode: str = "condition"                    # "condition" / "dca"
+    dca_every_ticks: int = 5                   # 적립형: N틱마다
+    dca_amount_usdc: Decimal = Decimal("10")   # 적립형: 회당 정액
 
 
 class TradingAgent:
@@ -60,18 +66,23 @@ class TradingAgent:
         self.brain = brain
         self.fee_bps = fee_bps
         self._history: list[Decimal] = []  # 직전 시세 (Gemini 판단 근거)
+        self._dca_tick = 0                 # B7 적립형: 다음 매수까지 틱 카운터
+        self._dca_round = 0                # B7 적립형: 누적 회차
 
     @property
     def pubkey(self) -> Pubkey:
         return self.kp.pubkey()
 
-    # 1) 판단 — Gemini(있으면) → 실패 시 규칙 폴백
+    # 1) 판단 — 적립형이면 스케줄 매수, 조건형이면 Gemini(있으면) → 실패 시 규칙 폴백
     def decide(self, symbol: str, price: Decimal) -> Decision:
         self.position.symbol = symbol
         history = list(self._history)
         self._history.append(price)
         if len(self._history) > 8:
             self._history.pop(0)
+
+        if self.strategy.mode == "dca":
+            return self._decide_dca()
 
         if self.brain is not None:
             try:
@@ -88,6 +99,29 @@ class TradingAgent:
                 d.reason += f" — Gemini 호출 실패({type(e).__name__}: {detail}) → 규칙 폴백"
                 return d
         return self._decide_by_rule(symbol, price)
+
+    # B7 적립형 — 가격 판단 없이 N틱마다 정액 매수 (매도 없음)
+    def _decide_dca(self) -> Decision:
+        every = max(1, self.strategy.dca_every_ticks)
+        amount = self.strategy.dca_amount_usdc
+        self._dca_tick += 1
+        if self._dca_tick < every:
+            return Decision(
+                "hold", f"적립 대기 — 다음 정액 매수까지 {every - self._dca_tick}틱",
+                source="dca")
+        self._dca_tick = 0
+        if self.auth.remaining_usdc <= 0:
+            return Decision("hold", "적립 보류 — 예산 소진", source="dca")
+        if amount > self.auth.remaining_usdc:
+            return Decision(
+                "hold",
+                f"적립 보류 — 잔여 예산 {self.auth.remaining_usdc} < 정액 {amount} USDC",
+                source="dca")
+        self._dca_round += 1
+        return Decision(
+            "buy",
+            f"적립식 {self._dca_round}회차 — {every}틱마다 {amount} USDC 정액 매수",
+            amount, source="dca")
 
     def _decide_by_rule(self, symbol: str, price: Decimal) -> Decision:
         if price <= self.strategy.buy_below and self.auth.remaining_usdc > 0:

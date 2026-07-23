@@ -27,6 +27,14 @@
       <option value="dry">드라이런 (온체인 전송 없음)</option>
       <option value="live">라이브 (실제 온체인 tx)</option>
     </select>
+    <select data-strategy-select aria-label="매매 전략">
+      <option value="condition">조건형 (AI 판단 매수·매도)</option>
+      <option value="dca">적립형 (주기 정액 매수)</option>
+    </select>
+    <span class="dca-params hidden" data-dca-params>
+      <input data-dca-ticks type="number" min="1" step="1" value="5" aria-label="적립 주기(틱)">틱마다
+      <input data-dca-amount type="number" min="0" step="any" value="10" aria-label="회당 금액(USDC)">USDC
+    </span>
     <button class="btn" data-btn-start>▶ 세션 시작</button>
     <button class="btn" data-btn-stop disabled>■ 세션 종료</button>
     <button class="btn btn-emergency" data-btn-pause>🛑 긴급정지</button>
