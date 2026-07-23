@@ -1,0 +1,186 @@
+# Cloud Run 배포 런북 — AutoTrader Agent
+
+> **사용자가 직접 실행하는 문서다** (GCP 인증·과금 명령은 Claude 가 대행하지 않는다 — CLAUDE.md 규칙).
+> 명령은 전부 **PowerShell 기준**이고 위에서 아래로 순서대로 실행하면 된다.
+> 소요: 처음부터 끝까지 약 30~40분 (대부분 대기 시간).
+>
+> 구성 요약: **Cloud Run**(FastAPI 서버, 상시 1 인스턴스) + **Firestore**(세션·거래·브리핑 영속)
+> + **Secret Manager**(지갑키 2개 파일 마운트, Gemini API 키 환경변수 주입).
+> 로컬에 Docker 가 없어도 된다 — `--source .` 배포가 Cloud Build 에서 원격 빌드한다.
+
+---
+
+## 0. 사전 준비 (1회)
+
+### 0-1. Google Cloud SDK(gcloud) 설치 — 현재 이 PC에 없음
+
+https://cloud.google.com/sdk/docs/install 에서 **Windows 64bit 설치 관리자**를 받아 실행.
+설치 마지막에 "Run gcloud init" 체크는 꺼도 된다(아래에서 직접 로그인).
+설치 후 **PowerShell 을 새로 열고** 확인:
+
+```powershell
+gcloud --version
+```
+
+### 0-2. 로그인 + 프로젝트 만들기
+
+```powershell
+gcloud auth login
+```
+
+브라우저가 열리면 GCP $300 크레딧을 받은 구글 계정으로 로그인.
+
+```powershell
+# 프로젝트 ID 는 전역 유일해야 한다 — 뒤에 숫자 등을 붙여 조정
+$PROJECT_ID = "autotrader-agent-2026"
+$REGION = "asia-northeast3"   # 서울
+
+gcloud projects create $PROJECT_ID
+gcloud config set project $PROJECT_ID
+```
+
+**결제 계정 연결(필수)**: https://console.cloud.google.com/billing 에서 새 프로젝트에
+결제 계정을 연결한다($300 무료 크레딧이 걸린 계정). 연결 없이는 API 활성화가 막힌다.
+
+### 0-3. 필요한 API 켜기 (몇 분 걸릴 수 있음)
+
+```powershell
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com firestore.googleapis.com secretmanager.googleapis.com
+```
+
+---
+
+## 1. Firestore 데이터베이스 생성 (1회)
+
+```powershell
+gcloud firestore databases create --location=$REGION
+```
+
+- Native 모드 기본값 그대로. 컬렉션은 서버가 알아서 만든다
+  (`autotrader_sessions` / `autotrader_trades` / `autotrader_briefings` / `autotrader_state`).
+- 무료 한도(일 읽기 5만·쓰기 2만)로 해커톤 사용량은 충분히 덮는다.
+
+## 2. Secret Manager — 지갑키·Gemini 키 등록 (1회)
+
+지갑키 2개는 **로컬 `secrets/` 파일 그대로** 올린다(로컬·배포가 같은 지갑 = devnet 검증 일관성).
+
+```powershell
+cd "C:\Users\Tedd\Desktop\홍익대학교\프로젝트\[Google Cloud X Solana] AI 에이전틱 해커톤\solana-agent"
+
+gcloud secrets create autotrader-trading-wallet --data-file=secrets\trading.json
+gcloud secrets create autotrader-broker-wallet --data-file=secrets\broker.json
+```
+
+Gemini API 키는 **줄바꿈 없는 파일**로 만들어 올리고 바로 지운다
+(`echo` 파이프는 줄바꿈이 붙어서 키가 오염된다 — 주의):
+
+```powershell
+Set-Content -Path gemini.key -Value "여기에_발급받은_키" -NoNewline
+gcloud secrets create autotrader-gemini-key --data-file=gemini.key
+Remove-Item gemini.key
+```
+
+## 3. 서비스 계정 권한 (1회)
+
+Cloud Run 이 쓰는 기본 컴퓨트 서비스 계정에 Firestore 읽기쓰기 + 시크릿 접근 권한을 준다:
+
+```powershell
+$PROJECT_NUMBER = gcloud projects describe $PROJECT_ID --format="value(projectNumber)"
+$SA = "$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA" --role="roles/datastore.user"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
+```
+
+## 4. 배포
+
+저장소 루트에서 (첫 배포는 빌드 포함 5~10분, "Artifact Registry 저장소를 만들까요?" 물으면 `Y`):
+
+```powershell
+gcloud run deploy autotrader `
+  --source . `
+  --region $REGION `
+  --allow-unauthenticated `
+  --min-instances 1 `
+  --max-instances 1 `
+  --no-cpu-throttling `
+  --cpu 1 `
+  --memory 512Mi `
+  --timeout 3600 `
+  --set-env-vars "FIRESTORE_ENABLED=1,WALLET_DIR=/secrets,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com" `
+  --set-secrets "/secrets/trading.json=autotrader-trading-wallet:latest,/secrets/broker.json=autotrader-broker-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest"
+```
+
+끝나면 `Service URL: https://autotrader-....run.app` 이 출력된다 — **이게 라이브 배포 URL(가산점 항목)**.
+
+### 플래그가 이 값인 이유 (줄이면 안 되는 것들)
+
+| 플래그 | 왜 |
+|---|---|
+| `--min-instances 1` | 항상 켜 둔다 — 세션·자동 브리핑이 살아 있고 콜드스타트가 없다 |
+| `--max-instances 1` | **엔진이 전역 싱글턴 1개**라 인스턴스가 2개면 상태가 갈라진다(로그인 라운드에서 사용자별 분리 예정, 그때도 단일 인스턴스 전제) |
+| `--no-cpu-throttling` | 요청이 없어도 **백그라운드 매매 틱 루프**가 돌아야 한다(기본값은 요청 처리 중에만 CPU 할당) |
+| `--timeout 3600` | SSE 실시간 스트림을 최장 1시간 유지(끊기면 프론트가 Last-Event-ID 로 자동 복원) |
+| `--allow-unauthenticated` | 심사자가 URL 만으로 접근(로그인 게이트는 다음 라운드) |
+
+- 시크릿·`.env` 는 이미지에 들어가지 않는다(`.dockerignore` + 소스 업로드시 `.gitignore` 존중).
+  지갑키는 런타임에 `/secrets/…` 파일로 마운트되고 `WALLET_DIR=/secrets` 가 그걸 가리킨다.
+- 서버 시간대는 컨테이너에서 KST 로 고정(TZ=Asia/Seoul) — 장 마감 자동 브리핑(16:00) 그대로 동작.
+
+## 5. 배포 후 검증 (verification_checklist 의 배포판)
+
+1. **대시보드**: Service URL 을 브라우저로 열기 → 대시보드가 뜨는지
+2. **영속화 활성 확인**: `https://<URL>/api/state` 열기 → `"persistence": {"enabled": true, "backend": "firestore", …}`
+3. **드라이런 세션**: 대시보드에서 `실데이터 재생(AAPL)` + 드라이런으로 세션 시작 → 체결 발생 → 세션 종료
+4. **Firestore 증빙**: https://console.cloud.google.com/firestore → `autotrader_sessions`(세션 요약)·
+   `autotrader_trades`(체결)·`autotrader_briefings`(브리핑) 문서 생겼는지
+5. **재시작 영속 증명(핵심)**: 강제로 새 리비전을 만들어 인스턴스를 갈아치운 뒤에도 데이터가 남는지
+
+   ```powershell
+   gcloud run services update autotrader --region $REGION --update-env-vars RESTART_MARKER=1
+   ```
+
+   완료 후 대시보드 새로고침 → ①최근 브리핑이 복원돼 있고 ②`https://<URL>/api/history/sessions` 에
+   방금 세션이 보이면 통과. (이 화면·JSON 을 스크린샷으로 남겨 두면 제출 증빙이 된다)
+6. **서버 로그**:
+
+   ```powershell
+   gcloud run services logs read autotrader --region $REGION --limit 50
+   ```
+
+   부팅 시 `[store] Firestore 영속화 활성`, `[store] 부팅 복원 완료` 라인이 보이면 정상.
+
+## 6. 운영 메모
+
+- **재배포(코드 수정 후)**: 4번의 `gcloud run deploy …` 를 그대로 다시 실행 (같은 URL 유지)
+- **환경변수만 수정**: `gcloud run services update autotrader --region $REGION --update-env-vars KEY=VALUE`
+- **비용**: 상시 1 인스턴스(CPU 상시 할당) ≈ **월 $50 안팎** → 심사 기간 2~3주면 $25~40,
+  $300 크레딧으로 충분. 심사 끝나면 삭제: `gcloud run services delete autotrader --region $REGION`
+- **Gemini 무료 티어**: 배포해도 호출량은 로컬과 동일(틱 8초·세션 단위). 한도 초과가 보이면
+  디스코드에 사전 문의해 크레딧을 요청(CLAUDE.md 규칙)
+- 무료 SSE 유의: 브라우저 탭이 열려 있는 동안만 스트림 유지 — 탭을 닫아도 세션은 서버에서 계속 돈다
+
+## 7. (다음 단계) devnet 라이브 모드 전환
+
+배포 직후 기본은 **드라이런 데모**다. 온체인 라이브까지 켜려면:
+
+1. 로컬 `.env` 를 devnet 으로 두고 `python scripts/setup_devnet.py` 실행(민트 2개 생성·양 지갑 ATA 준비)
+   — devnet SOL 필요(퍼셋 하루 0.5~5 SOL, 부족하면 미리 디스코드 요청)
+2. 출력된 민트 주소를 배포에 반영:
+
+   ```powershell
+   gcloud run services update autotrader --region $REGION --update-env-vars "USDC_MINT=<출력값>,STOCK_MINT=<출력값>"
+   ```
+
+3. 대시보드에서 라이브 모드 세션 → explorer 링크(devnet)로 트랜잭션 확인 → `artifacts/tx/` 증빙 아카이브
+
+## 8. 문제가 나면
+
+| 증상 | 조치 |
+|---|---|
+| `PERMISSION_DENIED: secretmanager` | 3번 권한 두 줄을 다시 실행(프로젝트 번호 확인) |
+| `NOT_FOUND: database (default)` | 1번 Firestore 생성을 안 했거나 다른 프로젝트에 만듦 |
+| 빌드 실패 | `gcloud builds list` → 실패 빌드 ID → `gcloud builds log <ID>` |
+| 페이지 500/빈 화면 | 5-6 로그 명령으로 파이썬 트레이스백 확인 |
+| `allow-unauthenticated` 거부(조직 정책) | 개인 계정 프로젝트인지 확인(학교·회사 조직 계정은 정책이 막을 수 있음) |
+| 배포 후 persistence.enabled=false | 서비스 env 에 FIRESTORE_ENABLED=1 이 있는지 `gcloud run services describe autotrader --region $REGION` 로 확인 |
