@@ -1,0 +1,302 @@
+{
+  "generated_at": "2026-07-23T13:55:46",
+  "source": "web-dashboard",
+  "network": "solana-localnet",
+  "rpc_url": "http://127.0.0.1:8899",
+  "wallets": {
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "6URRzqYUeJDkL8f52ys9LGN4NdS9uX36V9N7F1U7Lx7R",
+    "stock": "5nMkYFoRszp4fAmZPqFuWid96fnFGpL79X3sMnAJ5HLr",
+    "stock_symbol": "tAAPL"
+  },
+  "strategy": {
+    "type": "condition",
+    "dca_every_ticks": 5,
+    "dca_amount_usdc": "10"
+  },
+  "mandate": {
+    "budget_total_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "signature": "3M2aHqSVzUrsWUUtWq1A3H3P87BUsPwS8D1L4X4k1A9pVG6Nk86tEbEHhs169bR6HewD1TMt9QnaBCMruungeS68"
+  },
+  "mandate_history": [],
+  "broker_fee": {
+    "fee_bps": 30,
+    "total_fees_usdc": "0.74"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 5.99435984,
+      "usdc": "834",
+      "stock": "1.0292"
+    },
+    "broker": {
+      "sol": 5.99436484,
+      "usdc": "166",
+      "stock": "98.9708"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 5.99432984,
+      "usdc": "779.78",
+      "stock": "1.3691"
+    },
+    "broker": {
+      "sol": 5.99433484,
+      "usdc": "220.22",
+      "stock": "98.6309"
+    }
+  },
+  "trades": [
+    {
+      "ts": "2026-07-23T13:54:10",
+      "order_id": "ord_4e0f7180a3",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "현재 가격이 177.30 USDC로 178 USDC 이하이며 예산이 남아 있어 매수 조건을 충족합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1686",
+      "price_usdc": "177.30",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "fee_bps": 30,
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3sNgafXUDNspCexTELeJJngC32MrfHDvLPvydGmWGkWXcdDVUME79NDKbQf2fJbHFoZA92kgRATwTUY8p2bX8pBq",
+      "delivery_tx": "5kebLxHYuZR82hWbbM9oxdMpZQsRHUuaCSFNLzMnuk6sC3WGpKPskaT8coPPFhpHE3NHxG6rMxuM8JH8cU1Lg1oK",
+      "explorer_payment": "https://explorer.solana.com/tx/3sNgafXUDNspCexTELeJJngC32MrfHDvLPvydGmWGkWXcdDVUME79NDKbQf2fJbHFoZA92kgRATwTUY8p2bX8pBq?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/5kebLxHYuZR82hWbbM9oxdMpZQsRHUuaCSFNLzMnuk6sC3WGpKPskaT8coPPFhpHE3NHxG6rMxuM8JH8cU1Lg1oK?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:54:20",
+      "order_id": "ord_ff551cf3f2",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "현재가가 178 USDC 이하이고 예산이 남아 있어 허용된 한도 내에서 추가 매수를 진행합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1713",
+      "price_usdc": "174.60",
+      "subtotal_usdc": "29.91",
+      "fee_usdc": "0.09",
+      "fee_bps": 30,
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "4ApRim7o1GjunJtMz7PTDrarTFQLF79DT8r5mcEKuhegQysp6gQaic5PSMsw7yVJeGrMyGHYrWgZBNjK9mVzCzdG",
+      "delivery_tx": "3Gmhmw6MM6hgmQMk723JTR6n9HiHygXyrhDp6WjaBbZVtxB1tE9AvARjrpHc3HSE5VhXc7H1vHncpwr9Xepkzvdq",
+      "explorer_payment": "https://explorer.solana.com/tx/4ApRim7o1GjunJtMz7PTDrarTFQLF79DT8r5mcEKuhegQysp6gQaic5PSMsw7yVJeGrMyGHYrWgZBNjK9mVzCzdG?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/3Gmhmw6MM6hgmQMk723JTR6n9HiHygXyrhDp6WjaBbZVtxB1tE9AvARjrpHc3HSE5VhXc7H1vHncpwr9Xepkzvdq?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:54:31",
+      "order_id": "ord_086d2d4b26",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "현재가가 178 USDC 이하이고 남은 예산이 있어 수수료를 반영한 실효 가격으로 1회 최대 30 USDC 한도 내에서 매수를 진행합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1730",
+      "price_usdc": "172.80",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "fee_bps": 30,
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "34GuZEXFQjUsMeq8b62TuPQkK3ZaVUgw4itBxHwDsvy3Rdpa5nJDqwVNH7XqKsymvjfhRdtLHEtDAm2pBiRDpWae",
+      "delivery_tx": "3exipYwmiTQUk56jdtezCxUqT5oZgocYLFtcwtY3aiCQpaXN9v1s4Mdd76XsjYfPSMGFZXZtZGhEU2JVxqNM3qvJ",
+      "explorer_payment": "https://explorer.solana.com/tx/34GuZEXFQjUsMeq8b62TuPQkK3ZaVUgw4itBxHwDsvy3Rdpa5nJDqwVNH7XqKsymvjfhRdtLHEtDAm2pBiRDpWae?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/3exipYwmiTQUk56jdtezCxUqT5oZgocYLFtcwtY3aiCQpaXN9v1s4Mdd76XsjYfPSMGFZXZtZGhEU2JVxqNM3qvJ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:54:59",
+      "order_id": "ord_de0898cb4b",
+      "side": "sell",
+      "decision_source": "gemini",
+      "decision_reason": "현재가가 185 USDC 이상이고 보유 수량이 있으며 수수료 차감 후 실효 매도가 유리하여 매도를 고려합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.5129",
+      "price_usdc": "187.20",
+      "subtotal_usdc": "96.01",
+      "fee_usdc": "0.29",
+      "fee_bps": 30,
+      "total_usdc": "95.72",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "C31c48Q2BBtt2FXx6oSneoEvnRDnpsJtLMvo49BDfsZE9LcSvySbkYR5NnM6gj1RQM7HCL7S7Pnm8MJM3emysuT",
+      "delivery_tx": "6A6gUzHZ1xmvb91R2SCGcVAPwE9jyqBKULoVhxCYVr8FuTN3i27sGL3UFwdsH8Gbk4VdKRZ7oCWZ7TqESE1xf6G",
+      "explorer_payment": "https://explorer.solana.com/tx/C31c48Q2BBtt2FXx6oSneoEvnRDnpsJtLMvo49BDfsZE9LcSvySbkYR5NnM6gj1RQM7HCL7S7Pnm8MJM3emysuT?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/6A6gUzHZ1xmvb91R2SCGcVAPwE9jyqBKULoVhxCYVr8FuTN3i27sGL3UFwdsH8Gbk4VdKRZ7oCWZ7TqESE1xf6G?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": "5.76"
+    },
+    {
+      "ts": "2026-07-23T13:55:28",
+      "order_id": "ord_af5547171e",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "현재 가격이 178 USDC 이하이고 예산이 남아 있어 규칙에 따라 매수를 진행합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1686",
+      "price_usdc": "177.30",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "fee_bps": 30,
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3x43WpAByiuRsPS9nhBvzLA4FzS4kRzSxJd8cSFpXB1BYYDDd5MrfuwtSLsNvzrHqdNTga6CA3DALwiuGzRSnGRZ",
+      "delivery_tx": "56eGhp6fNpYSgUTKZs2kU2yc3rDb79KhaPJ11vrZF8K8z9HDEaxRYtRV5bhDug4Jm6gLTiYYBwVWocN8MzNPJgPa",
+      "explorer_payment": "https://explorer.solana.com/tx/3x43WpAByiuRsPS9nhBvzLA4FzS4kRzSxJd8cSFpXB1BYYDDd5MrfuwtSLsNvzrHqdNTga6CA3DALwiuGzRSnGRZ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/56eGhp6fNpYSgUTKZs2kU2yc3rDb79KhaPJ11vrZF8K8z9HDEaxRYtRV5bhDug4Jm6gLTiYYBwVWocN8MzNPJgPa?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:55:38",
+      "order_id": "ord_638014e101",
+      "side": "buy",
+      "decision_source": "gemini",
+      "decision_reason": "현재 가격이 177.30 USDC로 178 USDC 이하이며 잔여 예산이 남아 있어 매수 기준을 충족합니다.",
+      "symbol": "tAAPL",
+      "quantity": "0.1713",
+      "price_usdc": "174.60",
+      "subtotal_usdc": "29.91",
+      "fee_usdc": "0.09",
+      "fee_bps": 30,
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "7RiWuzaWUEDWcCMBTC5JTp1dde3qmLqtSebAeor5rv3MCMEAgRfTBT3fUsdKpELRL3wZosjANmYpMWQJnWVXph9",
+      "delivery_tx": "553FpdwbN87Y7tXEvStnN9dT4bFQd8rCAXTccfhxgPa6oKD6B7cH59F1ZuqT8uG52MvucXDquAuizjGs3xTRcGNv",
+      "explorer_payment": "https://explorer.solana.com/tx/7RiWuzaWUEDWcCMBTC5JTp1dde3qmLqtSebAeor5rv3MCMEAgRfTBT3fUsdKpELRL3wZosjANmYpMWQJnWVXph9?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/553FpdwbN87Y7tXEvStnN9dT4bFQd8rCAXTccfhxgPa6oKD6B7cH59F1ZuqT8uG52MvucXDquAuizjGs3xTRcGNv?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    }
+  ],
+  "decisions": [
+    {
+      "ts": "2026-07-23T13:53:59",
+      "tick": 1,
+      "symbol": "tAAPL",
+      "price": "180.00",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 178 USDC를 초과하고 매도 기준인 185 USDC 미만이므로 관망합니다.",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:54:08",
+      "tick": 2,
+      "symbol": "tAAPL",
+      "price": "177.30",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재 가격이 177.30 USDC로 178 USDC 이하이며 예산이 남아 있어 매수 조건을 충족합니다.",
+      "spend_usdc": "30"
+    },
+    {
+      "ts": "2026-07-23T13:54:19",
+      "tick": 3,
+      "symbol": "tAAPL",
+      "price": "174.60",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 178 USDC 이하이고 예산이 남아 있어 허용된 한도 내에서 추가 매수를 진행합니다.",
+      "spend_usdc": "30.0"
+    },
+    {
+      "ts": "2026-07-23T13:54:29",
+      "tick": 4,
+      "symbol": "tAAPL",
+      "price": "172.80",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 178 USDC 이하이고 남은 예산이 있어 수수료를 반영한 실효 가격으로 1회 최대 30 USDC 한도 내에서 매수를 진행합니다.",
+      "spend_usdc": "30.0"
+    },
+    {
+      "ts": "2026-07-23T13:54:40",
+      "tick": 5,
+      "symbol": "tAAPL",
+      "price": "175.50",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 178 USDC 이하이나 남은 총예산이 10.04 USDC로 1회 최소 매수 금액인 30 USDC에 미달하여 매수할 수 없습니다.",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:54:49",
+      "tick": 6,
+      "symbol": "tAAPL",
+      "price": "181.80",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 178 USDC를 초과하고 매도 기준인 185 USDC 미만이므로 관망합니다.",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:54:58",
+      "tick": 7,
+      "symbol": "tAAPL",
+      "price": "187.20",
+      "action": "sell",
+      "source": "gemini",
+      "reason": "현재가가 185 USDC 이상이고 보유 수량이 있으며 수수료 차감 후 실효 매도가 유리하여 매도를 고려합니다.",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:55:08",
+      "tick": 8,
+      "symbol": "tAAPL",
+      "price": "179.10",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 178 USDC를 초과하고 185 USDC 미만이므로 매수 및 매도 규칙에 해당하지 않습니다.",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:55:17",
+      "tick": 9,
+      "symbol": "tAAPL",
+      "price": "180.00",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 178 USDC 이하 조건과 185 USDC 이상 조건을 모두 충족하지 않아 관망합니다.",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:55:26",
+      "tick": 10,
+      "symbol": "tAAPL",
+      "price": "177.30",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재 가격이 178 USDC 이하이고 예산이 남아 있어 규칙에 따라 매수를 진행합니다.",
+      "spend_usdc": "30"
+    },
+    {
+      "ts": "2026-07-23T13:55:37",
+      "tick": 11,
+      "symbol": "tAAPL",
+      "price": "174.60",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재 가격이 177.30 USDC로 178 USDC 이하이며 잔여 예산이 남아 있어 매수 기준을 충족합니다.",
+      "spend_usdc": "30"
+    }
+  ],
+  "cross_check": {
+    "usdc_net_out_onchain": "54.22",
+    "usdc_net_out_expected": "54.22",
+    "usdc_ok": true,
+    "stock_net_in_onchain": "0.3399",
+    "stock_net_in_expected": "0.3399",
+    "stock_ok": true
+  }
+}

@@ -1,0 +1,281 @@
+{
+  "generated_at": "2026-07-23T13:57:54",
+  "source": "web-dashboard",
+  "network": "solana-localnet",
+  "rpc_url": "http://127.0.0.1:8899",
+  "wallets": {
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "6URRzqYUeJDkL8f52ys9LGN4NdS9uX36V9N7F1U7Lx7R",
+    "stock": "5nMkYFoRszp4fAmZPqFuWid96fnFGpL79X3sMnAJ5HLr",
+    "stock_symbol": "tAAPL"
+  },
+  "strategy": {
+    "type": "dca",
+    "dca_every_ticks": 2,
+    "dca_amount_usdc": "12"
+  },
+  "mandate": {
+    "budget_total_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "signature": "5vdyXK256KrZ1jeZkqo9viD5VfBSVhNVTREYFzx76f9avwurzMGgb9BK73jvYzUT37vTijtePZWiBHpmHBVQhXEf"
+  },
+  "mandate_history": [],
+  "broker_fee": {
+    "fee_bps": 30,
+    "total_fees_usdc": "0.20"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 5.99432984,
+      "usdc": "779.78",
+      "stock": "1.3691"
+    },
+    "broker": {
+      "sol": 5.99433484,
+      "usdc": "220.22",
+      "stock": "98.6309"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 5.99430484,
+      "usdc": "719.8",
+      "stock": "1.7057"
+    },
+    "broker": {
+      "sol": 5.99430984,
+      "usdc": "280.2",
+      "stock": "98.2943"
+    }
+  },
+  "trades": [
+    {
+      "ts": "2026-07-23T13:56:32",
+      "order_id": "ord_44e34432e1",
+      "side": "buy",
+      "decision_source": "dca",
+      "decision_reason": "적립식 1회차 — 2틱마다 12 USDC 정액 매수",
+      "symbol": "tAAPL",
+      "quantity": "0.0674",
+      "price_usdc": "177.30",
+      "subtotal_usdc": "11.95",
+      "fee_usdc": "0.04",
+      "fee_bps": 30,
+      "total_usdc": "11.99",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "2T5oHcP9MRU9qajznvDdr8bNZFPjpruHydY5KmNMcHq95tqALJLUQCUPuUFLNt8kafvh24JxuPyAHVTdosk55DKA",
+      "delivery_tx": "3wLUyQL5NRQeaSpvq6HY8UacFxrefLMVWEPejZ25UUnrCJnkEMoSaL8js4Q4ymgrm6XhaheQnbUutmo1AWbvtNDS",
+      "explorer_payment": "https://explorer.solana.com/tx/2T5oHcP9MRU9qajznvDdr8bNZFPjpruHydY5KmNMcHq95tqALJLUQCUPuUFLNt8kafvh24JxuPyAHVTdosk55DKA?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/3wLUyQL5NRQeaSpvq6HY8UacFxrefLMVWEPejZ25UUnrCJnkEMoSaL8js4Q4ymgrm6XhaheQnbUutmo1AWbvtNDS?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:56:50",
+      "order_id": "ord_7e48dfe3fd",
+      "side": "buy",
+      "decision_source": "dca",
+      "decision_reason": "적립식 2회차 — 2틱마다 12 USDC 정액 매수",
+      "symbol": "tAAPL",
+      "quantity": "0.0692",
+      "price_usdc": "172.80",
+      "subtotal_usdc": "11.96",
+      "fee_usdc": "0.04",
+      "fee_bps": 30,
+      "total_usdc": "12.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "5xeCkdo2JgwK8eEBii7CXTnoZCtnZo9KWwKgWt7MD9uAiCAvAeDDRmfa6c6yTwJ3tgj7As5HnBgYkvPficTwexab",
+      "delivery_tx": "5U23N8S9CxWvwv32L3UrMxPV5EZqzZkTTaFdXVCW4izZgdC2H8ncHPKoeqeSTugiuDjdYQEYQmUU8n3ojhNY5fTN",
+      "explorer_payment": "https://explorer.solana.com/tx/5xeCkdo2JgwK8eEBii7CXTnoZCtnZo9KWwKgWt7MD9uAiCAvAeDDRmfa6c6yTwJ3tgj7As5HnBgYkvPficTwexab?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/5U23N8S9CxWvwv32L3UrMxPV5EZqzZkTTaFdXVCW4izZgdC2H8ncHPKoeqeSTugiuDjdYQEYQmUU8n3ojhNY5fTN?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:57:07",
+      "order_id": "ord_648ed96a99",
+      "side": "buy",
+      "decision_source": "dca",
+      "decision_reason": "적립식 3회차 — 2틱마다 12 USDC 정액 매수",
+      "symbol": "tAAPL",
+      "quantity": "0.0658",
+      "price_usdc": "181.80",
+      "subtotal_usdc": "11.96",
+      "fee_usdc": "0.04",
+      "fee_bps": 30,
+      "total_usdc": "12.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "p4RPQUCqCN4Wk32UyLtz3zg5fWbVNJygqZSgtKAB12fMBddSAu7XE3muqaVZMExi5BYy6Uq6insoYa5NsQtJsSW",
+      "delivery_tx": "bu4HNo6j5UZdEWcuasY6K8e27fFj4UNMnLMzedPB4fa3zxCChQCyA5ACw818hDTfFPWQjekhyqYSythaVfLwVKd",
+      "explorer_payment": "https://explorer.solana.com/tx/p4RPQUCqCN4Wk32UyLtz3zg5fWbVNJygqZSgtKAB12fMBddSAu7XE3muqaVZMExi5BYy6Uq6insoYa5NsQtJsSW?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/bu4HNo6j5UZdEWcuasY6K8e27fFj4UNMnLMzedPB4fa3zxCChQCyA5ACw818hDTfFPWQjekhyqYSythaVfLwVKd?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:57:24",
+      "order_id": "ord_de53ce5236",
+      "side": "buy",
+      "decision_source": "dca",
+      "decision_reason": "적립식 4회차 — 2틱마다 12 USDC 정액 매수",
+      "symbol": "tAAPL",
+      "quantity": "0.0668",
+      "price_usdc": "179.10",
+      "subtotal_usdc": "11.96",
+      "fee_usdc": "0.04",
+      "fee_bps": 30,
+      "total_usdc": "12.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3Ubo8ADjzowJA8waE7dzG6LdwLDJUaiKUrbKjR97pqXQXSd4oK2Bh1mz5u9LCZobmn91V8MbKZBKT3AuiWuQxX7j",
+      "delivery_tx": "43ivFjvNsCMP7Ci8H1pxnmtETqrw968yqP3yqZhi4u8RxzvuQj9z7QHYce7MF2mNFJ8842xKyqAheTZ9jXk1nD58",
+      "explorer_payment": "https://explorer.solana.com/tx/3Ubo8ADjzowJA8waE7dzG6LdwLDJUaiKUrbKjR97pqXQXSd4oK2Bh1mz5u9LCZobmn91V8MbKZBKT3AuiWuQxX7j?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/43ivFjvNsCMP7Ci8H1pxnmtETqrw968yqP3yqZhi4u8RxzvuQj9z7QHYce7MF2mNFJ8842xKyqAheTZ9jXk1nD58?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T13:57:42",
+      "order_id": "ord_775bf83378",
+      "side": "buy",
+      "decision_source": "dca",
+      "decision_reason": "적립식 5회차 — 2틱마다 12 USDC 정액 매수",
+      "symbol": "tAAPL",
+      "quantity": "0.0674",
+      "price_usdc": "177.30",
+      "subtotal_usdc": "11.95",
+      "fee_usdc": "0.04",
+      "fee_bps": 30,
+      "total_usdc": "11.99",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "52XXtUC1wSMucmUHJXweu2xspDXnXrbScKcE3YG57dBeeBxpbdSFHshLJFUBuPqjHe1V6NvPXcQVwAdajJpp6sR",
+      "delivery_tx": "3mdBUG4mmGUnQ3x8nxHTXeJ2Kwr8LCSWXefYT4USWN4TDPwwy7Lsn2cUZSqB56z5BSKMjYYjvWLtfK8NLqZcH6vd",
+      "explorer_payment": "https://explorer.solana.com/tx/52XXtUC1wSMucmUHJXweu2xspDXnXrbScKcE3YG57dBeeBxpbdSFHshLJFUBuPqjHe1V6NvPXcQVwAdajJpp6sR?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/3mdBUG4mmGUnQ3x8nxHTXeJ2Kwr8LCSWXefYT4USWN4TDPwwy7Lsn2cUZSqB56z5BSKMjYYjvWLtfK8NLqZcH6vd?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    }
+  ],
+  "decisions": [
+    {
+      "ts": "2026-07-23T13:56:23",
+      "tick": 1,
+      "symbol": "tAAPL",
+      "price": "180.00",
+      "action": "hold",
+      "source": "dca",
+      "reason": "적립 대기 — 다음 정액 매수까지 1틱",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:56:31",
+      "tick": 2,
+      "symbol": "tAAPL",
+      "price": "177.30",
+      "action": "buy",
+      "source": "dca",
+      "reason": "적립식 1회차 — 2틱마다 12 USDC 정액 매수",
+      "spend_usdc": "12"
+    },
+    {
+      "ts": "2026-07-23T13:56:40",
+      "tick": 3,
+      "symbol": "tAAPL",
+      "price": "174.60",
+      "action": "hold",
+      "source": "dca",
+      "reason": "적립 대기 — 다음 정액 매수까지 1틱",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:56:48",
+      "tick": 4,
+      "symbol": "tAAPL",
+      "price": "172.80",
+      "action": "buy",
+      "source": "dca",
+      "reason": "적립식 2회차 — 2틱마다 12 USDC 정액 매수",
+      "spend_usdc": "12"
+    },
+    {
+      "ts": "2026-07-23T13:56:58",
+      "tick": 5,
+      "symbol": "tAAPL",
+      "price": "175.50",
+      "action": "hold",
+      "source": "dca",
+      "reason": "적립 대기 — 다음 정액 매수까지 1틱",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:57:06",
+      "tick": 6,
+      "symbol": "tAAPL",
+      "price": "181.80",
+      "action": "buy",
+      "source": "dca",
+      "reason": "적립식 3회차 — 2틱마다 12 USDC 정액 매수",
+      "spend_usdc": "12"
+    },
+    {
+      "ts": "2026-07-23T13:57:15",
+      "tick": 7,
+      "symbol": "tAAPL",
+      "price": "187.20",
+      "action": "hold",
+      "source": "dca",
+      "reason": "적립 대기 — 다음 정액 매수까지 1틱",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:57:23",
+      "tick": 8,
+      "symbol": "tAAPL",
+      "price": "179.10",
+      "action": "buy",
+      "source": "dca",
+      "reason": "적립식 4회차 — 2틱마다 12 USDC 정액 매수",
+      "spend_usdc": "12"
+    },
+    {
+      "ts": "2026-07-23T13:57:32",
+      "tick": 9,
+      "symbol": "tAAPL",
+      "price": "180.00",
+      "action": "hold",
+      "source": "dca",
+      "reason": "적립 대기 — 다음 정액 매수까지 1틱",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T13:57:40",
+      "tick": 10,
+      "symbol": "tAAPL",
+      "price": "177.30",
+      "action": "buy",
+      "source": "dca",
+      "reason": "적립식 5회차 — 2틱마다 12 USDC 정액 매수",
+      "spend_usdc": "12"
+    },
+    {
+      "ts": "2026-07-23T13:57:50",
+      "tick": 11,
+      "symbol": "tAAPL",
+      "price": "174.60",
+      "action": "hold",
+      "source": "dca",
+      "reason": "적립 대기 — 다음 정액 매수까지 1틱",
+      "spend_usdc": "0"
+    }
+  ],
+  "cross_check": {
+    "usdc_net_out_onchain": "59.98",
+    "usdc_net_out_expected": "59.98",
+    "usdc_ok": true,
+    "stock_net_in_onchain": "0.3366",
+    "stock_net_in_expected": "0.3366",
+    "stock_ok": true
+  }
+}

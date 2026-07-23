@@ -31,17 +31,16 @@
 - 참고 프로토콜 계층: A2A(에이전트 간 통신)/MCP(에이전트-툴)/AP2(mandate 기반 결제 위임)/UCP(A2A+AP2 통합)/x402·MPP(정산 레일). AP2 안에서 x402를 결제 레일로 사용할 수 있다.
 - 데모데이(8/21 금, Google Startup Campus) 라이브 시연을 전제로, 데모는 네트워크 불안정 대비 폴백(로컬넷 재시연 경로)을 준비한다.
 
-## 현재 상태 (2026-07-23 오후 기준)
+## 현재 상태 (2026-07-23 저녁 기준)
 
-완료(localnet 라이브 검증 통과): A2A+x402 **매수·매도 풀사이클**(USDC⇄주식토큰 양방향 온체인 정산, 순변화 교차검증 PASS), AP2 mandate(한도 + 매도 대금 환입 = 순투입 한도), **Gemini 판단**(`gemini-flash-latest`, 무료 티어, 호출 실패 시 규칙 폴백 — 라이브에서 rate limit 폴백 실증됨), **거부 4종 데모**(`scripts/demo_rejections.py`), 증빙 아카이빙(`artifacts/tx/`), **P1 웹 서비스화**(`web/`: FastAPI+SSE, 대시보드에서 세션 시작/종료·긴급정지, A1·A2·A5·A6·A7 — 웹 라이브 세션 매수4+매도1 온체인 확정·교차검증 PASS, 실행 `python -m web.server`), GitHub 푸시(https://github.com/Loda1002/SolanaAgent, private — 제출 전 public 전환).
+완료(localnet 라이브 검증 통과): A2A+x402 **매수·매도 풀사이클**(USDC⇄주식토큰 양방향 온체인 정산, 순변화 교차검증 PASS), AP2 mandate(한도 + 매도 대금 환입 = 순투입 한도), **Gemini 판단**(`gemini-flash-lite-latest`, 무료 티어, 호출 실패 시 규칙 폴백), **거부 4종 데모**(`scripts/demo_rejections.py`), 증빙 아카이빙(`artifacts/tx/`), **P1 웹 서비스화**(`web/`: FastAPI+SSE, A1·A2·A5·A6·A7, 실행 `python -m web.server`), **P2 엔진 확장 전체**(A8 수수료 투명화 0.3% 양방향·AP2 총액 검사·누적 수수료 카드 / A3 한도 설정 화면·mandate 재서명 / A4 토스트+브라우저 알림 / B7 적립식 DCA 전략 선택 / B2 데일리 브리핑 Gemini 리포트·수동+세션종료+장마감 3경로 — 라이브 2세션 교차검증 PASS, 한도 변경→AP2 거부→재서명→통과 시나리오 실증), GitHub 푸시(https://github.com/Loda1002/SolanaAgent, private — 제출 전 public 전환).
 
 다음 단계(우선순위 순):
 
-1. P2 엔진 확장(`docs/feature_spec.md` 기준, 임의 가감 금지): A8 수수료 투명화 → A3 한도 설정 화면 → A4 브라우저 알림 → B7 적립식(DCA) → B2 데일리 브리핑
-2. Cloud Run 배포 + Secret Manager(지갑키) + Firestore(포지션/영수증) — 사용자 GCP $300 크레딧 확보됨
-3. P3 대화형·감시(B1 자연어 규칙, B6 에이전트 챗, B4 리스크 가드) + 디자인 적용(시안 수령 후 `web/static/css/theme.css` 교체) + 멀티종목·멀티턴(여유 시)
-4. devnet 최종 검증: .env 전환 → setup → live → explorer 링크 증빙 (디스코드 SOL 요청 완료 0722 — **사용 시점은 로컬 UI/UX 적용 테스트 완료 후**, 사용자 결정)
-5. 제출물: README 병합 + 소개서 + 데모 영상 + public 전환 + 15분 리허설 (8/3 23:59) — **소개서 수익모델 수치 확정 시 수수료율 0.3% vs 0.1% 재검토를 사용자에게 물어볼 것**(`docs/feature_spec.md` 미결정 메모)
+1. Cloud Run 배포 + Secret Manager(지갑키) + Firestore(포지션/영수증) — 사용자 GCP $300 크레딧 확보됨. 배포 시 `WEB_HOST=0.0.0.0`·`PORT` 환경변수 대응(web/server.py 주석 참고), B2 장마감 자동 브리핑은 상시 서버에서 유효해짐
+2. P3 대화형·감시(`docs/feature_spec.md` 기준): B1 자연어 규칙(변환 결과 승인 후 적용) → B6 에이전트 챗(행동 변경은 제안 카드로) → B4 리스크 가드(알림만/알림+자동정지 토글, 임계값 기본 제안 3틱 ±5% — 미결정, 착수 시 사용자 확인) + 디자인 적용(시안 수령 후 `web/static/css/theme.css` 교체) + 멀티종목·멀티턴(여유 시)
+3. devnet 최종 검증: .env 전환 → setup → live → explorer 링크 증빙 (디스코드 SOL 요청 완료 0722 — **사용 시점은 로컬 UI/UX 적용 테스트 완료 후**, 사용자 결정)
+4. 제출물: README 병합 + 소개서 + 데모 영상 + public 전환 + 15분 리허설 (8/3 23:59) — **소개서 수익모델 수치 확정 시 수수료율 0.3% vs 0.1% 재검토를 사용자에게 물어볼 것**(`docs/feature_spec.md` 미결정 메모)
 
 ## 세션 운영
 
