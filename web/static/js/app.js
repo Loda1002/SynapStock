@@ -154,9 +154,15 @@
     el.strategySelect.disabled = running;
     el.dcaTicks.disabled = running;
     el.dcaAmount.disabled = running;
-    el.pausedBadge.classList.toggle("hidden", s.trading_enabled);
+    // 긴급정지·재개는 세션 실행 중에만 — 대기 중에는 비활성 (정지 상태는 세션 단위)
+    el.pausedBadge.classList.toggle("hidden", s.trading_enabled || !running);
     el.btnPause.classList.toggle("hidden", !s.trading_enabled);
     el.btnResume.classList.toggle("hidden", s.trading_enabled);
+    el.btnPause.disabled = !running;
+    el.btnResume.disabled = !running;
+    const sessionHint = running ? "" : " (세션 실행 중에만 사용할 수 있습니다)";
+    el.btnPause.title = "신규 판단·결제를 즉시 중단합니다" + sessionHint;
+    el.btnResume.title = "매매를 다시 시작합니다" + sessionHint;
     if (s.pause_info) el.pausedBadge.textContent = `🛑 매매 정지됨 (${s.pause_info.actor}, ${timeOf(s.pause_info.ts)})`;
   }
 
@@ -191,6 +197,28 @@
     li.appendChild(make("time", null, timeOf(ts)));
     li.appendChild(make("span", null, text));
     el.eventLog.prepend(li);
+    capList(el.eventLog, MAX_LOG_ITEMS);
+  }
+
+  /* ---------- 세션 경계 ----------
+     새로고침하면 SSE 히스토리가 처음부터 재생돼 이전 세션 로그가 현재 피드에 섞인다.
+     세션이 바뀌는 지점에 구분선을 넣고 이전 세션 항목은 흐리게 처리해
+     "중간에 갑자기 판단 출처가 바뀐 것"처럼 보이는 혼동을 없앤다. */
+  function addDivider(listEl, ts, text) {
+    const li = make("li", "session-divider");
+    li.appendChild(make("time", null, timeOf(ts)));
+    li.appendChild(make("span", null, text));
+    listEl.prepend(li);
+  }
+
+  function sessionBoundary(ts, text, markPast) {
+    for (const listEl of [el.decisionFeed, el.eventLog]) {
+      if (markPast) {
+        for (const li of listEl.children) li.classList.add("past-session");
+      }
+      addDivider(listEl, ts, text);
+    }
+    capList(el.decisionFeed, MAX_FEED_ITEMS);
     capList(el.eventLog, MAX_LOG_ITEMS);
   }
 
@@ -242,12 +270,32 @@
 
   // ---------- A4 거래 알림 (토스트 + Web Notification) ----------
   const NOTIFY_KEY = "autotrader_notify";
-  const notifyEnabled = () =>
-    localStorage.getItem(NOTIFY_KEY) === "on" &&
-    ("Notification" in window) && Notification.permission === "granted";
+  const DENY_HELP = "브라우저가 이 사이트의 알림을 차단한 상태입니다 — 주소창 왼쪽 자물쇠(ⓘ) → 사이트 설정 → 알림을 '허용'으로 바꾸고 새로고침하세요. (Windows 알림이 꺼져 있어도 표시되지 않습니다)";
+
+  /* 버튼 상태 = 저장값 + 실제 브라우저 권한을 합친 결과.
+     저장값만 보면 권한이 나중에 차단됐을 때 라벨이 바뀌지 않아
+     "눌러도 아무 일이 없는" 버튼이 된다(사용자 보고 버그). */
+  function notifyState() {
+    if (!("Notification" in window)) return "unsupported";
+    if (Notification.permission === "denied") return "denied";
+    if (localStorage.getItem(NOTIFY_KEY) !== "on") return "off";
+    return Notification.permission === "granted" ? "on" : "off";
+  }
+  const notifyEnabled = () => notifyState() === "on";
+
+  const NOTIFY_LABEL = {
+    on: "🔔 알림: 켜짐", off: "🔔 알림: 꺼짐",
+    denied: "🔕 알림: 차단됨", unsupported: "🔕 알림: 미지원",
+  };
 
   function renderNotifyBtn() {
-    el.btnNotify.textContent = notifyEnabled() ? "🔔 알림: 켜짐" : "🔔 알림: 꺼짐";
+    const st = notifyState();
+    el.btnNotify.textContent = NOTIFY_LABEL[st];
+    el.btnNotify.title =
+      st === "denied" ? DENY_HELP
+      : st === "unsupported" ? "이 브라우저는 Web Notification 을 지원하지 않습니다 — 인앱 토스트만 표시됩니다."
+      : st === "on" ? "탭이 백그라운드일 때 체결·거부·정지 이벤트를 브라우저 알림으로 받습니다 (누르면 끕니다)"
+      : "누르면 브라우저 알림 권한을 요청합니다 (탭이 백그라운드일 때만 알림)";
   }
 
   function toast(title, body, cls) {
@@ -274,21 +322,43 @@
     }
   }
 
+  // 어떤 분기로 가든 라벨 갱신 + 토스트 피드백 — 눌렀는데 아무 반응 없는 경우를 없앤다
   el.btnNotify.addEventListener("click", async () => {
-    if (!("Notification" in window)) { alert("이 브라우저는 Web Notification 을 지원하지 않습니다."); return; }
-    if (localStorage.getItem(NOTIFY_KEY) === "on") {
+    const st = notifyState();
+    if (st === "unsupported") {
+      toast("알림 미지원", "이 브라우저는 브라우저 알림을 지원하지 않습니다 — 화면 토스트로만 알려드립니다.", "danger");
+    } else if (st === "denied") {
       localStorage.setItem(NOTIFY_KEY, "off");
+      toast("알림이 차단되어 있습니다", DENY_HELP, "danger");
+    } else if (st === "on") {
+      localStorage.setItem(NOTIFY_KEY, "off");
+      toast("알림 꺼짐", "브라우저 알림을 껐습니다 — 화면 토스트는 계속 표시됩니다.");
     } else {
-      const perm = await Notification.requestPermission();
+      let perm = Notification.permission;
+      if (perm !== "granted") {
+        try { perm = await Notification.requestPermission(); }
+        catch (e) { perm = Notification.permission; }
+      }
       if (perm === "granted") {
         localStorage.setItem(NOTIFY_KEY, "on");
         toast("알림 켜짐", "탭이 백그라운드일 때 체결·거부·정지 이벤트를 브라우저 알림으로 받습니다.", "ok");
+      } else if (perm === "denied") {
+        localStorage.setItem(NOTIFY_KEY, "off");
+        toast("알림 권한 거부됨", DENY_HELP, "danger");
       } else {
-        alert("브라우저 알림 권한이 거부되었습니다. 주소창의 사이트 설정에서 허용해 주세요.");
+        toast("알림 켜지 않음", "권한 요청 창을 닫으셨습니다 — 다시 누르면 재요청합니다.", "danger");
       }
     }
     renderNotifyBtn();
   });
+
+  // 사이트 설정에서 권한을 바꾸면(다른 탭·설정창) 버튼 표시를 따라 갱신
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) renderNotifyBtn(); });
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: "notifications" })
+      .then((p) => { p.onchange = renderNotifyBtn; })
+      .catch(() => { /* 미지원 브라우저 — 무시 */ });
+  }
 
   // ---------- SSE 이벤트 처리 ----------
   function handleEvent(evt) {
@@ -351,15 +421,21 @@
         const st = d.strategy || {};
         const stText = st.type === "dca"
           ? `적립형(${st.dca_every_ticks}틱마다 ${st.dca_amount_usdc} USDC)` : "조건형";
+        const srcNote = st.type === "dca"
+          ? "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용"
+          : "판단 출처 gemini / rule";
+        sessionBoundary(evt.ts, `─── 새 세션 시작 · ${stText} · ${srcNote} ───`, true);
         addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "드라이런"} · ${d.network} · ${d.symbol} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
         fetchState();
         break;
       }
       case "engine_stopped":
         addLog(evt.ts, `[세션 종료] 틱 ${d.ticks} · 체결 ${d.trades}건` +
+          (d.was_paused ? " · 긴급정지 상태로 종료 → 정지 해제됨(다음 세션은 매매 활성으로 시작)" : "") +
           (d.archive ? ` · 증빙 ${d.archive}` : "") +
           (d.cross_check ? ` · 교차검증 USDC ${d.cross_check.usdc_ok ? "PASS" : "FAIL"} / 주식 ${d.cross_check.stock_ok ? "PASS" : "FAIL"}` : ""),
           d.cross_check && !(d.cross_check.usdc_ok && d.cross_check.stock_ok) ? "log-danger" : "log-ok");
+        sessionBoundary(evt.ts, "─── 세션 종료 ───", false);
         fetchState();
         break;
       case "balances":

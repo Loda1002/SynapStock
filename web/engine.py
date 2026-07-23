@@ -243,6 +243,10 @@ class TradingEngine:
     # ---------- A2 긴급정지 ----------
 
     def pause(self, actor: str = "human") -> Dict[str, Any]:
+        # 정지 상태는 세션(start~stop) 안에서만 의미가 있다 — 대기 중 정지는 거부한다
+        # (버그: 대기 중 정지가 남아 다음 접속에도 "정지됨" 배지가 보였다)
+        if self.status != "running":
+            raise EngineError("실행 중인 세션이 없습니다 — 긴급정지는 세션 실행 중에만 가능합니다.")
         if self.trading_enabled:
             self.trading_enabled = False
             self.pause_info = {"actor": actor, "ts": _now()}
@@ -251,6 +255,8 @@ class TradingEngine:
         return self.state_snapshot()
 
     def resume(self, actor: str = "human") -> Dict[str, Any]:
+        if self.status != "running":
+            raise EngineError("실행 중인 세션이 없습니다 — 매매 재개는 세션 실행 중에만 가능합니다.")
         if not self.trading_enabled:
             self.trading_enabled = True
             self.pause_info = None
@@ -595,9 +601,15 @@ class TradingEngine:
             self.status = "idle"
             self._task = None
             self.last_archive_path = archive_path
+            # 긴급정지는 세션 단위 상태 — 세션이 끝나면 해제한다.
+            # (해제하지 않으면 대기 화면·다음 접속에도 "🛑 매매 정지됨" 배지가 남는다)
+            was_paused = not self.trading_enabled
+            self.trading_enabled = True
+            self.pause_info = None
             self.bus.emit(ev.ENGINE_STOPPED, {
                 "trades": len(self.trades), "ticks": self.tick,
                 "archive": archive_path, "cross_check": cross,
+                "was_paused": was_paused,
             })
             # B2: 세션 종료 시 자동 브리핑 — 백그라운드로 생성해 stop 응답을 막지 않는다
             if self.trades or self.decisions:

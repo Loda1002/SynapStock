@@ -111,7 +111,8 @@ input[type="number"], input[type="text"], input[type="time"] {
   font-size: var(--fs-small); word-break: break-word;
 }
 .feed time { color: var(--muted); margin-right: 6px; font-family: var(--mono); }
-.feed .src { color: #fff; border-radius: 4px; padding: 1px 6px; margin-right: 6px; font-size: 11px; }
+/* 판단 출처 배지 — 타임라인·거래표·카드 헤더 범례에서 공용 */
+.src { color: #fff; border-radius: 4px; padding: 1px 6px; margin-right: 6px; font-size: 11px; }
 .src-gemini { background: var(--badge-gemini); }
 .src-rule { background: var(--badge-rule); }
 .src-rule-fallback { background: var(--badge-fallback); }
@@ -120,6 +121,12 @@ input[type="number"], input[type="text"], input[type="time"] {
 .act-buy { color: var(--buy); }
 .act-sell { color: var(--sell); }
 .act-hold { color: var(--muted); }
+/* 세션 경계 구분선 + 이전 세션 항목(흐리게) — 새로고침 시 섞여 보이는 혼동 방지 */
+.feed li.session-divider {
+  border-bottom: 1px solid var(--border);
+  color: var(--muted); font-weight: 600; text-align: center; letter-spacing: .5px;
+}
+.feed li.past-session { opacity: .45; }
 .feed li.log-danger { color: var(--danger); }
 .feed li.log-ok { color: var(--ok); }
 .feed li.log-muted { color: var(--muted); }

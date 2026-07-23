@@ -37,7 +37,103 @@ PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 
 - 수수료를 반영한 실효 가격 기준으로 손익을 판단하라
 
 규칙 위반 판단은 금지. 가격 흐름을 근거로 한국어 한 문장의 이유를 만들어라.
-JSON 만 출력: {{"action":"buy"|"sell"|"hold","reason":"한국어 한 문장","spend_usdc":숫자}}"""
+JSON 만 출력: {{"action":"buy"|"sell"|"hold","reason":"한국어 한 문장","spend_usdc":숫자}}
+reason 은 한글을 그대로 쓰고 역슬래시(\\)·따옴표·줄바꿈을 넣지 마라."""
+
+# 형식이 깨진 응답을 받았을 때의 1회 재요청 지시 (쿼터 절약 위해 재시도는 한 번만)
+RETRY_SUFFIX = """
+
+[중요] 직전 응답의 JSON 형식이 잘못됐다. 설명·코드블록 없이 JSON 객체 한 줄만,
+역슬래시와 줄바꿈 없이 다시 출력하라."""
+
+_ESCAPES = '"\\/bfnrt'
+
+
+def _is_hex4(s: str) -> bool:
+    return len(s) == 4 and all(c in "0123456789abcdefABCDEF" for c in s)
+
+
+def _extract_json_block(raw: str) -> str:
+    """코드펜스(```json …```)나 앞뒤 설명을 걷어내고 JSON 객체 부분만 남긴다."""
+    text = raw.strip()
+    fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.S)
+    if fence:
+        text = fence.group(1).strip()
+    start, end = text.find("{"), text.rfind("}")
+    return text[start:end + 1] if 0 <= start < end else text
+
+
+def _repair_json(raw: str) -> str:
+    """문자열 안의 잘못된 이스케이프·제어문자를 고친다.
+
+    보고된 실패: `Invalid \\uXXXX escape` — 모델이 `\\u` 뒤에 16진수 4자리가 아닌
+    한글·공백을 붙여 내보내는 경우. 잘못된 역슬래시는 리터럴 역슬래시로 바꾸고,
+    문자열 안에 그대로 들어온 줄바꿈·탭은 정식 이스케이프로 치환한다."""
+    out: List[str] = []
+    in_str = False
+    i, n = 0, len(raw)
+    while i < n:
+        c = raw[i]
+        if not in_str:
+            if c == '"':
+                in_str = True
+            out.append(c)
+            i += 1
+            continue
+        if c == '"':
+            in_str = False
+            out.append(c)
+            i += 1
+        elif c == "\\":
+            nxt = raw[i + 1] if i + 1 < n else ""
+            if nxt == "u" and _is_hex4(raw[i + 2:i + 6]):
+                out.append(raw[i:i + 6])       # 정상 유니코드 이스케이프 — 보존
+                i += 6
+            elif nxt and nxt in _ESCAPES:
+                out.append(c + nxt)            # 정상 이스케이프 — 보존
+                i += 2
+            else:
+                out.append("\\\\")             # 잘못된 이스케이프 — 리터럴 역슬래시로
+                i += 1
+        elif ord(c) < 0x20:
+            out.append({"\n": "\\n", "\r": "\\r", "\t": "\\t"}.get(c, " "))
+            i += 1
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def _fields_by_regex(raw: str) -> dict:
+    """JSON 복구도 실패했을 때의 최후 수단 — 필요한 필드만 정규식으로 긁어낸다."""
+    m_action = re.search(r'"action"\s*:\s*"?(buy|sell|hold)"?', raw, re.I)
+    if not m_action:
+        raise ValueError("응답에서 action 필드를 찾지 못했습니다")
+    m_reason = re.search(r'"reason"\s*:\s*"(.*?)"\s*(?:,|\})', raw, re.S)
+    m_spend = re.search(r'"spend_usdc"\s*:\s*"?(-?\d+(?:\.\d+)?)"?', raw)
+    reason = re.sub(r"\s+", " ", (m_reason.group(1) if m_reason else "")).replace("\\", "").strip()
+    data = {"action": m_action.group(1).lower(), "reason": reason}
+    if m_spend:
+        data["spend_usdc"] = m_spend.group(1)
+    return data
+
+
+def parse_decision_json(raw: str) -> dict:
+    """Gemini 응답 텍스트 → dict. 원문 파싱 → 정화 후 재파싱 → 필드 추출 순으로 시도.
+
+    세 단계가 모두 실패하면 ValueError — 호출부가 1회 재요청하고, 그래도 실패하면
+    TradingAgent 의 규칙 폴백으로 넘어간다."""
+    if not raw or not raw.strip():
+        raise ValueError("Gemini 응답이 비어 있습니다")
+    block = _extract_json_block(raw)
+    for candidate in (block, _repair_json(block)):
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            return data
+    return _fields_by_regex(block)
 
 
 class GeminiDecider:
@@ -53,6 +149,26 @@ class GeminiDecider:
         self.model = model
         # 무료 티어 429(쿼터 초과) 시 API 재호출을 잠시 멈추는 쿨다운 (틱마다 헛호출 방지)
         self._cooldown_until: float = 0.0
+        self.format_retries = 0   # 형식 위반으로 재요청한 횟수 (운영 관찰용)
+
+    def _call(self, prompt: str) -> str:
+        """Gemini 호출 → 응답 텍스트. 429 는 쿨다운을 걸고 그대로 올린다."""
+        from google.genai import types
+        try:
+            resp = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as e:
+            text = str(e)
+            if "429" in text or "RESOURCE_EXHAUSTED" in text:
+                self._enter_cooldown(text)
+            raise
+        return resp.text or ""
 
     def _enter_cooldown(self, error_text: str) -> None:
         """429 응답의 retryDelay 를 존중해 쿨다운 설정 (없으면 60초)."""
@@ -71,8 +187,6 @@ class GeminiDecider:
         position: Position,
         fee_bps: int = 0,
     ) -> Decision:
-        from google.genai import types
-
         remaining = int(self._cooldown_until - time.time())
         if remaining > 0:
             raise RuntimeError(f"무료 티어 한도 초과 — 쿨다운 {remaining}초 남음(자동 재시도)")
@@ -92,26 +206,21 @@ class GeminiDecider:
             eff_buy=(price * (1 + fee_rate)).quantize(Decimal("0.01")),
             eff_sell=(price * (1 - fee_rate)).quantize(Decimal("0.01")),
         )
+        raw = self._call(prompt)
         try:
-            resp = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.2,
-                    response_mime_type="application/json",
-                ),
-            )
-        except Exception as e:
-            text = str(e)
-            if "429" in text or "RESOURCE_EXHAUSTED" in text:
-                self._enter_cooldown(text)
-            raise
-        data = json.loads(resp.text)
+            data = parse_decision_json(raw)
+        except ValueError:
+            # 형식 위반은 1회만 재요청한다 (무료 티어 쿼터 절약) — 그래도 실패하면
+            # 예외가 올라가 TradingAgent 의 규칙 폴백이 받는다
+            self.format_retries += 1
+            data = parse_decision_json(self._call(prompt + RETRY_SUFFIX))
 
         action = str(data.get("action", "hold")).lower()
         if action not in ("buy", "sell", "hold"):
             action = "hold"
-        reason = str(data.get("reason", "")).strip() or "이유 미제공"
+        # 정화 과정에서 남은 역슬래시 잔해를 지워 타임라인에 깨진 문자가 보이지 않게 한다
+        reason = re.sub(r"\s+", " ", str(data.get("reason", "")).replace("\\", " ")).strip()
+        reason = reason or "이유 미제공"
         spend = Decimal(0)
         if action == "buy":
             try:

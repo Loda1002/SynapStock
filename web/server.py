@@ -110,12 +110,18 @@ async def engine_stop():
 
 @app.post("/api/trading/pause")
 async def trading_pause(body: ActorBody):
-    return engine.pause(body.actor)
+    try:
+        return engine.pause(body.actor)     # 세션 실행 중에만 허용 (정지 상태는 세션 단위)
+    except EngineError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @app.post("/api/trading/resume")
 async def trading_resume(body: ActorBody):
-    return engine.resume(body.actor)
+    try:
+        return engine.resume(body.actor)
+    except EngineError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 class MandateBody(BaseModel):
