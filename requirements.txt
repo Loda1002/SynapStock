@@ -8,3 +8,7 @@ python-dotenv>=1.0.0
 
 # --- Gemini free tier (runtime AI brain) ---
 google-genai>=1.0.0
+
+# --- Web dashboard (FastAPI + SSE) ---
+fastapi>=0.110,<1.0
+uvicorn>=0.29

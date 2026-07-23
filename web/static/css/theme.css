@@ -1,0 +1,36 @@
+/* theme.css — 스킨 레이어: 색·폰트·간격 "변수만" 둔다.
+   디자인 시안 수령 시 이 파일(변수 값)을 교체하면 스킨이 바뀐다.
+   배치·구조 규칙은 skeleton.css 에 있다. */
+:root {
+  /* 바탕 */
+  --bg: #f4f5f7;
+  --card-bg: #ffffff;
+  --text: #1c2330;
+  --muted: #6b7480;
+  --border: #dfe3e8;
+
+  /* 포인트 */
+  --accent: #4f6ef7;
+  --danger: #e5484d;
+  --ok: #2f9e68;
+  --warn: #c97e0a;
+
+  /* 매매 방향 */
+  --buy: #2f9e68;
+  --sell: #e5484d;
+
+  /* 판단 주체 배지 */
+  --badge-gemini: #7c5cff;
+  --badge-rule: #6b7480;
+  --badge-fallback: #c97e0a;
+
+  /* 타이포·형태 */
+  --font: system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --mono: Consolas, "D2Coding", monospace;
+  --radius: 10px;
+  --gap: 12px;
+  --pad: 14px;
+  --fs-base: 14px;
+  --fs-big: 28px;
+  --fs-small: 12px;
+}

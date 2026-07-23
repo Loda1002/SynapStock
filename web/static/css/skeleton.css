@@ -1,0 +1,122 @@
+/* skeleton.css — 구조 레이어: 배치·그리드·컴포넌트 골격 (무디자인).
+   색·폰트는 전부 theme.css 변수를 참조한다. */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: var(--fs-base);
+  line-height: 1.5; padding: var(--gap);
+}
+.hidden { display: none !important; }
+code { font-family: var(--mono); font-size: var(--fs-small); }
+
+/* ---- 헤더 ---- */
+.topbar {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: var(--pad); margin-bottom: var(--gap);
+  display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center;
+}
+.brand h1 { margin: 0; font-size: 18px; }
+.brand .tagline { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-small); }
+.statusbar { display: flex; gap: 6px; flex-wrap: wrap; }
+.controls { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+.rules { flex-basis: 100%; margin: 0; color: var(--muted); font-size: var(--fs-small); }
+
+/* ---- 배지·버튼 ---- */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--border); font-size: var(--fs-small); background: var(--bg);
+}
+.badge-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.badge-ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn {
+  padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--card-bg); color: var(--text); cursor: pointer; font-size: var(--fs-base);
+}
+.btn:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-emergency { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 700; }
+.btn-resume { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 700; }
+select {
+  padding: 6px 8px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--card-bg); color: var(--text); font-size: var(--fs-base);
+}
+
+/* ---- 카드 그리드 ---- */
+.grid {
+  display: grid; gap: var(--gap);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: var(--pad); min-width: 0;
+}
+.card h2 { margin: 0 0 8px; font-size: var(--fs-base); }
+.card-wide { grid-column: span 2; }
+.card-full { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card-wide { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+.big { font-size: var(--fs-big); font-weight: 700; margin: 4px 0; }
+.big .unit { font-size: var(--fs-base); font-weight: 400; color: var(--muted); }
+.sub { color: var(--muted); font-size: var(--fs-small); margin: 2px 0; }
+.pos { color: var(--ok); }
+.neg { color: var(--danger); }
+
+/* ---- 시세 스파크라인 ---- */
+.sparkline { width: 100%; height: 60px; display: block; }
+.sparkline polyline { fill: none; stroke: var(--accent); stroke-width: 2; }
+
+/* ---- 예산 게이지 ---- */
+.gauge {
+  height: 14px; border-radius: 999px; background: var(--bg);
+  border: 1px solid var(--border); overflow: hidden; margin: 10px 0 6px;
+}
+.gauge-fill {
+  height: 100%; width: 0%; background: var(--accent);
+  transition: width .4s ease;
+}
+
+/* ---- 피드 (판단 타임라인 / 이벤트 로그) ---- */
+.feed {
+  list-style: none; margin: 0; padding: 0;
+  max-height: 300px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.feed li {
+  border-bottom: 1px dashed var(--border); padding: 4px 2px;
+  font-size: var(--fs-small); word-break: break-word;
+}
+.feed time { color: var(--muted); margin-right: 6px; font-family: var(--mono); }
+.feed .src { color: #fff; border-radius: 4px; padding: 1px 6px; margin-right: 6px; font-size: 11px; }
+.src-gemini { background: var(--badge-gemini); }
+.src-rule { background: var(--badge-rule); }
+.src-rule-fallback { background: var(--badge-fallback); }
+.feed .act { font-weight: 700; margin-right: 4px; }
+.act-buy { color: var(--buy); }
+.act-sell { color: var(--sell); }
+.act-hold { color: var(--muted); }
+.feed li.log-danger { color: var(--danger); }
+.feed li.log-ok { color: var(--ok); }
+.feed li.log-muted { color: var(--muted); }
+
+/* ---- 거래 테이블 ---- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; }
+td a { color: var(--accent); }
+.side-buy { color: var(--buy); font-weight: 700; }
+.side-sell { color: var(--sell); font-weight: 700; }
+.empty-row td { color: var(--muted); text-align: center; padding: 18px; }
+
+/* ---- 푸터 ---- */
+.foot {
+  margin-top: var(--gap); color: var(--muted); font-size: var(--fs-small);
+  display: flex; gap: var(--gap); flex-wrap: wrap; justify-content: space-between;
+}

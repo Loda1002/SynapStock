@@ -38,6 +38,11 @@ class Config:
     # "developer"(AIza 키) / "vertex"(AQ. 등 express 키) / 빈값=키 형식으로 자동 판별
     gemini_mode: str = _get("GEMINI_MODE", "")
 
+    # 웹 대시보드 (web/server.py)
+    web_port: int = int(_get("WEB_PORT", "8000"))
+    # 시세 틱 간격(초) — Gemini 무료 티어 분당 호출 제한을 고려한 기본값
+    web_tick_interval_sec: float = float(_get("WEB_TICK_INTERVAL_SEC", "8"))
+
 
 CFG = Config()
 

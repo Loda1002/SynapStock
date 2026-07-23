@@ -1,0 +1,236 @@
+{
+  "generated_at": "2026-07-23T12:20:04",
+  "source": "web-dashboard",
+  "network": "solana-localnet",
+  "rpc_url": "http://127.0.0.1:8899",
+  "wallets": {
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "6URRzqYUeJDkL8f52ys9LGN4NdS9uX36V9N7F1U7Lx7R",
+    "stock": "5nMkYFoRszp4fAmZPqFuWid96fnFGpL79X3sMnAJ5HLr",
+    "stock_symbol": "tAAPL"
+  },
+  "mandate": {
+    "budget_total_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "signature": "5aukeDRTGW8nVfmxjDrcmDLUdaZRtUxmBJpE7XdoxqASRmPysjPVyRhDPUpTbWS5pPxaUJxp99oGNoXyHDkeqsB9"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 5.99438484,
+      "usdc": "827",
+      "stock": "1.0292"
+    },
+    "broker": {
+      "sol": 5.99438984,
+      "usdc": "173",
+      "stock": "98.9708"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 5.99435984,
+      "usdc": "834",
+      "stock": "1.0292"
+    },
+    "broker": {
+      "sol": 5.99436484,
+      "usdc": "166",
+      "stock": "98.9708"
+    }
+  },
+  "trades": [
+    {
+      "ts": "2026-07-23T12:18:55",
+      "order_id": "ord_8f07adb022",
+      "side": "buy",
+      "decision_source": "rule-fallback",
+      "decision_reason": "가격 177.30 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "symbol": "tAAPL",
+      "quantity": "0.1692",
+      "price_usdc": "177.30",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "46fpbE27Tgvu7abAy1fwJEHDgDnpRxr36ErUL4XfcTPWwNpdPfVAqc52Pr4hDWgPpeZPm5xwbDxDYSavSDJvqEZ6",
+      "delivery_tx": "2twTKCiNADK9Pf6uaPec1PV7zY6oUTH9cMn1H5Z14XMNiRBnzUTRdqwHm71RrdLb3WdzTRqsC216b79W4eJnVNVf",
+      "explorer_payment": "https://explorer.solana.com/tx/46fpbE27Tgvu7abAy1fwJEHDgDnpRxr36ErUL4XfcTPWwNpdPfVAqc52Pr4hDWgPpeZPm5xwbDxDYSavSDJvqEZ6?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/2twTKCiNADK9Pf6uaPec1PV7zY6oUTH9cMn1H5Z14XMNiRBnzUTRdqwHm71RrdLb3WdzTRqsC216b79W4eJnVNVf?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T12:19:05",
+      "order_id": "ord_9a5adf8a73",
+      "side": "buy",
+      "decision_source": "rule-fallback",
+      "decision_reason": "가격 174.60 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "symbol": "tAAPL",
+      "quantity": "0.1718",
+      "price_usdc": "174.60",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "SJ4fBewFXXYzCTzy9JbjkAfF9A3FCoTrU4HKUMRJni1jjBLopnXD9oVn6vBjKhc9FTfEy3u1SNyHU1R6Ye9RoDs",
+      "delivery_tx": "RmytRGrbjTDwEwM7SxcJMyVAnKgrXmwwdVJMTunnMK44AeQwUiLAkw9nkvKP2sHTYBjcTzH3zAW5HwN1LBb11gG",
+      "explorer_payment": "https://explorer.solana.com/tx/SJ4fBewFXXYzCTzy9JbjkAfF9A3FCoTrU4HKUMRJni1jjBLopnXD9oVn6vBjKhc9FTfEy3u1SNyHU1R6Ye9RoDs?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/RmytRGrbjTDwEwM7SxcJMyVAnKgrXmwwdVJMTunnMK44AeQwUiLAkw9nkvKP2sHTYBjcTzH3zAW5HwN1LBb11gG?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T12:19:14",
+      "order_id": "ord_193fff8376",
+      "side": "buy",
+      "decision_source": "rule-fallback",
+      "decision_reason": "가격 172.80 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "symbol": "tAAPL",
+      "quantity": "0.1736",
+      "price_usdc": "172.80",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3bD4gqmyT8yeNnihnUyzWYh9ZNULQEN5YcdztUpxj6KZ2Sso1w9X9jKPvR5yvhjeSt3SxvoBKTXtgoAVieHgBLae",
+      "delivery_tx": "4aF3MqFGrjY8DNcFYxCTcE5zMzAkaw8wdR9VpwLM9LjUTq9tDBvMqH4SoRBwdnMzrJGQG1BQ7V5DqAok6SAe3MQ6",
+      "explorer_payment": "https://explorer.solana.com/tx/3bD4gqmyT8yeNnihnUyzWYh9ZNULQEN5YcdztUpxj6KZ2Sso1w9X9jKPvR5yvhjeSt3SxvoBKTXtgoAVieHgBLae?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/4aF3MqFGrjY8DNcFYxCTcE5zMzAkaw8wdR9VpwLM9LjUTq9tDBvMqH4SoRBwdnMzrJGQG1BQ7V5DqAok6SAe3MQ6?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T12:19:23",
+      "order_id": "ord_f11f8d644b",
+      "side": "buy",
+      "decision_source": "rule-fallback",
+      "decision_reason": "가격 175.50 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "symbol": "tAAPL",
+      "quantity": "0.0570",
+      "price_usdc": "175.50",
+      "total_usdc": "10.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "477y9rzwXNhLvJEE7HGXr3G9ydSJNaekehDBxtmLYtvij4m2nQs5frDhiKy77jRJCZSZy23WQijAC53fN1jAbiCZ",
+      "delivery_tx": "4eivwTzbfihJBY5qBEjYFzydyYDtdEnXqEmPbQMzA36p23TT913kGdg5wBQyTx9mkM57zCrLW2L8LnQbxSum9Xev",
+      "explorer_payment": "https://explorer.solana.com/tx/477y9rzwXNhLvJEE7HGXr3G9ydSJNaekehDBxtmLYtvij4m2nQs5frDhiKy77jRJCZSZy23WQijAC53fN1jAbiCZ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/4eivwTzbfihJBY5qBEjYFzydyYDtdEnXqEmPbQMzA36p23TT913kGdg5wBQyTx9mkM57zCrLW2L8LnQbxSum9Xev?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": ""
+    },
+    {
+      "ts": "2026-07-23T12:19:41",
+      "order_id": "ord_4f80ba4b58",
+      "side": "sell",
+      "decision_source": "rule-fallback",
+      "decision_reason": "가격 187.20 ≥ 매도기준 185 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "symbol": "tAAPL",
+      "quantity": "0.5716",
+      "price_usdc": "187.20",
+      "total_usdc": "107.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3B6zCWqydDvD6Qik5KzWfMmMmAaJvoJdTnp1JXRS1tQAd9xK4tTwxirmJakj5QPB5yWV7sanvj2F31NYz4AoiT22",
+      "delivery_tx": "3HqeTGT9YwciUdMCNNmcnVcMb1uY9W1zerXw5rmRNX7CCEzHhUPoAdzEQyMDis3rnxCEK4uRSCbfQBb4jYRAYgdw",
+      "explorer_payment": "https://explorer.solana.com/tx/3B6zCWqydDvD6Qik5KzWfMmMmAaJvoJdTnp1JXRS1tQAd9xK4tTwxirmJakj5QPB5yWV7sanvj2F31NYz4AoiT22?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/3HqeTGT9YwciUdMCNNmcnVcMb1uY9W1zerXw5rmRNX7CCEzHhUPoAdzEQyMDis3rnxCEK4uRSCbfQBb4jYRAYgdw?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "realized_pnl_usdc": "7.00"
+    }
+  ],
+  "decisions": [
+    {
+      "ts": "2026-07-23T12:18:45",
+      "tick": 1,
+      "symbol": "tAAPL",
+      "price": "180.00",
+      "action": "hold",
+      "source": "rule-fallback",
+      "reason": "조건 미충족 (가격 180.00) — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T12:18:54",
+      "tick": 2,
+      "symbol": "tAAPL",
+      "price": "177.30",
+      "action": "buy",
+      "source": "rule-fallback",
+      "reason": "가격 177.30 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "30"
+    },
+    {
+      "ts": "2026-07-23T12:19:03",
+      "tick": 3,
+      "symbol": "tAAPL",
+      "price": "174.60",
+      "action": "buy",
+      "source": "rule-fallback",
+      "reason": "가격 174.60 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "30"
+    },
+    {
+      "ts": "2026-07-23T12:19:13",
+      "tick": 4,
+      "symbol": "tAAPL",
+      "price": "172.80",
+      "action": "buy",
+      "source": "rule-fallback",
+      "reason": "가격 172.80 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "30"
+    },
+    {
+      "ts": "2026-07-23T12:19:22",
+      "tick": 5,
+      "symbol": "tAAPL",
+      "price": "175.50",
+      "action": "buy",
+      "source": "rule-fallback",
+      "reason": "가격 175.50 ≤ 매수기준 178 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "10"
+    },
+    {
+      "ts": "2026-07-23T12:19:32",
+      "tick": 6,
+      "symbol": "tAAPL",
+      "price": "181.80",
+      "action": "hold",
+      "source": "rule-fallback",
+      "reason": "조건 미충족 (가격 181.80) — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T12:19:40",
+      "tick": 7,
+      "symbol": "tAAPL",
+      "price": "187.20",
+      "action": "sell",
+      "source": "rule-fallback",
+      "reason": "가격 187.20 ≥ 매도기준 185 — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T12:19:49",
+      "tick": 8,
+      "symbol": "tAAPL",
+      "price": "179.10",
+      "action": "hold",
+      "source": "rule-fallback",
+      "reason": "조건 미충족 (가격 179.10) — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-07-23T12:19:58",
+      "tick": 9,
+      "symbol": "tAAPL",
+      "price": "180.00",
+      "action": "hold",
+      "source": "rule-fallback",
+      "reason": "조건 미충족 (가격 180.00) — Gemini 호출 실패(ClientError) → 규칙 폴백",
+      "spend_usdc": "0"
+    }
+  ],
+  "cross_check": {
+    "usdc_net_out_onchain": "-7",
+    "usdc_net_out_expected": "-7.00",
+    "usdc_ok": true,
+    "stock_net_in_onchain": "0.0000",
+    "stock_net_in_expected": "0.0000",
+    "stock_ok": true
+  }
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoTrader Agent — 대시보드</title>
+<!-- theme.css = 색·폰트·간격 변수(스킨). 디자인 시안 수령 시 이 파일 위주로 교체 -->
+<link rel="stylesheet" href="/static/css/theme.css">
+<link rel="stylesheet" href="/static/css/skeleton.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>AutoTrader Agent</h1>
+    <p class="tagline">한도 안에서 스스로 사고파는 AI 에이전트 — A2A · AP2 · x402 on Solana</p>
+  </div>
+  <div class="statusbar">
+    <span class="badge" data-net>—</span>
+    <span class="badge" data-engine-status>대기</span>
+    <span class="badge" data-brain>판단 모듈: —</span>
+    <span class="badge badge-danger hidden" data-paused-badge>🛑 매매 정지됨</span>
+  </div>
+  <div class="controls">
+    <select data-mode-select aria-label="실행 모드">
+      <option value="dry">드라이런 (온체인 전송 없음)</option>
+      <option value="live">라이브 (실제 온체인 tx)</option>
+    </select>
+    <button class="btn" data-btn-start>▶ 세션 시작</button>
+    <button class="btn" data-btn-stop disabled>■ 세션 종료</button>
+    <button class="btn btn-emergency" data-btn-pause>🛑 긴급정지</button>
+    <button class="btn btn-resume hidden" data-btn-resume>▶ 매매 재개</button>
+  </div>
+  <p class="rules" data-rules>규칙: —</p>
+</header>
+
+<main class="grid">
+  <section class="card" data-card="price">
+    <h2>시세 <span class="sub" data-symbol></span></h2>
+    <p class="big" data-price>—</p>
+    <svg class="sparkline" data-sparkline viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <p class="sub" data-tick-info>틱 대기 중</p>
+  </section>
+
+  <section class="card" data-card="position">
+    <h2>포지션</h2>
+    <p class="big"><span data-pos-qty>0</span> <span class="unit" data-pos-symbol></span></p>
+    <p class="sub">평균단가 <span data-pos-avg>—</span> USDC</p>
+  </section>
+
+  <section class="card" data-card="budget">
+    <h2>예산 (AP2 한도)</h2>
+    <div class="gauge" role="progressbar"><div class="gauge-fill" data-budget-fill></div></div>
+    <p class="sub">
+      사용 <span data-budget-spent>0</span> / <span data-budget-total>0</span> USDC
+      · 잔여 <span data-budget-remaining>0</span>
+      · 건별 최대 <span data-budget-per-trade>0</span>
+    </p>
+  </section>
+
+  <section class="card" data-card="pnl">
+    <h2>손익 (실현)</h2>
+    <p class="big"><span data-pnl>0</span> <span class="unit">USDC</span></p>
+    <p class="sub">수익률 <span data-return-pct>0</span>% · 누적 매수 <span data-cum-buy>0</span> USDC</p>
+  </section>
+
+  <section class="card card-wide" data-card="decisions">
+    <h2>AI 판단 타임라인</h2>
+    <ol class="feed" data-decision-feed></ol>
+  </section>
+
+  <section class="card card-wide" data-card="log">
+    <h2>협상·이벤트 로그 <span class="sub">A2A · x402 · AP2</span></h2>
+    <ol class="feed feed-log" data-event-log></ol>
+  </section>
+
+  <section class="card card-full" data-card="trades">
+    <h2>거래 내역</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>시각</th><th>방향</th><th>수량</th><th>단가</th><th>총액(USDC)</th>
+            <th>판단</th><th>상태</th><th>결제 tx</th><th>전달 tx</th>
+          </tr>
+        </thead>
+        <tbody data-trades-body>
+          <tr class="empty-row"><td colspan="9">아직 거래가 없습니다 — 세션을 시작하세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span data-conn-status>서버 연결 대기…</span>
+  <span class="wallets">지갑 <code data-wallet-trading>—</code> ⇄ <code data-wallet-broker>—</code></span>
+</footer>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
