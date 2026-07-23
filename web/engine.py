@@ -168,6 +168,10 @@ class TradingEngine:
         strat_type = scfg.get("type", "condition")
         if strat_type not in ("condition", "dca"):
             raise EngineError("strategy.type 은 'condition' 또는 'dca' 여야 합니다.")
+        # Gemini 재량 모드 — strict(규칙 그대로) / trend(보류 재량). 조건형에서만 의미 있음.
+        decision_mode = scfg.get("decision_mode") or "strict"
+        if decision_mode not in ("strict", "trend"):
+            raise EngineError("판단 모드는 'strict' 또는 'trend' 여야 합니다.")
         # 적립 주기 기준 — ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM)
         dca_unit = scfg.get("dca_unit", "ticks")
         if dca_unit not in ("ticks", "minutes", "daily"):
@@ -239,6 +243,7 @@ class TradingEngine:
             buy_dip_pct=Decimal(DEFAULT_RULES["buy_dip_pct"]),
             take_profit_pct=Decimal(DEFAULT_RULES["take_profit_pct"]),
             spend_per_trade_usdc=Decimal(DEFAULT_RULES["spend_per_trade"]),
+            decision_mode=decision_mode,
             mode=strat_type,
             dca_unit=dca_unit,
             dca_every_ticks=dca_every,
@@ -297,6 +302,7 @@ class TradingEngine:
         self.brain_label = brain_label
         self.strategy_info = {
             "type": strat_type,
+            "decision_mode": decision_mode,   # strict(엄격) / trend(추세 재량)
             "dca_unit": dca_unit,
             "dca_every_ticks": dca_every,
             "dca_every_minutes": dca_minutes,

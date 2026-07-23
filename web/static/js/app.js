@@ -15,6 +15,7 @@
     modeSelect: $("[data-mode-select]"),
     feedSelect: $("[data-feed-select]"),
     strategySelect: $("[data-strategy-select]"),
+    decisionMode: $("[data-decision-mode]"),
     dcaParams: $("[data-dca-params]"),
     dcaUnit: $("[data-dca-unit]"),
     dcaTicks: $("[data-dca-ticks]"),
@@ -169,9 +170,10 @@
     el.brain.textContent = "판단: " + (eng.brain || "—");
     const feePct = s.fees ? (s.fees.fee_bps / 100) : 0;
     const strat = s.strategy || { type: "condition" };
+    const modeLabel = strat.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격";
     const ruleText = strat.type === "dca"
       ? `적립형: ${dcaSchedule(strat)} ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`
-      : `조건형: ${s.symbol} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${s.rules.spend_per_trade} USDC 어치 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
+      : `조건형(${modeLabel}): ${s.symbol} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${s.rules.spend_per_trade} USDC 어치 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
     el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc}) · 브로커 수수료 ${feePct}%`;
 
     el.symbol.textContent = s.symbol;
@@ -243,6 +245,7 @@
     el.modeSelect.disabled = running;
     el.feedSelect.disabled = running;
     el.strategySelect.disabled = running;
+    el.decisionMode.disabled = running;
     el.dcaUnit.disabled = running;
     el.dcaTicks.disabled = running;
     el.dcaMinutes.disabled = running;
@@ -649,7 +652,8 @@
       case "engine_started": {
         const st = d.strategy || {};
         const stText = st.type === "dca"
-          ? `적립형(${dcaSchedule(st)} ${st.dca_amount_usdc} USDC)` : "조건형";
+          ? `적립형(${dcaSchedule(st)} ${st.dca_amount_usdc} USDC)`
+          : `조건형(${st.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격"})`;
         const srcNote = st.type === "dca"
           ? "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용"
           : "판단 출처 gemini / rule";
@@ -714,6 +718,7 @@
 
   function syncDcaInputs() {
     el.dcaParams.classList.toggle("hidden", el.strategySelect.value !== "dca");
+    el.decisionMode.classList.toggle("hidden", el.strategySelect.value !== "condition");
     const unit = el.dcaUnit.value;
     el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
     el.dcaMinutesWrap.classList.toggle("hidden", unit !== "minutes");
@@ -728,6 +733,7 @@
       feed: { type: el.feedSelect.value },
       strategy: {
         type: el.strategySelect.value,
+        decision_mode: el.decisionMode.value,
         dca_unit: el.dcaUnit.value,
         dca_every_ticks: parseInt(el.dcaTicks.value, 10) || 5,
         dca_every_minutes: parseInt(el.dcaMinutes.value, 10) || 60,

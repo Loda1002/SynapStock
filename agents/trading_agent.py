@@ -48,6 +48,9 @@ class Strategy:
     buy_dip_pct: Decimal = Decimal("2")       # 매수: MA5 대비 −N%
     take_profit_pct: Decimal = Decimal("3")   # 매도: 평단 대비 +N%
     spend_per_trade_usdc: Decimal = Decimal("30")
+    # Gemini 재량 범위 — strict(규칙 그대로 판정) / trend(신호가 떠도 추세 근거로 보류 가능).
+    # 어느 모드든 신규 매수·매도의 "개시"는 규칙 신호가 필요하고, AP2 한도 검사는 불변.
+    decision_mode: str = "strict"
     mode: str = "condition"                    # "condition" / "dca"
     dca_unit: str = "ticks"                    # "ticks" / "minutes" / "daily"
     dca_every_ticks: int = 5                   # ticks: N틱마다
@@ -77,6 +80,7 @@ class TradingAgent:
         self.fee_bps = fee_bps
         self._history: list[Decimal] = []  # 직전 시세 (지표 계산·Gemini 판단 근거)
         self.HISTORY_MAX = 30              # MA20 계산 + 여유분
+        self._last_action: Optional[dict] = None  # 직전 매수/매도 회고 (Gemini 프롬프트용)
         self._dca_tick = 0                 # B7 적립형(ticks): 다음 매수까지 틱 카운터
         self._dca_round = 0                # B7 적립형: 누적 회차
         self._dca_next_at: Optional[datetime] = None  # 적립형(minutes): 다음 집행 시각
@@ -104,7 +108,8 @@ class TradingAgent:
         """현재 틱 지표 묶음 — decide() 안(현재가 append 이후)에서 호출한다.
 
         buy_threshold = MA5 × (1 − buy_dip_pct%) / take_profit = 평단 × (1 + take_profit_pct%).
-        MA 미성립(워밍업)이나 무보유면 해당 값은 None."""
+        MA 미성립(워밍업)이나 무보유면 해당 값은 None. 등락률·변동성·평단 손익률은
+        Gemini 판단 입력 보강용(퍼센트, 소수 2자리)."""
         s = self.strategy
         ma5, ma20 = self._ma(5), self._ma(20)
         buy_th = ((ma5 * (1 - s.buy_dip_pct / 100)).quantize(Decimal("0.01"))
@@ -112,7 +117,38 @@ class TradingAgent:
         pos = self.position
         tp = ((pos.avg_price_usdc * (1 + s.take_profit_pct / 100)).quantize(Decimal("0.01"))
               if pos.quantity > 0 and pos.avg_price_usdc > 0 else None)
-        return {"ma5": ma5, "ma20": ma20, "buy_threshold": buy_th, "take_profit": tp}
+        price = self._history[-1] if self._history else None
+
+        def pct(now: Decimal, then: Decimal) -> Optional[Decimal]:
+            return ((now / then - 1) * 100).quantize(Decimal("0.01")) if then else None
+
+        # 최근 5봉 등락률 (현재가 vs 5봉 전 종가)
+        change5 = (pct(price, self._history[-6])
+                   if price is not None and len(self._history) >= 6 else None)
+        # 변동성: 최근 10개 봉간 수익률의 표준편차(%) — 판단 참고용이라 float 계산으로 충분
+        vol = None
+        if len(self._history) >= 6:
+            closes = [float(v) for v in self._history[-11:]]
+            rets = [(b / a - 1) * 100 for a, b in zip(closes, closes[1:]) if a]
+            if len(rets) >= 3:
+                mean = sum(rets) / len(rets)
+                vol = Decimal(str(round((sum((r - mean) ** 2 for r in rets) / len(rets)) ** 0.5, 2)))
+        # 보유 평단 대비 손익률
+        pos_pnl = (pct(price, pos.avg_price_usdc)
+                   if price is not None and pos.quantity > 0 and pos.avg_price_usdc > 0 else None)
+        return {"ma5": ma5, "ma20": ma20, "buy_threshold": buy_th, "take_profit": tp,
+                "change5_pct": change5, "volatility_pct": vol, "position_pnl_pct": pos_pnl}
+
+    def _retrospective(self, price: Decimal) -> str:
+        """직전 매수/매도 회고 한 줄 — '학습하는 것처럼' 직전 행동의 결과를 프롬프트에 준다."""
+        a = self._last_action
+        if not a:
+            return "이번 세션 매수·매도 이력 없음"
+        a["bars_ago"] += 1
+        diff = ((price / a["price"] - 1) * 100).quantize(Decimal("0.01")) if a["price"] else 0
+        side = "매수" if a["action"] == "buy" else "매도"
+        return (f"{a['bars_ago']}봉 전 {side} @ {a['price']} USDC → 현재가는 그 대비 "
+                f"{'+' if diff >= 0 else ''}{diff}%")
 
     # 1) 판단 — 적립형이면 스케줄 매수, 조건형이면 Gemini(있으면) → 실패 시 규칙 폴백
     def decide(self, symbol: str, price: Decimal) -> Decision:
@@ -129,21 +165,24 @@ class TradingAgent:
             # MA5 미성립 — 지표 워밍업 (재생 피드는 워밍업 주입으로 첫 틱부터 성립)
             return Decision("hold", f"지표 워밍업 — MA5 계산까지 {5 - len(self._history)}봉 더 필요")
 
+        retro = self._retrospective(price)
         if self.brain is not None:
             try:
-                d = self.brain.decide(
+                d = self._sanitize(self.brain.decide(
                     symbol, price, self._history[-9:-1], self.strategy,
                     self.auth.remaining_usdc, self.position,
-                    fee_bps=self.fee_bps, indicators=ind,
-                )
-                return self._sanitize(d)
+                    fee_bps=self.fee_bps, indicators=ind, retrospective=retro,
+                ))
             except Exception as e:
                 d = self._decide_by_rule(symbol, price, ind)
                 d.source = "rule-fallback"
                 detail = str(e).replace("\n", " ")[:100]  # 실제 원인 표면화 (예: 429 쿼터 초과)
                 d.reason += f" — Gemini 호출 실패({type(e).__name__}: {detail}) → 규칙 폴백"
-                return d
-        return self._decide_by_rule(symbol, price, ind)
+        else:
+            d = self._decide_by_rule(symbol, price, ind)
+        if d.action in ("buy", "sell"):
+            self._last_action = {"action": d.action, "price": price, "bars_ago": 0}
+        return d
 
     # B7 적립형 — 가격 판단 없이 주기(틱/분/매일 시각)마다 정액 매수 (매도 없음)
     def _dca_due(self) -> tuple[bool, str]:

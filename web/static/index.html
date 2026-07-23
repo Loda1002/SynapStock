@@ -36,6 +36,11 @@
       <option value="condition">조건형 (AI 판단 매수·매도)</option>
       <option value="dca">적립형 (주기 정액 매수)</option>
     </select>
+    <select data-decision-mode aria-label="AI 판단 모드"
+            title="엄격: 규칙 충족 여부만 판단 / 추세: 규칙 신호가 떠도 추세가 나쁘면 AI가 보류 가능 (한도 차단은 항상 AP2가 기계적으로 수행)">
+      <option value="strict">AI 엄격 (규칙 그대로)</option>
+      <option value="trend">AI 추세 (보류 재량)</option>
+    </select>
     <span class="dca-params hidden" data-dca-params>
       <select data-dca-unit aria-label="적립 주기 기준">
         <option value="ticks">틱 기준</option>

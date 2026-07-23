@@ -78,8 +78,10 @@ async def get_decisions():
 class StrategyBody(BaseModel):
     """B7 전략 선택 — condition(조건형) / dca(적립형: 주기마다 정액 매수).
 
-    적립 주기 기준(dca_unit): ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM)."""
+    적립 주기 기준(dca_unit): ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM).
+    decision_mode: 조건형의 Gemini 재량 — strict(규칙 그대로) / trend(보류 재량)."""
     type: str = "condition"
+    decision_mode: str = "strict"
     dca_unit: str = "ticks"
     dca_every_ticks: int = 5
     dca_every_minutes: int = 60

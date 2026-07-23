@@ -16,8 +16,8 @@ from typing import List
 from agents.trading_agent import Decision, Strategy
 from shared.models import Position
 
-PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 아래 사용자 규칙을 엄격히 적용해
-매수(buy)/매도(sell)/보류(hold)를 판단한다. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
+PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 매수(buy)/매도(sell)/보류(hold)를
+판단한다. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
 
 [사용자 규칙 — 지표 기준]
 - 매수: 현재가가 5일 이동평균(MA5) 대비 {buy_dip_pct}% 이상 낮으면(즉 {buy_threshold} USDC 이하) 매수를 고려한다
@@ -25,8 +25,14 @@ PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 
 - 1회 매수 금액은 {spend} USDC 를 넘지 않는다
 - 매수·매도 조건이 동시에 성립하면 이익 확정(매도)이 우선이다
 
+[판단 모드 — {mode_name}]
+{mode_rules}
+
 [지표]
-- MA5: {ma5} USDC · MA20: {ma20}
+- MA5 {ma5} USDC · MA20 {ma20} USDC
+- 최근 5봉 등락률 {change5} · 봉간 수익률 변동성(표준편차) {volatility}
+- 보유 평단 대비 손익률 {position_pnl}
+- 직전 행동 회고: {retrospective}
 
 [현재 상태]
 - 종목: {symbol}
@@ -40,9 +46,24 @@ PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 
 - 매도 시 실제 수령액 = 대금 - 수수료 (실효 매도가 {eff_sell} USDC/주)
 - 수수료를 반영한 실효 가격 기준으로 손익을 판단하라
 
-규칙 위반 판단은 금지. 가격 흐름을 근거로 한국어 한 문장의 이유를 만들어라.
+가격 흐름과 지표를 근거로 한국어 한 문장의 이유를 만들어라.
 JSON 만 출력: {{"action":"buy"|"sell"|"hold","reason":"한국어 한 문장","spend_usdc":숫자}}
 reason 은 한글을 그대로 쓰고 역슬래시(\\)·따옴표·줄바꿈을 넣지 마라."""
+
+# 판단 모드별 재량 조항 — strict(규칙 그대로) / trend(보류 재량).
+# 어느 모드든 "규칙 미충족 상태에서의 신규 개시"는 금지 = 한도는 AP2가 기계적으로,
+# 판단은 AI가 맡는 경계를 유지한다 (docs/next_round_plan.md §2.1).
+MODE_RULES = {
+    "strict": ("엄격 (규칙 그대로)",
+               "규칙을 엄격히 적용한다. 규칙 조건이 충족되면 해당 행동을, 아니면 hold 를 "
+               "선택한다. 규칙 위반 판단은 금지."),
+    "trend": ("추세 (보류 재량)",
+              "기본은 규칙 준수이지만, 규칙 신호가 떠도 추세가 반대라고 판단하면 보류(hold)할 "
+              "재량이 있다. 예: 매수 신호지만 낙폭이 계속 커지는 중이면 바닥 확인까지 보류, "
+              "매도 신호지만 상승 추세가 이어지면 더 큰 이익을 위해 보류. "
+              "단, 규칙 조건이 충족되지 않았는데 새로 매수·매도를 시작하는 것은 금지다. "
+              "보류 재량을 쓸 때는 이유에 추세 근거를 명시하라."),
+}
 
 # 형식이 깨진 응답을 받았을 때의 1회 재요청 지시 (쿼터 절약 위해 재시도는 한 번만)
 RETRY_SUFFIX = """
@@ -191,6 +212,7 @@ class GeminiDecider:
         position: Position,
         fee_bps: int = 0,
         indicators: dict | None = None,
+        retrospective: str = "",
     ) -> Decision:
         remaining = int(self._cooldown_until - time.time())
         if remaining > 0:
@@ -198,6 +220,13 @@ class GeminiDecider:
 
         ind = indicators or {}
         tp = ind.get("take_profit")
+        mode_name, mode_rules = MODE_RULES.get(
+            getattr(strategy, "decision_mode", "strict"), MODE_RULES["strict"])
+
+        def pct_or(key: str, absent: str = "산출 전") -> str:
+            v = ind.get(key)
+            return f"{'+' if v >= 0 else ''}{v}%" if v is not None else absent
+
         fee_rate = Decimal(fee_bps) / Decimal(10000)
         prompt = PROMPT.format(
             buy_dip_pct=strategy.buy_dip_pct,
@@ -205,8 +234,14 @@ class GeminiDecider:
             buy_threshold=ind.get("buy_threshold", "-"),
             take_profit_line=(f"{tp} USDC 이상" if tp is not None
                               else "현재 보유 없음 — 매도 불가"),
+            mode_name=mode_name,
+            mode_rules=mode_rules,
             ma5=ind.get("ma5", "-"),
             ma20=ind.get("ma20") or "-(워밍업 부족)",
+            change5=pct_or("change5_pct"),
+            volatility=pct_or("volatility_pct"),
+            position_pnl=pct_or("position_pnl_pct", "보유 없음"),
+            retrospective=retrospective or "이력 없음",
             spend=strategy.spend_per_trade_usdc,
             symbol=symbol,
             price=price,
