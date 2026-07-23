@@ -1,0 +1,322 @@
+{
+  "generated_at": "2026-07-23T21:02:33",
+  "config": {
+    "source": "AAPL 일봉 재생 2026-06-01~2026-07-22 (36봉)",
+    "file": "C:\\Users\\Tedd\\Desktop\\홍익대학교\\프로젝트\\[Google Cloud X Solana] AI 에이전틱 해커톤\\solana-agent\\data\\market\\AAPL_daily.csv",
+    "from": "2026-06-01",
+    "to": "2026-07-22",
+    "bars_played": 36,
+    "brain": "gemini",
+    "mode": "trend",
+    "ta_mode": true,
+    "rules": {
+      "buy_dip_pct": "2",
+      "take_profit_pct": "3",
+      "spend_per_trade": "30"
+    },
+    "budget_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "fee_bps": 30
+  },
+  "metrics": {
+    "realized_pnl_usdc": "2.19",
+    "unrealized_pnl_usdc": "0.00",
+    "total_pnl_usdc": "2.19",
+    "return_on_budget_pct": "2.19",
+    "buy_count": 2,
+    "sell_count": 1,
+    "win_rate_pct": "100",
+    "max_drawdown_pct": "4.84",
+    "cum_buy_usdc": "59.96",
+    "fees_usdc": "0.37",
+    "ap2_rejects": 0,
+    "gemini_fallbacks": 0,
+    "decisions_by_action": {
+      "hold": 33,
+      "buy": 2,
+      "sell": 1
+    },
+    "decisions_by_source": {
+      "gemini": 36
+    },
+    "position_left_qty": "0"
+  },
+  "trades": [
+    {
+      "date": "2026-06-08",
+      "side": "buy",
+      "qty": "0.0991",
+      "price": "301.54",
+      "total": "29.97"
+    },
+    {
+      "date": "2026-06-09",
+      "side": "buy",
+      "qty": "0.1029",
+      "price": "290.55",
+      "total": "29.99"
+    },
+    {
+      "date": "2026-07-02",
+      "side": "sell",
+      "qty": "0.2020",
+      "price": "308.63",
+      "total": "62.15",
+      "realized": "2.19"
+    }
+  ],
+  "decisions": [
+    {
+      "date": "2026-06-01",
+      "price": "306.31",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 매수 기준인 303.81 USDC 이상이므로 사용자 규칙에 따라 보류합니다."
+    },
+    {
+      "date": "2026-06-02",
+      "price": "315.20",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균선 대비 2% 이상 낮은 매수 기준 가격을 충족하지 못하고 상향 추세를 보이고 있으므로 바닥 확인을 위해 보류합니다"
+    },
+    {
+      "date": "2026-06-03",
+      "price": "310.26",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2퍼센트 이상 낮은 매수 조건에 미치지 못하고 직전 데드크로스와 단기 하락 흐름이 나타나 조달 예산 집행을 보류한다."
+    },
+    {
+      "date": "2026-06-04",
+      "price": "311.23",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 2퍼센트 이상 낮은 매수 기준 가격을 충족하지 못하고 보유 수량도 없어 보류합니다."
+    },
+    {
+      "date": "2026-06-05",
+      "price": "307.34",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기지인 303.87 USDC 이하로 떨어지지 않았고 대기 패턴이 조재하여 관망핝다."
+    },
+    {
+      "date": "2026-06-08",
+      "price": "301.54",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 2퍼센트 이상 낮아 매수 조건을 충족하며 낙폭 과대에 따른 반등을 기대합니다"
+    },
+    {
+      "date": "2026-06-09",
+      "price": "290.55",
+      "action": "buy",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 2퍼센트 이상 낮고 단기 낙폭이 커지는 중이나 사용자 매수 규칙에 부합하여 30 USDC 이하로 매수를 진행합니다."
+    },
+    {
+      "date": "2026-06-10",
+      "price": "291.58",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 낮아 매수 규칙은 충족되나 데드크로스와 단기 하락 추세가 이어져 바닥 확인을 위해 보류합니다."
+    },
+    {
+      "date": "2026-06-11",
+      "price": "295.63",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2% 이상 낮은 매수 조건을 만족하지 못하고 최근 5봉 등락률이 하락세인 추세를 고려하여 보류한다."
+    },
+    {
+      "date": "2026-06-12",
+      "price": "291.13",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 2% 이상 낮은 매수 조건에 미달하고 확산 삼각형 대기 패턴과 하락 추세가 이어져 보류합니다."
+    },
+    {
+      "date": "2026-06-15",
+      "price": "296.42",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 사용자 규칙의 매수 및 매도 조건에 해당하지 않고 중기 이동평균선이 하락세이며 대기 패턴이 탐지되어 방향성이 확정될 때까지 보류합니다."
+    },
+    {
+      "date": "2026-06-16",
+      "price": "299.24",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수와 매도 규칙 조건에 해당하지 않고 차트 대기 패턴과 하락하는 중기선 영향으로 방향성 확인이 필요하므로 보류합니다."
+    },
+    {
+      "date": "2026-06-17",
+      "price": "295.95",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 규칙 조건을 충족하지 않고 확산 삼각형 대기 패턴 속에서 추세가 불확실하므로 보류합니다."
+    },
+    {
+      "date": "2026-06-18",
+      "price": "298.01",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 조건에 도달하지 않았고 대기 패턴과 횡보 추세가 이어지고 있어 보류합니다."
+    },
+    {
+      "date": "2026-06-22",
+      "price": "297.01",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 매수와 매도 기준 가격에 도달하지 않았고 중기선 하락과 대기 패턴의 영향으로 방향성이 불확실하여 보류합니다"
+    },
+    {
+      "date": "2026-06-23",
+      "price": "294.30",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 기준에 도달하지 않았고 대기 패턴과 신호 충돌이 있어 보류합니다."
+    },
+    {
+      "date": "2026-06-24",
+      "price": "293.08",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 조건에 도달하지 않았고 단기 이동평균선이 하락세여서 보류합니다."
+    },
+    {
+      "date": "2026-06-25",
+      "price": "275.15",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 낮아 매수 조건은 충족되나 데드크로스와 하락 추세가 지속되며 낙폭이 커지고 있어 바닥 확인을 위해 보류합니다."
+    },
+    {
+      "date": "2026-06-26",
+      "price": "283.78",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준을 만족하나 단기 이동평균선이 하락 중이고 데드크로스가 발생해 바닥 확인을 위해 매수를 보류합니다."
+    },
+    {
+      "date": "2026-06-29",
+      "price": "281.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 MA5 대비 2퍼센트 이상 낮아 매수 조건이 성립하지만 중기선이 하락세이며 낙폭이 커지는 추세여서 바닥 확인까지 보류한다."
+    },
+    {
+      "date": "2026-06-30",
+      "price": "289.36",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 및 매도 기준 조건을 충족하지 않고 중기 이동평균선이 하락 중이므로 보류한다."
+    },
+    {
+      "date": "2026-07-01",
+      "price": "294.38",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수와 매도 기준 조건을 충족하지 않고 중기선이 하락세여서 보류합니다."
+    },
+    {
+      "date": "2026-07-02",
+      "price": "308.63",
+      "action": "sell",
+      "source": "gemini",
+      "reason": "현재가가 보유 평균단가 대비 3% 이상 상승하여 이익 확정 조건을 충족하므로 매도합니다."
+    },
+    {
+      "date": "2026-07-06",
+      "price": "312.66",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 291.40 USDC를 초과하고 보유 수량이 없어 매도할 수 없으며 골든크로스와 단기 상승 추세가 이어지고 있어 바닥 확인을 위해 보류합니다."
+    },
+    {
+      "date": "2026-07-07",
+      "price": "310.66",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 높은 수준을 유지하고 있어 매수 조건에 부합하지 않으며 보유 수량이 없어 보류합니다."
+    },
+    {
+      "date": "2026-07-08",
+      "price": "313.39",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 301.78 USDC를 초과하고 보유 물량이 없어 규칙에 따른 거래 조건이 성립하지 않으므로 보류합니다."
+    },
+    {
+      "date": "2026-07-09",
+      "price": "316.22",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 306.06 USDC보다 높고 단기 상승 추세가 이어져 신규 매수를 보류합니다."
+    },
+    {
+      "date": "2026-07-10",
+      "price": "315.32",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가는 5일 이동평균선 대비 높아 사용자 규칙의 매수 기준을 충족하지 않으며 상승 추세가 이어지고 있어 보류한다"
+    },
+    {
+      "date": "2026-07-13",
+      "price": "317.31",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 이상으로 매수 기준인 308.29 USDC를 초과하여 규칙 조건이 충족되지 않으므로 보류합니다."
+    },
+    {
+      "date": "2026-07-14",
+      "price": "314.86",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균 대비 매수 기준인 309.11 USDC보다 높고 1대 신호에서 데드크로스가 발생해 바닥 확인을 위해 보류합니다."
+    },
+    {
+      "date": "2026-07-15",
+      "price": "327.50",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 높은 수준을 유지하고 있어 사용자 규칙의 매수 조건을 충족하지 못하므로 보류합니다"
+    },
+    {
+      "date": "2026-07-16",
+      "price": "333.26",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 315.22 USDC를 초과한 333.26 USDC이며 대기 패턴인 삼각수렴이 탐지되어 방향 확정까지 보류합니다."
+    },
+    {
+      "date": "2026-07-17",
+      "price": "333.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 5일 이동평균선 대비 높고 대칭 삼각수렴 대기 패턴이 탐지되어 방향성 확정까지 매수를 보류합니다."
+    },
+    {
+      "date": "2026-07-20",
+      "price": "326.59",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "석별형 캔들 패턴과 데드크로스 발생 등 하락 신호가 감지되었으나 현재 대칭 삼각수렴 대기 패턴 안에서 추세 방향이 명확하지 않아 보류합니다."
+    },
+    {
+      "date": "2026-07-21",
+      "price": "327.74",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준인 323.17 USDC보다 높고 상승 쐐기형 매도 패턴과 데드크로스가 발생해 바닥 확인과 추세 관망이 필요하므로 보류합니다."
+    },
+    {
+      "date": "2026-07-22",
+      "price": "325.89",
+      "action": "hold",
+      "source": "gemini",
+      "reason": "현재가가 매수 기준가인 322.85 USDC를 상회하고 차트 패턴상 상승 쐐기형 매도 신호와 단기 데드크로스가 존재하여 바닥 확인을 위해 보류합니다."
+    }
+  ]
+}
