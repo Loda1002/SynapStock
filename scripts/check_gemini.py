@@ -11,6 +11,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 한국어 Windows 콘솔(cp949)에서 — 등 특수문자 출력이 깨지지 않게 UTF-8 강제
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from config import CFG  # .env 로드
 
 

@@ -81,7 +81,8 @@ class TradingAgent:
             except Exception as e:
                 d = self._decide_by_rule(symbol, price)
                 d.source = "rule-fallback"
-                d.reason += f" — Gemini 호출 실패({type(e).__name__}) → 규칙 폴백"
+                detail = str(e).replace("\n", " ")[:100]  # 실제 원인 표면화 (예: 429 쿼터 초과)
+                d.reason += f" — Gemini 호출 실패({type(e).__name__}: {detail}) → 규칙 폴백"
                 return d
         return self._decide_by_rule(symbol, price)
 

@@ -1,6 +1,14 @@
 /* theme.css — 스킨 레이어: 색·폰트·간격 "변수만" 둔다.
    디자인 시안 수령 시 이 파일(변수 값)을 교체하면 스킨이 바뀐다.
-   배치·구조 규칙은 skeleton.css 에 있다. */
+   배치·구조 규칙은 skeleton.css 에 있다.
+
+   color-scheme 선언이 없으면 브라우저/앱의 다크 모드가 페이지를 강제로
+   어둡게 뒤집어(auto-dark) 버튼만 색이 남는 깨진 화면이 된다 — 라이트·다크
+   팔레트를 모두 선언해 어느 테마에서도 의도된 색으로 보이게 한다. */
+:root {
+  color-scheme: light dark;
+}
+
 :root {
   /* 바탕 */
   --bg: #f4f5f7;
@@ -33,4 +41,27 @@
   --fs-base: 14px;
   --fs-big: 28px;
   --fs-small: 12px;
+}
+
+/* 다크 팔레트 — OS/브라우저가 다크 모드일 때 자동 적용 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --card-bg: #1e2126;
+    --text: #e6e9ee;
+    --muted: #9aa3ad;
+    --border: #343a42;
+
+    --accent: #7c93ff;
+    --danger: #ff6b6e;
+    --ok: #3ecf8e;
+    --warn: #f0b429;
+
+    --buy: #3ecf8e;
+    --sell: #ff6b6e;
+
+    --badge-gemini: #9d86ff;
+    --badge-rule: #7d8590;
+    --badge-fallback: #f0b429;
+  }
 }

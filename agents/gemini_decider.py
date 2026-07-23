@@ -8,6 +8,8 @@ Gemini API(무료 티어)를 호출해 시세·규칙·예산을 보고 매수/�
 """
 from __future__ import annotations
 import json
+import re
+import time
 from decimal import Decimal
 from typing import List
 
@@ -44,6 +46,15 @@ class GeminiDecider:
             kwargs["vertexai"] = True
         self.client = genai.Client(**kwargs)
         self.model = model
+        # 무료 티어 429(쿼터 초과) 시 API 재호출을 잠시 멈추는 쿨다운 (틱마다 헛호출 방지)
+        self._cooldown_until: float = 0.0
+
+    def _enter_cooldown(self, error_text: str) -> None:
+        """429 응답의 retryDelay 를 존중해 쿨다운 설정 (없으면 60초)."""
+        m = (re.search(r"retry in (\d+(?:\.\d+)?)s", error_text)
+             or re.search(r"retryDelay'?: '?(\d+(?:\.\d+)?)s", error_text))
+        delay = float(m.group(1)) if m else 60.0
+        self._cooldown_until = time.time() + max(delay, 30.0)
 
     def decide(
         self,
@@ -56,6 +67,10 @@ class GeminiDecider:
     ) -> Decision:
         from google.genai import types
 
+        remaining = int(self._cooldown_until - time.time())
+        if remaining > 0:
+            raise RuntimeError(f"무료 티어 한도 초과 — 쿨다운 {remaining}초 남음(자동 재시도)")
+
         prompt = PROMPT.format(
             buy_below=strategy.buy_below,
             sell_above=strategy.sell_above,
@@ -67,14 +82,20 @@ class GeminiDecider:
             position_qty=position.quantity,
             position_avg=position.avg_price_usdc,
         )
-        resp = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.2,
-                response_mime_type="application/json",
-            ),
-        )
+        try:
+            resp = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as e:
+            text = str(e)
+            if "429" in text or "RESOURCE_EXHAUSTED" in text:
+                self._enter_cooldown(text)
+            raise
         data = json.loads(resp.text)
 
         action = str(data.get("action", "hold")).lower()

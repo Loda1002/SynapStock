@@ -8,6 +8,7 @@
 - 기능 선택 확정(사용자): **A 전부(A1~A8) + B1·B2·B4·B6·B7** (B3·B5 제외). 필수군 A1~A5 / 어필군 A6~A8·B전체 구분. B4는 "알림만/알림+자동정지" 토글 설계로 고민 해소, B6은 mandate 우회 불가·규칙 재서명 연결 원칙. 구체 설계 `docs/feature_spec.md`(P1→P2→P3) — 구현은 새 대화(웹 서비스화)에서 시작.
 - CLAUDE.md 세션 운영에 **대화 전환 안내 규칙** 추가(큰 단계 완료 시 Claude가 먼저 새 대화 전환을 안내하고 문서 갱신 + 스타터 프롬프트 제공).
 - **P1 웹 서비스화 완료(라이브 검증 통과)**: FastAPI+SSE `web/` 신설(engine/events/server + 무디자인 대시보드, 기존 코어 무수정 재사용). A1 대시보드·A2 긴급정지(주체 기록, 시세는 계속)·A5 거래 테이블(explorer 링크)·A6 판단 타임라인(gemini/rule-fallback 배지)·A7 실현손익 전부 동작. 엔진은 대시보드에서 세션 시작/종료(연속 루프, 기본 8초 틱 — 사용자 선택). localnet 라이브: 매수4+매도1 온체인 확정, +7 USDC 실현손익 온체인 반영, 교차검증 PASS, `artifacts/tx/20260723_1220_..._web_session.json`. 드라이런에서 새로고침 피드 복원(SSE 재전송)·rate limit 규칙 폴백도 실증. 디자인 시안은 `web/static/css/theme.css` 변수 교체로 적용 예정.
+- **버그 수정 라운드(사용자 보고 3건, 당일 해결·재검증)**: ①"Gemini 계속 호출 실패" 원인 = `gemini-flash-latest`가 gemini-3.6-flash로 연결되고 이 모델 무료 티어가 **하루 20회**뿐 → 소진. 모델을 `gemini-flash-lite-latest`로 교체(한도 넉넉, 판단 품질 충분 — 재검증에서 판단 전건 gemini 배지), 429 시 retryDelay 존중 쿨다운 추가(틱마다 헛호출 방지), 타임라인에 실제 원인 문구 표면화, `check_gemini.py` cp949 크래시 수정. ②스크롤 부자연 = 피드·테이블이 무한히 자라 페이지가 밀림 + 스크롤 체이닝 → 고정 높이+내부 스크롤+`overscroll-behavior: contain`+sticky 테이블 헤더+`scrollbar-gutter`. ③"버튼 빼고 어두움" = `color-scheme` 미선언 상태에서 다크 모드 브라우저가 페이지를 강제 반전 → 라이트·다크 팔레트 정식 지원(theme.css 변수, 다크 렌더링 검증 완료). CLAUDE.md에 **작업 사이클 규칙** 명문화(기능 단위 구현→즉시 검증·버그 수정→커밋, 사용자 보고 버그 최우선, 폴리시는 디자인 시안 후 일괄).
 
 ## 2026-07-21
 - MVP 코어 완료(오프라인 검증 통과): A2A+x402 3단계 결제, AP2 mandate 한도, x402 결제 코어, 규칙 기반 판단, 목 시세 피드. devnet 라이브 경로(setup_devnet.py + run_demo.py --live) 준비됨.

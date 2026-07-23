@@ -2,6 +2,10 @@
    색·폰트는 전부 theme.css 변수를 참조한다. */
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+html {
+  /* 페이지 스크롤바가 생겼다 사라질 때 가로 폭이 튀지 않게 자리를 고정 */
+  scrollbar-gutter: stable;
+}
 body {
   background: var(--bg); color: var(--text);
   font-family: var(--font); font-size: var(--fs-base);
@@ -82,10 +86,15 @@ select {
   transition: width .4s ease;
 }
 
-/* ---- 피드 (판단 타임라인 / 이벤트 로그) ---- */
+/* ---- 피드 (판단 타임라인 / 이벤트 로그) ----
+   고정 높이 + 내부 스크롤: 이벤트가 쌓여도 카드·페이지 높이가 변하지 않아
+   읽는 중에 화면이 밀리지 않는다. overscroll-behavior 로 피드 끝에서
+   페이지 전체가 딸려 스크롤되는 현상(스크롤 체이닝)을 차단. */
 .feed {
   list-style: none; margin: 0; padding: 0;
-  max-height: 300px; overflow-y: auto;
+  height: 300px; overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   display: flex; flex-direction: column; gap: 6px;
 }
 .feed li {
@@ -105,11 +114,18 @@ select {
 .feed li.log-ok { color: var(--ok); }
 .feed li.log-muted { color: var(--muted); }
 
-/* ---- 거래 테이블 ---- */
-.table-wrap { overflow-x: auto; }
+/* ---- 거래 테이블 ----
+   행이 무한히 쌓여 페이지가 끝없이 길어지지 않게 고정 높이 + 내부 스크롤.
+   헤더는 sticky 로 고정해 스크롤해도 컬럼명이 보인다. */
+.table-wrap {
+  max-height: 340px; overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
 table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 th { color: var(--muted); font-weight: 600; }
+thead th { position: sticky; top: 0; background: var(--card-bg); z-index: 1; }
 td a { color: var(--accent); }
 .side-buy { color: var(--buy); font-weight: 700; }
 .side-sell { color: var(--sell); font-weight: 700; }
