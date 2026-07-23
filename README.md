@@ -29,6 +29,13 @@
   게이지/실현손익, AI 판단 타임라인([gemini]/[rule-fallback] 배지), A2A·x402 협상 로그,
   거래 내역 테이블(explorer 링크), **긴급정지/재개**(정지 주체 기록). 세션 종료 시
   잔액 교차검증 + `artifacts/tx/` 아카이브 자동
+- **실데이터 시세 재생(ReplayPriceFeed)**: 실제 미국 주식 일봉 CSV를 1틱=1봉으로 재생
+  (워밍업 20봉 → MA5·MA20 즉시 성립, 재생 소진 시 세션 자동 종료). 매매 규칙은
+  **지표 기준** — 매수: MA5 대비 −2% / 매도: 평단 대비 +3% 익절 (% 조정 가능)
+- **Gemini 판단 모드 토글**: 엄격(규칙 그대로) / **추세(보류 재량)** — 규칙 신호가 떠도
+  추세가 나쁘면 AI 가 근거를 들어 보류. 한도 차단은 어느 모드든 AP2 가 기계적으로 수행
+- **백테스트 러너**(`scripts/backtest.py`): 같은 구간에서 규칙 vs Gemini 엄격 vs 추세를
+  비교 — 총손익·수익률·승률·MDD·AP2 거부 집계 → `artifacts/backtests/`
 
 ## 아직 안 붙은 것 (다음 단계)
 
@@ -62,6 +69,25 @@ python -m web.server     # http://localhost:8000 (포트는 .env WEB_PORT)
 마무리) 시세는 계속 흐른다. 라이브 세션을 종료하면 전후 잔액 교차검증 후 `artifacts/tx/`에
 증빙 JSON 이 남는다. 새로고침해도 피드가 복원된다(SSE 재전송).
 디자인은 의도적으로 무디자인 — 시안 수령 시 `web/static/css/theme.css` 변수만 교체.
+
+## 실데이터 시세 (리플레이) · 백테스트
+
+시세는 **실제 미국 주식 일봉**을 내려받아 재생한다(결정적 재현 — 심사·데모에서 같은 구간이
+같게 흐름, 오프라인 시연 가능). 데이터 출처: [Alpha Vantage](https://www.alphavantage.co)
+무료 API (TIME_SERIES_DAILY). `data/market/*.csv` 는 재현성을 위해 저장소에 포함하며,
+재배포가 아닌 데모·평가 목적으로만 사용한다.
+
+```bash
+# 1회 수집 (무료 키: https://www.alphavantage.co/support/#api-key → .env ALPHAVANTAGE_API_KEY)
+python scripts/fetch_market_data.py                  # AAPL·TSLA·NVDA 일봉 2024~ → data/market/
+# 대시보드에서 시세 피드 "실데이터 재생 (일봉)" 선택 → 세션 시작 (CSV 없으면 잠김)
+# 재생 구간 고정: .env REPLAY_START=2025-02-03 / REPLAY_END=2025-04-30
+
+# 백테스트 — 같은 구간 3종 비교 (Gemini 는 무료 티어 보호: 4초 간격·기본 60봉 제한)
+python scripts/backtest.py --brain rule            --from 2025-02-03 --to 2025-04-30
+python scripts/backtest.py --brain gemini --mode strict --from 2025-02-03 --to 2025-04-30
+python scripts/backtest.py --brain gemini --mode trend  --from 2025-02-03 --to 2025-04-30
+```
 
 ## localnet 라이브 실행 (개발 기본 경로 — 검증 완료)
 

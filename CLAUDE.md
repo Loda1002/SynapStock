@@ -31,13 +31,13 @@
 - 참고 프로토콜 계층: A2A(에이전트 간 통신)/MCP(에이전트-툴)/AP2(mandate 기반 결제 위임)/UCP(A2A+AP2 통합)/x402·MPP(정산 레일). AP2 안에서 x402를 결제 레일로 사용할 수 있다.
 - 데모데이(8/21 금, Google Startup Campus) 라이브 시연을 전제로, 데모는 네트워크 불안정 대비 폴백(로컬넷 재시연 경로)을 준비한다.
 
-## 현재 상태 (2026-07-23 저녁 기준)
+## 현재 상태 (2026-07-23 밤 기준)
 
-완료(localnet 라이브 검증 통과): A2A+x402 **매수·매도 풀사이클**(USDC⇄주식토큰 양방향 온체인 정산, 순변화 교차검증 PASS), AP2 mandate(한도 + 매도 대금 환입 = 순투입 한도), **Gemini 판단**(`gemini-flash-lite-latest`, 무료 티어, 호출 실패 시 규칙 폴백), **거부 4종 데모**(`scripts/demo_rejections.py`), 증빙 아카이빙(`artifacts/tx/`), **P1 웹 서비스화**(`web/`: FastAPI+SSE, A1·A2·A5·A6·A7, 실행 `python -m web.server`), **P2 엔진 확장 전체**(A8 수수료 투명화 0.3% 양방향·AP2 총액 검사·누적 수수료 카드 / A3 한도 설정 화면·mandate 재서명 / A4 토스트+브라우저 알림 / B7 적립식 DCA 전략 선택 / B2 데일리 브리핑 Gemini 리포트·수동+세션종료+장마감 3경로 — 라이브 2세션 교차검증 PASS, 한도 변경→AP2 거부→재서명→통과 시나리오 실증), GitHub 푸시(https://github.com/Loda1002/SolanaAgent, private — 제출 전 public 전환).
+완료(localnet 라이브 검증 통과): A2A+x402 **매수·매도 풀사이클**(USDC⇄주식토큰 양방향 온체인 정산, 순변화 교차검증 PASS), AP2 mandate(한도 + 매도 대금 환입 = 순투입 한도), **Gemini 판단**(`gemini-flash-lite-latest`, 무료 티어, 호출 실패 시 규칙 폴백), **거부 4종 데모**(`scripts/demo_rejections.py`), 증빙 아카이빙(`artifacts/tx/`), **P1 웹 서비스화**(`web/`: FastAPI+SSE, 실행 `python -m web.server`, `--port`/`PORT` env 지원), **P2 엔진 확장 전체**(수수료 투명화·한도 설정·알림·DCA·데일리 브리핑), **실시세 라운드 코드 전체**(2026-07-23 저녁, 웹 드라이런 검증 PASS): `ReplayPriceFeed`(실데이터 일봉 1틱=1봉 재생·워밍업 20봉·소진 시 자동 종료, UI 피드 선택·날짜축·전일 종가 대비), **지표 규칙**(매수 MA5 −2% / 매도 평단 +3% 익절 — 절대가 178/185 제거), **Gemini 입력 보강**(MA5·MA20·등락률·변동성·평단 손익률·직전 행동 회고) + **엄격/추세 모드 토글**(추세=보류 재량, 백테스트에서 재량 보류 실증), **백테스트 러너**(`scripts/backtest.py`, 규칙 vs Gemini 2모드 비교), 디자이너 브리프(`docs/design_brief.md`). GitHub 푸시(https://github.com/Loda1002/SolanaAgent, private — 제출 전 public 전환).
 
-다음 단계(우선순위 순) — **2026-07-23 저녁 사용자 피드백으로 재정렬, 상세는 `docs/next_round_plan.md`**:
+다음 단계(우선순위 순) — **상세는 `docs/next_round_plan.md`**:
 
-0. **실시세 데이터 도입** → **Gemini 매수·매도 프로토콜 검증** (목 시세의 반복 패턴으로 판단 검증은 무의미하다는 사용자 판단). DCA 고도화는 보류. Stooq CSV 직링크는 봇 차단으로 사용 불가(실측) → Alpha Vantage(무료 키, 25콜/일) 또는 Alpaca(무료 키) 로 1회 내려받아 `ReplayPriceFeed` 로 재생하는 방식 권장
+0. **실데이터 파일 수집만 남음(코드는 완료)**: 사용자가 https://www.alphavantage.co/support/#api-key 에서 무료 키 발급 → `.env` 에 `ALPHAVANTAGE_API_KEY=키` 추가 → `python scripts/fetch_market_data.py` → `data/market/*.csv` 커밋 → 실데이터 웹 드라이런 1회 + 3종 백테스트(`--brain rule` / `gemini --mode strict` / `gemini --mode trend`, 같은 구간) 실측해 `artifacts/backtests/` 커밋(소개서 근거 숫자). 변동성 구간 추천: 2025-02~2025-04(급락+반등)
 0-1. **Cloud Run 배포 + Firestore + Secret Manager** → **로그인/회원가입(Firebase Auth 권장) + 사용자별 세션 분리**. 지금 엔진은 전역 싱글턴이라 인증만 붙이면 사용자들이 같은 엔진을 공유하게 되므로 순서 주의
 0-2. **디자인 의뢰 진행 중** — 디자이너는 앱 경험만 있고 웹은 처음. 정보구조(랜딩/로그인/대시보드 3화면)와 브리프 초안은 `docs/next_round_plan.md` §4. 시안은 `web/static/css/theme.css` 변수에 매핑되도록 요청
 0-3. **후반부로 미룸(사용자 지시)**: 로그 일반인 가독성 정리(요약/전문가 뷰), 데일리 브리핑 간소화(3문장+수치 카드)
