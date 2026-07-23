@@ -59,6 +59,21 @@
     </p>
   </section>
 
+  <section class="card" data-card="mandate">
+    <h2>한도 설정 <span class="sub">AP2 mandate 재서명</span></h2>
+    <form data-mandate-form>
+      <label class="field">총예산 (USDC)
+        <input data-mandate-budget type="number" min="0" step="any" required>
+      </label>
+      <label class="field">건별 최대 (USDC)
+        <input data-mandate-per-trade type="number" min="0" step="any" required>
+      </label>
+      <p class="sub">허용 종목: <span data-mandate-symbols>—</span> (단일 종목 데모 · 멀티 종목은 P3)</p>
+      <button class="btn" type="submit" data-btn-mandate>재서명·적용</button>
+      <p class="sub" data-mandate-hint>—</p>
+    </form>
+  </section>
+
   <section class="card" data-card="pnl">
     <h2>손익 (실현)</h2>
     <p class="big"><span data-pnl>0</span> <span class="unit">USDC</span></p>

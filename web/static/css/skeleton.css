@@ -45,6 +45,12 @@ select {
   padding: 6px 8px; border-radius: var(--radius); border: 1px solid var(--border);
   background: var(--card-bg); color: var(--text); font-size: var(--fs-base);
 }
+input[type="number"], input[type="text"], input[type="time"] {
+  padding: 6px 8px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--card-bg); color: var(--text); font-size: var(--fs-base);
+  width: 100%; max-width: 220px;
+}
+.field { display: block; margin: 6px 0; font-size: var(--fs-small); color: var(--muted); }
 
 /* ---- 카드 그리드 ---- */
 .grid {

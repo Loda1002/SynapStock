@@ -34,6 +34,12 @@
     cumBuy: $("[data-cum-buy]"),
     feeRate: $("[data-fee-rate]"),
     cumFee: $("[data-cum-fee]"),
+    mandateForm: $("[data-mandate-form]"),
+    mandateBudget: $("[data-mandate-budget]"),
+    mandatePerTrade: $("[data-mandate-per-trade]"),
+    mandateSymbols: $("[data-mandate-symbols]"),
+    btnMandate: $("[data-btn-mandate]"),
+    mandateHint: $("[data-mandate-hint]"),
     decisionFeed: $("[data-decision-feed]"),
     eventLog: $("[data-event-log]"),
     tradesBody: $("[data-trades-body]"),
@@ -113,8 +119,19 @@
     if (s.wallets.trading) el.walletTrading.textContent = shortKey(s.wallets.trading);
     if (s.wallets.broker) el.walletBroker.textContent = shortKey(s.wallets.broker);
 
-    // 버튼 상태
+    // A3 한도 설정 카드 — 입력 중(포커스)일 때는 값을 덮어쓰지 않는다
     const running = eng.status === "running";
+    if (document.activeElement !== el.mandateBudget) el.mandateBudget.value = s.budget.total_usdc;
+    if (document.activeElement !== el.mandatePerTrade) el.mandatePerTrade.value = s.budget.per_trade_max_usdc;
+    el.mandateSymbols.textContent = s.symbol;
+    el.btnMandate.disabled = running && s.trading_enabled;
+    el.mandateHint.textContent = running
+      ? (s.trading_enabled
+          ? "실행 중 — 긴급정지 후에만 변경할 수 있습니다 (레이스 방지)"
+          : "정지 상태 — 적용하면 새 mandate 를 재서명하고 즉시 반영합니다 (사용액 이월)")
+      : "대기 상태 — 다음 세션 시작 시 적용됩니다";
+
+    // 버튼 상태
     el.btnStart.disabled = running || eng.status === "stopping";
     el.btnStop.disabled = !running;
     el.modeSelect.disabled = running;
@@ -233,6 +250,10 @@
       case "mandate_rejected":
         addLog(evt.ts, `[AP2 거부] ${d.order_id} — ${d.reason}`, "log-danger");
         break;
+      case "mandate_updated":
+        addLog(evt.ts, `[AP2 한도 변경] 예산 ${d.old.budget_total_usdc}→${d.new.budget_total_usdc} · 건별 ${d.old.per_trade_max_usdc}→${d.new.per_trade_max_usdc} USDC (${d.applied === "immediate" ? "재서명·즉시 적용" : "다음 세션부터 적용"} · 주체: ${d.actor})`, "log-ok");
+        fetchState();
+        break;
       case "trading_paused":
         addLog(evt.ts, `[긴급정지] 신규 판단·결제 중단 (주체: ${d.actor})`, "log-danger");
         fetchState();
@@ -307,6 +328,15 @@
   });
   el.btnResume.addEventListener("click", async () => {
     const s = await post("/api/trading/resume", { actor: "human" });
+    if (s) renderState(s);
+  });
+  el.mandateForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const s = await post("/api/mandate", {
+      budget_total_usdc: el.mandateBudget.value,
+      per_trade_max_usdc: el.mandatePerTrade.value,
+      actor: "human",
+    });
     if (s) renderState(s);
   });
 

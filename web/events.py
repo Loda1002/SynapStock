@@ -25,6 +25,7 @@ X402_SUBMITTED = "x402_submitted"
 X402_COMPLETED = "x402_completed"
 TRADE = "trade"                      # A5 체결 요약 (거래 테이블 행)
 MANDATE_REJECTED = "mandate_rejected"  # AP2 거부
+MANDATE_UPDATED = "mandate_updated"  # A3 한도 변경 (재서명, 변경 이력)
 TRADING_PAUSED = "trading_paused"    # A2 긴급정지 (actor: human / risk-guard)
 TRADING_RESUMED = "trading_resumed"
 BALANCES = "balances"                # 라이브 온체인 잔액 스냅샷

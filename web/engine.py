@@ -58,6 +58,11 @@ class TradingEngine:
         self.tick_interval: float = CFG.web_tick_interval_sec
         self.last_archive_path: str = ""
 
+        # A3 유효 한도 — .env 기본값에서 시작, 한도 설정 화면으로 변경 가능
+        self.budget_total: Decimal = CFG.budget_usdc
+        self.per_trade_max: Decimal = CFG.per_trade_max_usdc
+        self.mandate_history: List[Dict[str, Any]] = []  # 세션 중 변경 이력 (아카이브 포함)
+
         # 세션 상태
         self.tick = 0
         self.decisions: List[Dict[str, Any]] = []   # A6 판단 타임라인
@@ -114,12 +119,12 @@ class TradingEngine:
             except Exception as e:
                 brain_label = f"규칙 기반 (Gemini 초기화 실패: {type(e).__name__})"
 
-        # AP2 mandate — 사용자가 설정한 한도에 서명 (예산=순투입 한도)
+        # AP2 mandate — 사용자가 설정한 한도에 서명 (예산=순투입 한도, A3 로 변경 가능)
         mandate = OpenPaymentMandate(
             user_pubkey=str(trading_kp.pubkey()),
             allowed_asset=str(usdc_mint),
-            budget_total_usdc=CFG.budget_usdc,
-            per_trade_max_usdc=CFG.per_trade_max_usdc,
+            budget_total_usdc=self.budget_total,
+            per_trade_max_usdc=self.per_trade_max,
             allowed_symbols=[CFG.stock_symbol],
         ).sign(trading_kp)
         auth = PaymentAuthorizer(mandate, agent_kp=trading_kp)
@@ -162,6 +167,7 @@ class TradingEngine:
         self.realized_pnl = Decimal(0)
         self.cum_buy_usdc = Decimal(0)
         self.total_fees = Decimal(0)
+        self.mandate_history = []
         self.started_at = _now()
         self.brain_label = brain_label
         self.tick_interval = CFG.web_tick_interval_sec
@@ -177,8 +183,8 @@ class TradingEngine:
         self.bus.emit(ev.ENGINE_STARTED, {
             "mode": mode, "network": CFG.network, "symbol": CFG.stock_symbol,
             "brain": brain_label,
-            "budget_total_usdc": str(CFG.budget_usdc),
-            "per_trade_max_usdc": str(CFG.per_trade_max_usdc),
+            "budget_total_usdc": str(self.budget_total),
+            "per_trade_max_usdc": str(self.per_trade_max),
             "fee_bps": CFG.broker_fee_bps,
             "rules": DEFAULT_RULES,
             "mandate_verified": mandate.verify(),
@@ -213,6 +219,53 @@ class TradingEngine:
             self.trading_enabled = True
             self.pause_info = None
             self.bus.emit(ev.TRADING_RESUMED, {"actor": actor})
+        return self.state_snapshot()
+
+    # ---------- A3 한도 설정 (새 mandate 재서명) ----------
+
+    def update_limits(self, budget_total: Decimal, per_trade_max: Decimal,
+                      actor: str = "human") -> Dict[str, Any]:
+        """예산/건별 한도 변경. 실행 중에는 긴급정지 상태에서만 즉시 적용(레이스 방지),
+        대기 상태에서는 다음 세션 기본값으로 저장한다. 즉시 적용 시 새 mandate 를
+        재서명하고 사용액(spent)을 이월한다 — 예산=순투입 한도 해석 유지."""
+        if budget_total <= 0 or per_trade_max <= 0:
+            raise EngineError("예산과 건별 한도는 0보다 큰 숫자여야 합니다.")
+        old = {"budget_total_usdc": str(self.budget_total),
+               "per_trade_max_usdc": str(self.per_trade_max)}
+        applied = "next-session"
+
+        if self.status == "running":
+            if self.trading_enabled:
+                raise EngineError("실행 중에는 긴급정지 상태에서만 한도를 변경할 수 있습니다.")
+            spent = self._auth.spent_usdc
+            if budget_total < spent:
+                raise EngineError(
+                    f"새 예산({budget_total})이 이미 사용한 금액({spent})보다 작습니다.")
+            new_mandate = OpenPaymentMandate(
+                user_pubkey=str(self._trading_kp.pubkey()),
+                allowed_asset=str(self._usdc_mint),
+                budget_total_usdc=budget_total,
+                per_trade_max_usdc=per_trade_max,
+                allowed_symbols=[CFG.stock_symbol],
+            ).sign(self._trading_kp)
+            new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
+            new_auth.spent_usdc = spent  # 사용액 이월
+            self._mandate, self._auth = new_mandate, new_auth
+            self._trading.auth = new_auth
+            applied = "immediate"
+
+        self.budget_total, self.per_trade_max = budget_total, per_trade_max
+        rec = {
+            "ts": _now(), "actor": actor, "applied": applied,
+            "old": old,
+            "new": {"budget_total_usdc": str(budget_total),
+                    "per_trade_max_usdc": str(per_trade_max)},
+            "signature": self._mandate.signature if applied == "immediate" else "",
+            "mandate_verified": self._mandate.verify() if applied == "immediate" else None,
+        }
+        if applied == "immediate":
+            self.mandate_history.append(rec)  # 세션 아카이브에 포함될 변경 이력
+        self.bus.emit(ev.MANDATE_UPDATED, rec)
         return self.state_snapshot()
 
     # ---------- 루프 ----------
@@ -445,10 +498,11 @@ class TradingEngine:
             "mints": {"usdc": str(self._usdc_mint), "stock": str(self._stock_mint),
                       "stock_symbol": CFG.stock_symbol},
             "mandate": {
-                "budget_total_usdc": str(CFG.budget_usdc),
-                "per_trade_max_usdc": str(CFG.per_trade_max_usdc),
+                "budget_total_usdc": str(self._mandate.budget_total_usdc),
+                "per_trade_max_usdc": str(self._mandate.per_trade_max_usdc),
                 "signature": self._mandate.signature,
             },
+            "mandate_history": self.mandate_history,  # A3 세션 중 한도 변경 이력
             "broker_fee": {  # A8: 수수료 합계 = 브로커 수익 (수익모델 증빙)
                 "fee_bps": CFG.broker_fee_bps,
                 "total_fees_usdc": str(self.total_fees),
@@ -468,7 +522,7 @@ class TradingEngine:
     def state_snapshot(self) -> Dict[str, Any]:
         pos = self._trading.position if self._trading else None
         spent = self._auth.spent_usdc if self._auth else Decimal(0)
-        remaining = self._auth.remaining_usdc if self._auth else CFG.budget_usdc
+        remaining = self._auth.remaining_usdc if self._auth else self.budget_total
         return_pct = (
             (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
             if self.cum_buy_usdc > 0 else Decimal(0)
@@ -491,10 +545,10 @@ class TradingEngine:
                 "avg_price_usdc": str(pos.avg_price_usdc) if pos else "0",
             },
             "budget": {
-                "total_usdc": str(CFG.budget_usdc),
+                "total_usdc": str(self.budget_total),
                 "spent_usdc": str(spent),
                 "remaining_usdc": str(remaining),
-                "per_trade_max_usdc": str(CFG.per_trade_max_usdc),
+                "per_trade_max_usdc": str(self.per_trade_max),
             },
             "pnl": {  # A7 라이트: 수익률 = 실현손익 / 누적 매수금액
                 "realized_usdc": str(self.realized_pnl),

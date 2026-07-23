@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import os
 from contextlib import asynccontextmanager
+from decimal import Decimal, InvalidOperation
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
@@ -95,6 +96,26 @@ async def trading_pause(body: ActorBody):
 @app.post("/api/trading/resume")
 async def trading_resume(body: ActorBody):
     return engine.resume(body.actor)
+
+
+class MandateBody(BaseModel):
+    """A3 한도 변경 — 금액은 문자열로 받아 Decimal 정밀 변환 (float 오차 방지)."""
+    budget_total_usdc: str
+    per_trade_max_usdc: str
+    actor: str = "human"
+
+
+@app.post("/api/mandate")
+async def update_mandate(body: MandateBody):
+    try:
+        budget = Decimal(body.budget_total_usdc)
+        per_trade = Decimal(body.per_trade_max_usdc)
+    except InvalidOperation:
+        raise HTTPException(status_code=400, detail="한도 값이 숫자 형식이 아닙니다.")
+    try:
+        return engine.update_limits(budget, per_trade, body.actor)
+    except EngineError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ---------- SSE ----------
