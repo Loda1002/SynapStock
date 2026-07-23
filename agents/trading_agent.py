@@ -17,6 +17,8 @@ from solders.pubkey import Pubkey
 from solders.hash import Hash
 
 from config import from_base_units
+from market.price_feed import Bar
+from market.indicators import ta_summary
 from shared.models import Position, Receipt
 from shared.a2a_messages import (
     PaymentRequired, PaymentSubmitted, PaymentPayload, PaymentCompleted,
@@ -51,6 +53,10 @@ class Strategy:
     # Gemini 재량 범위 — strict(규칙 그대로 판정) / trend(신호가 떠도 추세 근거로 보류 가능).
     # 어느 모드든 신규 매수·매도의 "개시"는 규칙 신호가 필요하고, AP2 한도 검사는 불변.
     decision_mode: str = "strict"
+    # TA 보강(2026-07-23 매매 기준 개선): MA 배열·크로스·지지/저항·차트/캔들 패턴을
+    # 코드로 계산해 판단(Gemini 프롬프트 + 규칙 폴백)에 주입. 백테스트로 개선이
+    # 확인되기 전에는 기본 OFF 를 유지한다(message 가드레일). 실데이터 재생 전용.
+    ta_mode: bool = False
     mode: str = "condition"                    # "condition" / "dca"
     dca_unit: str = "ticks"                    # "ticks" / "minutes" / "daily"
     dca_every_ticks: int = 5                   # ticks: N틱마다
@@ -79,7 +85,8 @@ class TradingAgent:
         self.brain = brain
         self.fee_bps = fee_bps
         self._history: list[Decimal] = []  # 직전 시세 (지표 계산·Gemini 판단 근거)
-        self.HISTORY_MAX = 30              # MA20 계산 + 여유분
+        self.HISTORY_MAX = 210             # MA200 계산 + 기울기 여유분 (TA 보강)
+        self._bars: list[Bar] = []         # OHLC 봉 이력 — 캔들·패턴·지지/저항 탐지용
         self._last_action: Optional[dict] = None  # 직전 매수/매도 회고 (Gemini 프롬프트용)
         self._dca_tick = 0                 # B7 적립형(ticks): 다음 매수까지 틱 카운터
         self._dca_round = 0                # B7 적립형: 누적 회차
@@ -94,6 +101,11 @@ class TradingAgent:
     def preload_history(self, prices: list[Decimal]) -> None:
         """재생 피드의 워밍업 봉 종가를 주입 — 첫 틱부터 MA5/MA20 이 계산되게 한다."""
         self._history = list(prices)[-self.HISTORY_MAX:]
+
+    def preload_bars(self, bars: list[Bar]) -> None:
+        """워밍업 봉을 OHLC 째로 주입 — 종가 이력과 TA 봉 이력을 함께 채운다."""
+        self._bars = list(bars)[-self.HISTORY_MAX:]
+        self.preload_history([b.close for b in self._bars])
 
     # ---------- 지표 (규칙·Gemini 판단 공용) ----------
 
@@ -136,8 +148,12 @@ class TradingAgent:
         # 보유 평단 대비 손익률
         pos_pnl = (pct(price, pos.avg_price_usdc)
                    if price is not None and pos.quantity > 0 and pos.avg_price_usdc > 0 else None)
-        return {"ma5": ma5, "ma20": ma20, "buy_threshold": buy_th, "take_profit": tp,
-                "change5_pct": change5, "volatility_pct": vol, "position_pnl_pct": pos_pnl}
+        ind = {"ma5": ma5, "ma20": ma20, "buy_threshold": buy_th, "take_profit": tp,
+               "change5_pct": change5, "volatility_pct": vol, "position_pnl_pct": pos_pnl}
+        if s.ta_mode and self._bars:
+            # TA 보강 — MA 배열·크로스·지지/저항·패턴을 코드로 계산 (판단자 공용 입력)
+            ind["ta"] = ta_summary(self._bars)
+        return ind
 
     def _retrospective(self, price: Decimal) -> str:
         """직전 매수/매도 회고 한 줄 — '학습하는 것처럼' 직전 행동의 결과를 프롬프트에 준다."""
@@ -151,11 +167,16 @@ class TradingAgent:
                 f"{'+' if diff >= 0 else ''}{diff}%")
 
     # 1) 판단 — 적립형이면 스케줄 매수, 조건형이면 Gemini(있으면) → 실패 시 규칙 폴백
-    def decide(self, symbol: str, price: Decimal) -> Decision:
+    def decide(self, symbol: str, price: Decimal, bar: Optional[Bar] = None) -> Decision:
         self.position.symbol = symbol
         self._history.append(price)
         if len(self._history) > self.HISTORY_MAX:
             self._history.pop(0)
+        # TA 봉 이력 — 재생 피드는 실제 OHLC, 목 시세는 퇴화 봉(고=저, 캔들 패턴 미탐지)
+        self._bars.append(bar if bar is not None
+                          else Bar(date="", open=price, high=price, low=price, close=price))
+        if len(self._bars) > self.HISTORY_MAX:
+            self._bars.pop(0)
 
         if self.strategy.mode == "dca":
             return self._decide_dca()
@@ -248,17 +269,43 @@ class TradingAgent:
 
     def _decide_by_rule(self, symbol: str, price: Decimal, ind: dict) -> Decision:
         """지표 규칙 — 익절(매도)을 먼저 검사한다: 급반등 구간에서 매수·매도 조건이
-        동시에 성립하면 이익 확정이 우선이다."""
+        동시에 성립하면 이익 확정이 우선이다.
+
+        ta_mode 면 TA 피처가 거부권/보류권으로 겹쳐진다(개시 게이트는 기존 규칙 유지):
+        - 사지마: 대기 패턴 탐지 / 중기선(MA10) 하락 / TA 매도 신호 우세 → 매수 보류
+        - 팔지마: 장기선 상승 + TA 매수 신호 우세 → 익절 보류(추세 살아있음)
+        Gemini 실패 시에도 같은 TA 기준으로 폴백 판단한다(무료 티어 쿼터 초과 대비)."""
         s = self.strategy
         tp, buy_th = ind["take_profit"], ind["buy_threshold"]
+        ta = ind.get("ta") or {}
+        buy_sc, sell_sc = ta.get("buy_score", 0), ta.get("sell_score", 0)
         if tp is not None and price >= tp:
+            if ta and ta.get("hold_sell_hint") and buy_sc > sell_sc:
+                return Decision(
+                    "hold",
+                    f"익절 조건 충족({price} ≥ {tp})이지만 장기선(MA{ta['slopes']['long_period']}) "
+                    f"상승 + TA 매수 우세(매수합 {buy_sc} vs 매도합 {sell_sc}) — 성급한 매도 보류(팔지마)")
             return Decision(
                 "sell",
                 f"가격 {price} ≥ 익절기준 {tp} (평단 {self.position.avg_price_usdc} +{s.take_profit_pct}%)")
         if price <= buy_th and self.auth.remaining_usdc > 0:
+            if ta:
+                if ta.get("wait"):
+                    waits = ", ".join(p["name"] for p in ta["patterns"] if p["signal"] == "wait")
+                    return Decision(
+                        "hold", f"매수 조건 충족이지만 대기 패턴({waits}) — 방향 확정까지 보류")
+                if ta.get("veto_buy"):
+                    return Decision(
+                        "hold", "매수 조건 충족이지만 중기선(MA10) 하락 중 — 매수 보류(사지마)")
+                if sell_sc >= buy_sc + 60:
+                    return Decision(
+                        "hold",
+                        f"매수 조건 충족이지만 TA 매도 신호 우세(매도합 {sell_sc} vs 매수합 {buy_sc}) — 보류")
             spend = min(s.spend_per_trade_usdc, self.auth.remaining_usdc)
-            return Decision(
-                "buy", f"가격 {price} ≤ 매수기준 {buy_th} (MA5 {ind['ma5']} −{s.buy_dip_pct}%)", spend)
+            reason = f"가격 {price} ≤ 매수기준 {buy_th} (MA5 {ind['ma5']} −{s.buy_dip_pct}%)"
+            if buy_sc > 0:
+                reason += f" · TA 동조(매수합 {buy_sc})"
+            return Decision("buy", reason, spend)
         hold = f"조건 미충족 — 가격 {price} · 매수기준 {buy_th}(MA5−{s.buy_dip_pct}%)"
         hold += f" · 익절기준 {tp}" if tp is not None else " · 보유 없음(매도 조건 없음)"
         return Decision("hold", hold)

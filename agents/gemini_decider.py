@@ -14,6 +14,7 @@ from decimal import Decimal
 from typing import List
 
 from agents.trading_agent import Decision, Strategy
+from market.indicators import format_ta_block
 from shared.models import Position
 
 PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 매수(buy)/매도(sell)/보류(hold)를
@@ -33,7 +34,7 @@ PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 
 - 최근 5봉 등락률 {change5} · 봉간 수익률 변동성(표준편차) {volatility}
 - 보유 평단 대비 손익률 {position_pnl}
 - 직전 행동 회고: {retrospective}
-
+{ta_block}
 [현재 상태]
 - 종목: {symbol}
 - 현재가: {price} USDC
@@ -49,6 +50,24 @@ PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 
 가격 흐름과 지표를 근거로 한국어 한 문장의 이유를 만들어라.
 JSON 만 출력: {{"action":"buy"|"sell"|"hold","reason":"한국어 한 문장","spend_usdc":숫자}}
 reason 은 한글을 그대로 쓰고 역슬래시(\\)·따옴표·줄바꿈을 넣지 마라."""
+
+# TA 보강(ta_mode) 시에만 프롬프트에 붙는 판단 기준 — 지표 계산은 코드가 이미 끝냈고
+# (모델이 산수하지 않게), 모델은 이 매핑과 종합 규칙으로 해석만 한다.
+TA_RULES = """
+[TA 판단 기준 — 패턴→신호 매핑·종합 규칙]
+- 골든크로스=매수 · 데드크로스=매도. 중기선(MA10) 하락 중엔 신규 매수 보류(사지마),
+  장기선 상승 중엔 성급한 매도 금지(팔지마).
+- 지지 반등·저항 돌파=매수 / 저항 거부·지지 이탈=매도
+  (이탈된 지지는 저항으로, 돌파된 저항은 지지로 전환된다)
+- 매도 신호: M형(이중천장)·삼중천장·헤드앤숄더·상승쐐기·하락깃발·역V자·다이아몬드천장
+  / 캔들: 유성·흑삼병·석별·장대음선
+- 매수 신호: 역헤드앤숄더·삼중바닥·W바닥·하락쐐기·상승깃발·상승삼각형
+  / 캔들: 샛별·적삼병·상승장악·망치
+- 대기 패턴(삼각수렴·박스권·확산삼각형·상승채널) 탐지 시 방향 확정까지 hold.
+  도지는 단독으로는 보류 신호다.
+- 같은 방향 신호가 겹치면 신뢰를 높이고, 신호가 충돌하면 hold 가 기본이다.
+- TA 는 휴리스틱 참고 자료다. 위 [사용자 규칙] 게이트와 판단 모드 범위 안에서 활용하라.
+"""
 
 # 판단 모드별 재량 조항 — strict(규칙 그대로) / trend(보류 재량).
 # 어느 모드든 "규칙 미충족 상태에서의 신규 개시"는 금지 = 한도는 AP2가 기계적으로,
@@ -227,8 +246,16 @@ class GeminiDecider:
             v = ind.get(key)
             return f"{'+' if v >= 0 else ''}{v}%" if v is not None else absent
 
+        # TA 보강 — ta_mode 세션에서만 신호 요약 + 매핑 규칙을 주입 (쿼터 절약)
+        ta = ind.get("ta")
+        ta_block = ""
+        if ta:
+            ta_block = ("\n[TA 신호 요약 — 코드가 계산한 결정적 값, 산수 불필요]\n"
+                        + format_ta_block(ta) + "\n" + TA_RULES)
+
         fee_rate = Decimal(fee_bps) / Decimal(10000)
         prompt = PROMPT.format(
+            ta_block=ta_block,
             buy_dip_pct=strategy.buy_dip_pct,
             take_profit_pct=strategy.take_profit_pct,
             buy_threshold=ind.get("buy_threshold", "-"),

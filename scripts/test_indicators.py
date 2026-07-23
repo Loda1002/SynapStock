@@ -7,8 +7,14 @@ message(2026-07-23) 검증 방법 항목: "패턴 탐지 함수는 결정적 과
 """
 from decimal import Decimal
 
+from solders.keypair import Keypair
+
+from agents.trading_agent import TradingAgent, Strategy
 from market.price_feed import Bar
 from market import indicators as ta
+from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer
+
+SYMBOL = "tAAPL"
 
 D = lambda v: Decimal(str(v))  # noqa: E731
 
@@ -21,6 +27,18 @@ def flat_bars(closes) -> list:
 
 def bar(o, h, l, c, i=0) -> Bar:
     return Bar(date=f"E{i:03d}", open=D(o), high=D(h), low=D(l), close=D(c))
+
+
+def make_agent(**strategy_kwargs) -> TradingAgent:
+    kp = Keypair()
+    mandate = OpenPaymentMandate(
+        user_pubkey=str(kp.pubkey()), allowed_asset=str(Keypair().pubkey()),
+        budget_total_usdc=Decimal("1000"), per_trade_max_usdc=Decimal("100"),
+        allowed_symbols=[SYMBOL],
+    ).sign(kp)
+    strategy = Strategy(buy_dip_pct=Decimal("2"), take_profit_pct=Decimal("3"),
+                        spend_per_trade_usdc=Decimal("30"), **strategy_kwargs)
+    return TradingAgent(kp, PaymentAuthorizer(mandate, agent_kp=kp), strategy, 6, "test")
 
 
 def check(name: str, got, want) -> int:
@@ -143,6 +161,40 @@ def main() -> int:
     block = ta.format_ta_block(s)
     bad += check("프롬프트 블록 생성", "MA(일)" in block and "신호 종합" in block, True)
     bad += check("빈 이력 → 안내 문구", ta.format_ta_block({}), "TA 산출 전 (봉 부족)")
+
+    # ⑪ 규칙 폴백 TA 확장 — 개시 게이트는 기존 규칙, TA 는 거부권/보류권
+    decline = [round(200 * 0.98 ** i, 2) for i in range(30)]   # 매수 조건 성립 + 중기선 하락
+    bars = flat_bars(decline)
+    a = make_agent(ta_mode=True)
+    a.preload_bars(bars[:-1])
+    d = a.decide(SYMBOL, bars[-1].close, bar=bars[-1])
+    bad += check("TA ON: 중기선 하락 → 매수 보류(사지마)",
+                 (d.action, "사지마" in d.reason), ("hold", True))
+    a = make_agent(ta_mode=False)
+    a.preload_bars(bars[:-1])
+    d = a.decide(SYMBOL, bars[-1].close, bar=bars[-1])
+    bad += check("TA OFF: 같은 구간 → 기존 규칙대로 매수", d.action, "buy")
+
+    a = make_agent(ta_mode=True)
+    base_ind = {"take_profit": None, "buy_threshold": D(100), "ma5": D(102)}
+    ta_none = {"wait": False, "veto_buy": False, "hold_sell_hint": False,
+               "buy_score": 0, "sell_score": 0, "patterns": [],
+               "slopes": {"long_period": 20}}
+    d = a._decide_by_rule(SYMBOL, D(99), {**base_ind, "ta": {
+        **ta_none, "wait": True,
+        "patterns": [{"name": "박스권 횡보", "signal": "wait", "confidence": 50}]}})
+    bad += check("대기 패턴 → 매수 보류", (d.action, "대기 패턴" in d.reason), ("hold", True))
+    d = a._decide_by_rule(SYMBOL, D(99), {**base_ind, "ta": {**ta_none, "sell_score": 100}})
+    bad += check("TA 매도 우세 → 매수 보류", (d.action, "매도 신호 우세" in d.reason), ("hold", True))
+    d = a._decide_by_rule(SYMBOL, D(99), {**base_ind, "ta": {**ta_none, "buy_score": 140}})
+    bad += check("TA 동조 → 매수 + 근거 표기", (d.action, "TA 동조" in d.reason), ("buy", True))
+    sell_ind = {"take_profit": D(109), "buy_threshold": D(100), "ma5": D(105)}
+    d = a._decide_by_rule(SYMBOL, D(110), {**sell_ind, "ta": {
+        **ta_none, "hold_sell_hint": True, "buy_score": 75}})
+    bad += check("장기선 상승+TA 매수 우세 → 익절 보류(팔지마)",
+                 (d.action, "팔지마" in d.reason), ("hold", True))
+    d = a._decide_by_rule(SYMBOL, D(110), {**sell_ind, "ta": {**ta_none, "hold_sell_hint": True}})
+    bad += check("TA 매수 우세 아님 → 익절 그대로 실행", d.action, "sell")
 
     print("\n결과:", "전부 통과" if bad == 0 else f"{bad}건 실패")
     return 1 if bad else 0

@@ -82,6 +82,7 @@ class StrategyBody(BaseModel):
     decision_mode: 조건형의 Gemini 재량 — strict(규칙 그대로) / trend(보류 재량)."""
     type: str = "condition"
     decision_mode: str = "strict"
+    ta_mode: bool = False  # TA 보강 — MA 배열·크로스·지지/저항·패턴 근거 판단
     dca_unit: str = "ticks"
     dca_every_ticks: int = 5
     dca_every_minutes: int = 60

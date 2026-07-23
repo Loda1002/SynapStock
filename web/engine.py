@@ -172,6 +172,9 @@ class TradingEngine:
         decision_mode = scfg.get("decision_mode") or "strict"
         if decision_mode not in ("strict", "trend"):
             raise EngineError("판단 모드는 'strict' 또는 'trend' 여야 합니다.")
+        # TA 보강(매매 기준 개선) — MA 배열·크로스·지지/저항·패턴을 판단 근거로 주입.
+        # 백테스트 검증 전 기본 OFF, 실데이터 재생에서 의미 있음(목 시세는 퇴화 봉).
+        ta_mode = bool(scfg.get("ta_mode", False))
         # 적립 주기 기준 — ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM)
         dca_unit = scfg.get("dca_unit", "ticks")
         if dca_unit not in ("ticks", "minutes", "daily"):
@@ -244,6 +247,7 @@ class TradingEngine:
             take_profit_pct=Decimal(DEFAULT_RULES["take_profit_pct"]),
             spend_per_trade_usdc=Decimal(DEFAULT_RULES["spend_per_trade"]),
             decision_mode=decision_mode,
+            ta_mode=ta_mode,
             mode=strat_type,
             dca_unit=dca_unit,
             dca_every_ticks=dca_every,
@@ -255,8 +259,8 @@ class TradingEngine:
             trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain,
             fee_bps=CFG.broker_fee_bps)
         if warmup_bars:
-            # 재생 피드 워밍업 — 첫 틱부터 MA5/MA20 지표가 계산되게 종가를 미리 주입
-            trading.preload_history([b.close for b in warmup_bars])
+            # 재생 피드 워밍업 — 첫 틱부터 MA/TA 지표가 계산되게 봉(OHLC)째로 주입
+            trading.preload_bars(warmup_bars)
         broker = BrokerAgent(
             broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
             fee_bps=CFG.broker_fee_bps)
@@ -303,6 +307,7 @@ class TradingEngine:
         self.strategy_info = {
             "type": strat_type,
             "decision_mode": decision_mode,   # strict(엄격) / trend(추세 재량)
+            "ta_mode": ta_mode,               # TA 보강(이동평균 배열·패턴 근거 판단)
             "dca_unit": dca_unit,
             "dca_every_ticks": dca_every,
             "dca_every_minutes": dca_minutes,
@@ -597,8 +602,9 @@ class TradingEngine:
         if not self.trading_enabled:
             return  # A2 긴급정지 — 시세만 흐르고 신규 판단·결제 없음
 
-        # Gemini 호출은 동기(blocking) — 서버 이벤트 루프를 막지 않게 워커 스레드에서
-        decision = await asyncio.to_thread(self._trading.decide, symbol, price)
+        # Gemini 호출은 동기(blocking) — 서버 이벤트 루프를 막지 않게 워커 스레드에서.
+        # 재생 피드는 봉(OHLC)을 함께 전달해 TA(캔들·패턴) 근거를 살린다.
+        decision = await asyncio.to_thread(self._trading.decide, symbol, price, bar)
         drec = {
             "ts": _now(), "tick": self.tick, "symbol": symbol, "price": str(price),
             "action": decision.action, "source": decision.source, "reason": decision.reason,

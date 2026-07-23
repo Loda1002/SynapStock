@@ -33,6 +33,12 @@
   --badge-fallback: #c97e0a;
   --badge-dca: #0f7ea8;
 
+  /* 차트 이동평균선 (5/10/20/50 표시 — 100/200일선은 판단용으로만 계산) */
+  --ma5: var(--accent);
+  --ma10: #9d5bd2;
+  --ma20: var(--muted);
+  --ma50: var(--warn);
+
   /* 타이포·형태 */
   --font: system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   --mono: Consolas, "D2Coding", monospace;
@@ -65,5 +71,7 @@
     --badge-rule: #7d8590;
     --badge-fallback: #f0b429;
     --badge-dca: #2fa8d5;
+
+    --ma10: #b98af0;
   }
 }

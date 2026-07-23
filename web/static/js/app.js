@@ -16,6 +16,8 @@
     feedSelect: $("[data-feed-select]"),
     strategySelect: $("[data-strategy-select]"),
     decisionMode: $("[data-decision-mode]"),
+    taWrap: $("[data-ta-wrap]"),
+    taMode: $("[data-ta-mode]"),
     dcaParams: $("[data-dca-params]"),
     dcaUnit: $("[data-dca-unit]"),
     dcaTicks: $("[data-dca-ticks]"),
@@ -172,7 +174,8 @@
     el.brain.textContent = "판단: " + (eng.brain || "—");
     const feePct = s.fees ? (s.fees.fee_bps / 100) : 0;
     const strat = s.strategy || { type: "condition" };
-    const modeLabel = strat.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격";
+    const modeLabel = (strat.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격")
+      + (strat.ta_mode ? "+TA" : "");
     const ruleText = strat.type === "dca"
       ? `적립형: ${dcaSchedule(strat)} ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`
       : `조건형(${modeLabel}): ${s.symbol} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${s.rules.spend_per_trade} USDC 어치 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
@@ -248,6 +251,7 @@
     el.feedSelect.disabled = running;
     el.strategySelect.disabled = running;
     el.decisionMode.disabled = running;
+    el.taMode.disabled = running;
     el.dcaUnit.disabled = running;
     el.dcaTicks.disabled = running;
     el.dcaMinutes.disabled = running;
@@ -330,10 +334,12 @@
     }
 
     const closes = candles.map((c) => c.c);
-    const ma5 = movingAvg(closes, 5), ma20 = movingAvg(closes, 20);
+    // 표시 이동평균 5/10/20/50 — 100/200일선은 판단용으로만 계산(차트 창이 60봉이라 미표시)
+    const maLines = [[5, "ma5"], [10, "ma10"], [20, "ma20"], [50, "ma50"]]
+      .map(([p, cls]) => [movingAvg(closes, p), cls]);
     let min = Math.min(...candles.map((c) => c.l));
     let max = Math.max(...candles.map((c) => c.h));
-    for (const arr of [ma5, ma20]) {
+    for (const [arr] of maLines) {
       for (const v of arr) { if (v != null) { min = Math.min(min, v); max = Math.max(max, v); } }
     }
     const pad = (max - min || 1) * 0.08;
@@ -382,7 +388,7 @@
     });
 
     // 이동평균선 — 값이 채워진 구간만 그린다
-    for (const [arr, cls] of [[ma5, "ma5"], [ma20, "ma20"]]) {
+    for (const [arr, cls] of maLines) {
       const pts = arr.map((v, i) => (v == null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`))
         .filter(Boolean).join(" ");
       if (pts.split(" ").length > 1) svg.appendChild(svgNode("polyline", { points: pts }, cls));
@@ -655,7 +661,7 @@
         const st = d.strategy || {};
         const stText = st.type === "dca"
           ? `적립형(${dcaSchedule(st)} ${st.dca_amount_usdc} USDC)`
-          : `조건형(${st.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격"})`;
+          : `조건형(${st.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격"}${st.ta_mode ? "+TA" : ""})`;
         const srcNote = st.type === "dca"
           ? "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용"
           : "판단 출처 gemini / rule";
@@ -721,6 +727,7 @@
   function syncDcaInputs() {
     el.dcaParams.classList.toggle("hidden", el.strategySelect.value !== "dca");
     el.decisionMode.classList.toggle("hidden", el.strategySelect.value !== "condition");
+    el.taWrap.classList.toggle("hidden", el.strategySelect.value !== "condition");
     const unit = el.dcaUnit.value;
     el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
     el.dcaMinutesWrap.classList.toggle("hidden", unit !== "minutes");
@@ -736,6 +743,7 @@
       strategy: {
         type: el.strategySelect.value,
         decision_mode: el.decisionMode.value,
+        ta_mode: el.taMode.checked,
         dca_unit: el.dcaUnit.value,
         dca_every_ticks: parseInt(el.dcaTicks.value, 10) || 5,
         dca_every_minutes: parseInt(el.dcaMinutes.value, 10) || 60,

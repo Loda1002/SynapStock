@@ -43,7 +43,7 @@
       </div>
       <div class="chart-legend">
         <span class="sub"><i class="swatch swatch-up"></i>양봉(상승) <i class="swatch swatch-down"></i>음봉(하락)</span>
-        <span class="sub"><i class="swatch swatch-ma5"></i>MA5 <i class="swatch swatch-ma20"></i>MA20</span>
+        <span class="sub"><i class="swatch swatch-ma5"></i>MA5 <i class="swatch swatch-ma10"></i>MA10 <i class="swatch swatch-ma20"></i>MA20 <i class="swatch swatch-ma50"></i>MA50</span>
         <span class="sub" data-candle-info>캔들 집계 대기</span>
         <span class="sub" data-tick-info>틱 대기 중</span>
       </div>
@@ -72,6 +72,10 @@
         <option value="strict">AI 엄격 (규칙 그대로)</option>
         <option value="trend">AI 추세 (보류 재량)</option>
       </select>
+      <label class="sub" data-ta-wrap
+             title="켜면 이동평균 배열(1~200일)·골든/데드크로스·지지/저항·차트/캔들 패턴을 코드로 계산해 AI 판단과 규칙 폴백에 함께 반영합니다. 실데이터 재생에서 의미가 있으며, 백테스트 검증 전이라 기본은 꺼짐입니다.">
+        <input type="checkbox" data-ta-mode> TA 보강 (이동평균·패턴 근거 판단)
+      </label>
       <span class="dca-params hidden" data-dca-params>
         <select data-dca-unit aria-label="적립 주기 기준">
           <option value="ticks">틱 기준</option>

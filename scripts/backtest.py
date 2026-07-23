@@ -47,6 +47,8 @@ def build_args() -> argparse.Namespace:
     ap.add_argument("--brain", choices=["rule", "gemini"], default="rule")
     ap.add_argument("--mode", choices=["strict", "trend"], default="strict",
                     help="gemini 재량 모드 (rule 이면 무시)")
+    ap.add_argument("--ta", action="store_true",
+                    help="TA 보강 켜기 — MA 배열·크로스·지지/저항·패턴을 판단 근거로")
     ap.add_argument("--max-bars", type=int, default=60, help="최대 재생 봉 수 (기본 60)")
     ap.add_argument("--warmup", type=int, default=20, help="지표 워밍업 봉 수 (기본 20)")
     ap.add_argument("--budget", default="100", help="AP2 총예산 USDC")
@@ -68,6 +70,7 @@ def main() -> int:
     strategy = Strategy(
         buy_dip_pct=Decimal(args.dip), take_profit_pct=Decimal(args.profit),
         spend_per_trade_usdc=Decimal(args.spend), decision_mode=args.mode,
+        ta_mode=args.ta,
     )
     kp = Keypair()
     mandate = OpenPaymentMandate(
@@ -77,20 +80,21 @@ def main() -> int:
     ).sign(kp)
     auth = PaymentAuthorizer(mandate, agent_kp=kp)
 
+    ta_tag = "+ta" if args.ta else ""
     brain = None
-    brain_desc = "rule"
+    brain_desc = f"rule{ta_tag}"
     if args.brain == "gemini":
         if not CFG.gemini_api_key:
             print("GEMINI_API_KEY 미설정 — gemini 백테스트 불가 (.env 확인)")
             return 1
         from agents.gemini_decider import GeminiDecider
         brain = GeminiDecider(CFG.gemini_api_key, CFG.gemini_model, CFG.gemini_mode)
-        brain_desc = f"gemini/{args.mode} ({CFG.gemini_model})"
+        brain_desc = f"gemini/{args.mode}{ta_tag} ({CFG.gemini_model})"
 
     trading = TradingAgent(kp, auth, strategy, CFG.usdc_decimals, "backtest",
                            brain=brain, fee_bps=CFG.broker_fee_bps)
     if feed.warmup_bars:
-        trading.preload_history([b.close for b in feed.warmup_bars])
+        trading.preload_bars(feed.warmup_bars)   # OHLC 째로 주입 — TA 지표 워밍업
     from solders.pubkey import Pubkey
     broker = BrokerAgent(Keypair(), Pubkey.from_string(CFG.usdc_mint), CFG.usdc_decimals,
                          None, CFG.stock_decimals, "backtest", fee_bps=CFG.broker_fee_bps)
@@ -132,7 +136,7 @@ def main() -> int:
             time.sleep(wait + cd)
             last_call = time.time()
 
-        d = trading.decide(symbol, price)
+        d = trading.decide(symbol, price, bar)   # 봉(OHLC) 전달 — 캔들·패턴 TA 근거
         by_action[d.action] = by_action.get(d.action, 0) + 1
         by_source[d.source] = by_source.get(d.source, 0) + 1
         if d.source == "rule-fallback":
@@ -190,6 +194,7 @@ def main() -> int:
             "source": feed.source_label, "file": csv_path,
             "from": args.date_from, "to": args.date_to, "bars_played": played,
             "brain": args.brain, "mode": args.mode if args.brain == "gemini" else "-",
+            "ta_mode": args.ta,
             "rules": {"buy_dip_pct": args.dip, "take_profit_pct": args.profit,
                       "spend_per_trade": args.spend},
             "budget_usdc": args.budget, "per_trade_max_usdc": args.per_trade,
@@ -224,7 +229,9 @@ def main() -> int:
 
     out_dir = os.path.join(ROOT, "artifacts", "backtests")
     os.makedirs(out_dir, exist_ok=True)
-    tag = f"{args.symbol.upper()}_{args.brain}" + (f"-{args.mode}" if args.brain == "gemini" else "")
+    tag = (f"{args.symbol.upper()}_{args.brain}"
+           + (f"-{args.mode}" if args.brain == "gemini" else "")
+           + ("-ta" if args.ta else ""))
     path = os.path.join(out_dir, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{tag}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2, default=str)
