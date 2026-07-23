@@ -7,6 +7,8 @@
 - 무료 키 발급: https://www.alphavantage.co/support/#api-key (이메일만, 즉시)
   → .env 에 `ALPHAVANTAGE_API_KEY=발급키` 추가
 - 무료 한도: 25콜/일 · 5콜/분 → 종목당 1콜이면 충분, 종목 사이 15초 대기
+- **무료 티어는 최근 100봉(compact, 약 5개월)까지** — outputsize=full(전체 이력)은
+  프리미엄 전용으로 바뀜(2026-07-23 실측). 더 긴 기간이 필요하면 Alpaca(무료 키) 검토.
 - 저장 형식: date,open,high,low,close,volume (과거→최근 오름차순, UTF-8)
 - 재실행하면 기존 파일을 덮어쓴다(최신 구간까지 갱신).
 
@@ -33,12 +35,14 @@ API_URL = "https://www.alphavantage.co/query"
 OUT_DIR = os.path.join(ROOT, "data", "market")
 
 
-def fetch_daily_csv(symbol: str, api_key: str) -> list[dict]:
-    """Alpha Vantage TIME_SERIES_DAILY(무료) 전체 이력 → 행 dict 리스트(오름차순)."""
+def fetch_daily_csv(symbol: str, api_key: str, outputsize: str = "compact") -> list[dict]:
+    """Alpha Vantage TIME_SERIES_DAILY → 행 dict 리스트(오름차순).
+
+    무료 티어는 compact(최근 100봉)만 허용 — full 은 프리미엄 전용."""
     params = {
         "function": "TIME_SERIES_DAILY",
         "symbol": symbol,
-        "outputsize": "full",
+        "outputsize": outputsize,
         "datatype": "csv",
         "apikey": api_key,
     }
@@ -77,6 +81,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Alpha Vantage 일봉 수집 → data/market/*.csv")
     ap.add_argument("--symbols", default="AAPL,TSLA,NVDA", help="쉼표 구분 (기본 AAPL,TSLA,NVDA)")
     ap.add_argument("--since", default="2024-01-01", help="이 날짜 이후만 저장 (기본 2024-01-01)")
+    ap.add_argument("--outputsize", default="compact", choices=["compact", "full"],
+                    help="compact=최근 100봉(무료) / full=전체(프리미엄 전용)")
     args = ap.parse_args()
 
     api_key = CFG.alphavantage_api_key
