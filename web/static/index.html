@@ -31,6 +31,7 @@
     <button class="btn" data-btn-stop disabled>■ 세션 종료</button>
     <button class="btn btn-emergency" data-btn-pause>🛑 긴급정지</button>
     <button class="btn btn-resume hidden" data-btn-resume>▶ 매매 재개</button>
+    <button class="btn" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림: 꺼짐</button>
   </div>
   <p class="rules" data-rules>규칙: —</p>
 </header>
@@ -113,6 +114,9 @@
   <span data-conn-status>서버 연결 대기…</span>
   <span class="wallets">지갑 <code data-wallet-trading>—</code> ⇄ <code data-wallet-broker>—</code></span>
 </footer>
+
+<!-- A4 거래 알림 — 인앱 토스트 스택 (우하단) -->
+<div class="toasts" data-toasts aria-live="polite"></div>
 
 <script src="/static/js/app.js"></script>
 </body>

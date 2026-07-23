@@ -142,3 +142,23 @@ td a { color: var(--accent); }
   margin-top: var(--gap); color: var(--muted); font-size: var(--fs-small);
   display: flex; gap: var(--gap); flex-wrap: wrap; justify-content: space-between;
 }
+
+/* ---- A4 거래 알림 토스트 (우하단 스택, 자동 소멸) ---- */
+.toasts {
+  position: fixed; right: var(--gap); bottom: var(--gap); z-index: 100;
+  display: flex; flex-direction: column; gap: 8px; max-width: 340px;
+}
+.toast {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent); border-radius: var(--radius);
+  padding: 10px 12px; font-size: var(--fs-small);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+  animation: toast-in .18s ease-out;
+}
+.toast strong { display: block; margin-bottom: 2px; }
+.toast.toast-ok { border-left-color: var(--ok); }
+.toast.toast-danger { border-left-color: var(--danger); }
+@keyframes toast-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}

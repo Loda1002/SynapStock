@@ -46,12 +46,15 @@
     connStatus: $("[data-conn-status]"),
     walletTrading: $("[data-wallet-trading]"),
     walletBroker: $("[data-wallet-broker]"),
+    btnNotify: $("[data-btn-notify]"),
+    toasts: $("[data-toasts]"),
   };
 
   const MAX_FEED_ITEMS = 100;
   const MAX_LOG_ITEMS = 200;
   let prices = [];          // 스파크라인용 최근 가격
   let lastEventId = 0;
+  const pageLoadedAt = Date.now();  // A4: SSE 히스토리 재생분 알림 제외 기준
 
   // ---------- 유틸 ----------
   const timeOf = (ts) => (ts || "").slice(11, 19);
@@ -212,6 +215,56 @@
     return td;
   }
 
+  // ---------- A4 거래 알림 (토스트 + Web Notification) ----------
+  const NOTIFY_KEY = "autotrader_notify";
+  const notifyEnabled = () =>
+    localStorage.getItem(NOTIFY_KEY) === "on" &&
+    ("Notification" in window) && Notification.permission === "granted";
+
+  function renderNotifyBtn() {
+    el.btnNotify.textContent = notifyEnabled() ? "🔔 알림: 켜짐" : "🔔 알림: 꺼짐";
+  }
+
+  function toast(title, body, cls) {
+    const t = make("div", "toast" + (cls ? " toast-" + cls : ""));
+    t.appendChild(make("strong", null, title));
+    t.appendChild(make("span", null, body));
+    el.toasts.appendChild(t);
+    while (el.toasts.children.length > 4) el.toasts.removeChild(el.toasts.firstChild);
+    setTimeout(() => t.remove(), 5000);
+  }
+
+  function notify(evt, title, body, cls) {
+    // 새로고침 시 SSE 히스토리 재전송분은 알림 제외 (피드 복원만)
+    const t = Date.parse(evt.ts);
+    if (!isNaN(t) && t < pageLoadedAt - 2000) return;
+    if (document.hidden) {
+      // 백그라운드 탭 — 브라우저 알림 (켜져 있을 때)
+      if (notifyEnabled()) {
+        const n = new Notification("AutoTrader — " + title, { body });
+        n.onclick = () => { window.focus(); n.close(); };
+      }
+    } else {
+      toast(title, body, cls);  // 보고 있는 탭 — 인앱 토스트
+    }
+  }
+
+  el.btnNotify.addEventListener("click", async () => {
+    if (!("Notification" in window)) { alert("이 브라우저는 Web Notification 을 지원하지 않습니다."); return; }
+    if (localStorage.getItem(NOTIFY_KEY) === "on") {
+      localStorage.setItem(NOTIFY_KEY, "off");
+    } else {
+      const perm = await Notification.requestPermission();
+      if (perm === "granted") {
+        localStorage.setItem(NOTIFY_KEY, "on");
+        toast("알림 켜짐", "탭이 백그라운드일 때 체결·거부·정지 이벤트를 브라우저 알림으로 받습니다.", "ok");
+      } else {
+        alert("브라우저 알림 권한이 거부되었습니다. 주소창의 사이트 설정에서 허용해 주세요.");
+      }
+    }
+    renderNotifyBtn();
+  });
+
   // ---------- SSE 이벤트 처리 ----------
   function handleEvent(evt) {
     const d = evt.data || {};
@@ -245,10 +298,15 @@
         break;
       case "trade":
         addTradeRow(d);
+        notify(evt, d.side === "buy" ? "매수 체결" : "매도 체결",
+          `${d.quantity} ${d.symbol} @ ${d.price_usdc} · ${d.side === "buy" ? "총" : "수령"} ${d.total_usdc} USDC` +
+          (d.realized_pnl_usdc ? ` (실현 ${num(d.realized_pnl_usdc) >= 0 ? "+" : ""}${d.realized_pnl_usdc})` : ""),
+          d.status === "settled" ? "ok" : "danger");
         fetchState(); // 포지션·예산·손익 카드 갱신
         break;
       case "mandate_rejected":
         addLog(evt.ts, `[AP2 거부] ${d.order_id} — ${d.reason}`, "log-danger");
+        notify(evt, "AP2 거부", d.reason, "danger");
         break;
       case "mandate_updated":
         addLog(evt.ts, `[AP2 한도 변경] 예산 ${d.old.budget_total_usdc}→${d.new.budget_total_usdc} · 건별 ${d.old.per_trade_max_usdc}→${d.new.per_trade_max_usdc} USDC (${d.applied === "immediate" ? "재서명·즉시 적용" : "다음 세션부터 적용"} · 주체: ${d.actor})`, "log-ok");
@@ -256,10 +314,12 @@
         break;
       case "trading_paused":
         addLog(evt.ts, `[긴급정지] 신규 판단·결제 중단 (주체: ${d.actor})`, "log-danger");
+        notify(evt, "긴급정지", `신규 판단·결제 중단 (주체: ${d.actor})`, "danger");
         fetchState();
         break;
       case "trading_resumed":
         addLog(evt.ts, `[재개] 매매 재개 (주체: ${d.actor})`, "log-ok");
+        notify(evt, "매매 재개", `주체: ${d.actor}`, "ok");
         fetchState();
         break;
       case "engine_started":
@@ -278,6 +338,7 @@
         break;
       case "error":
         addLog(evt.ts, `[오류] ${d.message}`, "log-danger");
+        notify(evt, "오류", d.message, "danger");
         break;
     }
   }
@@ -341,6 +402,7 @@
   });
 
   // ---------- 시작 ----------
+  renderNotifyBtn();
   fetchState();
   connect();
 })();
