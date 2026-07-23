@@ -45,11 +45,22 @@
 </header>
 
 <main class="grid">
-  <section class="card" data-card="price">
-    <h2>시세 <span class="sub" data-symbol></span></h2>
-    <p class="big" data-price>—</p>
-    <svg class="sparkline" data-sparkline viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"></svg>
-    <p class="sub" data-tick-info>틱 대기 중</p>
+  <section class="card card-full" data-card="price">
+    <div class="price-head">
+      <div>
+        <h2>시세 <span class="sub" data-symbol></span></h2>
+        <p class="huge" data-price>—</p>
+        <p class="sub"><span data-price-change>—</span> <span class="unit">세션 시작가 대비</span></p>
+      </div>
+      <div class="chart-legend">
+        <span class="sub"><i class="swatch swatch-up"></i>양봉(상승) <i class="swatch swatch-down"></i>음봉(하락)</span>
+        <span class="sub"><i class="swatch swatch-ma5"></i>MA5 <i class="swatch swatch-ma20"></i>MA20</span>
+        <span class="sub" data-candle-info>캔들 집계 대기</span>
+        <span class="sub" data-tick-info>틱 대기 중</span>
+      </div>
+    </div>
+    <svg class="chart" data-chart viewBox="0 0 640 260" role="img"
+         aria-label="캔들차트 — 시가·고가·저가·종가와 이동평균선"></svg>
   </section>
 
   <section class="card" data-card="position">

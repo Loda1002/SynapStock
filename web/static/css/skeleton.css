@@ -81,9 +81,31 @@ input[type="number"], input[type="text"], input[type="time"] {
 .pos { color: var(--ok); }
 .neg { color: var(--danger); }
 
-/* ---- 시세 스파크라인 ---- */
-.sparkline { width: 100%; height: 60px; display: block; }
-.sparkline polyline { fill: none; stroke: var(--accent); stroke-width: 2; }
+/* ---- 시세 카드 (메인) + SVG 캔들차트 ----
+   외부 차트 라이브러리 없이 직접 그린다(데모데이 오프라인 폴백 원칙). */
+.price-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: var(--gap); flex-wrap: wrap;
+}
+.huge { font-size: calc(var(--fs-big) * 1.6); font-weight: 700; margin: 2px 0; line-height: 1.1; }
+.chart-legend { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.swatch {
+  display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  margin: 0 4px 0 10px; vertical-align: -1px;
+}
+.swatch-up { background: var(--buy); }
+.swatch-down { background: var(--sell); }
+.swatch-ma5 { background: var(--accent); }
+.swatch-ma20 { background: var(--muted); }
+.chart { width: 100%; height: 320px; display: block; margin-top: 6px; }
+.chart .grid-line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .axis-label { fill: var(--muted); font-size: 11px; font-family: var(--mono); }
+.chart .candle-up { fill: var(--buy); stroke: var(--buy); }
+.chart .candle-down { fill: var(--sell); stroke: var(--sell); }
+.chart .ma5 { fill: none; stroke: var(--accent); stroke-width: 2; }
+.chart .ma20 { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 3; }
+.chart .last-price { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 2; }
+.chart .empty-note { fill: var(--muted); font-size: 13px; }
 
 /* ---- 예산 게이지 ---- */
 .gauge {

@@ -23,7 +23,9 @@
     rules: $("[data-rules]"),
     symbol: $("[data-symbol]"),
     price: $("[data-price]"),
-    sparkline: $("[data-sparkline]"),
+    priceChange: $("[data-price-change]"),
+    chart: $("[data-chart]"),
+    candleInfo: $("[data-candle-info]"),
     tickInfo: $("[data-tick-info]"),
     posQty: $("[data-pos-qty]"),
     posSymbol: $("[data-pos-symbol]"),
@@ -67,7 +69,9 @@
 
   const MAX_FEED_ITEMS = 100;
   const MAX_LOG_ITEMS = 200;
-  let prices = [];          // 스파크라인용 최근 가격
+  let candles = [];         // 캔들차트 데이터 (서버 집계 + 틱마다 로컬 갱신)
+  let ticksPerCandle = 2;   // 서버(engine.TICKS_PER_CANDLE)와 같은 집계 규칙
+  let sessionOpen = null;   // 세션 시작가 — 등락 표시 기준
   let lastState = null;     // 최근 /api/state — 틱 사이 평가손익 재계산에 사용
   let lastEventId = 0;
   const pageLoadedAt = Date.now();  // A4: SSE 히스토리 재생분 알림 제외 기준
@@ -153,8 +157,13 @@
     el.symbol.textContent = s.symbol;
     el.posSymbol.textContent = s.symbol;
     if (s.price.current != null) el.price.textContent = s.price.current + " USDC";
-    prices = (s.price.history || []).map((p) => num(p.price));
-    drawSparkline();
+    ticksPerCandle = s.price.ticks_per_candle || ticksPerCandle;
+    sessionOpen = s.price.session_open != null ? num(s.price.session_open) : null;
+    candles = (s.price.candles || []).map((c) => ({
+      o: num(c.open), h: num(c.high), l: num(c.low), c: num(c.close), n: c.count,
+    }));
+    drawChart();
+    renderPriceChange(s.price.current);
     if (eng.tick) el.tickInfo.textContent = `틱 ${eng.tick} · 간격 ${eng.tick_interval_sec}s`;
 
     el.posQty.textContent = s.position.quantity;
@@ -214,19 +223,115 @@
     if (s.pause_info) el.pausedBadge.textContent = `🛑 매매 정지됨 (${s.pause_info.actor}, ${timeOf(s.pause_info.ts)})`;
   }
 
-  function drawSparkline() {
-    const w = 300, h = 60, pad = 4;
-    el.sparkline.textContent = "";
-    if (prices.length < 2) return;
-    const min = Math.min(...prices), max = Math.max(...prices);
-    const span = max - min || 1;
-    const step = (w - pad * 2) / (prices.length - 1);
-    const pts = prices.map((p, i) =>
-      `${(pad + i * step).toFixed(1)},${(h - pad - ((p - min) / span) * (h - pad * 2)).toFixed(1)}`
-    ).join(" ");
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-    line.setAttribute("points", pts);
-    el.sparkline.appendChild(line);
+  /* ---------- 캔들차트 (SVG 직접 구현, 외부 라이브러리 없음) ----------
+     목 시세는 틱당 단일 가격이라 서버가 N틱을 한 캔들(시가·고가·저가·종가)로 묶는다.
+     여기서는 그 결과를 그리고, 틱이 올 때마다 같은 규칙으로 마지막 캔들을 갱신한다. */
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const CH = { w: 640, h: 260, padL: 6, padR: 54, padT: 10, padB: 16 };
+
+  function svgNode(tag, attrs, cls) {
+    const n = document.createElementNS(SVG_NS, tag);
+    if (cls) n.setAttribute("class", cls);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  function movingAvg(values, period) {
+    let sum = 0;
+    return values.map((v, i) => {
+      sum += v;
+      if (i >= period) sum -= values[i - period];
+      return i >= period - 1 ? sum / period : null;
+    });
+  }
+
+  function pushTickToCandle(price) {
+    const cur = candles[candles.length - 1];
+    if (cur && cur.n < ticksPerCandle) {
+      cur.h = Math.max(cur.h, price);
+      cur.l = Math.min(cur.l, price);
+      cur.c = price;
+      cur.n += 1;
+    } else {
+      candles.push({ o: price, h: price, l: price, c: price, n: 1 });
+      if (candles.length > 60) candles.shift();
+    }
+    if (sessionOpen == null) sessionOpen = price;
+  }
+
+  function drawChart() {
+    const svg = el.chart;
+    svg.textContent = "";
+    el.candleInfo.textContent = candles.length
+      ? `캔들 1개 = ${ticksPerCandle}틱 · ${candles.length}개`
+      : "캔들 집계 대기";
+    if (!candles.length) {
+      const note = svgNode("text", { x: CH.w / 2, y: CH.h / 2, "text-anchor": "middle" }, "empty-note");
+      note.textContent = "세션을 시작하면 시세 캔들이 그려집니다";
+      svg.appendChild(note);
+      return;
+    }
+
+    const closes = candles.map((c) => c.c);
+    const ma5 = movingAvg(closes, 5), ma20 = movingAvg(closes, 20);
+    let min = Math.min(...candles.map((c) => c.l));
+    let max = Math.max(...candles.map((c) => c.h));
+    for (const arr of [ma5, ma20]) {
+      for (const v of arr) { if (v != null) { min = Math.min(min, v); max = Math.max(max, v); } }
+    }
+    const pad = (max - min || 1) * 0.08;
+    min -= pad; max += pad;
+
+    const plotH = CH.h - CH.padT - CH.padB;
+    const plotW = CH.w - CH.padL - CH.padR;
+    const y = (v) => CH.padT + plotH * (1 - (v - min) / (max - min));
+    const step = plotW / Math.max(candles.length, 12);   // 캔들이 적어도 과하게 넓어지지 않게
+    const x = (i) => CH.padL + step * (i + 0.5);
+    const bodyW = Math.max(2, Math.min(16, step * 0.6));
+
+    // 가로 격자 + 오른쪽 가격 눈금
+    for (let k = 0; k <= 4; k++) {
+      const v = max - ((max - min) * k) / 4;
+      const yy = y(v);
+      svg.appendChild(svgNode("line", { x1: CH.padL, x2: CH.padL + plotW, y1: yy, y2: yy }, "grid-line"));
+      const label = svgNode("text", { x: CH.padL + plotW + 6, y: yy + 4 }, "axis-label");
+      label.textContent = v.toFixed(2);
+      svg.appendChild(label);
+    }
+
+    // 캔들 — 심지(고가~저가) + 몸통(시가~종가), 종가 ≥ 시가면 양봉
+    candles.forEach((c, i) => {
+      const cls = c.c >= c.o ? "candle-up" : "candle-down";
+      const cx = x(i);
+      svg.appendChild(svgNode("line", { x1: cx, x2: cx, y1: y(c.h), y2: y(c.l), "stroke-width": 1 }, cls));
+      const top = y(Math.max(c.o, c.c));
+      svg.appendChild(svgNode("rect", {
+        x: cx - bodyW / 2, y: top, width: bodyW,
+        height: Math.max(1, Math.abs(y(c.o) - y(c.c))),
+      }, cls));
+    });
+
+    // 이동평균선 — 값이 채워진 구간만 그린다
+    for (const [arr, cls] of [[ma5, "ma5"], [ma20, "ma20"]]) {
+      const pts = arr.map((v, i) => (v == null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`))
+        .filter(Boolean).join(" ");
+      if (pts.split(" ").length > 1) svg.appendChild(svgNode("polyline", { points: pts }, cls));
+    }
+
+    // 현재가 기준선
+    const last = closes[closes.length - 1];
+    svg.appendChild(svgNode("line", {
+      x1: CH.padL, x2: CH.padL + plotW, y1: y(last), y2: y(last),
+    }, "last-price"));
+  }
+
+  function renderPriceChange(current) {
+    const p = num(current);
+    if (!sessionOpen || !p) { el.priceChange.textContent = "—"; el.priceChange.className = ""; return; }
+    const diff = p - sessionOpen, pct = (diff / sessionOpen) * 100;
+    el.priceChange.textContent =
+      `${diff >= 0 ? "▲ +" : "▼ "}${diff.toFixed(2)} USDC (${diff >= 0 ? "+" : ""}${pct.toFixed(2)}%)`;
+    el.priceChange.className = diff > 0 ? "pos" : diff < 0 ? "neg" : "";
   }
 
   // ---------- 피드 렌더 ----------
@@ -415,9 +520,9 @@
       case "price_tick":
         el.price.textContent = d.price + " USDC";
         el.tickInfo.textContent = `틱 ${d.tick}`;
-        prices.push(num(d.price));
-        if (prices.length > 60) prices.shift();
-        drawSparkline();
+        pushTickToCandle(num(d.price));
+        drawChart();
+        renderPriceChange(d.price);
         renderValuation(valuationAtPrice(num(d.price)));  // 시세가 움직이면 평가손익도 갱신
         break;
       case "decision":

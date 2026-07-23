@@ -40,6 +40,11 @@ DEFAULT_RULES = {"buy_below": "178", "sell_above": "185", "spend_per_trade": "30
 MAX_DECISIONS = 500   # A6 타임라인 메모리 상한
 MAX_PRICE_POINTS = 120
 
+# 캔들차트: 목 시세는 틱당 단일 가격이라 N틱을 묶어 하나의 캔들(OHLC)로 집계한다.
+# 2틱(기본 8초 틱 → 캔들 16초)이면 데모 길이에서 이동평균선이 눈에 보인다.
+TICKS_PER_CANDLE = 2
+MAX_CANDLES = 90
+
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
@@ -69,6 +74,7 @@ class TradingEngine:
         self.decisions: List[Dict[str, Any]] = []   # A6 판단 타임라인
         self.trades: List[Dict[str, Any]] = []      # A5 거래 내역
         self.price_history: List[Dict[str, str]] = []
+        self.candles: List[Dict[str, Any]] = []     # 캔들차트용 OHLC (N틱 = 1캔들)
         self.realized_pnl = Decimal(0)              # A7 실현손익
         self.cum_buy_usdc = Decimal(0)              # A7 수익률 분모(누적 매수금액)
         self.total_fees = Decimal(0)                # A8 누적 브로커 수수료 (수익모델 증명)
@@ -191,6 +197,7 @@ class TradingEngine:
         self.decisions = []
         self.trades = []
         self.price_history = []
+        self.candles = []
         self.realized_pnl = Decimal(0)
         self.cum_buy_usdc = Decimal(0)
         self.total_fees = Decimal(0)
@@ -425,6 +432,22 @@ class TradingEngine:
         finally:
             await self._finalize()
 
+    def _append_candle(self, price: Decimal) -> None:
+        """틱 가격을 캔들에 반영 — 진행 중 캔들이 차면 새 캔들을 연다(시가=첫 틱가)."""
+        cur = self.candles[-1] if self.candles else None
+        if cur is not None and cur["count"] < TICKS_PER_CANDLE:
+            cur["high"] = str(max(Decimal(cur["high"]), price))
+            cur["low"] = str(min(Decimal(cur["low"]), price))
+            cur["close"] = str(price)
+            cur["count"] += 1
+            return
+        self.candles.append({
+            "ts": _now(), "open": str(price), "high": str(price),
+            "low": str(price), "close": str(price), "count": 1,
+        })
+        if len(self.candles) > MAX_CANDLES:
+            self.candles.pop(0)
+
     async def _tick_once(self) -> None:
         symbol = CFG.stock_symbol
         price = self._feed.get_price(symbol)
@@ -432,6 +455,7 @@ class TradingEngine:
         self.price_history.append({"ts": _now(), "price": str(price)})
         if len(self.price_history) > MAX_PRICE_POINTS:
             self.price_history.pop(0)
+        self._append_candle(price)
         self.bus.emit(ev.PRICE_TICK, {"tick": self.tick, "symbol": symbol, "price": str(price)})
 
         if not self.trading_enabled:
@@ -717,7 +741,10 @@ class TradingEngine:
             "symbol": CFG.stock_symbol,
             "price": {
                 "current": self.price_history[-1]["price"] if self.price_history else None,
+                "session_open": self.price_history[0]["price"] if self.price_history else None,
                 "history": self.price_history[-60:],
+                "candles": self.candles[-60:],           # 캔들차트 (OHLC)
+                "ticks_per_candle": TICKS_PER_CANDLE,
             },
             "position": {
                 "quantity": str(pos.quantity) if pos else "0",
