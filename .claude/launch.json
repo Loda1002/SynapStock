@@ -12,6 +12,13 @@
       "runtimeExecutable": ".venv/Scripts/python.exe",
       "runtimeArgs": ["-m", "uvicorn", "web.server:app", "--host", "127.0.0.1", "--port", "8010"],
       "port": 8010
+    },
+    {
+      "name": "dashboard-auto",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "web.server"],
+      "port": 8020,
+      "autoPort": true
     }
   ]
 }

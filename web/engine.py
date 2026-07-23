@@ -24,7 +24,7 @@ from solders.keypair import Keypair
 from solders.pubkey import Pubkey
 
 from config import CFG
-from market.price_feed import MockPriceFeed
+from market.price_feed import Bar, MockPriceFeed, PriceFeed, ReplayPriceFeed
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from agents.broker_agent import BrokerAgent
@@ -81,6 +81,7 @@ class TradingEngine:
         self.started_at: str = ""
         self.brain_label: str = ""
         self.strategy_info: Dict[str, Any] = {"type": "condition"}  # B7 세션 전략
+        self.feed_info: Dict[str, Any] = {"type": "", "label": ""}  # 시세 피드 (mock/replay)
         self.reject_count = 0                       # B2 브리핑용: AP2 거부 횟수
         self.pause_count = 0                        # B2 브리핑용: 긴급정지 횟수
         self.last_briefing: Optional[Dict[str, Any]] = None  # B2 최근 브리핑
@@ -92,7 +93,9 @@ class TradingEngine:
         self._client = None
         self._trading: Optional[TradingAgent] = None
         self._broker: Optional[BrokerAgent] = None
-        self._feed: Optional[MockPriceFeed] = None
+        self._feed: Optional[PriceFeed] = None
+        self._prev_close: Optional[Decimal] = None   # 직전 봉 종가 (등락 표시 기준)
+        self._change_ref: Optional[Decimal] = None   # 마지막 틱에서 쓴 등락 기준값
         self._auth: Optional[PaymentAuthorizer] = None
         self._mandate: Optional[OpenPaymentMandate] = None
         self._trading_kp: Optional[Keypair] = None
@@ -102,10 +105,58 @@ class TradingEngine:
         self._snap_before: Optional[dict] = None
         self._snap_last: Optional[dict] = None
 
+    # ---------- 시세 피드 (mock / replay) ----------
+
+    @staticmethod
+    def default_replay_path() -> str:
+        """재생 CSV 기본 경로 — REPLAY_FILE > REPLAY_SYMBOL > 종목명 유도(tAAPL→AAPL)."""
+        if CFG.replay_file:
+            return CFG.replay_file
+        sym = CFG.replay_symbol.upper() if CFG.replay_symbol else ""
+        if not sym:
+            s = CFG.stock_symbol
+            # 토큰 표기 관례: 소문자 t + 실제 티커 (tAAPL). 아니면 그대로 사용.
+            sym = s[1:] if len(s) > 1 and s[0] == "t" and s[1:].isupper() else s.upper()
+        return os.path.join("data", "market", f"{sym}_daily.csv")
+
+    def _build_feed(self, feed_cfg: Optional[Dict[str, Any]]):
+        """세션 피드 구성 — (feed, feed_info). 실패는 EngineError 로 사용자에게 안내."""
+        fcfg = feed_cfg or {}
+        ftype = fcfg.get("type") or CFG.price_feed
+        if ftype not in ("mock", "replay"):
+            raise EngineError("feed.type 은 'mock' 또는 'replay' 여야 합니다.")
+        if ftype == "mock":
+            return MockPriceFeed(), {"type": "mock", "label": "목 시세 (8스텝 데모 패턴)"}
+        if fcfg.get("file"):
+            path = fcfg["file"]
+        elif fcfg.get("symbol"):
+            path = os.path.join("data", "market", f"{str(fcfg['symbol']).upper()}_daily.csv")
+        else:
+            path = self.default_replay_path()
+        try:
+            feed = ReplayPriceFeed(
+                path,
+                start=str(fcfg.get("start") or CFG.replay_start),
+                end=str(fcfg.get("end") or CFG.replay_end),
+                warmup=CFG.replay_warmup,
+            )
+        except (FileNotFoundError, ValueError) as e:
+            raise EngineError(f"실데이터 재생 준비 실패 — {e}")
+        info = {
+            "type": "replay",
+            "label": feed.source_label,
+            "file": path,
+            "source": "Alpha Vantage 일봉 (fetch_market_data.py)",
+            "bars_total": feed.total_bars,
+            "warmup_bars": len(feed.warmup_bars),
+        }
+        return feed, info
+
     # ---------- 라이프사이클 ----------
 
     async def start(self, mode: str,
-                    strategy_cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                    strategy_cfg: Optional[Dict[str, Any]] = None,
+                    feed_cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if self.status != "idle":
             raise EngineError("엔진이 이미 실행 중입니다 — 먼저 세션을 종료하세요.")
         if mode not in ("dry", "live"):
@@ -142,6 +193,10 @@ class TradingEngine:
                         raise ValueError
                 except ValueError:
                     raise EngineError("적립 시각은 HH:MM 형식(00:00~23:59)이어야 합니다.")
+
+        # 시세 피드 — UI 선택(mock/replay) 우선, 미지정 시 .env(PRICE_FEED)
+        feed, feed_info = self._build_feed(feed_cfg)
+        warmup_bars: List[Bar] = list(getattr(feed, "warmup_bars", []))
 
         usdc_mint = Pubkey.from_string(CFG.usdc_mint)
         if live and not CFG.stock_mint:
@@ -194,6 +249,9 @@ class TradingEngine:
         trading = TradingAgent(
             trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain,
             fee_bps=CFG.broker_fee_bps)
+        if warmup_bars:
+            # 재생 피드 워밍업 — 첫 틱부터 MA5/MA20 지표가 계산되게 종가를 미리 주입
+            trading.preload_history([b.close for b in warmup_bars])
         broker = BrokerAgent(
             broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
             fee_bps=CFG.broker_fee_bps)
@@ -221,7 +279,14 @@ class TradingEngine:
         self.decisions = []
         self.trades = []
         self.price_history = []
-        self.candles = []
+        # 워밍업 봉은 차트 사전 이력으로 미리 그린다 (UI 에서 반투명 표시)
+        self.candles = [{
+            "ts": b.date, "open": str(b.open), "high": str(b.high),
+            "low": str(b.low), "close": str(b.close),
+            "count": TICKS_PER_CANDLE, "warmup": True,
+        } for b in warmup_bars][-MAX_CANDLES:]
+        self._prev_close = warmup_bars[-1].close if warmup_bars else None
+        self._change_ref = None
         self.realized_pnl = Decimal(0)
         self.cum_buy_usdc = Decimal(0)
         self.total_fees = Decimal(0)
@@ -239,12 +304,13 @@ class TradingEngine:
             "dca_amount_usdc": str(dca_amount),
             "schedule_label": schedule_label,   # 사람이 읽는 주기 문구 (UI 공용)
         }
+        self.feed_info = feed_info
         self.tick_interval = CFG.web_tick_interval_sec
         self.last_archive_path = ""
         self._usdc_mint, self._stock_mint = usdc_mint, stock_mint
         self._trading_kp, self._broker_kp = trading_kp, broker_kp
         self._mandate, self._auth = mandate, auth
-        self._trading, self._broker, self._feed = trading, broker, MockPriceFeed()
+        self._trading, self._broker, self._feed = trading, broker, feed
         self._client = client
         self._snap_before = self._snap_last = snap_before
         self._stop_event = asyncio.Event()
@@ -252,6 +318,7 @@ class TradingEngine:
         self.bus.emit(ev.ENGINE_STARTED, {
             "mode": mode, "network": CFG.network, "symbol": CFG.stock_symbol,
             "brain": brain_label,
+            "feed": feed_info,
             "budget_total_usdc": str(self.budget_total),
             "per_trade_max_usdc": str(self.per_trade_max),
             "fee_bps": CFG.broker_fee_bps,
@@ -478,13 +545,48 @@ class TradingEngine:
 
     async def _tick_once(self) -> None:
         symbol = CFG.stock_symbol
-        price = self._feed.get_price(symbol)
+        feed = self._feed
+
+        # 재생 피드 소진 → 세션 자동 종료 (마지막 봉까지 처리한 다음 틱에서)
+        if isinstance(feed, ReplayPriceFeed) and feed.exhausted:
+            self.bus.emit(ev.REPLAY_ENDED, {
+                "message": "실데이터 재생 완료 — 세션을 자동 종료합니다",
+                "bars_played": feed.played_bars,
+                "last_date": feed.last_bar.date if feed.last_bar else "",
+            })
+            self._stop_event.set()
+            return
+
+        price = feed.get_price(symbol)
+        bar: Optional[Bar] = feed.last_bar if isinstance(feed, ReplayPriceFeed) else None
+        prev = self._prev_close
         self.tick += 1
-        self.price_history.append({"ts": _now(), "price": str(price)})
+        self.price_history.append({"ts": bar.date if bar else _now(), "price": str(price)})
         if len(self.price_history) > MAX_PRICE_POINTS:
             self.price_history.pop(0)
-        self._append_candle(price)
-        self.bus.emit(ev.PRICE_TICK, {"tick": self.tick, "symbol": symbol, "price": str(price)})
+
+        if bar is not None:
+            # 실데이터: 1틱 = 1봉 — 시가·고가·저가·종가를 그대로 캔들로
+            self.candles.append({
+                "ts": bar.date, "open": str(bar.open), "high": str(bar.high),
+                "low": str(bar.low), "close": str(bar.close), "count": TICKS_PER_CANDLE,
+            })
+            if len(self.candles) > MAX_CANDLES:
+                self.candles.pop(0)
+        else:
+            self._append_candle(price)
+
+        payload: Dict[str, Any] = {"tick": self.tick, "symbol": symbol, "price": str(price)}
+        if prev is not None:
+            payload["prev_close"] = str(prev)
+        if bar is not None:
+            payload["date"] = bar.date
+            payload["bar"] = {"ts": bar.date, "open": str(bar.open), "high": str(bar.high),
+                              "low": str(bar.low), "close": str(bar.close)}
+            payload["progress"] = {"played": feed.played_bars, "total": feed.total_bars}
+        self.bus.emit(ev.PRICE_TICK, payload)
+        self._change_ref = prev
+        self._prev_close = price
 
         if not self.trading_enabled:
             return  # A2 긴급정지 — 시세만 흐르고 신규 판단·결제 없음
@@ -701,6 +803,7 @@ class TradingEngine:
             "mints": {"usdc": str(self._usdc_mint), "stock": str(self._stock_mint),
                       "stock_symbol": CFG.stock_symbol},
             "strategy": getattr(self, "strategy_info", None),
+            "feed": self.feed_info,   # 시세 출처 (mock/replay·구간) — 재현 조건 증빙
             "mandate": {
                 "budget_total_usdc": str(self._mandate.budget_total_usdc),
                 "per_trade_max_usdc": str(self._mandate.per_trade_max_usdc),
@@ -767,9 +870,14 @@ class TradingEngine:
             "trading_enabled": self.trading_enabled,
             "pause_info": self.pause_info,
             "symbol": CFG.stock_symbol,
+            "replay_available": os.path.exists(self.default_replay_path()),
             "price": {
                 "current": self.price_history[-1]["price"] if self.price_history else None,
                 "session_open": self.price_history[0]["price"] if self.price_history else None,
+                "prev_close": str(self._change_ref) if self._change_ref is not None else None,
+                "change_basis": ("prev-close" if self.feed_info.get("type") == "replay"
+                                 else "session-open"),
+                "feed": self.feed_info,
                 "history": self.price_history[-60:],
                 "candles": self.candles[-60:],           # 캔들차트 (OHLC)
                 "ticks_per_candle": TICKS_PER_CANDLE,

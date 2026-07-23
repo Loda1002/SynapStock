@@ -39,6 +39,15 @@ class Config:
     # Alpha Vantage (무료 키) — scripts/fetch_market_data.py 일봉 수집용 (런타임 미사용)
     alphavantage_api_key: str = _get("ALPHAVANTAGE_API_KEY", "")
 
+    # 시세 피드 기본값 — mock(8스텝 데모) / replay(실데이터 CSV 재생).
+    # 세션 시작 시 UI(피드 선택)가 지정하면 그 값이 우선한다.
+    price_feed: str = _get("PRICE_FEED", "replay")
+    replay_symbol: str = _get("REPLAY_SYMBOL", "")      # 빈값 = STOCK_SYMBOL 에서 유도(tAAPL→AAPL)
+    replay_file: str = _get("REPLAY_FILE", "")          # CSV 직접 지정 시 우선 (기본 data/market/)
+    replay_start: str = _get("REPLAY_START", "")        # 재생 시작일 YYYY-MM-DD (빈값=워밍업 직후부터)
+    replay_end: str = _get("REPLAY_END", "")            # 재생 종료일 (빈값=마지막 봉까지)
+    replay_warmup: int = int(_get("REPLAY_WARMUP", "20"))  # 지표 워밍업 봉 수 (MA20 기준)
+
     # Gemini (무료 티어) — 키가 있으면 매매 판단을 Gemini 가 수행, 없으면 규칙 기반
     gemini_api_key: str = _get("GEMINI_API_KEY", "")
     # flash-latest(=3.6-flash)는 무료 티어가 하루 20회뿐 — 라이트 별칭이 한도가 넉넉함

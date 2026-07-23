@@ -70,7 +70,8 @@ class TradingAgent:
         self.position = Position(symbol="")
         self.brain = brain
         self.fee_bps = fee_bps
-        self._history: list[Decimal] = []  # 직전 시세 (Gemini 판단 근거)
+        self._history: list[Decimal] = []  # 직전 시세 (지표 계산·Gemini 판단 근거)
+        self.HISTORY_MAX = 30              # MA20 계산 + 여유분
         self._dca_tick = 0                 # B7 적립형(ticks): 다음 매수까지 틱 카운터
         self._dca_round = 0                # B7 적립형: 누적 회차
         self._dca_next_at: Optional[datetime] = None  # 적립형(minutes): 다음 집행 시각
@@ -81,12 +82,16 @@ class TradingAgent:
     def pubkey(self) -> Pubkey:
         return self.kp.pubkey()
 
+    def preload_history(self, prices: list[Decimal]) -> None:
+        """재생 피드의 워밍업 봉 종가를 주입 — 첫 틱부터 MA5/MA20 이 계산되게 한다."""
+        self._history = list(prices)[-self.HISTORY_MAX:]
+
     # 1) 판단 — 적립형이면 스케줄 매수, 조건형이면 Gemini(있으면) → 실패 시 규칙 폴백
     def decide(self, symbol: str, price: Decimal) -> Decision:
         self.position.symbol = symbol
         history = list(self._history)
         self._history.append(price)
-        if len(self._history) > 8:
+        if len(self._history) > self.HISTORY_MAX:
             self._history.pop(0)
 
         if self.strategy.mode == "dca":
@@ -95,7 +100,7 @@ class TradingAgent:
         if self.brain is not None:
             try:
                 d = self.brain.decide(
-                    symbol, price, history, self.strategy,
+                    symbol, price, history[-8:], self.strategy,
                     self.auth.remaining_usdc, self.position,
                     fee_bps=self.fee_bps,
                 )

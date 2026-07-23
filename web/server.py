@@ -87,9 +87,21 @@ class StrategyBody(BaseModel):
     dca_amount_usdc: str = "10"   # Decimal 정밀 변환용 문자열
 
 
+class FeedBody(BaseModel):
+    """시세 피드 선택 — mock(8스텝 데모) / replay(실데이터 CSV 재생).
+
+    빈값이면 .env(PRICE_FEED·REPLAY_*) 기본을 따른다. file 은 커스텀 CSV 경로(테스트용)."""
+    type: str = ""         # "" / mock / replay
+    symbol: str = ""       # replay: data/market/{SYMBOL}_daily.csv
+    file: str = ""         # replay: CSV 경로 직접 지정 (symbol 보다 우선)
+    start: str = ""        # 재생 시작일 YYYY-MM-DD
+    end: str = ""          # 재생 종료일 YYYY-MM-DD
+
+
 class StartBody(BaseModel):
     mode: str = "dry"      # dry / live
     strategy: StrategyBody = StrategyBody()
+    feed: FeedBody = FeedBody()
 
 
 class ActorBody(BaseModel):
@@ -99,7 +111,8 @@ class ActorBody(BaseModel):
 @app.post("/api/engine/start")
 async def engine_start(body: StartBody):
     try:
-        return await engine.start(body.mode, body.strategy.model_dump())
+        return await engine.start(body.mode, body.strategy.model_dump(),
+                                  body.feed.model_dump())
     except EngineError as e:
         code = 409 if "이미 실행" in str(e) else 400
         raise HTTPException(status_code=code, detail=str(e))
@@ -191,9 +204,16 @@ async def sse_events(request: Request) -> StreamingResponse:
 
 
 def main() -> None:
+    import argparse
     import uvicorn
+    # 포트 우선순위: --port 인자 > PORT 환경변수(Cloud Run 관례) > .env WEB_PORT
+    default_port = int(os.environ.get("PORT", CFG.web_port))
+    ap = argparse.ArgumentParser(description="AutoTrader 대시보드 서버")
+    ap.add_argument("--port", type=int, default=default_port,
+                    help=f"포트 (기본 {default_port}) — 8000 점유 시 --port 8010 등")
+    args = ap.parse_args()
     host = os.environ.get("WEB_HOST", "127.0.0.1")
-    uvicorn.run(app, host=host, port=CFG.web_port, log_level="info")
+    uvicorn.run(app, host=host, port=args.port, log_level="info")
 
 
 if __name__ == "__main__":

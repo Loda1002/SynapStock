@@ -102,6 +102,7 @@ input[type="number"], input[type="text"], input[type="time"] {
 .chart .axis-label { fill: var(--muted); font-size: 11px; font-family: var(--mono); }
 .chart .candle-up { fill: var(--buy); stroke: var(--buy); }
 .chart .candle-down { fill: var(--sell); stroke: var(--sell); }
+.chart .candle-warmup { opacity: .4; }  /* 세션 시작 전 워밍업 이력 — 반투명 */
 .chart .ma5 { fill: none; stroke: var(--accent); stroke-width: 2; }
 .chart .ma20 { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 3; }
 .chart .last-price { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 2; }

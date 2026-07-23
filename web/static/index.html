@@ -20,12 +20,17 @@
     <span class="badge" data-net>—</span>
     <span class="badge" data-engine-status>대기</span>
     <span class="badge" data-brain>판단 모듈: —</span>
+    <span class="badge" data-feed-badge>시세: —</span>
     <span class="badge badge-danger hidden" data-paused-badge>🛑 매매 정지됨</span>
   </div>
   <div class="controls">
     <select data-mode-select aria-label="실행 모드">
       <option value="dry">드라이런 (온체인 전송 없음)</option>
       <option value="live">라이브 (실제 온체인 tx)</option>
+    </select>
+    <select data-feed-select aria-label="시세 피드">
+      <option value="replay">실데이터 재생 (일봉)</option>
+      <option value="mock">목 시세 (데모 패턴)</option>
     </select>
     <select data-strategy-select aria-label="매매 전략">
       <option value="condition">조건형 (AI 판단 매수·매도)</option>
@@ -57,7 +62,7 @@
       <div>
         <h2>시세 <span class="sub" data-symbol></span></h2>
         <p class="huge" data-price>—</p>
-        <p class="sub"><span data-price-change>—</span> <span class="unit">세션 시작가 대비</span></p>
+        <p class="sub"><span data-price-change>—</span> <span class="unit" data-change-basis>세션 시작가 대비</span></p>
       </div>
       <div class="chart-legend">
         <span class="sub"><i class="swatch swatch-up"></i>양봉(상승) <i class="swatch swatch-down"></i>음봉(하락)</span>

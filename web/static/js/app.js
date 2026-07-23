@@ -11,7 +11,9 @@
     engineStatus: $("[data-engine-status]"),
     brain: $("[data-brain]"),
     pausedBadge: $("[data-paused-badge]"),
+    feedBadge: $("[data-feed-badge]"),
     modeSelect: $("[data-mode-select]"),
+    feedSelect: $("[data-feed-select]"),
     strategySelect: $("[data-strategy-select]"),
     dcaParams: $("[data-dca-params]"),
     dcaUnit: $("[data-dca-unit]"),
@@ -30,6 +32,7 @@
     symbol: $("[data-symbol]"),
     price: $("[data-price]"),
     priceChange: $("[data-price-change]"),
+    changeBasis: $("[data-change-basis]"),
     chart: $("[data-chart]"),
     candleInfo: $("[data-candle-info]"),
     tickInfo: $("[data-tick-info]"),
@@ -77,7 +80,9 @@
   const MAX_LOG_ITEMS = 200;
   let candles = [];         // 캔들차트 데이터 (서버 집계 + 틱마다 로컬 갱신)
   let ticksPerCandle = 2;   // 서버(engine.TICKS_PER_CANDLE)와 같은 집계 규칙
-  let sessionOpen = null;   // 세션 시작가 — 등락 표시 기준
+  let sessionOpen = null;   // 세션 시작가 — 목 시세의 등락 표시 기준
+  let prevClose = null;     // 직전 봉 종가 — 실데이터 재생의 등락 표시 기준
+  let changeBasis = "session-open";  // 서버 state.price.change_basis
   let lastState = null;     // 최근 /api/state — 틱 사이 평가손익 재계산에 사용
   let lastEventId = 0;
   const pageLoadedAt = Date.now();  // A4: SSE 히스토리 재생분 알림 제외 기준
@@ -174,12 +179,25 @@
     if (s.price.current != null) el.price.textContent = s.price.current + " USDC";
     ticksPerCandle = s.price.ticks_per_candle || ticksPerCandle;
     sessionOpen = s.price.session_open != null ? num(s.price.session_open) : null;
+    prevClose = s.price.prev_close != null ? num(s.price.prev_close) : prevClose;
+    changeBasis = s.price.change_basis || changeBasis;
+    el.changeBasis.textContent = changeBasis === "prev-close" ? "전일 종가 대비" : "세션 시작가 대비";
+    const feed = s.price.feed || {};
+    el.feedBadge.textContent = "시세: " + (feed.label || "—");
     candles = (s.price.candles || []).map((c) => ({
       o: num(c.open), h: num(c.high), l: num(c.low), c: num(c.close), n: c.count,
+      t: c.ts || null, w: !!c.warmup,
     }));
     drawChart();
     renderPriceChange(s.price.current);
     if (eng.tick) el.tickInfo.textContent = `틱 ${eng.tick} · 간격 ${eng.tick_interval_sec}s`;
+
+    // 실데이터 CSV 가 없으면 재생 옵션을 잠근다 (fetch_market_data.py 안내)
+    const replayOpt = el.feedSelect.querySelector('option[value="replay"]');
+    replayOpt.disabled = !s.replay_available;
+    replayOpt.textContent = s.replay_available
+      ? "실데이터 재생 (일봉)" : "실데이터 재생 — CSV 없음 (fetch 필요)";
+    if (!s.replay_available && el.feedSelect.value === "replay") el.feedSelect.value = "mock";
 
     el.posQty.textContent = s.position.quantity;
     el.posAvg.textContent = s.position.avg_price_usdc;
@@ -223,6 +241,7 @@
     el.btnStart.disabled = running || eng.status === "stopping";
     el.btnStop.disabled = !running;
     el.modeSelect.disabled = running;
+    el.feedSelect.disabled = running;
     el.strategySelect.disabled = running;
     el.dcaUnit.disabled = running;
     el.dcaTicks.disabled = running;
@@ -277,11 +296,25 @@
     if (sessionOpen == null) sessionOpen = price;
   }
 
+  // 실데이터 재생: 1틱 = 1봉 — 서버가 준 시가·고가·저가·종가를 그대로 캔들로
+  function pushBarCandle(b) {
+    candles.push({
+      o: num(b.open), h: num(b.high), l: num(b.low), c: num(b.close),
+      n: ticksPerCandle, t: b.ts || null, w: false,
+    });
+    if (candles.length > 60) candles.shift();
+    if (sessionOpen == null) sessionOpen = num(b.close);
+  }
+
   function drawChart() {
     const svg = el.chart;
     svg.textContent = "";
+    const isDaily = candles.some((c) => c.t);
+    const warmCount = candles.filter((c) => c.w).length;
     el.candleInfo.textContent = candles.length
-      ? `캔들 1개 = ${ticksPerCandle}틱 · ${candles.length}개`
+      ? (isDaily
+          ? `일봉 ${candles.length}개` + (warmCount ? ` (이전 이력 ${warmCount})` : "")
+          : `캔들 1개 = ${ticksPerCandle}틱 · ${candles.length}개`)
       : "캔들 집계 대기";
     if (!candles.length) {
       const note = svgNode("text", { x: CH.w / 2, y: CH.h / 2, "text-anchor": "middle" }, "empty-note");
@@ -317,9 +350,22 @@
       svg.appendChild(label);
     }
 
+    // 하단 날짜 눈금 (일봉 재생) — 처음·중간·끝 3개
+    if (isDaily && candles.length > 1) {
+      const marks = [0, Math.floor(candles.length / 2), candles.length - 1];
+      for (const i of new Set(marks)) {
+        if (!candles[i].t) continue;
+        const lbl = svgNode("text", {
+          x: x(i), y: CH.h - 3, "text-anchor": i === 0 ? "start" : i === candles.length - 1 ? "end" : "middle",
+        }, "axis-label");
+        lbl.textContent = candles[i].t.slice(5);  // MM-DD
+        svg.appendChild(lbl);
+      }
+    }
+
     // 캔들 — 심지(고가~저가) + 몸통(시가~종가), 종가 ≥ 시가면 양봉
     candles.forEach((c, i) => {
-      const cls = c.c >= c.o ? "candle-up" : "candle-down";
+      const cls = (c.c >= c.o ? "candle-up" : "candle-down") + (c.w ? " candle-warmup" : "");
       const cx = x(i);
       svg.appendChild(svgNode("line", { x1: cx, x2: cx, y1: y(c.h), y2: y(c.l), "stroke-width": 1 }, cls));
       const top = y(Math.max(c.o, c.c));
@@ -345,8 +391,10 @@
 
   function renderPriceChange(current) {
     const p = num(current);
-    if (!sessionOpen || !p) { el.priceChange.textContent = "—"; el.priceChange.className = ""; return; }
-    const diff = p - sessionOpen, pct = (diff / sessionOpen) * 100;
+    // 등락 기준: 실데이터 재생 = 전일(직전 봉) 종가, 목 시세 = 세션 시작가
+    const base = changeBasis === "prev-close" ? prevClose : sessionOpen;
+    if (!base || !p) { el.priceChange.textContent = "—"; el.priceChange.className = ""; return; }
+    const diff = p - base, pct = (diff / base) * 100;
     el.priceChange.textContent =
       `${diff >= 0 ? "▲ +" : "▼ "}${diff.toFixed(2)} USDC (${diff >= 0 ? "+" : ""}${pct.toFixed(2)}%)`;
     el.priceChange.className = diff > 0 ? "pos" : diff < 0 ? "neg" : "";
@@ -537,11 +585,19 @@
     switch (evt.type) {
       case "price_tick":
         el.price.textContent = d.price + " USDC";
-        el.tickInfo.textContent = `틱 ${d.tick}`;
-        pushTickToCandle(num(d.price));
+        el.tickInfo.textContent = `틱 ${d.tick}`
+          + (d.date ? ` · ${d.date}` : "")
+          + (d.progress ? ` (${d.progress.played}/${d.progress.total}봉)` : "");
+        if (d.prev_close != null) prevClose = num(d.prev_close);
+        if (d.bar) pushBarCandle(d.bar);        // 실데이터: 1틱 = 1봉 (실제 OHLC)
+        else pushTickToCandle(num(d.price));    // 목 시세: N틱 집계
         drawChart();
         renderPriceChange(d.price);
         renderValuation(valuationAtPrice(num(d.price)));  // 시세가 움직이면 평가손익도 갱신
+        break;
+      case "replay_ended":
+        addLog(evt.ts, `[재생 완료] ${d.message} (${d.bars_played}봉, 마지막 ${d.last_date})`, "log-ok");
+        notify(evt, "실데이터 재생 완료", "데이터 마지막 봉까지 재생해 세션을 자동 종료합니다.", "ok");
         break;
       case "decision":
         addDecision(d);
@@ -597,7 +653,7 @@
           ? "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용"
           : "판단 출처 gemini / rule";
         sessionBoundary(evt.ts, `─── 새 세션 시작 · ${stText} · ${srcNote} ───`, true);
-        addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "드라이런"} · ${d.network} · ${d.symbol} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
+        addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "드라이런"} · ${d.network} · ${d.symbol} · 시세: ${d.feed ? d.feed.label : "—"} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
         fetchState();
         break;
       }
@@ -668,6 +724,7 @@
     el.btnStart.disabled = true;
     const s = await post("/api/engine/start", {
       mode: el.modeSelect.value,
+      feed: { type: el.feedSelect.value },
       strategy: {
         type: el.strategySelect.value,
         dca_unit: el.dcaUnit.value,
