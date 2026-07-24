@@ -710,15 +710,31 @@
   }
 
   // ---------- 컨트롤 ----------
+  // 조작 API 접근 토큰 — 배포 서버가 CONTROL_TOKEN 을 켠 경우에만 필요하다.
+  // 주소창에 #token=... 로 한 번 넣으면 저장하고 URL 에서 지운다(공유·녹화 시 노출 방지).
+  const TOKEN_KEY = "autotrader_control_token";
+  (function captureTokenFromHash() {
+    const m = location.hash.match(/(?:^|[#&])token=([^&]+)/);
+    if (!m) return;
+    localStorage.setItem(TOKEN_KEY, decodeURIComponent(m[1]));
+    history.replaceState(null, "", location.pathname + location.search);
+  })();
+
   async function post(url, body) {
+    const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) headers["X-Control-Token"] = token;
     const r = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body || {}),
     });
     if (!r.ok) {
       let msg = r.statusText;
       try { msg = (await r.json()).detail || msg; } catch (e) { /* 그대로 */ }
+      if (r.status === 401) {
+        msg = "조작 권한이 없습니다. 주소 끝에 #token=<접근토큰> 을 붙여 한 번 접속하세요.";
+      }
       alert(msg);
       return null;
     }

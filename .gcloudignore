@@ -1,0 +1,12 @@
+secrets/
+.env
+*.key
+*.keypair.json
+*-keypair.json
+.venv/
+__pycache__/
+*.pyc
+.git/
+test-ledger/
+artifacts/
+.claude/

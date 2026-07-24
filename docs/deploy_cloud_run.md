@@ -71,6 +71,23 @@ gcloud secrets create autotrader-trading-wallet --data-file=secrets\trading.json
 gcloud secrets create autotrader-broker-wallet --data-file=secrets\broker.json
 ```
 
+> **왜 파일 마운트가 아니라 환경변수로 주입하는가**: Cloud Run 의 시크릿 볼륨은 *디렉터리*
+> 단위라, 시크릿 2개를 같은 `/secrets` 에 얹는 구성은 리비전 생성이 거부되거나 한쪽만
+> 실물화될 수 있다. 코드는 `WALLET_DIR` 하나만 보므로 디렉터리를 쪼갤 수도 없다.
+> 그래서 `TRADING_KEYPAIR_JSON` / `BROKER_KEYPAIR_JSON` 환경변수 경로를 함께 지원한다
+> (§4 배포 명령이 이 방식을 쓴다). 라이브 세션은 키가 없으면 **즉시 실패**하므로,
+> 예전처럼 랜덤 지갑으로 조용히 진행되다 잔고 부족으로 실패하는 일은 없다.
+
+**조작 API 접근 토큰**도 만들어 둔다(공개 URL 보호 — 아래 §4에서 주입):
+
+```powershell
+$TOKEN = -join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+Set-Content -Path control.token -Value $TOKEN -NoNewline
+gcloud secrets create autotrader-control-token --data-file=control.token
+Remove-Item control.token
+Write-Host "대시보드 접속 주소 뒤에 붙일 값: #token=$TOKEN"   # 이 값을 따로 저장해 둘 것
+```
+
 Gemini API 키는 **줄바꿈 없는 파일**로 만들어 올리고 바로 지운다
 (`echo` 파이프는 줄바꿈이 붙어서 키가 오염된다 — 주의):
 
@@ -104,11 +121,12 @@ gcloud run deploy autotrader `
   --min-instances 1 `
   --max-instances 1 `
   --no-cpu-throttling `
+  --concurrency 300 `
   --cpu 1 `
-  --memory 512Mi `
+  --memory 1Gi `
   --timeout 3600 `
-  --set-env-vars "FIRESTORE_ENABLED=1,WALLET_DIR=/secrets,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com" `
-  --set-secrets "/secrets/trading.json=autotrader-trading-wallet:latest,/secrets/broker.json=autotrader-broker-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest"
+  --set-env-vars "FIRESTORE_ENABLED=1,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com,ALLOW_LIVE_FROM_WEB=0,MAX_BUDGET_USDC=1000" `
+  --set-secrets "TRADING_KEYPAIR_JSON=autotrader-trading-wallet:latest,BROKER_KEYPAIR_JSON=autotrader-broker-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest,CONTROL_TOKEN=autotrader-control-token:latest"
 ```
 
 끝나면 `Service URL: https://autotrader-....run.app` 이 출력된다 — **이게 라이브 배포 URL(가산점 항목)**.
@@ -121,7 +139,12 @@ gcloud run deploy autotrader `
 | `--max-instances 1` | **엔진이 전역 싱글턴 1개**라 인스턴스가 2개면 상태가 갈라진다(로그인 라운드에서 사용자별 분리 예정, 그때도 단일 인스턴스 전제) |
 | `--no-cpu-throttling` | 요청이 없어도 **백그라운드 매매 틱 루프**가 돌아야 한다(기본값은 요청 처리 중에만 CPU 할당) |
 | `--timeout 3600` | SSE 실시간 스트림을 최장 1시간 유지(끊기면 프론트가 Last-Event-ID 로 자동 복원) |
-| `--allow-unauthenticated` | 심사자가 URL 만으로 접근(로그인 게이트는 다음 라운드) |
+| `--concurrency 300` | 대시보드 탭마다 SSE 를 1개씩 최장 1시간 점유한다. 기본값 80 이면 탭 80개에 인스턴스가 포화되고, `max-instances 1` 이라 스케일아웃으로 흡수할 수도 없다 — **심사위원이 페이지를 못 여는** 최악의 실패를 막는 플래그 |
+| `--memory 1Gi` | 컨테이너 쓰기 파일시스템이 메모리(tmpfs)다. 브리핑·아카이브 파일이 메모리를 갉아먹으므로 여유를 둔다 |
+| `--allow-unauthenticated` | 심사자가 URL 만으로 **관전**(GET·SSE)할 수 있게 한다. 상태를 바꾸는 POST 는 아래 `CONTROL_TOKEN` 이 막는다 |
+| `ALLOW_LIVE_FROM_WEB=0` | 실제 온체인 전송을 웹에서 시작하지 못하게 잠근다. **시연 직전에만** `--update-env-vars ALLOW_LIVE_FROM_WEB=1` 로 열고 촬영 후 되돌린다 |
+| `CONTROL_TOKEN` | 세션 시작·정지·한도 변경·브리핑을 토큰 보유자로 제한. 없으면 URL 을 아는 누구나 시연 중 세션을 정지시키거나 AP2 한도를 바꿀 수 있다 |
+| `MAX_BUDGET_USDC=1000` | 토큰이 새더라도 예산을 무한대로 올리지 못하게 하는 서버측 상한 |
 
 - 시크릿·`.env` 는 이미지에 들어가지 않는다(`.dockerignore` + 소스 업로드시 `.gitignore` 존중).
   지갑키는 런타임에 `/secrets/…` 파일로 마운트되고 `WALLET_DIR=/secrets` 가 그걸 가리킨다.
@@ -129,6 +152,9 @@ gcloud run deploy autotrader `
 
 ## 5. 배포 후 검증 (verification_checklist 의 배포판)
 
+0. **접근 토큰 등록(최초 1회)**: `https://<URL>/#token=<§2에서 저장한 값>` 으로 접속한다.
+   토큰이 브라우저에 저장되고 주소에서 지워진다. 이후에는 그냥 `https://<URL>` 로 들어가면 된다.
+   (토큰 없이 열면 화면은 보이지만 세션 시작 버튼이 401 을 돌려준다 — 의도된 동작)
 1. **대시보드**: Service URL 을 브라우저로 열기 → 대시보드가 뜨는지
 2. **영속화 활성 확인**: `https://<URL>/api/state` 열기 → `"persistence": {"enabled": true, "backend": "firestore", …}`
 3. **드라이런 세션**: 대시보드에서 `실데이터 재생(AAPL)` + 드라이런으로 세션 시작 → 체결 발생 → 세션 종료

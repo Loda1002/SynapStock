@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
@@ -131,10 +132,17 @@ class TradingEngine:
             raise EngineError("feed.type 은 'mock' 또는 'replay' 여야 합니다.")
         if ftype == "mock":
             return MockPriceFeed(), {"type": "mock", "label": "목 시세 (8스텝 데모 패턴)"}
-        if fcfg.get("file"):
-            path = fcfg["file"]
-        elif fcfg.get("symbol"):
-            path = os.path.join("data", "market", f"{str(fcfg['symbol']).upper()}_daily.csv")
+        # 경로 주입 차단: API 로는 심볼만 받고(정규식 검증) 경로는 서버가 조립한다.
+        # 임의 CSV 경로를 받으면 컨테이너의 아무 파일이나 열게 되고, 파싱 오류 메시지에
+        # 파일 내용이 실려 400 응답으로 새어나간다. 테스트용 직접 지정은 .env REPLAY_FILE 만.
+        if fcfg.get("symbol"):
+            sym = str(fcfg["symbol"]).upper()
+            if not re.fullmatch(r"[A-Z]{1,5}", sym):
+                raise EngineError("종목 코드는 영문 대문자 1~5자여야 합니다.")
+            path = os.path.join("data", "market", f"{sym}_daily.csv")
+            market_dir = os.path.realpath(os.path.join("data", "market"))
+            if os.path.commonpath([os.path.realpath(path), market_dir]) != market_dir:
+                raise EngineError("허용되지 않은 시세 파일 경로입니다.")
         else:
             path = self.default_replay_path()
         try:
@@ -214,6 +222,11 @@ class TradingEngine:
         if mode not in ("dry", "live"):
             raise EngineError("mode 는 'dry' 또는 'live' 여야 합니다.")
         live = mode == "live"
+        # 배포 환경 이중 안전장치 — 라이브(실제 온체인 전송)는 명시적으로 켠 경우에만.
+        # 시연 직전 `gcloud run services update --update-env-vars ALLOW_LIVE_FROM_WEB=1` 로 연다.
+        if live and not CFG.allow_live_from_web:
+            raise EngineError("이 서버는 웹에서 라이브 세션 시작이 차단돼 있습니다 "
+                              "(ALLOW_LIVE_FROM_WEB=1 필요).")
 
         # B7 전략 선택 — condition(조건형, 현행) / dca(적립형, N틱마다 정액 매수)
         scfg = strategy_cfg or {}
@@ -262,9 +275,15 @@ class TradingEngine:
             raise EngineError("STOCK_MINT 미설정 — 먼저 scripts/setup_devnet.py 를 실행하세요.")
         stock_mint = Pubkey.from_string(CFG.stock_mint) if CFG.stock_mint else None
 
+        # 라이브 세션은 키가 없으면 즉시 실패한다(무증상 랜덤 지갑 방지 — run_demo._load_or_new 주석)
         wd = CFG.wallet_dir
-        trading_kp = _load_or_new(os.path.join(wd, "trading.json"))
-        broker_kp = _load_or_new(os.path.join(wd, "broker.json"))
+        try:
+            trading_kp = _load_or_new(os.path.join(wd, "trading.json"), required=live,
+                                      env_json=CFG.trading_keypair_json)
+            broker_kp = _load_or_new(os.path.join(wd, "broker.json"), required=live,
+                                     env_json=CFG.broker_keypair_json)
+        except (FileNotFoundError, ValueError) as e:
+            raise EngineError(str(e))
 
         # 판단 두뇌 — run_demo 와 동일한 선택 로직 (Gemini, 실패 시 규칙 폴백)
         # 적립형(dca)은 판단 없이 스케줄 매수라 Gemini 를 쓰지 않는다
@@ -436,8 +455,19 @@ class TradingEngine:
         """예산/건별 한도 변경. 실행 중에는 긴급정지 상태에서만 즉시 적용(레이스 방지),
         대기 상태에서는 다음 세션 기본값으로 저장한다. 즉시 적용 시 새 mandate 를
         재서명하고 사용액(spent)을 이월한다 — 예산=순투입 한도 해석 유지."""
+        # 입력 검증 — Decimal("Infinity")·NaN 은 InvalidOperation 을 던지지 않고 만들어지므로
+        # is_finite() 로 먼저 걸러야 한다. Infinity 는 `<= 0` 검사를 통과해 예산 무한대가 되고,
+        # NaN 은 비교에서 예외를 내 500 으로 새어나간다.
+        for name, v in (("예산", budget_total), ("건별 한도", per_trade_max)):
+            if not v.is_finite():
+                raise EngineError(f"{name} 값이 유효한 숫자가 아닙니다.")
         if budget_total <= 0 or per_trade_max <= 0:
             raise EngineError("예산과 건별 한도는 0보다 큰 숫자여야 합니다.")
+        # 서버측 상한 — 외부에서 한도를 무한대로 올려 AP2 방어선을 무력화하는 것을 차단
+        if budget_total > CFG.max_budget_usdc:
+            raise EngineError(f"예산은 최대 {CFG.max_budget_usdc} USDC 까지 설정할 수 있습니다.")
+        if per_trade_max > budget_total:
+            raise EngineError("건별 한도는 총예산보다 클 수 없습니다.")
         old = {"budget_total_usdc": str(self.budget_total),
                "per_trade_max_usdc": str(self.per_trade_max)}
         applied = "next-session"

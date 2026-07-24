@@ -27,11 +27,25 @@ from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy
 
 
-def _load_or_new(path: str) -> Keypair:
+def _load_or_new(path: str, required: bool = False, env_json: str = "") -> Keypair:
+    """지갑 키 로드. 우선순위: 환경변수 JSON > 파일 > (드라이런 한정) 즉석 생성.
+
+    env_json 은 Cloud Run 용 우회로다 — Secret Manager 시크릿 2개를 같은 디렉터리에
+    파일로 마운트하는 구성이 플랫폼 제약에 걸릴 수 있어, 환경변수 주입 경로를 함께 둔다.
+
+    required=True(라이브 세션)에서는 키가 없으면 **즉시 실패**한다. 예전에는 조용히 새
+    키페어를 만들어 계속 진행했는데, 그러면 마운트가 어긋나도 서버는 정상처럼 뜨고
+    잔고 0인 낯선 지갑으로 결제가 실패한다 — 시연 당일 가장 추적하기 비싼 실패다.
+    """
+    if env_json:
+        return Keypair.from_bytes(bytes(json.loads(env_json)))
     if os.path.exists(path):
         return x.load_keypair(path)
-    kp = x.new_keypair()
-    return kp
+    if required:
+        raise FileNotFoundError(
+            f"지갑 키 파일이 없습니다: {path} — WALLET_DIR({CFG.wallet_dir}) 설정과 "
+            f"Secret Manager 마운트를 확인하세요 (또는 *_KEYPAIR_JSON 환경변수로 주입)")
+    return x.new_keypair()
 
 
 def hr(title: str) -> None:

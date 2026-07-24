@@ -9,7 +9,9 @@ import os
 from contextlib import asynccontextmanager
 from decimal import Decimal, InvalidOperation
 
-from fastapi import FastAPI, HTTPException, Request
+import secrets as _secrets
+
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -24,6 +26,23 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 bus = EventBus()
 store = build_store()          # Firestore(FIRESTORE_ENABLED=1) 또는 no-op
 engine = TradingEngine(bus, store)
+
+
+def require_control(request: Request) -> None:
+    """조작 API 게이트 — CONTROL_TOKEN 이 설정된 경우에만 X-Control-Token 헤더를 요구한다.
+
+    배포는 --allow-unauthenticated 라 URL 을 아는 누구나 세션을 시작·정지하고 한도를 바꿀 수
+    있었다(엔진이 전역 싱글턴 1개라 시연 중 외부 stop 한 번이면 데모가 끊긴다).
+    읽기(GET·SSE)는 열어 두어 심사위원이 로그인 없이 관전할 수 있게 하고, 상태를 바꾸는
+    POST 만 막는다. 로컬은 CONTROL_TOKEN 미설정 = 무인증이라 기존 개발 흐름이 그대로다.
+    """
+    expected = CFG.control_token
+    if not expected:
+        return
+    got = request.headers.get("x-control-token", "")
+    # 타이밍 공격 방지 — 길이·내용 비교를 상수 시간으로
+    if not _secrets.compare_digest(got, expected):
+        raise HTTPException(status_code=401, detail="조작 권한이 없습니다 (접근 토큰 필요).")
 
 
 async def _daily_briefing_loop() -> None:
@@ -114,7 +133,15 @@ async def history_briefings(limit: int = 10):
 
 # ---------- 컨트롤 API ----------
 
-class StrategyBody(BaseModel):
+class StrictBody(BaseModel):
+    """요청 본문 공통 규칙 — 선언되지 않은 필드는 422 로 거부한다.
+
+    기본값(무시)이면 오타난 필드가 조용히 먹혀 "설정했는데 반영이 안 되는" 버그가 되고,
+    제거된 필드(예: feed.file)를 그대로 보내도 성공처럼 보인다. 둘 다 겪은 문제라 막는다."""
+    model_config = {"extra": "forbid"}
+
+
+class StrategyBody(StrictBody):
     """B7 전략 선택 — condition(조건형) / dca(적립형: 주기마다 정액 매수).
 
     적립 주기 기준(dca_unit): ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM).
@@ -129,28 +156,29 @@ class StrategyBody(BaseModel):
     dca_amount_usdc: str = "10"   # Decimal 정밀 변환용 문자열
 
 
-class FeedBody(BaseModel):
+class FeedBody(StrictBody):
     """시세 피드 선택 — mock(8스텝 데모) / replay(실데이터 CSV 재생).
 
-    빈값이면 .env(PRICE_FEED·REPLAY_*) 기본을 따른다. file 은 커스텀 CSV 경로(테스트용)."""
+    빈값이면 .env(PRICE_FEED·REPLAY_*) 기본을 따른다.
+    ※ CSV 경로는 API 로 받지 않는다(경로 주입 차단) — 심볼만 받아 서버가 조립하고,
+      테스트용 커스텀 파일은 .env REPLAY_FILE 로만 지정한다."""
     type: str = ""         # "" / mock / replay
-    symbol: str = ""       # replay: data/market/{SYMBOL}_daily.csv
-    file: str = ""         # replay: CSV 경로 직접 지정 (symbol 보다 우선)
+    symbol: str = ""       # replay: data/market/{SYMBOL}_daily.csv (영문 대문자 1~5자)
     start: str = ""        # 재생 시작일 YYYY-MM-DD
     end: str = ""          # 재생 종료일 YYYY-MM-DD
 
 
-class StartBody(BaseModel):
+class StartBody(StrictBody):
     mode: str = "dry"      # dry / live
     strategy: StrategyBody = StrategyBody()
     feed: FeedBody = FeedBody()
 
 
-class ActorBody(BaseModel):
+class ActorBody(StrictBody):
     actor: str = "human"   # A2 정지 주체 기록 (P3 리스크가드가 "risk-guard" 로 재사용)
 
 
-@app.post("/api/engine/start")
+@app.post("/api/engine/start", dependencies=[Depends(require_control)])
 async def engine_start(body: StartBody):
     try:
         return await engine.start(body.mode, body.strategy.model_dump(),
@@ -160,7 +188,7 @@ async def engine_start(body: StartBody):
         raise HTTPException(status_code=code, detail=str(e))
 
 
-@app.post("/api/engine/stop")
+@app.post("/api/engine/stop", dependencies=[Depends(require_control)])
 async def engine_stop():
     try:
         return await engine.stop()
@@ -168,7 +196,7 @@ async def engine_stop():
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/api/trading/pause")
+@app.post("/api/trading/pause", dependencies=[Depends(require_control)])
 async def trading_pause(body: ActorBody):
     try:
         return engine.pause(body.actor)     # 세션 실행 중에만 허용 (정지 상태는 세션 단위)
@@ -176,7 +204,7 @@ async def trading_pause(body: ActorBody):
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@app.post("/api/trading/resume")
+@app.post("/api/trading/resume", dependencies=[Depends(require_control)])
 async def trading_resume(body: ActorBody):
     try:
         return engine.resume(body.actor)
@@ -184,14 +212,14 @@ async def trading_resume(body: ActorBody):
         raise HTTPException(status_code=409, detail=str(e))
 
 
-class MandateBody(BaseModel):
+class MandateBody(StrictBody):
     """A3 한도 변경 — 금액은 문자열로 받아 Decimal 정밀 변환 (float 오차 방지)."""
     budget_total_usdc: str
     per_trade_max_usdc: str
     actor: str = "human"
 
 
-@app.post("/api/mandate")
+@app.post("/api/mandate", dependencies=[Depends(require_control)])
 async def update_mandate(body: MandateBody):
     try:
         budget = Decimal(body.budget_total_usdc)
@@ -204,7 +232,7 @@ async def update_mandate(body: MandateBody):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/api/briefing")
+@app.post("/api/briefing", dependencies=[Depends(require_control)])
 async def create_briefing():
     """B2 수동 '오늘 요약' — 현재(또는 직전) 세션 데이터로 브리핑 생성."""
     try:

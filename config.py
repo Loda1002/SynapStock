@@ -56,6 +56,18 @@ class Config:
     broker_fee_bps: int = int(_get("BROKER_FEE_BPS", "30"))
 
     wallet_dir: str = _get("WALLET_DIR", "secrets")
+    # Cloud Run 대안 주입 경로 — Secret Manager 파일 마운트 대신 환경변수로 키페어 JSON.
+    # (시크릿 2개를 같은 디렉터리에 마운트하는 구성이 플랫폼 제약에 걸릴 수 있어 우회로를 둔다)
+    trading_keypair_json: str = _get("TRADING_KEYPAIR_JSON", "")
+    broker_keypair_json: str = _get("BROKER_KEYPAIR_JSON", "")
+
+    # 조작 API 보호 — 값이 설정되면 POST /api/* 에 X-Control-Token 헤더를 요구한다.
+    # 로컬 개발은 미설정(빈값) = 무인증이라 기존 흐름이 그대로 유지된다.
+    control_token: str = _get("CONTROL_TOKEN", "")
+    # 서버측 한도 상한 — 외부에서 예산을 무한대로 올리는 것을 기계적으로 차단
+    max_budget_usdc: Decimal = Decimal(_get("MAX_BUDGET_USDC", "10000"))
+    # 웹에서 라이브(온체인) 세션 시작 허용 여부 — 기본 차단, 시연 직전에만 켠다
+    allow_live_from_web: bool = _get("ALLOW_LIVE_FROM_WEB", "1").lower() in ("1", "true", "yes")
 
     # Alpha Vantage (무료 키) — scripts/fetch_market_data.py 일봉 수집용 (런타임 미사용)
     alphavantage_api_key: str = _get("ALPHAVANTAGE_API_KEY", "")
