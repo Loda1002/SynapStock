@@ -1,0 +1,149 @@
+{
+  "generated_at": "2026-07-24T16:43:22",
+  "network": "solana-devnet",
+  "rpc_url": "https://api.devnet.solana.com",
+  "wallets": {
+    "user": "E48dx73aaS6WE1WeQ4JB1Bn6hogfXeN5Ka3PkiyjxP5g",
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "8L9feSSChJHXEF58etFL1zsTzWiggqRdWFwqLM6vgH4u",
+    "stock": "EC3zZJdVVgTD8r4JPeszxBHtyaSSX9dppt3m3apeC8P4",
+    "stock_symbol": "tAAPL"
+  },
+  "mandate": {
+    "user_pubkey": "E48dx73aaS6WE1WeQ4JB1Bn6hogfXeN5Ka3PkiyjxP5g",
+    "budget_total_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "signature": "4XSdYZrLXRa95QNAVvMeDrPawbfcxJ8barQQ49LySxTeLCn6aFWKeVYBFKPEAqVm85dWAaTo9Fgrzkk3uSZTTN64"
+  },
+  "broker_fee": {
+    "fee_bps": 30,
+    "total_fees_usdc": "0.62"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 9.4853588,
+      "usdc": "1000",
+      "stock": "0"
+    },
+    "broker": {
+      "sol": 0.48945236,
+      "usdc": "500",
+      "stock": "100"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 9.4853338,
+      "usdc": "1004.9",
+      "stock": "0"
+    },
+    "broker": {
+      "sol": 0.48738808,
+      "usdc": "495.1",
+      "stock": "100"
+    }
+  },
+  "trades": [
+    {
+      "order_id": "ord_ba7df3add1",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 301.54 ≤ 매수기준 302.93 (MA5 309.11 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.0991",
+      "price_usdc": "301.54",
+      "subtotal_usdc": "29.88",
+      "fee_usdc": "0.09",
+      "total_usdc": "29.97",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3MvYmppzWhnrTebVRrek2jE91upNrXvsRrigCrHsJ2MGRvpossxPwEvpEEqrqi49ZW8fZFJgfTTUDJsRjg38tyfi",
+      "delivery_tx": "45WHYqXw5s5RB8xTCZ4VwPUithnZf2MjH9UoBBBskZ47j5JzyrakXmhTvjqtiyfgt3q1FbduuJsZnvpsfDYDFSKc",
+      "explorer_payment": "https://explorer.solana.com/tx/3MvYmppzWhnrTebVRrek2jE91upNrXvsRrigCrHsJ2MGRvpossxPwEvpEEqrqi49ZW8fZFJgfTTUDJsRjg38tyfi?cluster=devnet",
+      "explorer_delivery": "https://explorer.solana.com/tx/45WHYqXw5s5RB8xTCZ4VwPUithnZf2MjH9UoBBBskZ47j5JzyrakXmhTvjqtiyfgt3q1FbduuJsZnvpsfDYDFSKc?cluster=devnet"
+    },
+    {
+      "order_id": "ord_0101463ede",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 290.55 ≤ 매수기준 298.10 (MA5 304.18 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1029",
+      "price_usdc": "290.55",
+      "subtotal_usdc": "29.90",
+      "fee_usdc": "0.09",
+      "total_usdc": "29.99",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "5QVXmqkg1T1rTS2cVLus7j1NGn4TUdmp3SYNNUgBrk8pCMmNUcFDircpRVfy7gD5tE2SrzZupBddHnzSwTAkD9UT",
+      "delivery_tx": "3JjyQRrtYudWxT2fhSmREs6JnFNx2jSm8ptwg2XvZKttUn1bDGZDuAxV7eDdRUBbiTRhjDr31h4QMn3WLzYkxYw9",
+      "explorer_payment": "https://explorer.solana.com/tx/5QVXmqkg1T1rTS2cVLus7j1NGn4TUdmp3SYNNUgBrk8pCMmNUcFDircpRVfy7gD5tE2SrzZupBddHnzSwTAkD9UT?cluster=devnet",
+      "explorer_delivery": "https://explorer.solana.com/tx/3JjyQRrtYudWxT2fhSmREs6JnFNx2jSm8ptwg2XvZKttUn1bDGZDuAxV7eDdRUBbiTRhjDr31h4QMn3WLzYkxYw9?cluster=devnet"
+    },
+    {
+      "order_id": "ord_71e87a4c11",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 291.58 ≤ 매수기준 294.44 (MA5 300.45 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1025",
+      "price_usdc": "291.58",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "2LCgVyVTG5PywDzoA1dTSmbYfZ13hdRgaDYfrEYe3ynu8oxWbnJg1qFtrzmtHgXWiDDoquZtgVPQ76tMomZyurei",
+      "delivery_tx": "5M1Y8ASVtbNaUrcA1nFzs6HDiRGndyw2uY94MQfLZ5CfJa6R7FkK2mpJGxsgcNukn74KxLEoYVBE5NCESUsnea6k",
+      "explorer_payment": "https://explorer.solana.com/tx/2LCgVyVTG5PywDzoA1dTSmbYfZ13hdRgaDYfrEYe3ynu8oxWbnJg1qFtrzmtHgXWiDDoquZtgVPQ76tMomZyurei?cluster=devnet",
+      "explorer_delivery": "https://explorer.solana.com/tx/5M1Y8ASVtbNaUrcA1nFzs6HDiRGndyw2uY94MQfLZ5CfJa6R7FkK2mpJGxsgcNukn74KxLEoYVBE5NCESUsnea6k?cluster=devnet"
+    },
+    {
+      "order_id": "ord_0a50bae559",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 275.15 ≤ 매수기준 285.68 (MA5 291.51 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.0364",
+      "price_usdc": "275.15",
+      "subtotal_usdc": "10.02",
+      "fee_usdc": "0.03",
+      "total_usdc": "10.05",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "f6UVmDk8ihea7s3FYt767GhXjPbHadr2eLhDbtVPqbjzRUHRyyAJqCrJ3oeLba7mdfKcAEMo3wQSxS3Vyoe7XDN",
+      "delivery_tx": "3Awx4N6tDT5BLZb1qPhBauZPwd33kXoeozZyvYqvKqxBFpj7RBQX2CDXbVoZVnofWPw6qRT5MZQWkQiDTRo6Fc4k",
+      "explorer_payment": "https://explorer.solana.com/tx/f6UVmDk8ihea7s3FYt767GhXjPbHadr2eLhDbtVPqbjzRUHRyyAJqCrJ3oeLba7mdfKcAEMo3wQSxS3Vyoe7XDN?cluster=devnet",
+      "explorer_delivery": "https://explorer.solana.com/tx/3Awx4N6tDT5BLZb1qPhBauZPwd33kXoeozZyvYqvKqxBFpj7RBQX2CDXbVoZVnofWPw6qRT5MZQWkQiDTRo6Fc4k?cluster=devnet"
+    },
+    {
+      "order_id": "ord_409cae1604",
+      "side": "sell",
+      "decision_source": "rule",
+      "decision_reason": "가격 308.63 ≥ 익절기준 302.11 (평단 293.31 +3%)",
+      "symbol": "tAAPL",
+      "quantity": "0.3409",
+      "price_usdc": "308.63",
+      "subtotal_usdc": "105.21",
+      "fee_usdc": "0.32",
+      "total_usdc": "104.89",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "5dsdZCm7FrZGcUAi6FLN8djDaRLmcb8Noe6eyCEX3ss6eDeY9gpygKEe8YUu4yKA8dMpxWVKFAZ5Ag976FXdYiig",
+      "delivery_tx": "2daSPsvLWBm7AUjrZkcQxL6mpjYZGhjRTycmW3o449AEmEGK2c8fcXsR6zDue3aLk4FNs8MHgz5TmU8s6ojowCTB",
+      "explorer_payment": "https://explorer.solana.com/tx/5dsdZCm7FrZGcUAi6FLN8djDaRLmcb8Noe6eyCEX3ss6eDeY9gpygKEe8YUu4yKA8dMpxWVKFAZ5Ag976FXdYiig?cluster=devnet",
+      "explorer_delivery": "https://explorer.solana.com/tx/2daSPsvLWBm7AUjrZkcQxL6mpjYZGhjRTycmW3o449AEmEGK2c8fcXsR6zDue3aLk4FNs8MHgz5TmU8s6ojowCTB?cluster=devnet"
+    }
+  ],
+  "cross_check": {
+    "usdc_net_out_onchain": "-4.9",
+    "usdc_net_out_expected": "-4.90",
+    "usdc_ok": true,
+    "stock_net_in_onchain": "0",
+    "stock_net_in_expected": "0.0000",
+    "stock_ok": true
+  }
+}
