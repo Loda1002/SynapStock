@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-23T20:47:40",
+  "generated_at": "2026-07-24T09:49:25",
   "config": {
     "source": "AAPL 일봉 재생 2026-03-27~2026-07-22 (80봉)",
     "file": "data/market/AAPL_daily.csv",
@@ -8,7 +8,7 @@
     "bars_played": 80,
     "brain": "rule",
     "mode": "-",
-    "ta_mode": true,
+    "ta_mode": false,
     "rules": {
       "buy_dip_pct": "2",
       "take_profit_pct": "3",
@@ -19,27 +19,72 @@
     "fee_bps": 30
   },
   "metrics": {
-    "realized_pnl_usdc": "0.00",
+    "realized_pnl_usdc": "4.90",
     "unrealized_pnl_usdc": "0.00",
-    "total_pnl_usdc": "0.00",
-    "return_on_budget_pct": "0.00",
-    "buy_count": 0,
-    "sell_count": 0,
-    "win_rate_pct": "0",
-    "max_drawdown_pct": "0.00",
-    "cum_buy_usdc": "0",
-    "fees_usdc": "0",
+    "total_pnl_usdc": "4.90",
+    "return_on_budget_pct": "4.90",
+    "benchmark_buyhold_pct": "30.19",
+    "benchmark_buyhold_pnl_usdc": "30.19",
+    "excess_return_pct": "-25.29",
+    "first_price": "248.80",
+    "last_price": "325.89",
+    "exposure_pct": "21.25",
+    "buy_count": 4,
+    "sell_count": 1,
+    "win_rate_pct": "100",
+    "max_drawdown_pct": "7.31",
+    "cum_buy_usdc": "99.99",
+    "fees_usdc": "0.62",
     "ap2_rejects": 0,
     "gemini_fallbacks": 0,
     "decisions_by_action": {
-      "hold": 80
+      "hold": 75,
+      "buy": 4,
+      "sell": 1
     },
     "decisions_by_source": {
       "rule": 80
     },
     "position_left_qty": "0"
   },
-  "trades": [],
+  "trades": [
+    {
+      "date": "2026-06-08",
+      "side": "buy",
+      "qty": "0.0991",
+      "price": "301.54",
+      "total": "29.97"
+    },
+    {
+      "date": "2026-06-09",
+      "side": "buy",
+      "qty": "0.1029",
+      "price": "290.55",
+      "total": "29.99"
+    },
+    {
+      "date": "2026-06-10",
+      "side": "buy",
+      "qty": "0.1025",
+      "price": "291.58",
+      "total": "29.98"
+    },
+    {
+      "date": "2026-06-25",
+      "side": "buy",
+      "qty": "0.0364",
+      "price": "275.15",
+      "total": "10.05"
+    },
+    {
+      "date": "2026-07-02",
+      "side": "sell",
+      "qty": "0.3409",
+      "price": "308.63",
+      "total": "104.89",
+      "realized": "4.90"
+    }
+  ],
   "decisions": [
     {
       "date": "2026-03-27",
@@ -387,128 +432,128 @@
     {
       "date": "2026-06-08",
       "price": "301.54",
-      "action": "hold",
+      "action": "buy",
       "source": "rule",
-      "reason": "매수 조건 충족이지만 TA 매도 신호 우세(매도합 225 vs 매수합 0) — 보류"
+      "reason": "가격 301.54 ≤ 매수기준 302.93 (MA5 309.11 −2%)"
     },
     {
       "date": "2026-06-09",
       "price": "290.55",
-      "action": "hold",
+      "action": "buy",
       "source": "rule",
-      "reason": "매수 조건 충족이지만 중기선(MA10) 하락 중 — 매수 보류(사지마)"
+      "reason": "가격 290.55 ≤ 매수기준 298.10 (MA5 304.18 −2%)"
     },
     {
       "date": "2026-06-10",
       "price": "291.58",
-      "action": "hold",
+      "action": "buy",
       "source": "rule",
-      "reason": "매수 조건 충족이지만 중기선(MA10) 하락 중 — 매수 보류(사지마)"
+      "reason": "가격 291.58 ≤ 매수기준 294.44 (MA5 300.45 −2%)"
     },
     {
       "date": "2026-06-11",
       "price": "295.63",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 295.63 · 매수기준 291.38(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 295.63 · 매수기준 291.38(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-12",
       "price": "291.13",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 291.13 · 매수기준 288.21(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 291.13 · 매수기준 288.21(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-15",
       "price": "296.42",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 296.42 · 매수기준 287.20(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 296.42 · 매수기준 287.20(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-16",
       "price": "299.24",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 299.24 · 매수기준 288.90(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 299.24 · 매수기준 288.90(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-17",
       "price": "295.95",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 295.95 · 매수기준 289.76(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 295.95 · 매수기준 289.76(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-18",
       "price": "298.01",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 298.01 · 매수기준 290.23(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 298.01 · 매수기준 290.23(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-22",
       "price": "297.01",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 297.01 · 매수기준 291.38(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 297.01 · 매수기준 291.38(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-23",
       "price": "294.30",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 294.30 · 매수기준 290.96(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 294.30 · 매수기준 290.96(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-24",
       "price": "293.08",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 293.08 · 매수기준 289.76(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 293.08 · 매수기준 289.76(MA5−2%) · 익절기준 304.23"
     },
     {
       "date": "2026-06-25",
       "price": "275.15",
-      "action": "hold",
+      "action": "buy",
       "source": "rule",
-      "reason": "매수 조건 충족이지만 중기선(MA10) 하락 중 — 매수 보류(사지마)"
+      "reason": "가격 275.15 ≤ 매수기준 285.68 (MA5 291.51 −2%)"
     },
     {
       "date": "2026-06-26",
       "price": "283.78",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 283.78 · 매수기준 282.89(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 283.78 · 매수기준 282.89(MA5−2%) · 익절기준 302.11"
     },
     {
       "date": "2026-06-29",
       "price": "281.74",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 281.74 · 매수기준 279.90(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 281.74 · 매수기준 279.90(MA5−2%) · 익절기준 302.11"
     },
     {
       "date": "2026-06-30",
       "price": "289.36",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 289.36 · 매수기준 278.93(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 289.36 · 매수기준 278.93(MA5−2%) · 익절기준 302.11"
     },
     {
       "date": "2026-07-01",
       "price": "294.38",
       "action": "hold",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 294.38 · 매수기준 279.18(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "조건 미충족 — 가격 294.38 · 매수기준 279.18(MA5−2%) · 익절기준 302.11"
     },
     {
       "date": "2026-07-02",
       "price": "308.63",
-      "action": "hold",
+      "action": "sell",
       "source": "rule",
-      "reason": "조건 미충족 — 가격 308.63 · 매수기준 285.75(MA5−2%) · 보유 없음(매도 조건 없음)"
+      "reason": "가격 308.63 ≥ 익절기준 302.11 (평단 293.31 +3%)"
     },
     {
       "date": "2026-07-06",

@@ -2,7 +2,7 @@
   "generated_at": "2026-07-23T20:47:40",
   "config": {
     "source": "AAPL 일봉 재생 2026-03-27~2026-07-22 (80봉)",
-    "file": "C:\\Users\\Tedd\\Desktop\\홍익대학교\\프로젝트\\[Google Cloud X Solana] AI 에이전틱 해커톤\\solana-agent\\data\\market\\AAPL_daily.csv",
+    "file": "data/market/AAPL_daily.csv",
     "from": "",
     "to": "",
     "bars_played": 80,

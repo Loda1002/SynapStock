@@ -20,7 +20,7 @@ import os
 import sys
 import time
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -121,6 +121,8 @@ def main() -> int:
     peak = budget
     mdd = Decimal(0)
     last_price = Decimal(0)
+    first_price = Decimal(0)   # 벤치마크(매수후보유) 진입가 = 재생 첫 봉 종가
+    bars_in_position = 0       # 시장 노출 봉 수 (자본 유휴율 진단)
     last_call = 0.0
     played = 0
 
@@ -133,6 +135,8 @@ def main() -> int:
         bar = feed.last_bar
         last_price = price
         played += 1
+        if played == 1:
+            first_price = price
 
         if brain is not None:
             # 무료 티어 보호 — 호출 간격 유지 + 429 쿨다운이 걸려 있으면 기다렸다 재개
@@ -181,6 +185,9 @@ def main() -> int:
                            "price": str(price), "total": str(q.total_usdc),
                            "realized": str(pnl)})
 
+        if trading.position.quantity > 0:
+            bars_in_position += 1
+
         # 자산가치 곡선 (가용 예산 + 보유 평가액, 수수료 차감) → 최대낙폭(MDD)
         equity = auth.remaining_usdc + (trading.position.quantity * price * (1 - fee_rate))
         peak = max(peak, equity)
@@ -195,10 +202,23 @@ def main() -> int:
                   - pos.avg_price_usdc * pos.quantity).quantize(CENT)
     total_pnl = (realized + unrealized).quantize(CENT)
     sells = [t for t in trades if t["side"] == "sell"]
+
+    # 벤치마크: 같은 구간 첫 봉에 예산 전액으로 매수 → 마지막 봉에 전량 매도 (매수후보유).
+    # 브로커와 동일한 수수료 모델(매수 가산·매도 차감)을 적용해야 정직한 비교가 된다.
+    # 심사 최다 예상 질문 "AI 없이 그냥 샀으면?" 에 대한 우리 쪽 기준선이다.
+    bh_qty = ((budget / (first_price * (1 + fee_rate))).quantize(Decimal("0.0001"),
+              rounding=ROUND_DOWN) if first_price > 0 else Decimal(0))
+    bh_final = (bh_qty * last_price * (1 - fee_rate)).quantize(CENT)
+    bh_pnl = (bh_final - budget).quantize(CENT)
+    bh_pct = (bh_pnl / budget * 100).quantize(CENT) if budget > 0 else Decimal(0)
+    strat_pct = (total_pnl / budget * 100).quantize(CENT) if budget > 0 else Decimal(0)
+    excess_pct = (strat_pct - bh_pct).quantize(CENT)
+    exposure_pct = (Decimal(bars_in_position) / played * 100).quantize(CENT) if played else Decimal(0)
     result = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "config": {
-            "source": feed.source_label, "file": csv_path,
+            # 저장소 상대경로로 기록 — 공개 저장소에 로컬 사용자명·디렉터리가 새지 않게
+            "source": feed.source_label, "file": os.path.relpath(csv_path, ROOT).replace("\\", "/"),
             "from": args.date_from, "to": args.date_to, "bars_played": played,
             "brain": args.brain, "mode": args.mode if args.brain == "gemini" else "-",
             "ta_mode": args.ta,
@@ -211,8 +231,16 @@ def main() -> int:
             "realized_pnl_usdc": str(realized.quantize(CENT)),
             "unrealized_pnl_usdc": str(unrealized),
             "total_pnl_usdc": str(total_pnl),
-            "return_on_budget_pct": str((total_pnl / budget * 100).quantize(CENT)),
+            "return_on_budget_pct": str(strat_pct),
+            # 벤치마크 대비 — excess 가 음수면 "그냥 사서 들고 있는 게 나았다"는 뜻이다
+            "benchmark_buyhold_pct": str(bh_pct),
+            "benchmark_buyhold_pnl_usdc": str(bh_pnl),
+            "excess_return_pct": str(excess_pct),
+            "first_price": str(first_price), "last_price": str(last_price),
+            "exposure_pct": str(exposure_pct),   # 시장 노출 비율 (100 − 자본 유휴율)
             "buy_count": len(trades) - len(sells), "sell_count": len(sells),
+            # 승률은 '실현된 매도'만 세므로 미실현 손실이 포지션에 잠기면 100%가 나온다.
+            # 반드시 total_pnl·excess 와 함께 읽을 것 (단독 인용 금지).
             "win_rate_pct": str(Decimal(wins) / len(sells) * 100 if sells else Decimal(0))[:6],
             "max_drawdown_pct": str(mdd.quantize(CENT)),
             "cum_buy_usdc": str(cum_buy), "fees_usdc": str(fees),
@@ -229,6 +257,9 @@ def main() -> int:
     print(f"  총손익      : {m['total_pnl_usdc']} USDC "
           f"(실현 {m['realized_pnl_usdc']} + 평가 {m['unrealized_pnl_usdc']})")
     print(f"  예산 수익률 : {m['return_on_budget_pct']}%  ·  최대낙폭(MDD) {m['max_drawdown_pct']}%")
+    verdict = "우위" if Decimal(m["excess_return_pct"]) >= 0 else "열위"
+    print(f"  벤치마크    : 매수후보유 {m['benchmark_buyhold_pct']}% "
+          f"→ 초과수익 {m['excess_return_pct']}%p ({verdict}) · 시장노출 {m['exposure_pct']}%")
     print(f"  매매        : 매수 {m['buy_count']} / 매도 {m['sell_count']} "
           f"(승률 {m['win_rate_pct']}%) · 수수료 {m['fees_usdc']} USDC")
     print(f"  AP2 거부    : {m['ap2_rejects']}건 · Gemini 폴백 {m['gemini_fallbacks']}건")
