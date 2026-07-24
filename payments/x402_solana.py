@@ -10,6 +10,7 @@
 브로드캐스트(submit_and_confirm)와 airdrop 만 실제 RPC가 필요하다.
 """
 from __future__ import annotations
+import asyncio
 import base64
 import json
 import os
@@ -226,6 +227,39 @@ def verify_payment(
 
 # ---------- 네트워크 (devnet RPC 필요) ----------
 
+def _is_transient(e: Exception) -> bool:
+    """예외 체인(래핑된 원인 포함)에서 일시적 RPC 오류 신호를 찾는다.
+    solana-py 는 429 를 SolanaRpcException 으로 감싸 str() 에 '429' 가 안 보이므로
+    __cause__/__context__ 를 따라가며 확인한다."""
+    cur, parts = e, []
+    for _ in range(6):
+        if cur is None:
+            break
+        parts.append(type(cur).__name__)
+        parts.append(str(cur))
+        cur = cur.__cause__ or cur.__context__
+    text = " ".join(parts)
+    return any(s in text for s in ("429", "Too Many", "Internal error",
+                                   "SolanaRpcException", "timed out", "Timeout"))
+
+
+async def rpc_retry(factory, retries: int = 6, label: str = ""):
+    """공용 devnet RPC(api.devnet.solana.com)는 요청이 몰리면 429 를 준다. 429·일시적
+    오류를 지수 백오프로 재시도한다 — 조회·confirm 은 idempotent 하고 재제출도 동일
+    blockhash·서명이라 중복 tx 가 생기지 않아 안전하다. (setup_devnet 과 동일 전략)"""
+    for attempt in range(retries):
+        try:
+            return await factory()
+        except Exception as e:
+            if _is_transient(e) and attempt < retries - 1:
+                wait = 2 ** (attempt + 1)
+                print(f"    (RPC 혼잡{' ' + label if label else ''} — {wait}s 후 재시도 {attempt + 1}/{retries - 1})")
+                await asyncio.sleep(wait)
+                continue
+            raise
+    raise RuntimeError("RPC 재시도 소진")
+
+
 async def get_client(rpc_url: str):
     """Confirmed 커밋먼트로 통일 — Finalized 기본값이면 방금 에어드랍/전송된
     자금이 preflight 시뮬레이션에 안 보여 AccountNotFound 가 난다."""
@@ -235,7 +269,7 @@ async def get_client(rpc_url: str):
 
 
 async def get_latest_blockhash(client) -> Hash:
-    resp = await client.get_latest_blockhash()
+    resp = await rpc_retry(lambda: client.get_latest_blockhash(), label="blockhash")
     return resp.value.blockhash
 
 
@@ -250,7 +284,7 @@ async def request_airdrop(client, pubkey: Pubkey, sol: float = 1.0) -> str:
 
 async def get_sol_balance(client, pubkey: Pubkey) -> float:
     """SOL 잔액 (수수료 확인용)."""
-    resp = await client.get_balance(pubkey)
+    resp = await rpc_retry(lambda: client.get_balance(pubkey), label="잔액")
     return resp.value / 1_000_000_000
 
 
@@ -258,7 +292,7 @@ async def get_token_balance_ui(client, owner: Pubkey, mint: Pubkey) -> str:
     """소유자 ATA 의 토큰 잔액(UI 단위 문자열). ATA 미존재 시 '0'."""
     ata = get_associated_token_address(owner, mint)
     try:
-        resp = await client.get_token_account_balance(ata)
+        resp = await rpc_retry(lambda: client.get_token_account_balance(ata), label="토큰잔액")
         return resp.value.ui_amount_string
     except Exception:
         return "0"
@@ -270,7 +304,7 @@ async def get_token_balance_base(client, owner: Pubkey, mint: Pubkey) -> int:
     Guard.check_delivery 의 온체인 재조회용 — 정산 전후 잔액 증가분을 정수로 비교한다."""
     ata = get_associated_token_address(owner, mint)
     try:
-        resp = await client.get_token_account_balance(ata)
+        resp = await rpc_retry(lambda: client.get_token_account_balance(ata), label="토큰잔액")
         return int(resp.value.amount)
     except Exception:
         return 0
@@ -285,10 +319,10 @@ async def submit_and_confirm(client, tx: Transaction) -> Tuple[str, bool]:
     """
     from solana.rpc.commitment import Confirmed
     from solana.rpc.types import TxOpts
-    resp = await client.send_raw_transaction(
-        bytes(tx), opts=TxOpts(skip_preflight=False, preflight_commitment=Confirmed))
+    resp = await rpc_retry(lambda: client.send_raw_transaction(
+        bytes(tx), opts=TxOpts(skip_preflight=False, preflight_commitment=Confirmed)), label="제출")
     sig = resp.value
-    conf = await client.confirm_transaction(sig, commitment=Confirmed)
+    conf = await rpc_retry(lambda: client.confirm_transaction(sig, commitment=Confirmed), label="confirm")
     ok = True
     try:
         ok = conf.value[0].err is None

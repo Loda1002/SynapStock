@@ -20,7 +20,7 @@ from solders.pubkey import Pubkey
 from solders.hash import Hash
 
 from config import CFG, from_base_units
-from market.price_feed import MockPriceFeed
+from market.price_feed import MockPriceFeed, ReplayPriceFeed
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from payments.guard import Guard, GuardError
@@ -96,7 +96,8 @@ def print_snapshot(snap: dict, symbol: str) -> None:
         print(f"  {name:7s}: {b['sol']:.4f} SOL / {b['usdc']} USDC / {b['stock']} {symbol}")
 
 
-async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
+async def main(live: bool, ticks: int, use_gemini: bool = True,
+               replay: str = "", date_from: str = "", date_to: str = "") -> None:
     print(f"\n=== AutoTrader Agent 데모  (모드: {'LIVE ' + CFG.network if live else 'DRY-RUN'}) ===")
 
     # --- 지갑 (user=위임자 / trading=구매 에이전트 / broker=판매) ---
@@ -157,7 +158,14 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
     # 402 Guard — 신뢰 수취인은 협의를 마친 브로커뿐. 구매 에이전트가 서명 직전 통과한다.
     trading.guard = Guard(open_mandate, [str(broker_kp.pubkey())], CFG.usdc_decimals)
     print(f"브로커 수수료: {CFG.broker_fee_bps} bps ({Decimal(CFG.broker_fee_bps) / 100}%) — 매수 가산·매도 차감")
-    feed = MockPriceFeed()
+    if replay:
+        rpath = os.path.join("data", "market", f"{replay.upper()}_daily.csv")
+        feed = ReplayPriceFeed(rpath, start=date_from, end=date_to, warmup=CFG.replay_warmup)
+        trading.preload_bars(feed.warmup_bars)   # MA/TA 워밍업 주입 — 첫 틱부터 지표 성립
+        print(f"시세 피드   : {feed.source_label} (실데이터 재생 — MA5/지표 규칙)")
+    else:
+        feed = MockPriceFeed()
+        print("시세 피드   : 목 시세 (8스텝 데모 패턴)")
 
     # --- 라이브면 클라이언트 준비 + 실행 전 잔액 스냅샷 ---
     client = None
@@ -174,11 +182,18 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
         hr("온체인 잔액 (실행 전)")
         print_snapshot(snap_before, symbol)
 
-    # --- 시세 루프 ---
+    # --- 시세 루프 (mock=고정 틱 수 / replay=데이터 소진까지) ---
+    def _ticks():
+        if replay:
+            while not feed.exhausted:
+                p = feed.get_price(symbol)
+                yield p, feed.last_bar          # 실 OHLC 봉을 판단에 전달 (TA·캔들)
+        else:
+            for _ in range(ticks):
+                yield feed.get_price(symbol), None
     try:
-        for t in range(ticks):
-            price = feed.get_price(symbol)
-            decision = trading.decide(symbol, price)
+        for t, (price, bar) in enumerate(_ticks()):
+            decision = trading.decide(symbol, price, bar=bar)
             hr(f"틱 {t+1}  |  {symbol} = {price} USDC  →  판단: {decision.action.upper()}  [{decision.source}]")
             print(f"  이유: {decision.reason}")
 
@@ -375,5 +390,10 @@ if __name__ == "__main__":
     ap.add_argument("--live", action="store_true", help="클러스터에 실제 브로드캐스트")
     ap.add_argument("--ticks", type=int, default=4, help="시세 틱 수")
     ap.add_argument("--no-gemini", action="store_true", help="Gemini 없이 규칙 기반으로만 판단")
+    ap.add_argument("--replay", default="", metavar="SYMBOL",
+                    help="실데이터 재생 (예: AAPL) — data/market/{SYMBOL}_daily.csv, MA5/지표 규칙 매매")
+    ap.add_argument("--from", dest="date_from", default="", help="재생 시작일 YYYY-MM-DD")
+    ap.add_argument("--to", dest="date_to", default="", help="재생 종료일 YYYY-MM-DD")
     args = ap.parse_args()
-    asyncio.run(main(args.live, args.ticks, use_gemini=not args.no_gemini))
+    asyncio.run(main(args.live, args.ticks, use_gemini=not args.no_gemini,
+                     replay=args.replay, date_from=args.date_from, date_to=args.date_to))
