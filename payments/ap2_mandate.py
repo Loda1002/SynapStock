@@ -104,13 +104,23 @@ class PaymentAuthorizer:
         self.open = open_mandate
         self.agent_kp = agent_kp
         self.spent_usdc: Decimal = Decimal(0)
+        # 주문별 예약분 — 정산 실패 시 원복(release)용. authorize 가 즉시 spent 에 반영하되,
+        # 결제가 settled 되지 못하면 이 예약을 되돌려 한도를 원상복구한다(결함 H).
+        self._reservations: dict[str, Decimal] = {}
 
     @property
     def remaining_usdc(self) -> Decimal:
         return self.open.budget_total_usdc - self.spent_usdc
 
-    def authorize(self, order_id: str, symbol: str, amount_usdc: Decimal, pay_to: str) -> ClosedPaymentMandate:
-        """한도 검사 후 통과 시 서명된 closed mandate 반환, 실패 시 MandateError."""
+    def authorize(self, order_id: str, symbol: str, amount_usdc: Decimal, pay_to: str,
+                  asset: Optional[str] = None) -> ClosedPaymentMandate:
+        """한도 검사 후 통과 시 서명된 closed mandate 반환, 실패 시 MandateError.
+
+        asset 이 주어지면 mandate 가 허용한 결제 자산인지 검사한다 — allowed_asset 를
+        실제로 읽는 유일한 지점(결함 C: 직렬화만 되고 검증엔 안 쓰이던 죽은 필드를 살린다).
+        """
+        if asset is not None and str(asset) != str(self.open.allowed_asset):
+            raise MandateError(f"허용되지 않은 결제 자산: {asset} (허용 {self.open.allowed_asset})")
         if symbol not in self.open.allowed_symbols:
             raise MandateError(f"허용되지 않은 종목: {symbol}")
         if amount_usdc > self.open.per_trade_max_usdc:
@@ -126,7 +136,23 @@ class PaymentAuthorizer:
             pay_to=pay_to, open_mandate_sig=self.open.signature or "",
         ).sign(self.agent_kp)
         self.spent_usdc += amount_usdc
+        self._reservations[order_id] = self._reservations.get(order_id, Decimal(0)) + amount_usdc
         return closed
+
+    def release(self, order_id: str) -> Decimal:
+        """정산 실패 시 예약분 원복 — 사용액(spent)을 되돌려 한도를 원상복구한다(결함 H).
+
+        결제가 온체인에서 settled 되지 못했는데도 예산이 소진된 채로 남던 문제를 막는다.
+        멱등(idempotent) — 같은 주문을 두 번 release 해도 한 번만 되돌린다."""
+        amt = self._reservations.pop(order_id, None)
+        if amt is None:
+            return Decimal(0)
+        self.spent_usdc = max(Decimal(0), self.spent_usdc - amt)
+        return amt
+
+    def settle(self, order_id: str) -> Decimal:
+        """정산 성공 확정 — 예약을 확정 소비로 전환한다(이후 release 로 되돌지 않게)."""
+        return self._reservations.pop(order_id, None) or Decimal(0)
 
     def credit_sale(self, amount_usdc: Decimal) -> None:
         """매도 대금 환입 — 예산(budget_total)은 '순투입 한도'로 해석한다.

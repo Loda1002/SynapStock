@@ -23,6 +23,7 @@ from config import CFG, from_base_units
 from market.price_feed import MockPriceFeed
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
+from payments.guard import Guard, GuardError
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy
 
@@ -153,6 +154,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
         broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
         fee_bps=CFG.broker_fee_bps,
     )
+    # 402 Guard — 신뢰 수취인은 협의를 마친 브로커뿐. 구매 에이전트가 서명 직전 통과한다.
+    trading.guard = Guard(open_mandate, [str(broker_kp.pubkey())], CFG.usdc_decimals)
     print(f"브로커 수수료: {CFG.broker_fee_bps} bps ({Decimal(CFG.broker_fee_bps) / 100}%) — 매수 가산·매도 차감")
     feed = MockPriceFeed()
 
@@ -245,10 +248,13 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
             print(f"  [x402 #1 payment-required] order={required.order_id} "
                   f"amount={required.requirements.amount}(base) payTo={required.requirements.pay_to[:8]}…")
 
-            # (A2A #2) 한도 승인 + 결제 서명 → payment-submitted
+            # (A2A #2) 402 Guard 청구서 검증 + AP2 한도 승인 + 결제 서명 → payment-submitted
             try:
                 blockhash = await x.get_latest_blockhash(client) if live else Hash.default()
-                submitted = trading.build_payment(required, blockhash)
+                submitted = trading.build_payment(required, blockhash, quote)
+            except GuardError as e:
+                print(f"  [402 Guard 차단] {e} — 서명 거부(유출 0)")
+                continue
             except MandateError as e:
                 print(f"  [AP2 거부] {e} — 결제 중단")
                 continue

@@ -226,6 +226,18 @@ async def get_token_balance_ui(client, owner: Pubkey, mint: Pubkey) -> str:
         return "0"
 
 
+async def get_token_balance_base(client, owner: Pubkey, mint: Pubkey) -> int:
+    """소유자 ATA 의 토큰 잔액(base units 정수). ATA 미존재 시 0.
+
+    Guard.check_delivery 의 온체인 재조회용 — 정산 전후 잔액 증가분을 정수로 비교한다."""
+    ata = get_associated_token_address(owner, mint)
+    try:
+        resp = await client.get_token_account_balance(ata)
+        return int(resp.value.amount)
+    except Exception:
+        return 0
+
+
 async def submit_and_confirm(client, tx: Transaction) -> Tuple[str, bool]:
     """트랜잭션을 클러스터에 제출하고 컨펌될 때까지 대기. (서명 문자열, 성공여부).
 

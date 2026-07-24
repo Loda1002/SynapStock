@@ -24,10 +24,11 @@ from solders.hash import Hash
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
 
-from config import CFG
+from config import CFG, to_base_units
 from market.price_feed import Bar, MockPriceFeed, PriceFeed, ReplayPriceFeed
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
+from payments.guard import Guard, GuardError
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy, Decision
 from run_demo import _load_or_new, _load_or_create_user_key, explorer_tx_url, snapshot_balances
@@ -89,6 +90,8 @@ class TradingEngine:
         self.feed_info: Dict[str, Any] = {"type": "", "label": ""}  # 시세 피드 (mock/replay)
         self.reject_count = 0                       # B2 브리핑용: AP2 거부 횟수
         self.pause_count = 0                        # B2 브리핑용: 긴급정지 횟수
+        self.guard_block_count = 0                  # 402 Guard check_demand 차단 횟수 (첫 화면 KPI)
+        self.guard_leak_usdc = Decimal(0)           # 가드 통과 후 유출된 USDC (정상 0.00)
         self.last_briefing: Optional[Dict[str, Any]] = None  # B2 최근 브리핑
         self._last_daily_briefing_date = ""         # B2 장 마감 자동 생성 중복 방지
 
@@ -102,6 +105,7 @@ class TradingEngine:
         self._prev_close: Optional[Decimal] = None   # 직전 봉 종가 (등락 표시 기준)
         self._change_ref: Optional[Decimal] = None   # 마지막 틱에서 쓴 등락 기준값
         self._auth: Optional[PaymentAuthorizer] = None
+        self._guard: Optional[Guard] = None
         self._mandate: Optional[OpenPaymentMandate] = None
         self._user_kp: Optional[Keypair] = None
         self._trading_kp: Optional[Keypair] = None
@@ -339,6 +343,9 @@ class TradingEngine:
         broker = BrokerAgent(
             broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
             fee_bps=CFG.broker_fee_bps)
+        # 402 Guard — 신뢰 수취인은 A2A 협의를 마친 브로커뿐. 구매 에이전트가 서명 직전 통과.
+        guard = Guard(mandate, [str(broker_kp.pubkey())], CFG.usdc_decimals)
+        trading.guard = guard
 
         client = None
         snap_before = None
@@ -377,6 +384,8 @@ class TradingEngine:
         self.mandate_history = []
         self.reject_count = 0
         self.pause_count = 0
+        self.guard_block_count = 0
+        self.guard_leak_usdc = Decimal(0)
         self.started_at = _now()
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_{mode}"
         self.brain_label = brain_label
@@ -398,6 +407,7 @@ class TradingEngine:
         self._user_kp = user_kp
         self._trading_kp, self._broker_kp = trading_kp, broker_kp
         self._mandate, self._auth = mandate, auth
+        self._guard = guard
         self._trading, self._broker, self._feed = trading, broker, feed
         self._client = client
         self._snap_before = self._snap_last = snap_before
@@ -737,9 +747,16 @@ class TradingEngine:
             "resource": required.requirements.resource,
         })
 
+        # 402 Guard(청구서 검증) + AP2 한도 검사 — 위반이면 서명 자체가 일어나지 않는다(유출 0)
         try:
             blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
-            submitted = self._trading.build_payment(required, blockhash)
+            submitted = self._trading.build_payment(required, blockhash, quote)
+        except GuardError as e:
+            self.guard_block_count += 1
+            self.bus.emit(ev.GUARD_BLOCKED, {
+                "side": "buy", "order_id": required.order_id, **e.result.as_event(),
+            })
+            return
         except MandateError as e:
             self.reject_count += 1
             self.bus.emit(ev.MANDATE_REJECTED, {
@@ -752,17 +769,58 @@ class TradingEngine:
             "payload_b64_len": len(submitted.payment.serialized_transaction),
         })
 
-        completed = await self._broker.settle(
-            submitted, required.requirements, quote.quantity, live=live, client=self._client)
-        # 평단은 수수료 포함 실효 단가(total/qty)로 반영 — 실현손익이 수수료 차감 후 순손익이 된다
-        eff_price = ((quote.total_usdc / quote.quantity).quantize(Decimal("0.01"))
-                     if quote.quantity > 0 else price)
-        self._trading.on_completed(completed, symbol, quote.quantity, eff_price, quote.total_usdc)
-        if completed.status == "settled":
-            self.cum_buy_usdc += quote.total_usdc
-            self.total_fees += quote.fee_usdc
+        # 라이브: 정산 전 구매자 주식 잔액을 캡처(배송 재조회의 기준점)
+        before_stock = 0
+        if live and self._client is not None and self._stock_mint is not None:
+            before_stock = await x.get_token_balance_base(
+                self._client, self._trading_kp.pubkey(), self._stock_mint)
 
-        self._complete_trade("buy", symbol, quote.quantity, quote, completed, decision)
+        completed = None
+        settled = False
+        try:
+            completed = await self._broker.settle(
+                submitted, required.requirements, quote.quantity, live=live, client=self._client)
+
+            # 라이브 정산 성공이면 온체인 재조회로 실제 배송을 확인한다
+            # (결함 I: 결제는 확정됐는데 주식 전달이 실패해도 settled 로 기록되던 문제).
+            if (completed.status == "settled" and live and self._client is not None
+                    and self._stock_mint is not None):
+                expected_inc = to_base_units(quote.quantity, CFG.stock_decimals)
+
+                async def _reader():
+                    return await x.get_token_balance_base(
+                        self._client, self._trading_kp.pubkey(), self._stock_mint)
+
+                delivery = await self._guard.check_delivery(
+                    completed, signed_order_id=required.order_id, balance_reader=_reader,
+                    before_units=before_stock, expected_increase_units=expected_inc,
+                    retries=2, retry_delay_sec=1.0)
+                if not delivery.ok:
+                    # pending_delivery — 포지션 미반영·한도 원복·세션 정지·미결(partial) 기록
+                    completed.status = "partial"
+                    self.bus.emit(ev.GUARD_PENDING, {
+                        "side": "buy", "order_id": required.order_id, **delivery.as_event(),
+                    })
+
+            settled = completed.status == "settled"
+            # 평단은 수수료 포함 실효 단가(total/qty)로 반영 — 실현손익이 수수료 차감 후 순손익
+            eff_price = ((quote.total_usdc / quote.quantity).quantize(Decimal("0.01"))
+                         if quote.quantity > 0 else price)
+            self._trading.on_completed(completed, symbol, quote.quantity, eff_price, quote.total_usdc)
+            if settled:
+                self.cum_buy_usdc += quote.total_usdc
+                self.total_fees += quote.fee_usdc
+            self._complete_trade("buy", symbol, quote.quantity, quote, completed, decision)
+        finally:
+            # 결함 H: settled 가 아니면 AP2 예약분을 원복해 한도를 되돌린다(실패해도 예산 소진 방지)
+            if settled:
+                self._auth.settle(required.order_id)
+            else:
+                self._auth.release(required.order_id)
+
+        # 배송 미확인(partial)이면 세션을 정지한다 — 반복 결제로 손실이 누적되지 않게
+        if completed is not None and completed.status == "partial" and self.trading_enabled:
+            self.pause(actor="guard")
 
     # ---------- 매도 사이클 (run_demo 이식 + A7 실현손익) ----------
 
@@ -966,6 +1024,7 @@ class TradingEngine:
             "total_fees_usdc": str(self.total_fees),
             "fee_bps": CFG.broker_fee_bps,
             "reject_count": self.reject_count, "pause_count": self.pause_count,
+            "guard_block_count": self.guard_block_count,   # 402 Guard check_demand 차단
             "position_qty": str(pos.quantity) if pos else "0",
             "position_avg_usdc": str(pos.avg_price_usdc) if pos else "0",
             "trade_count": len(self.trades), "decision_count": len(self.decisions),
@@ -1065,6 +1124,12 @@ class TradingEngine:
             "strategy": getattr(self, "strategy_info", None) or {"type": "condition"},
             "last_briefing": self.last_briefing,  # B2 최근 브리핑 (새로고침 복원용)
             "counts": {"trades": len(self.trades), "decisions": len(self.decisions)},
+            "guard": {  # 첫 화면 KPI — 시도·차단·유출·오탐 (수익률이 아니라 지출 통제)
+                "attempts": self.guard_block_count + len([t for t in self.trades if t["side"] == "buy"]),
+                "blocked": self.guard_block_count,
+                "ap2_rejected": self.reject_count,
+                "leak_usdc": str(self.guard_leak_usdc),
+            },
             "wallets": {
                 "user": str(self._user_kp.pubkey()) if self._user_kp else "",
                 "trading": str(self._trading_kp.pubkey()) if self._trading_kp else "",

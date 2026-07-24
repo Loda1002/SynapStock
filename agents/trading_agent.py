@@ -84,6 +84,8 @@ class TradingAgent:
         self.position = Position(symbol="")
         self.brain = brain
         self.fee_bps = fee_bps
+        # 402 Guard — 서명 직전 청구서 검증 게이트(엔진/run_demo 가 주입). None 이면 미적용.
+        self.guard = None
         self._history: list[Decimal] = []  # 직전 시세 (지표 계산·Gemini 판단 근거)
         self.HISTORY_MAX = 210             # MA200 계산 + 기울기 여유분 (TA 보강)
         self._bars: list[Bar] = []         # OHLC 봉 이력 — 캔들·패턴·지지/저항 탐지용
@@ -326,14 +328,21 @@ class TradingAgent:
         self,
         required: PaymentRequired,
         blockhash: Hash,
+        quote=None,
     ) -> PaymentSubmitted:
         reqs = required.requirements
         amount_usdc = from_base_units(reqs.amount, reqs.decimals)
 
-        # AP2 한도 검사 (초과 시 MandateError → 결제 자체가 일어나지 않음)
+        # 402 Guard — AP2 한도 검사 '앞'에서 청구서를 검증한다(금액·수취인·자산·주문번호).
+        # 위반이면 GuardError 로 결제 서명 자체가 일어나지 않는다(온체인 유출 0).
+        if self.guard is not None and quote is not None:
+            self.guard.assert_demand(required, quote, expected_order_id=required.order_id)
+
+        # AP2 한도 검사 (초과·미허용 자산 시 MandateError → 결제 자체가 일어나지 않음).
+        # asset 을 넘겨 allowed_asset 를 실제로 검증하게 한다(결함 C).
         self.auth.authorize(
             order_id=required.order_id, symbol=required.symbol,
-            amount_usdc=amount_usdc, pay_to=reqs.pay_to,
+            amount_usdc=amount_usdc, pay_to=reqs.pay_to, asset=reqs.asset,
         )
 
         tx = x.build_transfer_transaction(
