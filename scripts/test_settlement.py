@@ -201,12 +201,59 @@ async def test_sell_payout_failure():
           str(ta.auth.spent_usdc))
 
 
+class _Amt:
+    def __init__(self, amount):
+        self.amount = amount
+
+
+class _RaiseClient:
+    def __init__(self, exc):
+        self._exc = exc
+
+    async def get_token_account_balance(self, ata):
+        raise self._exc
+
+
+class _OkClient:
+    async def get_token_account_balance(self, ata):
+        return _V(_Amt("5000000"))
+
+
+def test_baseline_read_classification():
+    print("\n== get_token_balance_base — 기준선 오염 방지 (BUG-01) ==")
+    owner, mint = Keypair().pubkey(), Keypair().pubkey()
+
+    # ATA 미존재(진짜 잔액 0) → 0
+    nf = asyncio.run(x.get_token_balance_base(
+        _RaiseClient(Exception("Invalid param: could not find account")), owner, mint))
+    check("계정 미존재 → 0", nf == 0, str(nf))
+
+    # 불명 오류(연결 실패 등) → 전파 (0 으로 삼키면 기준선 오염 → 미배송 오탐 통과)
+    raised = False
+    try:
+        asyncio.run(x.get_token_balance_base(
+            _RaiseClient(Exception("connection reset - unknown transport failure")), owner, mint))
+    except Exception:
+        raised = True
+    check("불명 오류 → 전파(0 삼킴 금지)", raised)
+
+    # 정상 조회 → 잔액 정수
+    okv = asyncio.run(x.get_token_balance_base(_OkClient(), owner, mint))
+    check("정상 조회 → 잔액 정수", okv == 5_000_000, str(okv))
+
+    # 분류기: 429/일시적 오류는 '계정 미존재'가 아니다(전파 대상) / 미존재 신호만 True
+    check("429 는 계정미존재 아님(전파)",
+          not x._is_account_not_found(Exception("HTTP 429 Too Many Requests")))
+    check("계정미존재 신호는 True", x._is_account_not_found(Exception("could not find account")))
+
+
 def main() -> int:
     test_exact()
     test_memo()
     test_memo_present_in_build_payment()
     asyncio.run(test_dedup_and_expiry())
     asyncio.run(test_sell_payout_failure())
+    test_baseline_read_classification()
     print("\n결과: " + ("모든 테스트 통과" if _fail == 0 else f"{_fail}건 실패"))
     return _fail
 

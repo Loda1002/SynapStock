@@ -770,11 +770,25 @@ class TradingEngine:
             "payload_b64_len": len(submitted.payment.serialized_transaction),
         })
 
-        # 라이브: 정산 전 구매자 주식 잔액을 캡처(배송 재조회의 기준점)
+        # 라이브: 정산 전 구매자 주식 잔액을 캡처(배송 재조회의 기준점).
+        # 기준선(before)을 못 읽으면 delta 오라클이 오염(0 기준선 = 미배송 오탐 통과)되므로,
+        # 결제를 진행하지 않고 예약을 원복 + 세션 정지한다(유출 0, BUG-01).
         before_stock = 0
         if live and self._client is not None and self._stock_mint is not None:
-            before_stock = await x.get_token_balance_base(
-                self._client, self._trading_kp.pubkey(), self._stock_mint)
+            try:
+                before_stock = await x.get_token_balance_base(
+                    self._client, self._trading_kp.pubkey(), self._stock_mint)
+            except Exception as e:
+                self._auth.release(required.order_id)
+                self.bus.emit(ev.GUARD_PENDING, {
+                    "side": "buy", "order_id": required.order_id, "ok": False,
+                    "code": "GUARD_BASELINE_UNREAD",
+                    "detail": f"정산 전 주식 잔액 기준선 조회 실패 — 배송 검증 불가로 매수 보류: {type(e).__name__}",
+                    "where": "engine.py:_buy_cycle", "expected": "", "actual": "",
+                })
+                if self.trading_enabled:
+                    self.pause(actor="guard")
+                return
 
         completed = None
         settled = False

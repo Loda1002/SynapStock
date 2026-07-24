@@ -227,10 +227,8 @@ def verify_payment(
 
 # ---------- 네트워크 (devnet RPC 필요) ----------
 
-def _is_transient(e: Exception) -> bool:
-    """예외 체인(래핑된 원인 포함)에서 일시적 RPC 오류 신호를 찾는다.
-    solana-py 는 429 를 SolanaRpcException 으로 감싸 str() 에 '429' 가 안 보이므로
-    __cause__/__context__ 를 따라가며 확인한다."""
+def _exc_chain_text(e: Exception) -> str:
+    """예외 체인(__cause__/__context__ 래핑 포함)의 타입명·메시지를 이어붙인다."""
     cur, parts = e, []
     for _ in range(6):
         if cur is None:
@@ -238,9 +236,28 @@ def _is_transient(e: Exception) -> bool:
         parts.append(type(cur).__name__)
         parts.append(str(cur))
         cur = cur.__cause__ or cur.__context__
-    text = " ".join(parts)
+    return " ".join(parts)
+
+
+def _is_transient(e: Exception) -> bool:
+    """예외 체인(래핑된 원인 포함)에서 일시적 RPC 오류 신호를 찾는다.
+    solana-py 는 429 를 SolanaRpcException 으로 감싸 str() 에 '429' 가 안 보이므로
+    __cause__/__context__ 를 따라가며 확인한다."""
+    text = _exc_chain_text(e)
     return any(s in text for s in ("429", "Too Many", "Internal error",
                                    "SolanaRpcException", "timed out", "Timeout"))
+
+
+def _is_account_not_found(e: Exception) -> bool:
+    """ATA 미존재(=진짜 잔액 0) 신호만 True. 429/타임아웃/연결 실패 등 '불명'은 False.
+
+    토큰 계정이 없으면 RPC 는 -32602 'Invalid param: could not find account' 로 응답한다.
+    이 신호만 0 으로 취급하고, 그 외 예외는 상위로 전파해 기준선(before) 오염을 막는다(BUG-01)."""
+    text = _exc_chain_text(e).lower()
+    return ("could not find account" in text
+            or "-32602" in text
+            or "accountnotfound" in text
+            or "invalid param" in text)
 
 
 async def rpc_retry(factory, retries: int = 6, label: str = ""):
@@ -299,15 +316,19 @@ async def get_token_balance_ui(client, owner: Pubkey, mint: Pubkey) -> str:
 
 
 async def get_token_balance_base(client, owner: Pubkey, mint: Pubkey) -> int:
-    """소유자 ATA 의 토큰 잔액(base units 정수). ATA 미존재 시 0.
+    """소유자 ATA 의 토큰 잔액(base units 정수). ATA 미존재(진짜 0)일 때만 0 을 반환한다.
 
-    Guard.check_delivery 의 온체인 재조회용 — 정산 전후 잔액 증가분을 정수로 비교한다."""
+    Guard.check_delivery 의 온체인 재조회 + 정산 전 기준선(before) 읽기용 — 정산 전후 잔액
+    증가분을 정수로 비교한다. 429/타임아웃/연결 실패 등 '불명' 오류를 0 으로 삼키면 기준선이
+    오염돼 미배송이 도착으로 오탐되므로(BUG-01), 계정-미존재가 아닌 예외는 상위로 전파한다."""
     ata = get_associated_token_address(owner, mint)
     try:
         resp = await rpc_retry(lambda: client.get_token_account_balance(ata), label="토큰잔액")
         return int(resp.value.amount)
-    except Exception:
-        return 0
+    except Exception as e:
+        if _is_account_not_found(e):
+            return 0        # ATA 미존재 = 진짜 잔액 0
+        raise               # 불명 실패 → 전파(호출측이 pending/보류로 처리)
 
 
 async def submit_and_confirm(client, tx: Transaction) -> Tuple[str, bool]:
