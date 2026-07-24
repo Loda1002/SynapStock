@@ -60,6 +60,9 @@ class Config:
     # (시크릿 2개를 같은 디렉터리에 마운트하는 구성이 플랫폼 제약에 걸릴 수 있어 우회로를 둔다)
     trading_keypair_json: str = _get("TRADING_KEYPAIR_JSON", "")
     broker_keypair_json: str = _get("BROKER_KEYPAIR_JSON", "")
+    # 사용자(위임자) 키 — open mandate 서명자. 에이전트(trading) 키와 분리(결함 G 제거).
+    # 온체인 자금 불필요(오프라인 ed25519 서명만). 없으면 secrets/user.json 으로 자동 생성.
+    user_keypair_json: str = _get("USER_KEYPAIR_JSON", "")
 
     # 조작 API 보호 — 값이 설정되면 POST /api/* 에 X-Control-Token 헤더를 요구한다.
     # 로컬 개발은 미설정(빈값) = 무인증이라 기존 흐름이 그대로 유지된다.

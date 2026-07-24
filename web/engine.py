@@ -30,7 +30,7 @@ from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy, Decision
-from run_demo import _load_or_new, explorer_tx_url, snapshot_balances
+from run_demo import _load_or_new, _load_or_create_user_key, explorer_tx_url, snapshot_balances
 from web import events as ev
 from web.briefing import generate_briefing_text
 from web.events import EventBus
@@ -103,6 +103,7 @@ class TradingEngine:
         self._change_ref: Optional[Decimal] = None   # 마지막 틱에서 쓴 등락 기준값
         self._auth: Optional[PaymentAuthorizer] = None
         self._mandate: Optional[OpenPaymentMandate] = None
+        self._user_kp: Optional[Keypair] = None
         self._trading_kp: Optional[Keypair] = None
         self._broker_kp: Optional[Keypair] = None
         self._usdc_mint: Optional[Pubkey] = None
@@ -277,6 +278,9 @@ class TradingEngine:
 
         # 라이브 세션은 키가 없으면 즉시 실패한다(무증상 랜덤 지갑 방지 — run_demo._load_or_new 주석)
         wd = CFG.wallet_dir
+        # 사용자(위임자) 키 — open mandate 서명자. 에이전트 키와 분리(결함 G 제거).
+        user_kp = _load_or_create_user_key(os.path.join(wd, "user.json"),
+                                           env_json=CFG.user_keypair_json)
         try:
             trading_kp = _load_or_new(os.path.join(wd, "trading.json"), required=live,
                                       env_json=CFG.trading_keypair_json)
@@ -305,13 +309,13 @@ class TradingEngine:
 
         # AP2 mandate — 사용자가 설정한 한도에 서명 (예산=순투입 한도, A3 로 변경 가능)
         mandate = OpenPaymentMandate(
-            user_pubkey=str(trading_kp.pubkey()),
+            user_pubkey=str(user_kp.pubkey()),          # 위임자(사용자) 키 — 에이전트 키와 분리
             allowed_asset=str(usdc_mint),
             budget_total_usdc=self.budget_total,
             per_trade_max_usdc=self.per_trade_max,
             allowed_symbols=[CFG.stock_symbol],
-        ).sign(trading_kp)
-        auth = PaymentAuthorizer(mandate, agent_kp=trading_kp)
+        ).sign(user_kp)                                 # 사용자가 한도에 서명(위임 근거)
+        auth = PaymentAuthorizer(mandate, agent_kp=trading_kp)  # 에이전트는 한도 내 결제만 서명
 
         strategy = Strategy(
             buy_dip_pct=Decimal(DEFAULT_RULES["buy_dip_pct"]),
@@ -391,6 +395,7 @@ class TradingEngine:
         self.tick_interval = CFG.web_tick_interval_sec
         self.last_archive_path = ""
         self._usdc_mint, self._stock_mint = usdc_mint, stock_mint
+        self._user_kp = user_kp
         self._trading_kp, self._broker_kp = trading_kp, broker_kp
         self._mandate, self._auth = mandate, auth
         self._trading, self._broker, self._feed = trading, broker, feed
@@ -408,7 +413,7 @@ class TradingEngine:
             "rules": DEFAULT_RULES,
             "strategy": self.strategy_info,
             "mandate_verified": mandate.verify(),
-            "wallets": {"trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
+            "wallets": {"user": str(user_kp.pubkey()), "trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
             "tick_interval_sec": self.tick_interval,
         })
         if snap_before is not None:
@@ -480,12 +485,12 @@ class TradingEngine:
                 raise EngineError(
                     f"새 예산({budget_total})이 이미 사용한 금액({spent})보다 작습니다.")
             new_mandate = OpenPaymentMandate(
-                user_pubkey=str(self._trading_kp.pubkey()),
+                user_pubkey=str(self._user_kp.pubkey()),   # 위임자(사용자) 키로 재서명
                 allowed_asset=str(self._usdc_mint),
                 budget_total_usdc=budget_total,
                 per_trade_max_usdc=per_trade_max,
                 allowed_symbols=[CFG.stock_symbol],
-            ).sign(self._trading_kp)
+            ).sign(self._user_kp)
             new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
             new_auth.spent_usdc = spent  # 사용액 이월
             self._mandate, self._auth = new_mandate, new_auth
@@ -914,12 +919,13 @@ class TradingEngine:
             "source": "web-dashboard",
             "network": CFG.network,
             "rpc_url": CFG.rpc_url,
-            "wallets": {"trading": str(self._trading_kp.pubkey()), "broker": str(self._broker_kp.pubkey())},
+            "wallets": {"user": str(self._user_kp.pubkey()), "trading": str(self._trading_kp.pubkey()), "broker": str(self._broker_kp.pubkey())},
             "mints": {"usdc": str(self._usdc_mint), "stock": str(self._stock_mint),
                       "stock_symbol": CFG.stock_symbol},
             "strategy": getattr(self, "strategy_info", None),
             "feed": self.feed_info,   # 시세 출처 (mock/replay·구간) — 재현 조건 증빙
             "mandate": {
+                "user_pubkey": self._mandate.user_pubkey,   # 위임자(서명자) — 에이전트와 분리 증빙
                 "budget_total_usdc": str(self._mandate.budget_total_usdc),
                 "per_trade_max_usdc": str(self._mandate.per_trade_max_usdc),
                 "signature": self._mandate.signature,
@@ -1060,6 +1066,7 @@ class TradingEngine:
             "last_briefing": self.last_briefing,  # B2 최근 브리핑 (새로고침 복원용)
             "counts": {"trades": len(self.trades), "decisions": len(self.decisions)},
             "wallets": {
+                "user": str(self._user_kp.pubkey()) if self._user_kp else "",
                 "trading": str(self._trading_kp.pubkey()) if self._trading_kp else "",
                 "broker": str(self._broker_kp.pubkey()) if self._broker_kp else "",
             },

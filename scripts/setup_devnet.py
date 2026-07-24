@@ -106,12 +106,17 @@ def write_env(usdc_mint: Pubkey, stock_mint: Pubkey) -> None:
 
 async def main() -> None:
     wd = CFG.wallet_dir
+    user = x.load_keypair(os.path.join(wd, "user.json")) if os.path.exists(
+        os.path.join(wd, "user.json")) else x.new_keypair()
     trading = x.load_keypair(os.path.join(wd, "trading.json")) if os.path.exists(
         os.path.join(wd, "trading.json")) else x.new_keypair()
     broker = x.load_keypair(os.path.join(wd, "broker.json")) if os.path.exists(
         os.path.join(wd, "broker.json")) else x.new_keypair()
+    # 사용자(위임자) 키 — mandate 서명 전용. 온체인 자금 불필요라 에어드랍 대상에서 제외.
+    x.save_keypair(user, os.path.join(wd, "user.json"))
     x.save_keypair(trading, os.path.join(wd, "trading.json"))
     x.save_keypair(broker, os.path.join(wd, "broker.json"))
+    print(f"User    지갑: {user.pubkey()} (mandate 서명 전용, 에어드랍 없음)")
     print(f"Trading 지갑: {trading.pubkey()}")
     print(f"Broker  지갑: {broker.pubkey()}")
 

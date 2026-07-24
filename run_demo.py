@@ -48,6 +48,22 @@ def _load_or_new(path: str, required: bool = False, env_json: str = "") -> Keypa
     return x.new_keypair()
 
 
+def _load_or_create_user_key(path: str, env_json: str = "") -> Keypair:
+    """사용자(위임자) 키 로드 — 없으면 생성 후 저장한다.
+
+    trading/broker 키와 달리 사용자 키는 온체인 자금이 필요 없다(오프라인에서
+    open mandate 에 ed25519 서명만 한다). 따라서 없으면 조용히 새로 만들어 저장해도
+    안전하며, 이렇게 해야 '사용자가 위임한 한도'의 서명자가 에이전트(trading) 키와
+    물리적으로 분리된다(differentiation.md 결함 G 제거 — 자기 허가서 자기 서명 방지)."""
+    if env_json:
+        return Keypair.from_bytes(bytes(json.loads(env_json)))
+    if os.path.exists(path):
+        return x.load_keypair(path)
+    kp = x.new_keypair()
+    x.save_keypair(kp, path)
+    return kp
+
+
 def hr(title: str) -> None:
     print("\n" + "─" * 62)
     print(f"  {title}")
@@ -82,10 +98,13 @@ def print_snapshot(snap: dict, symbol: str) -> None:
 async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
     print(f"\n=== AutoTrader Agent 데모  (모드: {'LIVE ' + CFG.network if live else 'DRY-RUN'}) ===")
 
-    # --- 지갑 ---
+    # --- 지갑 (user=위임자 / trading=구매 에이전트 / broker=판매) ---
     wd = CFG.wallet_dir
+    user_kp = _load_or_create_user_key(os.path.join(wd, "user.json"),
+                                       env_json=CFG.user_keypair_json)
     trading_kp = _load_or_new(os.path.join(wd, "trading.json"))
     broker_kp = _load_or_new(os.path.join(wd, "broker.json"))
+    print(f"User(위임자)  지갑 : {user_kp.pubkey()}")
     print(f"Trading(구매) 지갑 : {trading_kp.pubkey()}")
     print(f"Broker(판매)  지갑 : {broker_kp.pubkey()}")
 
@@ -110,12 +129,12 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
     # --- AP2 Open Payment Mandate (사용자가 한도 설정, 서명) ---
     hr("AP2 · 사용자가 자율결제 한도를 설정하고 서명")
     open_mandate = OpenPaymentMandate(
-        user_pubkey=str(trading_kp.pubkey()),        # 데모: 사용자=구매 에이전트 소유자
+        user_pubkey=str(user_kp.pubkey()),           # 위임자(사용자) 키 — 에이전트 키와 분리
         allowed_asset=str(usdc_mint),
         budget_total_usdc=CFG.budget_usdc,
         per_trade_max_usdc=CFG.per_trade_max_usdc,
         allowed_symbols=[symbol],
-    ).sign(trading_kp)
+    ).sign(user_kp)                                  # 사용자가 한도에 서명(위임 근거)
     print(f"예산 총액   : {CFG.budget_usdc} USDC")
     print(f"건별 한도   : {CFG.per_trade_max_usdc} USDC")
     print(f"허용 종목   : {symbol}")
@@ -316,9 +335,10 @@ async def main(live: bool, ticks: int, use_gemini: bool = True) -> None:
             "generated_at": datetime.now().isoformat(timespec="seconds"),
             "network": CFG.network,
             "rpc_url": CFG.rpc_url,
-            "wallets": {"trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
+            "wallets": {"user": str(user_kp.pubkey()), "trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
             "mints": {"usdc": str(usdc_mint), "stock": str(stock_mint), "stock_symbol": symbol},
             "mandate": {
+                "user_pubkey": open_mandate.user_pubkey,   # 위임자(서명자) — 에이전트와 분리 증빙
                 "budget_total_usdc": str(CFG.budget_usdc),
                 "per_trade_max_usdc": str(CFG.per_trade_max_usdc),
                 "signature": open_mandate.signature,
