@@ -1,8 +1,8 @@
 """devnet 준비 스크립트 (네트워크 필요 — Cloud Shell 또는 로컬에서 실행).
 
 수행:
-  1) trading/broker 지갑 생성·저장 (.wallets/)
-  2) 두 지갑에 devnet SOL 에어드랍 (수수료용)
+  1) user/trading/broker 지갑 생성·저장 (secrets/, WALLET_DIR)
+  2) trading·broker 지갑에 devnet SOL 에어드랍 (수수료용)
   3) 테스트 USDC 민트 생성 → trading 지갑에 1000 USDC 지급
   4) 테스트 주식 민트(tAAPL) 생성 → broker 지갑에 100 tAAPL 지급
   5) 생성된 민트 주소를 .env 에 기록
@@ -134,6 +134,24 @@ async def main() -> None:
             except Exception as e:
                 print(f"  {name}: airdrop 실패 — 파우셋 한도일 수 있음. "
                       f"https://faucet.solana.com 에서 수동 충전 후 재실행. ({e})")
+
+        # SOL 선검사 — 에어드랍이 파우셋 한도로 실패하면 지갑에 SOL 이 없다. 이 상태로
+        # [2/4] 로 넘어가면 민트 생성(rent 지불)이 정체불명 RPC 에러로 크래시한다.
+        # devnet SOL 은 하루 한도가 빠듯하므로, 부족하면 여기서 멈추고 수동 충전을 안내한다.
+        MIN_SOL = 0.05
+        low = []
+        for name, kp in [("trading", trading), ("broker", broker)]:
+            bal = await x.get_sol_balance(client, kp.pubkey())
+            print(f"  {name} SOL 잔액: {bal:.4f}")
+            if bal < MIN_SOL:
+                low.append((name, kp.pubkey(), bal))
+        if low:
+            print(f"\n[중단] 민트 생성에 필요한 SOL 이 부족합니다(지갑당 최소 {MIN_SOL} SOL).")
+            print("아래 지갑을 https://faucet.solana.com 에서 수동 충전한 뒤 이 스크립트를 다시 실행하세요:")
+            for name, pk, bal in low:
+                print(f"  - {name}: {pk}  (현재 {bal:.4f} SOL)")
+            print("(지갑 키는 secrets/ 에 이미 저장됐으므로, 충전 후 재실행하면 같은 지갑을 그대로 씁니다.)")
+            return
 
         print("\n[2/4] 테스트 USDC 민트 생성…")
         usdc_mint = await create_mint(client, trading, trading.pubkey(), USDC_DECIMALS)
