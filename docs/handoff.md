@@ -1,7 +1,8 @@
 # 새 대화 인수인계 (2026-07-24 기준)
 
-> 대화가 길어져 새 세션으로 넘긴다. **새 대화는 이 문서 → `docs/preflight_review.md` →
-> `docs/differentiation.md` 순으로 읽고 시작할 것.** CLAUDE.md 는 항상 먼저 읽는다.
+> 대화가 길어져 새 세션으로 넘긴다. **새 대화는 이 문서 → `docs/differentiation.md` →
+> `docs/preflight_review.md` 순으로 읽고 시작할 것.** CLAUDE.md 는 항상 먼저 읽는다.
+> 기능 현황·변경 이력 전체는 `docs/FEATURES.md`(주요 기능·이전/현재 대비·심사축 매핑).
 
 ## 1. 지금 저장소 상태
 
