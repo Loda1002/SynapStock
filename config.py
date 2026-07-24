@@ -69,8 +69,10 @@ class Config:
     control_token: str = _get("CONTROL_TOKEN", "")
     # 서버측 한도 상한 — 외부에서 예산을 무한대로 올리는 것을 기계적으로 차단
     max_budget_usdc: Decimal = Decimal(_get("MAX_BUDGET_USDC", "10000"))
-    # 웹에서 라이브(온체인) 세션 시작 허용 여부 — 기본 차단, 시연 직전에만 켠다
-    allow_live_from_web: bool = _get("ALLOW_LIVE_FROM_WEB", "1").lower() in ("1", "true", "yes")
+    # 웹에서 라이브(온체인) 세션 시작 허용 여부 — 기본 차단, 시연 직전에만 켠다.
+    # (기본 "0": config.py:72 주석·web/engine.py 이중 안전장치 에러·배포 런북과 일치.
+    #  웹 UI 에서 라이브 데모 시 ALLOW_LIVE_FROM_WEB=1 로 명시적으로 연다. BUG-04)
+    allow_live_from_web: bool = _get("ALLOW_LIVE_FROM_WEB", "0").lower() in ("1", "true", "yes")
 
     # Alpha Vantage (무료 키) — scripts/fetch_market_data.py 일봉 수집용 (런타임 미사용)
     alphavantage_api_key: str = _get("ALPHAVANTAGE_API_KEY", "")
