@@ -853,8 +853,48 @@ class TradingEngine:
             "payload_b64_len": len(submitted.payment.serialized_transaction),
         })
 
+        # 라이브: 정산 전 판매자 USDC 잔액을 캡처(대금 도착 재조회의 기준점). 기준선을
+        # 못 읽으면 delta 오라클이 오염되므로 pending 으로 취급한다(BUG-01 과 동일 원칙).
+        before_usdc = 0
+        baseline_ok = True
+        if live and self._client is not None and self._usdc_mint is not None:
+            try:
+                before_usdc = await x.get_token_balance_base(
+                    self._client, self._trading_kp.pubkey(), self._usdc_mint)
+            except Exception:
+                baseline_ok = False
+
         completed = await self._broker.settle_sale(
             submitted, required.requirements, quote.total_usdc, live=live, client=self._client)
+
+        # 매도 대금(USDC) 온체인 도착 재조회 — 매수측 check_delivery 의 매도 대칭(BUG-02).
+        # 주식은 넘어갔는데 대금이 안 들어오면 partial 로 강등(포지션·예산·실현손익 미반영) + 세션 정지.
+        if (completed.status == "settled" and live and self._client is not None
+                and self._usdc_mint is not None):
+            expected_inc = to_base_units(quote.total_usdc, CFG.usdc_decimals)
+            if not baseline_ok:
+                completed.status = "partial"
+                self.bus.emit(ev.GUARD_PENDING, {
+                    "side": "sell", "order_id": required.order_id, "ok": False,
+                    "code": "GUARD_BASELINE_UNREAD",
+                    "detail": "정산 전 USDC 잔액 기준선 조회 실패 — 대금 도착 검증 불가로 매도 보류",
+                    "where": "engine.py:_sell_cycle", "expected": "", "actual": "",
+                })
+            else:
+                async def _reader():
+                    return await x.get_token_balance_base(
+                        self._client, self._trading_kp.pubkey(), self._usdc_mint)
+
+                delivery = await self._guard.check_delivery(
+                    completed, signed_order_id=required.order_id, balance_reader=_reader,
+                    before_units=before_usdc, expected_increase_units=expected_inc,
+                    retries=2, retry_delay_sec=1.0)
+                if not delivery.ok:
+                    completed.status = "partial"
+                    self.bus.emit(ev.GUARD_PENDING, {
+                        "side": "sell", "order_id": required.order_id, **delivery.as_event(),
+                    })
+
         self._trading.on_sale_completed(completed, symbol, qty, price, quote.total_usdc)
 
         realized = None
@@ -865,6 +905,10 @@ class TradingEngine:
             self.total_fees += quote.fee_usdc
 
         self._complete_trade("sell", symbol, qty, quote, completed, decision, realized)
+
+        # 대금 미확인(partial)이면 세션을 정지한다 — 반복 매도로 손실이 누적되지 않게(매수측 미러)
+        if completed.status == "partial" and self.trading_enabled:
+            self.pause(actor="guard")
 
     def _complete_trade(self, side, symbol, qty, quote, completed, decision, realized=None) -> None:
         self.bus.emit(ev.X402_COMPLETED, {

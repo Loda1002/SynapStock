@@ -39,6 +39,43 @@ USDC = Keypair().pubkey()
 STOCK = Keypair().pubkey()
 
 
+# ---- settle_sale 의 라이브 경로(주식 확정 → USDC 지급)만 오프라인으로 태우는 최소 스텁 ----
+class _V:
+    def __init__(self, value):
+        self.value = value
+
+
+class _Conf:
+    def __init__(self, err):
+        self.err = err
+
+
+class _BH:
+    blockhash = Hash.default()
+
+
+class FakeClient:
+    """submit_and_confirm / get_latest_blockhash 만 흉내낸다.
+    confirm_results: confirm_transaction 호출 순서대로의 성공 여부(True=err None)."""
+
+    def __init__(self, confirm_results):
+        self._confirms = list(confirm_results)
+        self._i = 0
+        self._sig = 0
+
+    async def send_raw_transaction(self, raw, opts=None):
+        self._sig += 1
+        return _V(f"fakesig{self._sig}")
+
+    async def confirm_transaction(self, sig, commitment=None):
+        ok = self._confirms[self._i] if self._i < len(self._confirms) else True
+        self._i += 1
+        return _V([_Conf(None if ok else "InstructionError")])
+
+    async def get_latest_blockhash(self):
+        return _V(_BH())
+
+
 def _agents():
     mandate = OpenPaymentMandate(
         user_pubkey=str(USER.pubkey()), allowed_asset=str(USDC),
@@ -125,11 +162,51 @@ async def test_dedup_and_expiry():
     check("만료 청구서 정산 거부", c3.status == "failed" and "만료" in c3.reason, c3.reason)
 
 
+async def test_sell_payout_failure():
+    print("\n== settle_sale — 매도 대금(USDC) 지급 실패 시 partial (BUG-02) ==")
+    ta, bk = _agents()
+    price, qty = Decimal("178.00"), Decimal("0.18")
+    sq = bk.sell_quote("tAAPL", qty, price)
+
+    # 주식 수령 confirmed + USDC 지급 실패 → partial (과거엔 settled 로 오정산)
+    required = bk.make_stock_required(sq)
+    submitted = ta.build_stock_transfer(required, Hash.default())
+    c_fail = await bk.settle_sale(submitted, required.requirements, sq.total_usdc,
+                                  live=True, client=FakeClient([True, False]))
+    check("주식수령·지급실패 → partial (과거 settled 오정산)",
+          c_fail.status == "partial", f"status={c_fail.status}")
+    check("지급 실패면 delivery_tx 비어있음", c_fail.delivery_tx_signature == "",
+          c_fail.delivery_tx_signature)
+
+    # 주식 confirmed + 지급 confirmed → settled
+    required2 = bk.make_stock_required(sq)
+    submitted2 = ta.build_stock_transfer(required2, Hash.default())
+    c_ok = await bk.settle_sale(submitted2, required2.requirements, sq.total_usdc,
+                                live=True, client=FakeClient([True, True]))
+    check("주식수령·지급확정 → settled", c_ok.status == "settled", f"status={c_ok.status}")
+
+    # 주식 미확정 → failed (지급 시도 자체 없음, 손실 없음)
+    required3 = bk.make_stock_required(sq)
+    submitted3 = ta.build_stock_transfer(required3, Hash.default())
+    c_no = await bk.settle_sale(submitted3, required3.requirements, sq.total_usdc,
+                                live=True, client=FakeClient([False]))
+    check("주식 미확정 → failed", c_no.status == "failed", f"status={c_no.status}")
+
+    # 다운스트림: partial 매도는 포지션·예산을 건드리지 않는다
+    ta.position.apply_buy(qty, Decimal("170"))
+    ta.auth.spent_usdc = Decimal("50")
+    ta.on_sale_completed(c_fail, "tAAPL", qty, price, sq.total_usdc)
+    check("partial 매도는 포지션 미차감", ta.position.quantity == qty, str(ta.position.quantity))
+    check("partial 매도는 예산 미환입", ta.auth.spent_usdc == Decimal("50"),
+          str(ta.auth.spent_usdc))
+
+
 def main() -> int:
     test_exact()
     test_memo()
     test_memo_present_in_build_payment()
     asyncio.run(test_dedup_and_expiry())
+    asyncio.run(test_sell_payout_failure())
     print("\n결과: " + ("모든 테스트 통과" if _fail == 0 else f"{_fail}건 실패"))
     return _fail
 

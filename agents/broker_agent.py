@@ -167,6 +167,7 @@ class BrokerAgent:
         stock_sig = sig
         payout_sig = ""
         confirmed = False
+        paid = True   # 드라이런은 지급 성공으로 간주. 라이브에서만 실제 확정 여부로 갱신.
         payout_amount = to_base_units(total_usdc, self.usdc_decimals)
 
         if live and client is not None:
@@ -181,6 +182,19 @@ class BrokerAgent:
                 payout_sig, paid = await x.submit_and_confirm(client, payout_tx)
                 if not paid:
                     payout_sig = ""
+            else:
+                paid = False   # 주식 미확정이면 지급 시도 자체를 안 함
+
+        # 라이브: 주식 수령이 확정되고 USDC 지급까지 확정돼야 settled.
+        # 주식은 넘어왔는데 지급이 실패하면 partial(대금 미도착) — 매수측 결함 I 의 매도 대칭(BUG-02).
+        if not live:
+            status = "settled"
+        elif confirmed and paid:
+            status = "settled"
+        elif confirmed and not paid:
+            status = "partial"
+        else:
+            status = "failed"
 
         return PaymentCompleted(
             order_id=submitted.order_id,
@@ -189,7 +203,7 @@ class BrokerAgent:
             delivered_asset=str(self.usdc_mint),  # 브로커가 지급한 자산
             delivered_amount=payout_amount,
             delivery_tx_signature=payout_sig,     # USDC 지급 tx
-            status="settled" if (not live or confirmed) else "failed",
+            status=status,
         )
 
     # 3) 결제 검증 + 정산 + 주식 전달
