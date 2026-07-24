@@ -1,8 +1,8 @@
 # 새 대화 인수인계 (2026-07-24 기준)
 
-> 대화가 길어져 새 세션으로 넘긴다. **새 대화는 이 문서 → `docs/differentiation.md` →
-> `docs/preflight_review.md` 순으로 읽고 시작할 것.** CLAUDE.md 는 항상 먼저 읽는다.
-> 기능 현황·변경 이력 전체는 `docs/FEATURES.md`(주요 기능·이전/현재 대비·심사축 매핑).
+> 대화가 길어져 새 세션으로 넘긴다. **새 대화는 이 문서 → [`docs/differentiation.md`](differentiation.md) →
+> [`docs/preflight_review.md`](preflight_review.md) 순으로 읽고 시작할 것.** CLAUDE.md 는 항상 먼저 읽는다.
+> 기능 현황·변경 이력 전체는 [`docs/FEATURES.md`](FEATURES.md)(주요 기능·이전/현재 대비·심사축 매핑).
 
 ## 0. 최신 상태 (2026-07-24 저녁 — 다음 대화가 먼저 볼 것)
 
@@ -26,7 +26,7 @@
   `test_indicators.py` · `test_store.py` (실행: `.venv/Scripts/python.exe -m scripts.<이름>`)
 - `python run_demo.py` (드라이런) 정상 · 웹 대시보드 정상(브라우저 검증: 콘솔 에러 0, 카드 11개,
   세션 시작→6틱→종료 회귀 통과)
-- **Cloud Run 배포는 코드·런북 완료, 실행만 사용자 대기** (`docs/deploy_cloud_run.md`)
+- **Cloud Run 배포는 코드·런북 완료, 실행만 사용자 대기** ([`docs/deploy_cloud_run.md`](deploy_cloud_run.md))
 
 ### 2026-07-24 에 끝낸 것 (커밋 6개)
 
@@ -34,7 +34,7 @@
 |---|---|
 | `4ed0581` | 심사 재현 차단 2건 — README 대표 명령 cp949 크래시, 백테스트 날짜 불일치 |
 | `2ffcf13` | 백테스트 **매수후보유 벤치마크** + 시장노출 지표, 3종목 실측 |
-| `0787d33` | `docs/preflight_review.md` — 종합 검토(조사 7축·감사 64건·검증 32건) |
+| `0787d33` | [`docs/preflight_review.md`](preflight_review.md) — 종합 검토(조사 7축·감사 64건·검증 32건) |
 | `b0a3280` | **공개 배포 차단 5건**(보안) — 공격 시나리오 12종 차단 확인 |
 | `006c8bf` | CLAUDE.md 현재 상태·진행 로그 반영 |
 
@@ -56,7 +56,7 @@
    가격과 0.4% 이내 일치. 같은 민트를 devnet 조회하면 `null`. → **현 자체발행 토큰 설계 유지가 정답.**
    단 permanentDelegate·pausable 등 발행사 사후 통제권 상주 → **"퍼미션리스" 단정 금지.**
 5. **직전 Solana x402 해커톤 수상작 16개 중 AI 트레이딩 봇 0건.** 이긴 것은 인프라·마켓플레이스·
-   신뢰 레이어·개발자 도구. → 포지셔닝 전환이 필수 (`docs/differentiation.md`).
+   신뢰 레이어·개발자 도구. → 포지셔닝 전환이 필수 ([`docs/differentiation.md`](differentiation.md)).
 6. 규제: 토큰화 주식=증권(SEC 2026-01-28), 한국 제도 시행 2027-02-04, 자동매매는 반드시
    **self-custody 도구**(사용자 지갑·사용자 한도·즉시 정지)로 설명. "우리가 돈을 굴린다" 금지.
 
@@ -77,7 +77,7 @@
 
 ## 5. 다음 대화에서 할 일 (우선순위)
 
-**방향이 바뀌었다. `docs/differentiation.md` 를 반드시 먼저 읽을 것.**
+**방향이 바뀌었다. [`docs/differentiation.md`](differentiation.md) 를 반드시 먼저 읽을 것.**
 "AI가 알아서 매매한다"는 흔한 봇으로 분류돼 탈락하므로, **"402 Guard — 에이전트 지출 승인 게이트"**
 로 재포지셔닝한다. 근거는 우리 코드의 실증된 취약점이다(아래 §5-1).
 

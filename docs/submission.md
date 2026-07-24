@@ -4,7 +4,7 @@
 > 빠짐없이 채우기 위한 **작업 대상 목록 + 초안**이다. 개발이 끝나면 각 항목의 DRAFT를
 > 확정본으로 교체하고, 구글폼/유튜브/PDF에 그대로 옮긴다.
 >
-> 제출명 = **402 Guard** ("AutoTrader"를 제목 첫 단어로 두지 않는다 — `docs/differentiation.md`).
+> 제출명 = **402 Guard** ("AutoTrader"를 제목 첫 단어로 두지 않는다 — [`docs/differentiation.md`](differentiation.md)).
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## 1. 프로젝트 트랙 — 추천: **Track C (Multi-Agent Commerce)**
 
-- 저장소는 이미 Track C로 확정 기재됨(`README.md`, `docs/architecture.md`).
+- 저장소는 이미 Track C로 확정 기재됨(`README.md`, [`docs/architecture.md`](architecture.md)).
 - 근거: 우리 구조가 구매 에이전트(Trading) ↔ 판매 에이전트(Broker)의 **A2A 협의 + 온체인 정산**
   이라 Multi-Agent Commerce에 정확히 부합. 402 Guard 재포지셔닝(구매 에이전트 지출 승인 게이트)
   도 여전히 "에이전트 간 상거래에서 사는 쪽을 보호"하는 것이라 Track C 안에 있음.
@@ -80,7 +80,7 @@
 - **심사 4축 매핑:** ①혁신성·UX(검증·가드레일 레이어 신설 + 공격 콘솔 + 수익률 아닌 KPI)
   ②AI 활용도(Gemini 판단은 한도를 못 넘음 — AI가 무엇을 판단하든 게이트가 상수) ③기술·인프라
   (자체 x402+AP2+A2A+USDC+Memo 대사) ④실제 구동(localnet 풀사이클 교차검증 PASS). 상세 근거는
-  `docs/differentiation.md` §7.
+  [`docs/differentiation.md`](differentiation.md) §7.
 
 ## 3. 프로젝트 소개서 (PDF 장표) — TODO(개발 종료 후)
 - 발표 장표 형태 PDF 1개. 포함 필수: 타겟 고객·문제 → 솔루션(402 Guard) → 아키텍처(A2A+AP2+x402)
@@ -111,7 +111,7 @@
 - 상태: **미착수**.
 
 ## 7. 라이브 데모 URL — 대기(Cloud Run 배포 후 확정)
-- `docs/deploy_cloud_run.md` 런북대로 사용자가 배포 후 URL 확보.
+- [`docs/deploy_cloud_run.md`](deploy_cloud_run.md) 런북대로 사용자가 배포 후 URL 확보.
 - 심사 기간 내내 접근 가능해야 함(max-instances 1 + no-cpu-throttling 전제).
 - 상태: **미배포**.
 

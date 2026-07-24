@@ -1,6 +1,6 @@
 # 기능 구체화 스펙 (2026-07-23 확정 — 웹 서비스화 대화에서 이 문서 기준으로 구현)
 
-> 선택 배경은 `docs/feature_candidates.md` 참고. 구현 순서는 P1 → P2 → P3.
+> 선택 배경은 [`docs/feature_candidates.md`](feature_candidates.md) 참고. 구현 순서는 P1 → P2 → P3.
 > 공통 원칙: **어떤 기능도 AP2 mandate(한도)를 우회할 수 없다.** 모든 상태 변화는 이벤트 로그에 남긴다.
 
 ## 필수군 vs 어필군

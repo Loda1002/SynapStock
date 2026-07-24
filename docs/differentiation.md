@@ -118,7 +118,7 @@ x402 exact 스킴은 판매자를 보호하지 구매자를 보호하지 않습�
 | 온체인 tx에서 어느 주문인지 어떻게 아나 | Memo에 `AT1:{order_id}:{mandate_sig8}`. explorer에서 육안 확인 가능 | G4 |
 | 결제 확정됐는데 배송이 실패하면 | `partial`입니다. 온체인 잔액을 **다시 조회**해 확인하고, 포지션 미반영·한도 원복·세션 정지·미결 큐 기록 | G1 `check_delivery` |
 | 수익률이 벤치마크에 25%p 지는데 | 집니다. AAPL +4.90% vs +30.19%. 소개서에 그대로 실었습니다. **저희는 알파를 팔지 않습니다** | `artifacts/backtests/` |
-| Gemini를 빼면 뭐가 달라지나 | 수익률로는 거의 같습니다(+4.90 vs +4.95). AI의 기여는 수익이 아니라 **틀렸을 때의 낙폭**입니다(추세 모드 MDD 7.31%→4.84%). 그리고 AI가 어떤 판단을 하든 **한도는 AI가 못 넘습니다** | `docs/ta_upgrade.md`, `artifacts/backtests/` |
+| Gemini를 빼면 뭐가 달라지나 | 수익률로는 거의 같습니다(+4.90 vs +4.95). AI의 기여는 수익이 아니라 **틀렸을 때의 낙폭**입니다(추세 모드 MDD 7.31%→4.84%). 그리고 AI가 어떤 판단을 하든 **한도는 AI가 못 넘습니다** | [`docs/ta_upgrade.md`](ta_upgrade.md), `artifacts/backtests/` |
 | 이거 투자일임 아닌가 | 자산을 수탁하지 않습니다. 사용자 지갑, 사용자가 ed25519로 서명한 mandate(**G0 이후 진짜 사용자 키**), 즉시 정지 | `payments/ap2_mandate.py`, `engine.pause()` |
 
 ---

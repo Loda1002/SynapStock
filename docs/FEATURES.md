@@ -1,8 +1,8 @@
 # 기능 명세 — 주요 기능 · 변경 이력 · 현재/이전 대비
 
 > **이 문서의 목적**: "지금 무엇이 되고, 무엇이 바뀌었는가"를 한눈에 본다.
-> - `docs/feature_spec.md` 는 **계획**(무엇을 만들 것인가), 이 문서는 **현황**(무엇이 되어 있는가).
-> - `docs/progress_log.md` 는 **날짜별 로그**, 이 문서는 **기능별 요약**.
+> - [`docs/feature_spec.md`](feature_spec.md) 는 **계획**(무엇을 만들 것인가), 이 문서는 **현황**(무엇이 되어 있는가).
+> - [`docs/progress_log.md`](progress_log.md) 는 **날짜별 로그**, 이 문서는 **기능별 요약**.
 > - 큰 기능이 완료/변경되면 이 문서의 해당 행을 갱신한다.
 >
 > 마지막 갱신: 2026-07-24 · 대상 커밋: `a955ccb` · 코드 규모 약 5,000줄(agents 917 / payments 383 /
@@ -20,7 +20,7 @@
 돈이 나가기 직전의 마지막 검증 게이트다.* 토큰화 주식 자동매매는 이 게이트를 증명하는 레퍼런스 시나리오.
 
 **왜 바꿨나**: 직전 Solana x402 해커톤 수상작 16건 중 "AI 트레이딩 봇" 0건. "AI가 알아서 매매한다"는
-흔한 봇으로 분류돼 탈락한다. 근거·전환 상세는 `docs/differentiation.md`.
+흔한 봇으로 분류돼 탈락한다. 근거·전환 상세는 [`docs/differentiation.md`](differentiation.md).
 
 ---
 
@@ -77,7 +77,7 @@
 |---|---|---|---|
 | **Firestore 영속화** | 세션·체결·브리핑·한도 기본값이 재시작 너머로 남음. 부팅 복원 | `web/store.py` | ✅ 로컬 기본 OFF, 테스트 18건 |
 | **이력 조회 API** | `/api/history/sessions`(목록/상세)·`/trades`·`/briefings` | `web/server.py` | ✅ **⚠ 이걸 쓰는 화면이 아직 0개** |
-| **Cloud Run 배포 구성** | Dockerfile(3.11-slim·TZ=KST) + Secret Manager 런북 | `Dockerfile`, `docs/deploy_cloud_run.md` | ✅ 실행만 사용자 대기 |
+| **Cloud Run 배포 구성** | Dockerfile(3.11-slim·TZ=KST) + Secret Manager 런북 | `Dockerfile`, [`docs/deploy_cloud_run.md`](deploy_cloud_run.md) | ✅ 실행만 사용자 대기 |
 | **공개 배포 보안** | CONTROL_TOKEN 게이트(POST만)·한도 상한·경로주입 차단·라이브 잠금 | `web/server.py` | ✅ 공격 12종 차단 |
 
 ---
@@ -97,17 +97,17 @@
 | 07-23 | TA 보강 | MA5/MA20만 | 이동평균 1~200·크로스·지지/저항·차트/캔들 패턴, 세션 토글 |
 | 07-23 | 대시보드 모듈화 | 고정 레이아웃 | 카드 11개 드래그 재배치 + DEFAULT_LAYOUT 배열 |
 | 07-23 | **Cloud Run 준비** | 인메모리·로컬 전용 | Firestore 영속화 + Dockerfile + 배포 런북 |
-| **07-24** | **종합 검토** | 자평 | 조사 7축·감사 64건·검증 32건 → `docs/preflight_review.md` |
+| **07-24** | **종합 검토** | 자평 | 조사 7축·감사 64건·검증 32건 → [`docs/preflight_review.md`](preflight_review.md) |
 | **07-24** | 재현 차단 수정 | README 첫 명령 크래시 | cp949 안전화 + 백테스트 날짜 수정 |
 | **07-24** | 벤치마크 추가 | 벤치마크 없음 | 매수후보유 대비 초과수익·시장노출 지표(3종목 실측) |
 | **07-24** | **보안 5건** | 무인증 공개 API | CONTROL_TOKEN 게이트·한도 상한·경로주입 차단 등 |
-| **07-24** | **재포지셔닝** | AutoTrader(트레이딩 봇) | **402 Guard(지출 승인 게이트)** — `docs/differentiation.md` |
+| **07-24** | **재포지셔닝** | AutoTrader(트레이딩 봇) | **402 Guard(지출 승인 게이트)** — [`docs/differentiation.md`](differentiation.md) |
 
 ---
 
 ## 3. 앞으로 바뀔 것 (402 Guard 재포지셔닝, 미구현)
 
-> 상세·공수·순서는 `docs/differentiation.md` §2, `docs/handoff.md` §5.
+> 상세·공수·순서는 [`docs/differentiation.md`](differentiation.md) §2, [`docs/handoff.md`](handoff.md) §5.
 
 | # | 변경 | 왜 | 현재 결함 |
 |---|---|---|---|
