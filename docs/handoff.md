@@ -4,6 +4,15 @@
 > `docs/preflight_review.md` 순으로 읽고 시작할 것.** CLAUDE.md 는 항상 먼저 읽는다.
 > 기능 현황·변경 이력 전체는 `docs/FEATURES.md`(주요 기능·이전/현재 대비·심사축 매핑).
 
+## 0. 최신 상태 (2026-07-24 오후 — 다음 대화가 먼저 볼 것)
+
+- **G0(사용자 키 분리) 완료 — 커밋 329885f, 푸시됨.** 결함 G 제거: `secrets/user.json` 위임자 키가 open mandate 를 서명하고, 에이전트(trading) 키는 한도 내 결제(closed mandate)만 서명한다. 검증 통과(드라이런·엔진 스모크: user≠trading·서명검증 True·update_limits 재서명 True + 테스트 4종 + user.json gitignore 차단).
+- **다음 작업 = G1 부터** (`payments/guard.py`). 순서: G1 → G2(결선) → G3(`scripts/red_team.py`) → G4(Memo 바인딩 + exact 정합). **G4 후 localnet 풀사이클 재검증 필수.** 상세 명세는 `docs/differentiation.md` §2.
+- **세션 규칙 갱신(CLAUDE.md 반영)**: ①**존댓말 하드 규칙** — 앱 설정의 개인 지침은 Claude Code 세션에 전달되지 않음을 확인(전문 에이전트 + 홈 `.claude` 실측). 전역 적용은 사용자가 `~/.claude/CLAUDE.md` 에 기재. ②**작업 태도 규칙** — 세부 설계 구체화·철저한 준비/마무리·강점(402 Guard) 집중·무리한 기능 추가 지양(단 사용자 요청 시 추가). ③토큰 규칙의 "Ultracode 팬아웃 상시 금지" 문구 삭제(필요 시 ultracode 키워드로 켜므로 불필요).
+- **⏳ 사용자가 다음 대화에 붙여넣을 것**: 킥오프 **발표자료 정리본**(Claude 로 정리). 도착하면 `docs/differentiation.md`·소개서(pitch)에 반영해 서사·심사축 근거를 보강한다(지금까지는 킥오프 영상 전사만으로 작업했음).
+
+---
+
 ## 1. 지금 저장소 상태
 
 - 브랜치 `main`, 워킹트리 clean, 원격 동기화됨 (https://github.com/Loda1002/SolanaAgent, **private**)
@@ -85,7 +94,7 @@
 
 | 순위 | 작업 | 시간 | 근거 |
 |---|---|---|---|
-| 1 | **G0 사용자 키 분리** (`secrets/user.json`) | 1.5h | 가장 싸고 가장 치명적. 코드 읽는 심사위원에게 위임 서사가 무너진다 |
+| ✅ | **G0 사용자 키 분리** (`secrets/user.json`) — **완료 (커밋 329885f)** | 1.5h | 가장 싸고 가장 치명적. 코드 읽는 심사위원에게 위임 서사가 무너진다 |
 | 2 | **G1 `payments/guard.py`** + **G2 결선** | 9h | 차별화의 본체 |
 | 3 | **G3 `scripts/red_team.py`** (공격 3종 + 매트릭스) | 4h | "공격해보라"로 증명 |
 | 4 | **G4 Memo 바인딩 + exact 정합** | 5h | 대사 키·리플레이 방어 |
