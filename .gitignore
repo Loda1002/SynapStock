@@ -21,3 +21,7 @@ __pycache__/
 # devnet 최종 검증 단계에서는 심사 증빙이므로 이 줄을 지우거나 `git add -f` 로 커밋할 것.
 # (2026-07-23 사용자 결정 / artifacts/tx 의 트랜잭션 증빙은 계속 커밋한다)
 artifacts/briefings/
+
+# 심사 부서(judge-dept) 증거 스냅샷 — 재실행마다 쌓이는 중간 산출물(collect_evidence 로 재생성 가능).
+# 리포트(docs/reports/judging_*.md)만 커밋한다.
+docs/reports/_evidence_*.json
