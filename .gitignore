@@ -25,3 +25,7 @@ artifacts/briefings/
 # 심사 부서(judge-dept) 증거 스냅샷 — 재실행마다 쌓이는 중간 산출물(collect_evidence 로 재생성 가능).
 # 리포트(docs/reports/judging_*.md)만 커밋한다.
 docs/reports/_evidence_*.json
+
+# 버그 부서(bug-dept) 버그표면 스냅샷 — 재실행마다 쌓이는 중간 산출물(collect_bugscan 로 재생성 가능).
+# 리포트(docs/reports/bug_*.md)만 커밋한다.
+docs/reports/_bugscan_*.json
