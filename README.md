@@ -107,8 +107,9 @@ python scripts/backtest.py --brain gemini --mode trend
 solana-test-validator --reset          # 터미널 1 (WSL)
 # 터미널 2 (.env: SOLANA_RPC_URL=http://127.0.0.1:8899 / SOLANA_NETWORK=solana-localnet)
 python scripts/setup_devnet.py         # 지갑(secrets/) + 민트 + 잔액 준비 + .env 기록
-python run_demo.py --live              # 실제 매수 브로드캐스트 + 잔액 교차검증 + 아카이브
-python run_demo.py --live --ticks 8    # 매수→매도 풀사이클 (틱 7에서 매도 트리거)
+python run_demo.py --live --replay AAPL --from 2026-06-01 --to 2026-07-22
+       # 실데이터 재생으로 매수→매도 풀사이클 브로드캐스트 + 잔액 교차검증 + 아카이브
+python run_demo.py --live               # 목 시세(구조 데모) — 현 MA5 규칙에선 거래 미발생
 python scripts/demo_rejections.py      # 거부 4종 데모 (네트워크 불필요)
 ```
 
@@ -121,12 +122,14 @@ CLI 설치 없이 브라우저에서: GCP 콘솔 우측 상단 터미널(`>_`) �
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
-python scripts/setup_devnet.py   # 지갑 생성 + SOL 에어드랍 + 테스트 USDC/주식 민트 + 잔액 지급 + .env 기록
-python run_demo.py --live        # devnet 에 실제 매수 트랜잭션 브로드캐스트
+python scripts/setup_devnet.py   # 지갑 + SOL(파우셋 실패 시 여유 지갑에서 자동 충당) + 테스트 민트 + 잔액 + .env
+python run_demo.py --live --replay AAPL --from 2026-06-01 --to 2026-07-22
+       # devnet 에 실제 매수·매도 브로드캐스트 (공용 RPC 429 는 자동 재시도)
 ```
 
-에어드랍이 파우셋 한도로 실패하면 https://faucet.solana.com 에서 지갑 주소로 수동 충전 후
-재실행하세요. 트랜잭션은 `https://explorer.solana.com/tx/<sig>?cluster=devnet` 에서 확인.
+파우셋(faucet.solana.com)은 GitHub 공개 repo 조건 등으로 막힐 수 있다. `setup_devnet.py` 는
+한쪽 지갑에 SOL 여유가 있으면 부족한 지갑으로 자동 이체하고, 둘 다 부족하면 충전할 주소를
+안내한다. 트랜잭션은 `https://explorer.solana.com/tx/<sig>?cluster=devnet` 에서 확인.
 
 ---
 
@@ -161,7 +164,11 @@ solana-agent/
 - AP2 한도 초과/미허용 종목/총예산 초과 → 결제 차단
 - x402 검증: 수취인 위변조·금액 부족 → 거부, 정상 결제 → 통과
 - **localnet 라이브 검증 통과(2026-07-22)**: 매수 3건 = 온체인 tx 6건(USDC 결제 + 주식 전달)
-  확정, 전후 잔액 RPC 교차검증 PASS, 증빙 `artifacts/tx/` 아카이브 — devnet은 SOL 확보 후 동일 절차
+  확정, 전후 잔액 RPC 교차검증 PASS, 증빙 `artifacts/tx/` 아카이브
+- **devnet 라이브 검증 통과(2026-07-24)**: 공용 RPC(api.devnet.solana.com)에서 실데이터 재생
+  (AAPL) 라이브 — 매수 4 + 매도 1 = 온체인 tx 10건 전부 확정, explorer(cluster=devnet) 조회 가능,
+  교차검증 PASS(실현 +4.9 USDC 온체인 반영), 증빙
+  `artifacts/tx/20260724_1643_solana-devnet_live_buy.json`
 - **웹 대시보드 라이브 검증 통과(2026-07-23)**: 브라우저에서 라이브 세션 — 매수 4건 + 매도 1건
   전부 온체인 확정(실현손익 +7 USDC 온체인 반영), 긴급정지/재개 동작, 교차검증 PASS,
   `artifacts/tx/20260723_1220_solana-localnet_web_session.json` 아카이브
