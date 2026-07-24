@@ -33,8 +33,9 @@ from typing import Awaitable, Callable, Iterable, Optional
 
 from config import to_base_units
 
-# ---- check_demand 차단 코드 (6종) ----
+# ---- check_demand 차단 코드 (7종) ----
 GUARD_AMOUNT_MISMATCH = "GUARD_AMOUNT_MISMATCH"        # 청구 금액 != 합의 견적 (base units, 오차 0)
+GUARD_INTENT_EXCEEDED = "GUARD_INTENT_EXCEEDED"        # 청구 금액이 사용자 의도 지출(decision.spend)을 초과
 GUARD_PAYEE_UNKNOWN = "GUARD_PAYEE_UNKNOWN"            # 수취인이 신뢰 목록(allowlist)에 없음
 GUARD_ASSET_MISMATCH = "GUARD_ASSET_MISMATCH"         # 결제 자산이 mandate 허용 자산이 아님
 GUARD_SYMBOL_NOT_ALLOWED = "GUARD_SYMBOL_NOT_ALLOWED"  # 종목이 mandate 허용 종목이 아님
@@ -42,9 +43,12 @@ GUARD_LIMIT_EXCEEDED = "GUARD_LIMIT_EXCEEDED"         # 청구 금액이 건별 
 GUARD_ORDER_INVALID = "GUARD_ORDER_INVALID"           # 주문번호 누락/형식 오류 (대사 키 부재)
 
 DEMAND_CODES = (
-    GUARD_AMOUNT_MISMATCH, GUARD_PAYEE_UNKNOWN, GUARD_ASSET_MISMATCH,
+    GUARD_AMOUNT_MISMATCH, GUARD_INTENT_EXCEEDED, GUARD_PAYEE_UNKNOWN, GUARD_ASSET_MISMATCH,
     GUARD_SYMBOL_NOT_ALLOWED, GUARD_LIMIT_EXCEEDED, GUARD_ORDER_INVALID,
 )
+
+# 정직한 견적의 센트 단위 반올림 오탐 방지용 허용치(1센트). 공격은 달러 단위라 무영향.
+_INTENT_SLIPPAGE_USDC = Decimal("0.01")
 
 # ---- check_delivery 판정 코드 ----
 GUARD_DELIVERY_UNCONFIRMED = "GUARD_DELIVERY_UNCONFIRMED"  # 온체인 재조회에서 자산 미도착 → 보류
@@ -96,11 +100,18 @@ class Guard:
 
     # ---- 서명 직전: 청구서 4항목 대조 ----
 
-    def check_demand(self, required, quote, expected_order_id: Optional[str] = None) -> GuardResult:
+    def check_demand(self, required, quote, expected_order_id: Optional[str] = None,
+                     max_spend_usdc: Optional[Decimal] = None) -> GuardResult:
         """브로커의 payment-required(청구서)를 합의 견적·mandate·신뢰 목록과 대조한다.
 
         통과하면 ok=True 를 돌려주고, 어긋나면 첫 위반에서 즉시 차단 결과를 돌려준다.
         엔진은 ok=False 면 서명을 진행하지 않는다(GuardError 로 승격).
+
+        max_spend_usdc: 사용자 에이전트가 결정한 이번 거래의 의도 지출(decision.spend_usdc).
+                        브로커 quote 와 독립적인 상한이다 — quote 는 브로커가 만들고
+                        required 도 그 quote 에서 파생되므로 둘의 정합만으로는 '브로커가
+                        의도보다 많이 청구'하는 공격(BUG-03)을 못 잡는다. 이 값이 주어지면
+                        청구 금액이 의도 지출(+1센트)을 넘을 때 GUARD_INTENT_EXCEEDED 로 차단한다.
         """
         reqs = required.requirements
         order_id = required.order_id
@@ -135,6 +146,17 @@ class Guard:
             return self._block(GUARD_AMOUNT_MISMATCH, "청구 금액이 합의 견적과 다릅니다",
                                f"{expected_amount} base units", f"{int(reqs.amount)} base units")
 
+        # 5b) 의도 지출 상한 — 브로커와 독립적으로, 청구 금액이 사용자 의도 지출을 넘는가.
+        #     (BUG-03: quote↔required 정합만으로는 '한도 안쪽 부풀리기'를 못 잡는다. 악성/버그
+        #      브로커가 의도 30 에 대해 건별 한도(45) 안쪽 44.94 를 자기정합으로 청구하는 공격.)
+        if max_spend_usdc is not None:
+            intent_ceiling = to_base_units(max_spend_usdc + _INTENT_SLIPPAGE_USDC, self.usdc_decimals)
+            if int(reqs.amount) > intent_ceiling:
+                return self._block(GUARD_INTENT_EXCEEDED,
+                                   "청구 금액이 사용자 의도 지출을 초과합니다 (브로커 부풀리기)",
+                                   f"<= {to_base_units(max_spend_usdc, self.usdc_decimals)} base units",
+                                   f"{int(reqs.amount)} base units")
+
         # 6) 건별 한도 — 청구 금액이 사용자 건별 한도를 넘는가 (AP2 이전 1차 방어선)
         limit = to_base_units(self.mandate.per_trade_max_usdc, self.usdc_decimals)
         if int(reqs.amount) > limit:
@@ -145,9 +167,10 @@ class Guard:
         return GuardResult(True, "OK", "청구서 4항목 대조 통과 (금액·수취인·자산·주문번호)",
                            where, str(expected_amount), str(int(reqs.amount)))
 
-    def assert_demand(self, required, quote, expected_order_id: Optional[str] = None) -> GuardResult:
+    def assert_demand(self, required, quote, expected_order_id: Optional[str] = None,
+                      max_spend_usdc: Optional[Decimal] = None) -> GuardResult:
         """check_demand 후 위반이면 GuardError 를 던진다 (결제 경로 결선용)."""
-        res = self.check_demand(required, quote, expected_order_id)
+        res = self.check_demand(required, quote, expected_order_id, max_spend_usdc)
         if not res.ok:
             raise GuardError(res)
         return res

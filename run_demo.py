@@ -266,7 +266,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
             # (A2A #2) 402 Guard 청구서 검증 + AP2 한도 승인 + 결제 서명 → payment-submitted
             try:
                 blockhash = await x.get_latest_blockhash(client) if live else Hash.default()
-                submitted = trading.build_payment(required, blockhash, quote)
+                submitted = trading.build_payment(
+                    required, blockhash, quote, max_spend_usdc=decision.spend_usdc)
             except GuardError as e:
                 print(f"  [402 Guard 차단] {e} — 서명 거부(유출 0)")
                 continue

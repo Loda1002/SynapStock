@@ -34,7 +34,7 @@ from config import to_base_units
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer
 from payments.guard import (
     Guard, GuardError,
-    GUARD_PAYEE_UNKNOWN, GUARD_AMOUNT_MISMATCH, GUARD_DELIVERY_UNCONFIRMED,
+    GUARD_PAYEE_UNKNOWN, GUARD_INTENT_EXCEEDED, GUARD_DELIVERY_UNCONFIRMED,
 )
 from payments import x402_solana as x
 from agents.broker_agent import BrokerAgent
@@ -44,10 +44,12 @@ from shared.models import Quote
 
 DEC = 6
 PER_TRADE = Decimal("45")
+# 사용자 에이전트가 결정한 이번 거래 의도 지출 (decision.spend_usdc)
+INTENDED_SPEND = Decimal("30")
 # 합의 견적: 32.10 USDC (구매 에이전트가 받아들인 정상 청구액)
 AGREED_TOTAL = Decimal("32.10")
 AGREED_BASE = to_base_units(AGREED_TOTAL, DEC)          # 32,100,000
-# 위조 청구: 한도(45) 안쪽이지만 견적과 다른 44.94 USDC
+# 위조 청구: 한도(45) 안쪽이지만 의도 지출(30)보다 큰 44.94 USDC
 FORGED_TOTAL = Decimal("44.94")
 FORGED_BASE = to_base_units(FORGED_TOTAL, DEC)          # 44,940,000
 
@@ -116,34 +118,38 @@ def attack_payee_swap(attacker: str):
 
 
 def attack_amount_forge(attacker: str):
-    """수취인은 정상 브로커, 합의 견적 32.10 인데 청구는 44.94(한도 안쪽)로 부풀림."""
+    """수취인 정상, 청구서(required)와 견적(quote)이 자기정합(둘 다 44.94)이지만 사용자
+    의도 지출(30)을 초과 청구. quote↔required 정합만 보는 방어는 못 잡고(실 데이터 흐름에서는
+    required 가 quote 에서 파생돼 늘 정합), 브로커와 독립적인 의도 상한이 잡는다(BUG-03)."""
     env = _env(attacker)
     required = _required(env, "ord_a11ce50002", FORGED_BASE)  # pay_to = 정상 브로커
-    quote = _agreed_quote()
+    forged_quote = _agreed_quote(FORGED_TOTAL)                # quote 도 44.94 (자기정합)
 
     env["ta"].guard = None
-    submitted = env["ta"].build_payment(required, Hash.default(), quote)
+    submitted = env["ta"].build_payment(required, Hash.default(), forged_quote,
+                                        max_spend_usdc=INTENDED_SPEND)
     tx = x.decode_payload(submitted.payment.serialized_transaction)
     over_ok, _, _ = x.verify_payment(
         tx, expected_mint=env["usdc"], expected_dest_owner=env["broker"].pubkey(),
         expected_amount=FORGED_BASE, expected_order_id="ord_a11ce50002")
-    overpay = (FORGED_TOTAL - AGREED_TOTAL) if over_ok else Decimal(0)
+    overpay = (FORGED_TOTAL - INTENDED_SPEND) if over_ok else Decimal(0)
 
     env2 = _env(attacker)
     required2 = _required(env2, "ord_a11ce50002", FORGED_BASE)
-    code, where = _guarded(env2["ta"], required2, _agreed_quote())
+    code, where = _guarded(env2["ta"], required2, _agreed_quote(FORGED_TOTAL),
+                           max_spend_usdc=INTENDED_SPEND)
     return {
-        "name": "청구 위조 - 금액 부풀리기", "layer": "check_demand (서명 게이트)",
-        "without": f"합의 {AGREED_TOTAL} 대신 {FORGED_TOTAL} 서명(초과 {overpay})" if over_ok else "재현 실패",
-        "code": code, "where": where, "blocked": code == GUARD_AMOUNT_MISMATCH,
+        "name": "청구 위조 - 금액 부풀리기(의도 초과)", "layer": "check_demand (의도 상한)",
+        "without": f"의도 {INTENDED_SPEND} 인데 {FORGED_TOTAL} 서명(초과 {overpay})" if over_ok else "재현 실패",
+        "code": code, "where": where, "blocked": code == GUARD_INTENT_EXCEEDED,
         "leak": overpay,
     }
 
 
-def _guarded(ta, required, quote):
+def _guarded(ta, required, quote, max_spend_usdc=None):
     """가드가 켜진 상태로 build_payment 시도 → (차단코드, 위치). 통과하면 ('통과','')."""
     try:
-        ta.build_payment(required, Hash.default(), quote)
+        ta.build_payment(required, Hash.default(), quote, max_spend_usdc=max_spend_usdc)
         return "통과(유출!)", ""
     except GuardError as e:
         return e.result.code, e.result.where
@@ -229,7 +235,9 @@ async def normal_trades(n: int = 14):
         quote = env["bk"].quote("tAAPL", spend, Decimal("178.00"))
         required = env["bk"].make_payment_required(quote)
         try:
-            submitted = env["ta"].build_payment(required, Hash.default(), quote)  # 가드 통과해야 정상
+            # 정직한 견적 + 의도 상한(spend) 을 함께 넘겨도 통과해야 정상(의도검사 오탐 0)
+            submitted = env["ta"].build_payment(required, Hash.default(), quote,
+                                                max_spend_usdc=spend)
         except GuardError:
             false_pos += 1
             continue

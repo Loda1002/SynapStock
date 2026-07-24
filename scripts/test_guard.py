@@ -20,7 +20,7 @@ import config  # noqa: F401 — 임포트 시 콘솔 인코딩 안전화
 from payments.ap2_mandate import OpenPaymentMandate
 from payments.guard import (
     Guard,
-    GUARD_AMOUNT_MISMATCH, GUARD_PAYEE_UNKNOWN, GUARD_ASSET_MISMATCH,
+    GUARD_AMOUNT_MISMATCH, GUARD_INTENT_EXCEEDED, GUARD_PAYEE_UNKNOWN, GUARD_ASSET_MISMATCH,
     GUARD_SYMBOL_NOT_ALLOWED, GUARD_LIMIT_EXCEEDED, GUARD_ORDER_INVALID,
     GUARD_DELIVERY_UNCONFIRMED, GUARD_ORDER_MISMATCH,
 )
@@ -119,6 +119,31 @@ def test_demand() -> None:
           (not r7.ok) and r7.code == GUARD_ORDER_INVALID, r7.where)
 
 
+def test_intent_ceiling() -> None:
+    print("\n== check_demand — 의도 지출 상한(GUARD_INTENT_EXCEEDED, BUG-03) ==")
+    # 정직한 견적: 의도 30, 총액 29.99(수수료 포함, 의도 이하) → 통과
+    honest = Quote(symbol=SYMBOL, price_usdc=Decimal("178.00"), quantity=Decimal("0.1680"),
+                   total_usdc=Decimal("29.99"), subtotal_usdc=Decimal("29.90"),
+                   fee_usdc=Decimal("0.09"), fee_bps=30)
+    r_ok = GUARD.check_demand(make_required(amount_base=29_990_000), honest,
+                              max_spend_usdc=Decimal("30"))
+    check("정직한 견적(총액 29.99 <= 의도 30) 통과", r_ok.ok, r_ok.code)
+
+    # 악성/버그 브로커: 청구서·견적이 자기정합(둘 다 44.94, 한도 45 안쪽)이지만 의도는 30 → 차단
+    forged = Quote(symbol=SYMBOL, price_usdc=Decimal("178.00"), quantity=Decimal("0.25"),
+                   total_usdc=Decimal("44.94"), subtotal_usdc=Decimal("44.94"),
+                   fee_usdc=Decimal("0"), fee_bps=0)
+    r_bad = GUARD.check_demand(make_required(amount_base=44_940_000), forged,
+                               max_spend_usdc=Decimal("30"))
+    check("의도 초과 자기정합 청구 차단(GUARD_INTENT_EXCEEDED)",
+          (not r_bad.ok) and r_bad.code == GUARD_INTENT_EXCEEDED,
+          f"{r_bad.code} {r_bad.expected}<{r_bad.actual} @ {r_bad.where}")
+
+    # 하위호환: max_spend 미지정이면 의도검사 스킵 → 자기정합 44.94 는 통과(과거 동작 유지)
+    r_skip = GUARD.check_demand(make_required(amount_base=44_940_000), forged)
+    check("max_spend 미지정 시 의도검사 스킵(하위호환)", r_skip.ok, r_skip.code)
+
+
 def test_no_false_positive() -> None:
     print("\n== check_demand — 정상 거래 14건 오탐 0 ==")
     fp = 0
@@ -171,6 +196,7 @@ async def _delivery_cases() -> None:
 
 def main() -> int:
     test_demand()
+    test_intent_ceiling()
     test_no_false_positive()
     asyncio.run(_delivery_cases())
     print("\n결과: " + ("모든 테스트 통과" if _fail == 0 else f"{_fail}건 실패"))

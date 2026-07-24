@@ -750,7 +750,8 @@ class TradingEngine:
         # 402 Guard(청구서 검증) + AP2 한도 검사 — 위반이면 서명 자체가 일어나지 않는다(유출 0)
         try:
             blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
-            submitted = self._trading.build_payment(required, blockhash, quote)
+            submitted = self._trading.build_payment(
+                required, blockhash, quote, max_spend_usdc=decision.spend_usdc)
         except GuardError as e:
             self.guard_block_count += 1
             self.bus.emit(ev.GUARD_BLOCKED, {

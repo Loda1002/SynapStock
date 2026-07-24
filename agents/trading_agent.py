@@ -329,14 +329,17 @@ class TradingAgent:
         required: PaymentRequired,
         blockhash: Hash,
         quote=None,
+        max_spend_usdc: Optional[Decimal] = None,
     ) -> PaymentSubmitted:
         reqs = required.requirements
         amount_usdc = from_base_units(reqs.amount, reqs.decimals)
 
         # 402 Guard — AP2 한도 검사 '앞'에서 청구서를 검증한다(금액·수취인·자산·주문번호).
+        # max_spend_usdc(의도 지출)를 함께 넘겨 브로커 부풀리기(BUG-03)도 차단한다.
         # 위반이면 GuardError 로 결제 서명 자체가 일어나지 않는다(온체인 유출 0).
         if self.guard is not None and quote is not None:
-            self.guard.assert_demand(required, quote, expected_order_id=required.order_id)
+            self.guard.assert_demand(required, quote, expected_order_id=required.order_id,
+                                     max_spend_usdc=max_spend_usdc)
 
         # AP2 한도 검사 (초과·미허용 자산 시 MandateError → 결제 자체가 일어나지 않음).
         # asset 을 넘겨 allowed_asset 를 실제로 검증하게 한다(결함 C).
