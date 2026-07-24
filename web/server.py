@@ -79,6 +79,13 @@ async def index() -> FileResponse:
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
+@app.get("/login")
+async def login() -> FileResponse:
+    # 로그인/회원가입 자리표시 페이지 — 실제 인증은 제출 후 로드맵.
+    # 대시보드 접근을 막지 않으므로 인증 의존성 없이 정적 파일만 서빙한다.
+    return FileResponse(os.path.join(STATIC_DIR, "login.html"))
+
+
 # ---------- 조회 API ----------
 
 @app.get("/api/state")

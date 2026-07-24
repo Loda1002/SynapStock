@@ -45,6 +45,7 @@ code { font-family: var(--mono); font-size: var(--fs-small); }
 }
 .btn:hover { border-color: var(--accent); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
+a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .btn-emergency { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 700; }
 .btn-resume { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 700; }
 select {
@@ -223,3 +224,28 @@ td a { color: var(--accent); }
   from { transform: translateY(8px); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+
+/* ---- 로그인/회원가입 자리표시 페이지 (login.html) ----
+   실제 인증 백엔드 없음 — 제출 후 로드맵의 껍데기. 기존 카드/버튼/필드 골격을
+   그대로 쓰고, 페이지 전용 규칙은 여기 몇 줄만 둔다(전부 theme.css 변수 참조). */
+.auth {
+  min-height: calc(100vh - var(--gap) * 2);
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-card { width: 100%; max-width: 380px; }
+.auth-brand { text-align: center; margin-bottom: var(--gap); }
+.auth-brand h1 { font-size: 20px; }
+.auth-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.auth-tabs .auth-tab { flex: 1; }
+.auth-tab.is-active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.auth-notice {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 12px; margin: 0 0 var(--gap); font-size: var(--fs-small); color: var(--muted);
+}
+.auth-notice a { color: var(--accent); }
+.auth-form .field { max-width: none; }
+.auth-form .field input { max-width: none; }
+.auth-submit { width: 100%; margin-top: 4px; }
+.auth-result { margin-top: 8px; }
+.auth-back { text-align: center; margin-top: var(--gap); }
+.auth-back a { color: var(--accent); text-decoration: none; }
