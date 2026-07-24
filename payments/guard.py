@@ -47,8 +47,11 @@ DEMAND_CODES = (
     GUARD_SYMBOL_NOT_ALLOWED, GUARD_LIMIT_EXCEEDED, GUARD_ORDER_INVALID,
 )
 
-# 정직한 견적의 센트 단위 반올림 오탐 방지용 허용치(1센트). 공격은 달러 단위라 무영향.
-_INTENT_SLIPPAGE_USDC = Decimal("0.01")
+# 정직한 견적의 센트 반올림 오탐 방지용 허용치(2센트). 브로커 quote 는 subtotal 과 fee 를
+# 각각 센트로 반올림(각 최대 +0.005)하므로, 정직한 총액이 의도 지출을 넘는 최악치는
+# 0.01(기본) + 0.005(subtotal) + 0.005(fee) = 0.02 이다(수수료율 100%까지 유효). 브로커가
+# 준 값에 의존하지 않는 고정 상수로 둔다. 공격은 달러 단위라 2센트로도 차단력 무영향.
+_INTENT_SLIPPAGE_USDC = Decimal("0.02")
 
 # ---- check_delivery 판정 코드 ----
 GUARD_DELIVERY_UNCONFIRMED = "GUARD_DELIVERY_UNCONFIRMED"  # 온체인 재조회에서 자산 미도착 → 보류

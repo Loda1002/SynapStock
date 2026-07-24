@@ -15,8 +15,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from decimal import Decimal
 
 from solders.keypair import Keypair
+from solders.pubkey import Pubkey
 
 import config  # noqa: F401 — 임포트 시 콘솔 인코딩 안전화
+from agents.broker_agent import BrokerAgent
 from payments.ap2_mandate import OpenPaymentMandate
 from payments.guard import (
     Guard,
@@ -142,6 +144,16 @@ def test_intent_ceiling() -> None:
     # 하위호환: max_spend 미지정이면 의도검사 스킵 → 자기정합 44.94 는 통과(과거 동작 유지)
     r_skip = GUARD.check_demand(make_required(amount_base=44_940_000), forged)
     check("max_spend 미지정 시 의도검사 스킵(하위호환)", r_skip.ok, r_skip.code)
+
+    # 고수수료(100bps) 정직 견적: 실 BrokerAgent 의 subtotal·fee 이중 센트반올림으로 total 이
+    # 의도를 미세 초과할 수 있으나 2센트 허용치가 흡수해야 한다(검증 워크플로우가 잡은 회귀 —
+    # 1센트 고정 허용치면 이 정직 견적이 GUARD_INTENT_EXCEEDED 로 오탐 차단됐다).
+    hbk = BrokerAgent(BROKER, Pubkey.from_string(USDC), DECIMALS, None, DECIMALS, "n", fee_bps=100)
+    hspend = Decimal("3.529994")
+    hq = hbk.quote("tAAPL", hspend, Decimal("27.52"))
+    hreq = hbk.make_payment_required(hq)
+    r_hi = GUARD.check_demand(hreq, hq, expected_order_id=hreq.order_id, max_spend_usdc=hspend)
+    check("고수수료 정직 견적 오탐 없음(2센트 허용)", r_hi.ok, f"{r_hi.code} total={hq.total_usdc}")
 
 
 def test_no_false_positive() -> None:
