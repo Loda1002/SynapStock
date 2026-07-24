@@ -64,7 +64,14 @@ def build_args() -> argparse.Namespace:
 def main() -> int:
     args = build_args()
     csv_path = args.file or os.path.join(ROOT, "data", "market", f"{args.symbol.upper()}_daily.csv")
-    feed = ReplayPriceFeed(csv_path, start=args.date_from, end=args.date_to, warmup=args.warmup)
+    try:
+        feed = ReplayPriceFeed(csv_path, start=args.date_from, end=args.date_to, warmup=args.warmup)
+    except (FileNotFoundError, ValueError) as e:
+        # 스택트레이스 대신 사람이 읽는 안내 — 구간을 잘못 준 경우가 대부분이다
+        print(f"[오류] {e}")
+        print("  --from/--to 를 빼면 CSV 전체 구간으로 실행됩니다.")
+        print("  데이터 수집: python scripts/fetch_market_data.py")
+        return 1
 
     symbol = CFG.stock_symbol
     strategy = Strategy(

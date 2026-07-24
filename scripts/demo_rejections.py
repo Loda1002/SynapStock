@@ -19,6 +19,7 @@ from decimal import Decimal
 from solders.hash import Hash
 from solders.keypair import Keypair
 
+import config  # noqa: F401 — 임포트 시 콘솔 인코딩 안전화 (로그 리다이렉트 시 크래시 방지)
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from payments import x402_solana as x
 

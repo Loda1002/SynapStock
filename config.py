@@ -1,8 +1,29 @@
 """전역 설정 로드 (.env 기반). devnet RPC, 민트 주소, 예산 한도 등."""
 from __future__ import annotations
 import os
+import sys
 from dataclasses import dataclass
 from decimal import Decimal
+
+
+def enable_console_safe_output() -> None:
+    """콘솔 출력 인코딩 안전화 — 모든 진입점이 config 를 임포트하므로 여기서 1회 적용.
+
+    한국어 Windows 에서 stdout 이 파이프/파일로 리다이렉트되면 인코딩이 cp949 가 되고,
+    판단 근거·로그에 섞인 em-dash(—) 같은 문자가 UnicodeEncodeError 로 프로그램을 죽인다.
+    (`python run_demo.py > log.txt` 는 CLAUDE.md 검증 루틴이 요구하는 로그 아카이빙 방식이다.)
+
+    인코딩 자체는 바꾸지 않는다 — UTF-8 로 강제하면 cp949 콘솔에서 한글이 전부 깨진다.
+    표현 불가 문자만 '?' 로 대체해, 어떤 환경에서도 죽지 않고 한글은 그대로 보이게 한다.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")   # type: ignore[union-attr]
+        except Exception:
+            pass  # reconfigure 불가(테스트 캡처 등) — 원래 동작 유지
+
+
+enable_console_safe_output()
 
 try:
     from dotenv import load_dotenv

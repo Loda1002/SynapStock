@@ -18,7 +18,7 @@
   에이전트가 한도 내에서만 자율 결제 (초과 시 결제 자체 차단)
 - **x402 온체인 결제 코어**: USDC(SPL) 전송 트랜잭션 생성·서명·**구조 검증**
   (수취인/금액/민트/서명 확인)
-- **Gemini 매매 판단**(무료 티어, `gemini-flash-latest`): 시세 흐름·규칙·예산을 보고
+- **Gemini 매매 판단**(무료 티어, `gemini-flash-lite-latest`): 시세 흐름·규칙·예산을 보고
   매수/매도/보류를 결정하고 이유를 생성 — API 장애 시 규칙 기반 **자동 폴백**
 - **매도 사이클**: 주식토큰 전송 → 브로커 온체인 검증 → USDC 지급, 매도 대금은
   AP2 예산에 환입(예산 = 순투입 한도)
@@ -37,11 +37,18 @@
 - **백테스트 러너**(`scripts/backtest.py`): 같은 구간에서 규칙 vs Gemini 엄격 vs 추세를
   비교 — 총손익·수익률·승률·MDD·AP2 거부 집계 → `artifacts/backtests/`
 
+- **TA 판단 보강**(`market/indicators.py`): MA 1~200일 배열·크로스·기울기, 지지/저항,
+  차트·캔들 패턴을 판단 근거로 주입 (세션 토글, 기본 OFF — 상세 `docs/ta_upgrade.md`)
+- **적립식(DCA) 전략**: 틱/분/매일 시각 기준 정액 매수 · **데일리 브리핑**(Gemini 한국어
+  리포트, 실패 시 템플릿 폴백) · **수수료 투명화**(체결마다 브로커 수수료 = 수익모델 증빙)
+- **Firestore 영속화 + Cloud Run 배포 구성**: 세션·체결·브리핑·한도가 재시작 너머로 남고
+  (`/api/history`), Dockerfile + Secret Manager 런북 완비 (`docs/deploy_cloud_run.md`)
+
 ## 아직 안 붙은 것 (다음 단계)
 
-- Cloud Run 배포, Secret Manager, Firestore (P2: 수수료 투명화·한도 설정 화면·알림·DCA·브리핑)
+- 로그인·회원가입(Firebase Auth)과 사용자별 세션 분리 — 현재 엔진은 전역 싱글턴 1개
 - 디자인 스킨 적용(시안 수령 후 — `web/static/css/theme.css` 변수 교체)
-- 멀티종목·멀티턴 협상
+- 멀티종목·멀티턴 협상, 에이전트 대화형 제어
 
 ---
 
@@ -81,12 +88,14 @@ python -m web.server     # http://localhost:8000 (포트는 .env WEB_PORT)
 # 1회 수집 (무료 키: https://www.alphavantage.co/support/#api-key → .env ALPHAVANTAGE_API_KEY)
 python scripts/fetch_market_data.py                  # AAPL·TSLA·NVDA 일봉 2024~ → data/market/
 # 대시보드에서 시세 피드 "실데이터 재생 (일봉)" 선택 → 세션 시작 (CSV 없으면 잠김)
-# 재생 구간 고정: .env REPLAY_START=2025-02-03 / REPLAY_END=2025-04-30
+# 재생 구간 고정(선택): .env REPLAY_START / REPLAY_END — 비우면 CSV 전체 구간
 
 # 백테스트 — 같은 구간 3종 비교 (Gemini 는 무료 티어 보호: 4초 간격·기본 60봉 제한)
-python scripts/backtest.py --brain rule            --from 2025-02-03 --to 2025-04-30
-python scripts/backtest.py --brain gemini --mode strict --from 2025-02-03 --to 2025-04-30
-python scripts/backtest.py --brain gemini --mode trend  --from 2025-02-03 --to 2025-04-30
+# 구간 인자를 빼면 커밋된 CSV 전체를 쓴다. 특정 구간은 --from/--to 로 지정.
+python scripts/backtest.py --brain rule
+python scripts/backtest.py --brain gemini --mode strict
+python scripts/backtest.py --brain gemini --mode trend
+# 종목 교체·구간 지정 예: python scripts/backtest.py --symbol TSLA --from 2026-06-01 --to 2026-07-22
 ```
 
 ## localnet 라이브 실행 (개발 기본 경로 — 검증 완료)
