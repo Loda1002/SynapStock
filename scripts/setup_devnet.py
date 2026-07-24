@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.system_program import create_account, CreateAccountParams
+from solders.system_program import create_account, CreateAccountParams, transfer, TransferParams
 from solders.message import Message
 from solders.transaction import Transaction
 
@@ -50,15 +50,56 @@ STOCK_SUPPLY = 100
 BROKER_USDC_RESERVE = 500
 
 
+def _is_transient(e: Exception) -> bool:
+    """예외 체인(래핑된 원인 포함)에서 일시적 RPC 오류 신호를 찾는다.
+    solana-py 는 429 를 SolanaRpcException 으로 감싸 str() 에 '429' 가 안 보이므로
+    __cause__/__context__ 를 따라가며 확인한다."""
+    cur, parts = e, []
+    for _ in range(6):
+        if cur is None:
+            break
+        parts.append(type(cur).__name__)
+        parts.append(str(cur))
+        cur = cur.__cause__ or cur.__context__
+    text = " ".join(parts)
+    return any(s in text for s in ("429", "Too Many", "Internal error",
+                                   "SolanaRpcException", "timed out", "Timeout"))
+
+
+async def _rpc_retry(factory, retries: int = 6, label: str = ""):
+    """devnet 공용 RPC(api.devnet.solana.com)는 짧은 시간에 요청이 몰리면 429 를 준다.
+    429·일시적 내부 오류는 지수 백오프로 재시도한다 — 조회·confirm 은 idempotent 하고
+    재제출도 동일 blockhash·서명이라 중복 tx 가 생기지 않아 안전하다."""
+    for attempt in range(retries):
+        try:
+            return await factory()
+        except Exception as e:
+            if _is_transient(e) and attempt < retries - 1:
+                wait = 2 ** (attempt + 1)
+                print(f"    (RPC 혼잡{' ' + label if label else ''} — {wait}s 후 재시도 {attempt + 1}/{retries - 1})")
+                await asyncio.sleep(wait)
+                continue
+            raise
+    raise RuntimeError("RPC 재시도 소진")
+
+
 async def send(client: AsyncClient, payer: Keypair, instructions, signers) -> str:
-    bh = (await client.get_latest_blockhash()).value.blockhash
+    bh = (await _rpc_retry(lambda: client.get_latest_blockhash())).value.blockhash
     msg = Message.new_with_blockhash(instructions, payer.pubkey(), bh)
     tx = Transaction(signers, msg, bh)
-    resp = await client.send_raw_transaction(
-        bytes(tx), opts=TxOpts(skip_preflight=False, preflight_commitment=Confirmed))
+    resp = await _rpc_retry(lambda: client.send_raw_transaction(
+        bytes(tx), opts=TxOpts(skip_preflight=False, preflight_commitment=Confirmed)), label="제출")
     sig = resp.value
-    await client.confirm_transaction(sig, commitment=Confirmed)
+    await _rpc_retry(lambda: client.confirm_transaction(sig, commitment=Confirmed), label="confirm")
     return str(sig)
+
+
+async def transfer_sol(client: AsyncClient, payer: Keypair, to: Pubkey, sol: float) -> str:
+    """payer → to 네이티브 SOL 이체. devnet 파우셋이 막힐 때(GitHub 조건 등) 여유
+    지갑에서 부족한 지갑으로 수수료를 충당하는 용도."""
+    lamports = int(sol * 1_000_000_000)
+    ix = transfer(TransferParams(from_pubkey=payer.pubkey(), to_pubkey=to, lamports=lamports))
+    return await send(client, payer, [ix], [payer])
 
 
 async def create_mint(client, payer: Keypair, authority: Pubkey, decimals: int) -> Pubkey:
@@ -126,30 +167,41 @@ async def main() -> None:
     print(f"Broker  지갑: {broker.pubkey()}")
 
     async with AsyncClient(CFG.rpc_url, commitment=Confirmed) as client:
-        print("\n[1/4] SOL 에어드랍 (수수료용)…")
+        print("\n[1/4] SOL 확인·에어드랍 (수수료용)…")
         for name, kp in [("trading", trading), ("broker", broker)]:
+            cur = await x.get_sol_balance(client, kp.pubkey())
+            if cur >= 0.05:
+                print(f"  {name}: 이미 {cur:.4f} SOL — 에어드랍 생략")
+                continue
             try:
                 sig = await x.request_airdrop(client, kp.pubkey(), 2.0)
                 print(f"  {name}: airdrop OK ({sig[:16]}…)")
             except Exception as e:
-                print(f"  {name}: airdrop 실패 — 파우셋 한도일 수 있음. "
-                      f"https://faucet.solana.com 에서 수동 충전 후 재실행. ({e})")
+                print(f"  {name}: airdrop 실패 — 파우셋 한도일 수 있음"
+                      f"(뒤에서 여유 지갑으로 충당 시도). ({type(e).__name__})")
 
         # SOL 선검사 — 에어드랍이 파우셋 한도로 실패하면 지갑에 SOL 이 없다. 이 상태로
         # [2/4] 로 넘어가면 민트 생성(rent 지불)이 정체불명 RPC 에러로 크래시한다.
-        # devnet SOL 은 하루 한도가 빠듯하므로, 부족하면 여기서 멈추고 수동 충전을 안내한다.
         MIN_SOL = 0.05
-        low = []
+        FUND_SOL = 0.5   # trading→broker 자동 이체량 (민트·ATA rent 에 충분한 여유)
+        bal = {}
         for name, kp in [("trading", trading), ("broker", broker)]:
-            bal = await x.get_sol_balance(client, kp.pubkey())
-            print(f"  {name} SOL 잔액: {bal:.4f}")
-            if bal < MIN_SOL:
-                low.append((name, kp.pubkey(), bal))
+            bal[name] = await x.get_sol_balance(client, kp.pubkey())
+            print(f"  {name} SOL 잔액: {bal[name]:.4f}")
+        # devnet 파우셋은 GitHub 공개 repo 조건 등으로 막히기 쉽다. 한쪽(보통 trading)에
+        # 여유가 있으면 broker 부족분을 거기서 자동 충당한다 → 파우셋 한 번(또는 0번)으로 양쪽 커버.
+        if bal["broker"] < MIN_SOL and bal["trading"] >= FUND_SOL + MIN_SOL:
+            print(f"  broker SOL 부족 → trading 에서 {FUND_SOL} SOL 이체(파우셋 없이 충당)…")
+            sig = await transfer_sol(client, trading, broker.pubkey(), FUND_SOL)
+            bal["broker"] = await x.get_sol_balance(client, broker.pubkey())
+            print(f"  이체 완료({sig[:16]}…) → broker SOL 잔액: {bal['broker']:.4f}")
+        low = [(n, kp.pubkey(), bal[n]) for n, kp in [("trading", trading), ("broker", broker)]
+               if bal[n] < MIN_SOL]
         if low:
             print(f"\n[중단] 민트 생성에 필요한 SOL 이 부족합니다(지갑당 최소 {MIN_SOL} SOL).")
             print("아래 지갑을 https://faucet.solana.com 에서 수동 충전한 뒤 이 스크립트를 다시 실행하세요:")
-            for name, pk, bal in low:
-                print(f"  - {name}: {pk}  (현재 {bal:.4f} SOL)")
+            for name, pk, b in low:
+                print(f"  - {name}: {pk}  (현재 {b:.4f} SOL)")
             print("(지갑 키는 secrets/ 에 이미 저장됐으므로, 충전 후 재실행하면 같은 지갑을 그대로 씁니다.)")
             return
 
