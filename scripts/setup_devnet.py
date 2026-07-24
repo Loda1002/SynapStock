@@ -45,6 +45,9 @@ USDC_DECIMALS = 6
 STOCK_DECIMALS = 6
 USDC_SUPPLY = 1000
 STOCK_SUPPLY = 100
+# 브로커 운용자본(USDC 준비금) — 주식이 오른 뒤 되사줄 때(익절 매도) 지급 재원.
+# 없으면 브로커가 매수로 받은 USDC 만으로는 평가이익만큼을 지급하지 못해 매도 정산이 실패한다.
+BROKER_USDC_RESERVE = 500
 
 
 async def send(client: AsyncClient, payer: Keypair, instructions, signers) -> str:
@@ -92,14 +95,16 @@ def write_env(usdc_mint: Pubkey, stock_mint: Pubkey) -> None:
     example = os.path.join(root, ".env.example")
     lines = []
     src = env_path if os.path.exists(env_path) else example
-    with open(src) as f:
+    # 한국어 주석이 들어간 .env 는 UTF-8 이다 — 인코딩 미지정 시 cp949(한국어 Windows)로
+    # 열려 UnicodeDecodeError 로 죽는다. 읽기·쓰기 모두 UTF-8 로 고정한다.
+    with open(src, encoding="utf-8") as f:
         for line in f:
             if line.startswith("USDC_MINT="):
                 line = f"USDC_MINT={usdc_mint}\n"
             elif line.startswith("STOCK_MINT="):
                 line = f"STOCK_MINT={stock_mint}\n"
             lines.append(line)
-    with open(env_path, "w") as f:
+    with open(env_path, "w", encoding="utf-8") as f:
         f.writelines(lines)
     print(f"→ .env 업데이트: USDC_MINT / STOCK_MINT 기록 완료")
 
@@ -143,6 +148,9 @@ async def main() -> None:
         print(f"  trading 지갑에 {USDC_SUPPLY} USDC 지급")
         await mint_tokens(client, broker, stock_mint, broker.pubkey(), STOCK_SUPPLY, STOCK_DECIMALS)
         print(f"  broker 지갑에 {STOCK_SUPPLY} {CFG.stock_symbol} 지급")
+        # 브로커 USDC 운용자본 — 익절 매도(오른 뒤 되사기) 대금을 지급할 재원 (USDC 민트 권한=trading)
+        await mint_tokens(client, trading, usdc_mint, broker.pubkey(), BROKER_USDC_RESERVE, USDC_DECIMALS)
+        print(f"  broker 지갑에 {BROKER_USDC_RESERVE} USDC 운용자본 지급")
 
     write_env(usdc_mint, stock_mint)
     print("\n완료. 이제 `python run_demo.py --live` 로 실제 devnet 매수를 실행할 수 있습니다.")

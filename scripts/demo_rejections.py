@@ -79,7 +79,7 @@ def main() -> int:
     )
     ok, reason, amount = x.verify_payment(
         tx, expected_mint=usdc_mint, expected_dest_owner=broker.pubkey(),
-        min_amount=30_000_000,
+        expected_amount=30_000_000,
     )
     if ok:
         print("  [문제!] 통과되면 안 되는 결제가 통과했습니다")

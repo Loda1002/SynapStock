@@ -345,6 +345,8 @@ class TradingAgent:
             amount_usdc=amount_usdc, pay_to=reqs.pay_to, asset=reqs.asset,
         )
 
+        # 주문번호를 온체인 Memo 에 박는다 (대사 키 + tx 유일성 → 리플레이 방어)
+        memo = f"{x.MEMO_PREFIX}:{required.order_id}:{(self.auth.open.signature or '')[:8]}"
         tx = x.build_transfer_transaction(
             payer=self.kp,
             mint=Pubkey.from_string(reqs.asset),
@@ -352,6 +354,7 @@ class TradingAgent:
             amount=reqs.amount,
             decimals=reqs.decimals,
             blockhash=blockhash,
+            memo=memo,
         )
         payload = PaymentPayload(
             network=self.network,
@@ -366,6 +369,7 @@ class TradingAgent:
         blockhash: Hash,
     ) -> PaymentSubmitted:
         reqs = required.requirements
+        memo = f"{x.MEMO_PREFIX}:{required.order_id}:{(self.auth.open.signature or '')[:8]}"
         tx = x.build_transfer_transaction(
             payer=self.kp,
             mint=Pubkey.from_string(reqs.asset),      # 주식 민트
@@ -373,6 +377,7 @@ class TradingAgent:
             amount=reqs.amount,
             decimals=reqs.decimals,
             blockhash=blockhash,
+            memo=memo,
         )
         payload = PaymentPayload(
             network=self.network,

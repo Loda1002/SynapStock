@@ -1,0 +1,185 @@
+{
+  "generated_at": "2026-07-24T15:11:25",
+  "network": "solana-localnet",
+  "rpc_url": "http://127.0.0.1:8899",
+  "wallets": {
+    "user": "E48dx73aaS6WE1WeQ4JB1Bn6hogfXeN5Ka3PkiyjxP5g",
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "DBew6W4yTnq5av59YWmaPUU68CESkUuEyKECC8X6az5i",
+    "stock": "5JwqByZnPRDEjhoh3DkiNDmcv8Ut4g6wEjZ8KiQT3PM2",
+    "stock_symbol": "tAAPL"
+  },
+  "mandate": {
+    "user_pubkey": "E48dx73aaS6WE1WeQ4JB1Bn6hogfXeN5Ka3PkiyjxP5g",
+    "budget_total_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "signature": "4yPXp2TMY9WdcHYHtQFmkZZfLvTJ5qQjFQxYoZWpugT4Jsp3hS6op6o9VykNggqJcCMXVtgdtbMinZPLFTtJqtkr"
+  },
+  "broker_fee": {
+    "fee_bps": 30,
+    "total_fees_usdc": "0.82"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 5.9853488,
+      "usdc": "1000",
+      "stock": "0"
+    },
+    "broker": {
+      "sol": 5.98739808,
+      "usdc": "500",
+      "stock": "100"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 5.9853138,
+      "usdc": "913.05",
+      "stock": "0.5129"
+    },
+    "broker": {
+      "sol": 5.9853238,
+      "usdc": "586.95",
+      "stock": "99.4871"
+    }
+  },
+  "trades": [
+    {
+      "order_id": "ord_15c04a3bcd",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 177.30 ≤ 매수기준 177.46 (MA5 181.08 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1686",
+      "price_usdc": "177.30",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "4BAK1FvipAP94DGGcnngvD5ncrTmWW7K4wBYbh9ZSd6wgeVuhe466i4ASGd3xtsYr1EfLq9R2tMgdn8foYuGXDx5",
+      "delivery_tx": "5wcPxrEvNZbcZsvdkzztuGgcXF3VsoLxMJeGD9iEg3d9z1uanfzq4qh7ua3YmmdHZP9NLKn4uQArNw7waKguvpxA",
+      "explorer_payment": "https://explorer.solana.com/tx/4BAK1FvipAP94DGGcnngvD5ncrTmWW7K4wBYbh9ZSd6wgeVuhe466i4ASGd3xtsYr1EfLq9R2tMgdn8foYuGXDx5?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/5wcPxrEvNZbcZsvdkzztuGgcXF3VsoLxMJeGD9iEg3d9z1uanfzq4qh7ua3YmmdHZP9NLKn4uQArNw7waKguvpxA?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_91dbe4dbf6",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 174.60 ≤ 매수기준 176.05 (MA5 179.64 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1713",
+      "price_usdc": "174.60",
+      "subtotal_usdc": "29.91",
+      "fee_usdc": "0.09",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "Lcpj393nF7dGeN9zt3G93zavRhehEkepkFKRSxG16HsdfzDRcs3iRADVzmtVQLbfKdfSPsXgDrHqbGh5vzuBiaX",
+      "delivery_tx": "2m9w2N1hq3PDn2F9H1TA5hZies2w4xKQmFeKajdS3QAvX2XLdfsLAwg9uXWSDBbaJAd2XU83qUVs5eRjXtSQoVEd",
+      "explorer_payment": "https://explorer.solana.com/tx/Lcpj393nF7dGeN9zt3G93zavRhehEkepkFKRSxG16HsdfzDRcs3iRADVzmtVQLbfKdfSPsXgDrHqbGh5vzuBiaX?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/2m9w2N1hq3PDn2F9H1TA5hZies2w4xKQmFeKajdS3QAvX2XLdfsLAwg9uXWSDBbaJAd2XU83qUVs5eRjXtSQoVEd?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_5a859d6235",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 172.80 ≤ 매수기준 173.22 (MA5 176.76 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1730",
+      "price_usdc": "172.80",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "5ipvWhqZKGgAQwuCR5PuJ7U1oQN5ydnTzkavtgdG793uFX9YrfQPpCJPRArxDmP7WTK6L63cvrHX5hGVhaw4SFJQ",
+      "delivery_tx": "4Fs9qHb7MNUMANwii97H5RBcAM79xeM37dqnFTwe6KzokjnsY1ViZFXZc66pTQnLoFquJ5CtRc7tCPRjKPdcXv8W",
+      "explorer_payment": "https://explorer.solana.com/tx/5ipvWhqZKGgAQwuCR5PuJ7U1oQN5ydnTzkavtgdG793uFX9YrfQPpCJPRArxDmP7WTK6L63cvrHX5hGVhaw4SFJQ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/4Fs9qHb7MNUMANwii97H5RBcAM79xeM37dqnFTwe6KzokjnsY1ViZFXZc66pTQnLoFquJ5CtRc7tCPRjKPdcXv8W?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_646081617f",
+      "side": "sell",
+      "decision_source": "rule",
+      "decision_reason": "가격 181.80 ≥ 익절기준 180.65 (평단 175.39 +3%)",
+      "symbol": "tAAPL",
+      "quantity": "0.5129",
+      "price_usdc": "181.80",
+      "subtotal_usdc": "93.25",
+      "fee_usdc": "0.28",
+      "total_usdc": "92.97",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "2f41mdgjAYfzGQ3hTmTKjU6TNaUkAEndrhxPZsetTEwZAZhv6Lu5evtcbXNM7mAUJhupAHZJDKqmoBjtzJyENsd7",
+      "delivery_tx": "jFrKssyZ9ihfoGeBgrd3e7YxgZq6LJVGzajDjqjmnCFyyQdbWSMyimfbkdtaR8jMzwh616N4CD43qQj7fDDweGz",
+      "explorer_payment": "https://explorer.solana.com/tx/2f41mdgjAYfzGQ3hTmTKjU6TNaUkAEndrhxPZsetTEwZAZhv6Lu5evtcbXNM7mAUJhupAHZJDKqmoBjtzJyENsd7?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/jFrKssyZ9ihfoGeBgrd3e7YxgZq6LJVGzajDjqjmnCFyyQdbWSMyimfbkdtaR8jMzwh616N4CD43qQj7fDDweGz?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_26386f4f02",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 177.30 ≤ 매수기준 177.46 (MA5 181.08 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1686",
+      "price_usdc": "177.30",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3sG3y8vVpfD3sfNp6qNvrmw7HgJbmoWsCD8ne7LqA9NgG1Nte6o53BiQg3SnSRgwAd49wzkfpiHnoDAHRScT97Yh",
+      "delivery_tx": "mG2qpXXzJvqcPi4SpL4edT3evqAJUHGftDcpycoPkHgdRKKcKUFMwqQ7yTffZomdT7pUUsWmcrp84WrQhTrxHiH",
+      "explorer_payment": "https://explorer.solana.com/tx/3sG3y8vVpfD3sfNp6qNvrmw7HgJbmoWsCD8ne7LqA9NgG1Nte6o53BiQg3SnSRgwAd49wzkfpiHnoDAHRScT97Yh?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/mG2qpXXzJvqcPi4SpL4edT3evqAJUHGftDcpycoPkHgdRKKcKUFMwqQ7yTffZomdT7pUUsWmcrp84WrQhTrxHiH?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_b12db8f85b",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 174.60 ≤ 매수기준 176.05 (MA5 179.64 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1713",
+      "price_usdc": "174.60",
+      "subtotal_usdc": "29.91",
+      "fee_usdc": "0.09",
+      "total_usdc": "30.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "3HoR8mztFryZNXNDNEKvNeLyUddjX97B1ysRxTuwD1N7rEePJ4jmiSjxQVrxorqM3ueMM1s8ZGsCREZC8NwsK13g",
+      "delivery_tx": "29VSqfXfhzfPi2aWsapG8ePUMshafUmNdW6gxDawdg1R6epdLXMJyJMF7PjnKEkG1N8xiiupDm4SWbST7deorf1G",
+      "explorer_payment": "https://explorer.solana.com/tx/3HoR8mztFryZNXNDNEKvNeLyUddjX97B1ysRxTuwD1N7rEePJ4jmiSjxQVrxorqM3ueMM1s8ZGsCREZC8NwsK13g?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/29VSqfXfhzfPi2aWsapG8ePUMshafUmNdW6gxDawdg1R6epdLXMJyJMF7PjnKEkG1N8xiiupDm4SWbST7deorf1G?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    },
+    {
+      "order_id": "ord_9708314e6b",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "가격 172.80 ≤ 매수기준 173.22 (MA5 176.76 −2%)",
+      "symbol": "tAAPL",
+      "quantity": "0.1730",
+      "price_usdc": "172.80",
+      "subtotal_usdc": "29.89",
+      "fee_usdc": "0.09",
+      "total_usdc": "29.98",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "5njGdUBCKaz9fEhfngPZkgF7yvt1kNLBQWaGFMfpybx9pstfMPcheG43HZz8y8ngzBBW8q1qX1pgdW37RVXtDMsR",
+      "delivery_tx": "2ghoo46W9GXA1ERBHD4nS4Q1h3t8fphztbnPc26hRqPWveeFobX2axtTNPLd1ks6r9iihm4MBFUCVebhLQZf1a4G",
+      "explorer_payment": "https://explorer.solana.com/tx/5njGdUBCKaz9fEhfngPZkgF7yvt1kNLBQWaGFMfpybx9pstfMPcheG43HZz8y8ngzBBW8q1qX1pgdW37RVXtDMsR?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "explorer_delivery": "https://explorer.solana.com/tx/2ghoo46W9GXA1ERBHD4nS4Q1h3t8fphztbnPc26hRqPWveeFobX2axtTNPLd1ks6r9iihm4MBFUCVebhLQZf1a4G?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899"
+    }
+  ],
+  "cross_check": {
+    "usdc_net_out_onchain": "86.95",
+    "usdc_net_out_expected": "86.95",
+    "usdc_ok": true,
+    "stock_net_in_onchain": "0.5129",
+    "stock_net_in_expected": "0.5129",
+    "stock_ok": true
+  }
+}

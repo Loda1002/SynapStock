@@ -102,5 +102,6 @@ class PaymentCompleted:
     delivered_asset: str     # 전달된 주식토큰 민트
     delivered_amount: int    # base units
     delivery_tx_signature: str = ""  # 주식토큰 전달 tx (라이브 정산 시)
-    status: str = "settled"  # settled / failed
+    status: str = "settled"  # settled / failed / partial
+    reason: str = ""         # 실패/보류 사유 (이중청구·만료·검증 실패 등)
     kind: str = "payment-completed"

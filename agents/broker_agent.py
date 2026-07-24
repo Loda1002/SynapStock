@@ -6,6 +6,7 @@
 지금은 규칙 기반. 이후 Gemini(ADK) 로 동적 가격/재고 판단을 붙일 수 있다.
 """
 from __future__ import annotations
+import time
 import uuid
 from decimal import Decimal, ROUND_DOWN
 from typing import Optional
@@ -39,10 +40,28 @@ class BrokerAgent:
         self.stock_decimals = stock_decimals
         self.network = network
         self.fee_bps = fee_bps
+        # 이중청구/리플레이 방어 — 이미 처리한 결제 서명은 다시 정산하지 않는다.
+        self.used_signatures: set[str] = set()
+        # 청구서 유효시간(expires_at) — 발행 후 이 시간이 지나면 정산을 거부한다.
+        self.order_ttl_sec: int = 120
+        self._order_created: dict[str, float] = {}
 
     @property
     def pubkey(self) -> Pubkey:
         return self.kp.pubkey()
+
+    def _order_expired(self, order_id: str) -> bool:
+        """발행한 청구서인데 유효시간(expires_at)을 넘겼는지. 미발행 주문은 만료 판정 안 함."""
+        created = self._order_created.get(order_id)
+        return created is not None and (time.time() - created) > self.order_ttl_sec
+
+    def _guard_settlement(self, order_id: str, sig: str) -> Optional[str]:
+        """정산 전 공통 방어 — 이중청구(서명 재사용)·만료면 사유 문자열, 통과면 None."""
+        if sig in self.used_signatures:
+            return "이중청구 — 이미 처리된 결제 서명(리플레이)"
+        if self._order_expired(order_id):
+            return "청구서 만료 — 유효시간(expires_at) 초과"
+        return None
 
     @property
     def _fee_rate(self) -> Decimal:
@@ -69,6 +88,7 @@ class BrokerAgent:
     # 2) payment-required 발행
     def make_payment_required(self, quote: Quote) -> PaymentRequired:
         order_id = f"ord_{uuid.uuid4().hex[:10]}"
+        self._order_created[order_id] = time.time()   # expires_at 기준 시각
         amount = to_base_units(quote.total_usdc, self.usdc_decimals)
         reqs = PaymentRequirements(
             scheme="exact",
@@ -90,6 +110,7 @@ class BrokerAgent:
         if self.stock_mint is None:
             raise ValueError("stock_mint 미설정 — 매도 견적 불가")
         order_id = f"ord_{uuid.uuid4().hex[:10]}"
+        self._order_created[order_id] = time.time()   # expires_at 기준 시각
         amount = to_base_units(quote.quantity, self.stock_decimals)
         reqs = PaymentRequirements(
             scheme="exact",
@@ -117,22 +138,33 @@ class BrokerAgent:
         client=None,
     ) -> PaymentCompleted:
         tx = x.decode_payload(submitted.payment.serialized_transaction)
+        sig = x.signature_str(tx)
+
+        blocked = self._guard_settlement(submitted.order_id, sig)
+        if blocked is not None:
+            return PaymentCompleted(
+                order_id=submitted.order_id, tx_signature="", confirmed=False,
+                delivered_asset=str(self.usdc_mint), delivered_amount=0,
+                status="failed", reason=blocked,
+            )
 
         ok, reason, amount = x.verify_payment(
             tx,
             expected_mint=Pubkey.from_string(requirements.asset),  # 주식 민트
             expected_dest_owner=self.pubkey,
-            min_amount=requirements.amount,
+            expected_amount=requirements.amount,
+            expected_order_id=submitted.order_id,   # Memo 대사 키
         )
         if not ok:
             return PaymentCompleted(
                 order_id=submitted.order_id, tx_signature="", confirmed=False,
                 delivered_asset=str(self.usdc_mint), delivered_amount=0,
-                status="failed",
+                status="failed", reason=reason,
             )
+        self.used_signatures.add(sig)   # 검증 통과한 결제 서명 기록 (리플레이 방어)
 
         seller_pubkey = tx.message.account_keys[0]
-        stock_sig = x.signature_str(tx)
+        stock_sig = sig
         payout_sig = ""
         confirmed = False
         payout_amount = to_base_units(total_usdc, self.usdc_decimals)
@@ -170,23 +202,34 @@ class BrokerAgent:
         client=None,
     ) -> PaymentCompleted:
         tx = x.decode_payload(submitted.payment.serialized_transaction)
+        sig = x.signature_str(tx)
+
+        blocked = self._guard_settlement(submitted.order_id, sig)
+        if blocked is not None:
+            return PaymentCompleted(
+                order_id=submitted.order_id, tx_signature="", confirmed=False,
+                delivered_asset=str(self.stock_mint or ""), delivered_amount=0,
+                status="failed", reason=blocked,
+            )
 
         ok, reason, amount = x.verify_payment(
             tx,
             expected_mint=self.usdc_mint,
             expected_dest_owner=self.pubkey,
-            min_amount=requirements.amount,
+            expected_amount=requirements.amount,
+            expected_order_id=submitted.order_id,   # Memo 대사 키
         )
         if not ok:
             return PaymentCompleted(
                 order_id=submitted.order_id, tx_signature="", confirmed=False,
                 delivered_asset=str(self.stock_mint or ""), delivered_amount=0,
-                status="failed",
+                status="failed", reason=reason,
             )
+        self.used_signatures.add(sig)   # 검증 통과한 결제 서명 기록 (리플레이 방어)
 
         # 결제 트랜잭션의 fee payer == 구매자
         buyer_pubkey = tx.message.account_keys[0]
-        usdc_sig = x.signature_str(tx)
+        usdc_sig = sig
         confirmed = False
         delivery_sig = ""
 

@@ -18,6 +18,7 @@ from typing import Optional, Tuple
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
 from solders.hash import Hash
+from solders.instruction import Instruction, AccountMeta
 from solders.message import Message
 from solders.transaction import Transaction
 
@@ -31,6 +32,20 @@ from spl.token.constants import TOKEN_PROGRAM_ID
 
 # SPL Token 프로그램의 TransferChecked instruction 식별자
 _TRANSFER_CHECKED_TAG = 12
+
+# SPL Memo 프로그램 — 주문번호를 온체인 로그에 박아 대사(reconciliation) 키로 쓴다.
+MEMO_PROGRAM_ID = Pubkey.from_string("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr")
+# 결제 메모 접두 규약: "AT1:{order_id}:{mandate_sig8}" — explorer 에서 육안 대사 + 리플레이 방어
+MEMO_PREFIX = "AT1"
+
+
+def build_memo_instruction(memo: str, signer: Pubkey) -> Instruction:
+    """SPL Memo instruction — signer 를 서명 계정으로 넣어 메모를 그 지갑에 귀속시킨다."""
+    return Instruction(
+        program_id=MEMO_PROGRAM_ID,
+        data=memo.encode("utf-8"),
+        accounts=[AccountMeta(pubkey=signer, is_signer=True, is_writable=False)],
+    )
 
 
 # ---------- 지갑 ----------
@@ -70,16 +85,22 @@ def build_transfer_transaction(
     decimals: int,
     blockhash: Hash,
     ensure_dest_ata: bool = True,
+    memo: Optional[str] = None,
 ) -> Transaction:
     """payer → dest_owner 로 `amount`(base units) SPL 토큰 전송 트랜잭션을 생성·서명한다.
 
     ensure_dest_ata=True 이면 수취인 ATA 가 없을 경우를 대비해 생성 명령을 앞에 넣는다
     (idempotent — 이미 있으면 무시). payer 가 수수료/생성비를 부담.
+
+    memo 가 주어지면 SPL Memo instruction 을 최앞단에 넣어 주문번호를 온체인에 박는다
+    (대사 키 + 서명 dedupe 로 리플레이 방어 — 같은 주문이라도 tx 가 유일해진다).
     """
     src_ata = get_associated_token_address(payer.pubkey(), mint)
     dst_ata = get_associated_token_address(dest_owner, mint)
 
     instructions = []
+    if memo:
+        instructions.append(build_memo_instruction(memo, payer.pubkey()))
     if ensure_dest_ata:
         instructions.append(
             create_idempotent_associated_token_account(
@@ -125,16 +146,18 @@ def verify_payment(
     tx: Transaction,
     expected_mint: Pubkey,
     expected_dest_owner: Pubkey,
-    min_amount: int,
+    expected_amount: int,
     expected_payer: Optional[Pubkey] = None,
+    expected_order_id: Optional[str] = None,
 ) -> Tuple[bool, str, int]:
     """제출된 트랜잭션이 올바른 결제인지 구조적으로 검증한다 (오프라인 가능).
 
     확인 항목:
       - SPL Token 프로그램의 TransferChecked instruction 존재
       - 수취 ATA == expected_dest_owner 의 expected_mint ATA
-      - 금액 >= min_amount
+      - 금액 == expected_amount  (exact 스킴 — 초과지불도 부족도 거부. 결함 D)
       - (옵션) 서명자/지불자 == expected_payer
+      - (옵션) Memo 에 주문번호(AT1:{order_id})가 박혀 있는지 — 대사 키 (결함 E)
       - 서명 유효성
 
     반환: (통과여부, 사유, 검출금액)
@@ -153,6 +176,20 @@ def verify_payment(
             tx.verify()
         except Exception as e:  # noqa
             return False, f"서명 검증 실패: {e}", 0
+
+    # Memo 대사 — expected_order_id 가 주어지면 온체인 Memo 에 그 주문번호가 박혀 있어야 한다
+    if expected_order_id is not None:
+        needle = f"{MEMO_PREFIX}:{expected_order_id}"
+        found = False
+        for ix in msg.instructions:
+            if account_keys[ix.program_id_index] != MEMO_PROGRAM_ID:
+                continue
+            text = bytes(ix.data).decode("utf-8", "replace")
+            if text.startswith(needle):
+                found = True
+                break
+        if not found:
+            return False, f"주문번호 Memo 불일치/부재: {expected_order_id}", 0
 
     expected_dst_ata = get_associated_token_address(expected_dest_owner, expected_mint)
 
@@ -177,8 +214,9 @@ def verify_payment(
             return False, f"민트 불일치: {mint}", amount
         if dest != expected_dst_ata:
             return False, f"수취 계정 불일치: {dest}", amount
-        if amount < min_amount:
-            return False, f"금액 부족: {amount} < {min_amount}", amount
+        if amount != expected_amount:
+            # exact 스킴: 부족도 초과도 안 된다 (한도 안쪽 초과지불 위조 차단)
+            return False, f"금액 불일치(exact): {amount} != {expected_amount}", amount
         if expected_payer is not None and owner != expected_payer:
             return False, f"지불자 불일치: {owner}", amount
         return True, "검증 통과", amount
