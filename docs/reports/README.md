@@ -63,16 +63,59 @@ PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe -m scripts.collect_evidence
 
 ---
 
-## 부서 2·3 (예정) — 같은 패턴으로 추가
+## 부서 2 — 버그 전담 부서 (`bug-dept`) ✅ 가동
 
-다른 부서도 **워크플로우 형태 + 결정론적 수집기 + 자기검토 단계**의 동일 패턴을 따른다.
-`judge-dept.js` 가 템플릿이다.
+앱 **전체 모듈**을 **4렌즈**(정확성·엣지케이스·에러처리·회귀/커버리지 공백)로 스캔해
+**재현 절차 + 수정안**을 리포트로 제안한다. **읽기 전용** — 코드를 고치지 않는다(자동 수정은
+승인 후 별도 작업). 기존 `scripts/test_*` · `scripts/red_team.py` 와 연계한다.
 
-- **버그 전담 부서** (`bug-dept`, 예정) — 회귀·엣지케이스·재현 절차 스캔 → 재현 절차 + 수정안
-  제안(자동 수정은 승인 후). 기존 `scripts/test_*` · `scripts/red_team.py` 와 연계.
+### 재실행 (온디맨드 — 서브에이전트처럼 경로로 호출)
+
+```
+Workflow({ scriptPath: ".claude/workflows/bug-dept.js" })
+```
+
+미래 세션에서 사용자가 **"버그 부서 돌려줘"** 라고 하면 이 워크플로우를 실행한다.
+
+### 파이프라인 (다중 에이전트 — 오탐을 남기지 않기 위해 적대 검증 결합)
+
+1. **Scan** — `scripts/collect_bugscan.py`(결정론적)를 실행해 버그표면을
+   `docs/reports/_bugscan_<TS>.json` 스냅샷으로 덤프.
+2. **Hunt** (팬아웃 4) — 모듈그룹 4개(G1 결제·가드 / G2 에이전트 / G3 시세·지표·공유 /
+   G4 웹·설정)를 각 헌터가 **4렌즈 전부 + 증거 JSON + file:line** 으로 사냥.
+3. **Verify** (건별) — 적대적 검증관이 각 후보를 회의적으로 재확인(file:line 실재·python -c 재현).
+   기본값 real=false — 확인될 때만 확정. 반려 건은 오탐 방지 기록으로 남긴다.
+4. **Report** — 종합 작성관이 심각도순 리포트 초안 작성 → **최종 자기검토관**이 6항목 체크
+   (file:line 실재·재현 구체성·창작 0·심각도 정합·반려 누락·**읽기 전용 준수**) 후에만 기록.
+
+### 산출물
+
+| 파일 | 내용 | 커밋 |
+|---|---|---|
+| `bug_<TS>.md` | 실행 시각별 버그 리포트(이력 추적) | O |
+| `bug_latest.md` | 최신 리포트 포인터(내용 동일) | O |
+| `_bugscan_<TS>.json` | 결정론적 버그표면 스냅샷(재생성 가능) | X (.gitignore) |
+
+### 버그표면 수집기가 모으는 것 (`scripts/collect_bugscan.py`)
+
+git churn(최근 20커밋 파일별 변경 빈도) · 테스트 6종 pass/fail·OK수 · `red_team.py --report` KPI ·
+**coverage_map**(모듈별 test 참조 + 미커버 목록) · **risk_markers**(bare/broad except·TODO·noqa·
+runtime assert·payments 내 float, 각 file:line) · **module_index**(파일별 비공백·함수·클래스 수)를
+git grep 으로 대조(추적 파일만 — `secrets/`·`.venv` 자동 제외). **마커는 '점검 지점'이지 버그 확정이
+아니다** — 헌터가 열어 판정한다.
+
+수동 실행(디버그용):
+```
+PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe -m scripts.collect_bugscan
+```
+
+---
+
+## 부서 3 (예정) — 같은 패턴으로 추가
+
 - **데이터 수집 부서** (`data-dept`, 예정) — 시세/데이터 수집·품질 점검(`scripts/fetch_market_data.py`
   확장 · CSV 검증 등).
 
 새 부서 추가 절차: 필요한 결정론적 수집기(`scripts/collect_*.py`)를 만들고 → 워크플로우
-(`.claude/workflows/<dept>.js`)를 `judge-dept.js` 구조(Evidence→Review/Scan→Verify→Synthesize
-+자기검토)로 얹고 → 이 README 에 한 줄 추가한다.
+(`.claude/workflows/<dept>.js`)를 `judge-dept.js`·`bug-dept.js` 구조(Evidence/Scan→Hunt/Review→
+Verify→Synthesize+자기검토)로 얹고 → 이 README 에 한 줄 추가한다.
