@@ -127,3 +127,42 @@ PaymentAuthorizer 한도 검사 → 수수료·매도 대금 환입)를 실데�
 **남은 일(구현)**: 추세추종을 실제 앱의 새 전략 모드로 추가(현행 condition/dca 와 병렬, `Strategy.mode="trend"`,
 가격>MA20 기본). 엔진·백테스트·웹 세션 선택·테스트. 데모는 `_bear.csv` 로 "폭락 회피" 실증 가능.
 재현: `python scripts/fetch_bear_data.py` → `python scripts/explore_trend.py --suffix _bear --windows 60,120`.
+
+## 추세추종 앱 구현 완료 + 재현 검증 (2026-07-25)
+
+위 "남은 일"을 앱에 구현했다. `Strategy.mode="trend"`(현행 condition/dca 와 병렬), 신호는
+`trend_signal="pxma20"`(가격≥MA20, 기본) / `"cross_5_20"`(골든크로스5/20). 판단은 결정론적 규칙
+신호(Gemini 미사용)라 검증이 그대로 재현된다. 올인/올아웃이라 매도 대금은 운용현금으로 복리
+재투자(`credit_sale(allow_surplus=True)`)하고, 건별 한도는 세션 동안 총자산까지 열되(첫 진입 상한은
+예산, 재진입은 '가진 현금' 이내) 402 Guard 의 수취인·청구=합의견적·의도지출·자산 검사는 그대로 작동한다.
+시간청산은 미적용(추세가 살아 있는 한 태운다).
+
+**배선**: `agents/trading_agent.py`(`_decide_trend`·`_trend_ma`) · `payments/ap2_mandate.py`
+(`credit_sale allow_surplus`) · `web/engine.py`(trend 세션·올인 한도·초기자본 대비 수익률·feed dataset
+bear) · `scripts/backtest.py`(`--strategy trend --trend-signal --suffix`) · 웹(전략·신호·데이터셋 선택,
+`web/server.py`·`index.html`·`app.js`) · `scripts/test_trend.py`(재현 검증).
+
+**재현 검증(`python scripts/test_trend.py`)** — 실제 `decide()`→`BrokerAgent`→`PaymentAuthorizer` 경로가
+`explore_trend.simulate()` 를 대조. 진입/청산 시퀀스가 **봉 단위로 정확히 일치**(매매수 동일), 수익률은
+브로커의 센트 반올림(소계·수수료 분리) 차이만큼만 어긋난다(실측 최대 0.08%p):
+
+| 종목 | 신호 | 탐색수익% | 실제 decide() % | 차이%p | 매매(탐색/실제) |
+|---|---|---|---|---|---|
+| AAPL | pxma20 | 18.84 | 18.81 | −0.03 | 38/38 |
+| AAPL | cross_5_20 | 13.55 | 13.56 | +0.01 | 22/22 |
+| TSLA | pxma20 | 67.84 | 67.77 | −0.07 | 41/41 |
+| TSLA | cross_5_20 | 76.40 | 76.37 | −0.03 | 25/25 |
+| NVDA | pxma20 | 145.76 | 145.79 | +0.03 | 35/35 |
+| NVDA | cross_5_20 | 82.37 | 82.45 | +0.08 | 23/23 |
+
+**백테스트 벤치마크 실측(`backtest.py --strategy trend --suffix _bear --max-bars 500`)** — 매수후보유 대비:
+TSLA 가격>MA20 **+67.76% vs 보유 −20.45% = +88.21%p 우위**(MDD 29.58%), AAPL 골든크로스5/20
++13.56% vs 보유 +10.85% = +2.71%p. 하락장을 피해 자본을 지키는 서사가 온체인 결제 흐름(A2A→x402→
+settled)과 함께 실증된다.
+
+**웹 데모(폭락 회피 실증)**: 세션 설정에서 "추세추종" + "하락장(2022 폭락→회복)" 선택 → 하락 구간에서
+"하락세 이탈(전량 매도, 자본 보존)" 후 "하락세 관망(현금 보유)"로 자본을 지키고, 회복 시 "상승세 진입
+(전량 매수)"로 재진입한다. 첫 화면 KPI(가드 차단·유출 0.00)와 함께 라이브로 보인다.
+
+**재현**: `python scripts/test_trend.py` (재현 검증) · `python scripts/backtest.py --strategy trend
+--trend-signal pxma20 --symbol TSLA --suffix _bear --max-bars 500` (폭락 회피 벤치마크).

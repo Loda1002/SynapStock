@@ -154,9 +154,20 @@ class PaymentAuthorizer:
         """정산 성공 확정 — 예약을 확정 소비로 전환한다(이후 release 로 되돌지 않게)."""
         return self._reservations.pop(order_id, None) or Decimal(0)
 
-    def credit_sale(self, amount_usdc: Decimal) -> None:
+    def credit_sale(self, amount_usdc: Decimal, allow_surplus: bool = False) -> None:
         """매도 대금 환입 — 예산(budget_total)은 '순투입 한도'로 해석한다.
 
-        판 만큼 spent 가 줄어 다시 매수에 쓸 수 있다. 0 밑으로는 내려가지 않음
-        (매수 원금보다 비싸게 팔아도 한도가 늘어나지는 않는다)."""
-        self.spent_usdc = max(Decimal(0), self.spent_usdc - amount_usdc)
+        판 만큼 spent 가 줄어 다시 매수에 쓸 수 있다.
+
+        allow_surplus=False (기본, 조건형/적립형): spent 는 0 밑으로 내려가지 않는다
+        (매수 원금보다 비싸게 팔아도 한도가 늘어나지 않음 — 순투입은 예산까지).
+
+        allow_surplus=True (추세추종 올인/올아웃): 매도 대금 전액을 환입해 spent 가
+        음수까지 내려갈 수 있다(remaining = budget − spent > budget). 이는 '실현이익을
+        운용현금으로 재투자'하는 복리를 표현한다. 사용자 예산(초기 자본)은 여전히 첫
+        진입의 상한이고(remaining 초기값 = budget), 이후 매수는 '가진 현금(remaining)'을
+        넘지 못한다(authorize 의 amount ≤ remaining 검사). 즉 사용자 지갑에서 새로 끌어오는
+        순금액은 예산을 넘지 않고, 초과분은 시장에서 번 이익의 재투자다."""
+        self.spent_usdc = self.spent_usdc - amount_usdc
+        if not allow_surplus:
+            self.spent_usdc = max(Decimal(0), self.spent_usdc)

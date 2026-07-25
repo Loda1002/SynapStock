@@ -37,7 +37,8 @@ class Decision:
 
 @dataclass
 class Strategy:
-    """매매 전략 — condition(조건형, 지표 규칙+Gemini 판단) / dca(적립형, 주기 정액 매수).
+    """매매 전략 — condition(조건형, 지표 규칙+Gemini 판단) / dca(적립형, 주기 정액 매수)
+    / trend(추세추종, 상승세 전량 보유·하락세 전량 매도).
 
     조건형 규칙(2026-07-23 지표 기준 전환 — 절대가 178/185 는 목 시세 전용이었음):
       매수 = 현재가가 5일 이동평균(MA5) 대비 buy_dip_pct% 이상 낮을 때 (싸졌을 때)
@@ -46,7 +47,15 @@ class Strategy:
 
     B7: 적립형은 판단 없이 주기마다 정액 매수만 한다(매도 없음).
     주기 기준(dca_unit)은 사람이 고른다 — ticks(N틱마다) / minutes(N분마다) /
-    daily(매일 지정 시각). AP2 mandate 검사는 어느 모드든 같은 결제 경로를 지난다."""
+    daily(매일 지정 시각). AP2 mandate 검사는 어느 모드든 같은 결제 경로를 지난다.
+
+    추세추종(mode="trend", 2026-07-25 하락장 실증 후 추가 — 사용자 진짜 의도):
+      상승세(가격 ≥ MA20, 또는 골든크로스 MA5≥MA20)면 '전량 보유', 하락세로 꺾이면
+      '전량 매도'(자본 보존)로 빠져나온다. 짧은 하락은 무시하고 추세가 살아 있는 한 태운다.
+      평균회귀(눌림목 익절)와 정반대. 검증(scripts/explore_trend.py --suffix _bear)에서
+      하락장이 있는 전체 사이클에서 매수후보유를 크게 이김(하락 전 탈출로 손실 회피 +
+      회복 재진입). trend_signal 로 판단 방식을 고른다. 올인/올아웃이라 매도 대금은
+      운용현금으로 복리 재투자되고(credit_sale allow_surplus), 시간청산은 미적용이다."""
     buy_dip_pct: Decimal = Decimal("2")       # 매수: MA5 대비 −N%
     take_profit_pct: Decimal = Decimal("3")   # 매도: 평단 대비 +N%
     spend_per_trade_usdc: Decimal = Decimal("30")
@@ -57,7 +66,10 @@ class Strategy:
     # 코드로 계산해 판단(Gemini 프롬프트 + 규칙 폴백)에 주입. 백테스트로 개선이
     # 확인되기 전에는 기본 OFF 를 유지한다(message 가드레일). 실데이터 재생 전용.
     ta_mode: bool = False
-    mode: str = "condition"                    # "condition" / "dca"
+    mode: str = "condition"                    # "condition" / "dca" / "trend"
+    # 추세추종 판단 방식 — "pxma20"(가격 ≥ MA20) / "cross_5_20"(골든크로스 MA5≥MA20).
+    # 검증 최선안(strategy_validation.md): 단순한 pxma20 이 기본, 골든크로스5/20 이 대안.
+    trend_signal: str = "pxma20"
     dca_unit: str = "ticks"                    # "ticks" / "minutes" / "daily"
     dca_every_ticks: int = 5                   # ticks: N틱마다
     dca_every_minutes: int = 60                # minutes: N분마다
@@ -187,6 +199,8 @@ class TradingAgent:
 
         if self.strategy.mode == "dca":
             return self._decide_dca()
+        if self.strategy.mode == "trend":
+            return self._decide_trend(price)
 
         ind = self.indicators()
         if ind["buy_threshold"] is None:
@@ -286,6 +300,55 @@ class TradingAgent:
         if s.dca_unit == "daily":
             return f"매일 {s.dca_at_time}"
         return f"{s.dca_every_ticks}틱마다"
+
+    # 추세추종 (mode="trend") — 상승세 전량 보유 · 하락세 전량 매도(자본 보존) · 재상승 재매수
+    def _trend_ma(self, period: int) -> Optional[Decimal]:
+        """추세 판단용 이동평균 — 검증 도구(scripts/explore_trend.py)와 동일하게 라운딩 없이
+        계산한다. 조건형의 _ma 는 0.01 로 반올림하지만, 추세 신호는 가격이 MA 경계에 걸칠 때
+        판정이 갈리므로 탐색 도구와 같은 정밀도를 써야 진입/청산 시점이 정확히 재현된다."""
+        if len(self._history) < period:
+            return None
+        window = self._history[-period:]
+        return sum(window) / Decimal(period)
+
+    def _decide_trend(self, price: Decimal) -> Decision:
+        """올인/올아웃 추세추종. 상승세면 예산 전액 진입해 태우고, 하락세로 꺾이면 전량 청산.
+
+        판단은 결정론적 규칙 신호(Gemini 미사용)라 검증(explore_trend)이 그대로 재현된다.
+        - pxma20    : 가격 ≥ MA20 = 상승세(보유), 미만 = 하락세(청산)
+        - cross_5_20: MA5 ≥ MA20(골든크로스) = 상승세, 데드크로스 = 청산
+        시간청산(max_hold_bars)은 적용하지 않는다 — 추세가 살아 있는 한 오래 태우는 게 핵심."""
+        ma20 = self._trend_ma(20)
+        if ma20 is None:
+            return Decision(
+                "hold", f"추세 워밍업 — MA20 계산까지 {20 - len(self._history)}봉 더 필요",
+                source="rule")
+        if self.strategy.trend_signal == "cross_5_20":
+            ma5 = self._trend_ma(5)
+            if ma5 is None:
+                return Decision("hold", "추세 워밍업 — MA5 계산 대기", source="rule")
+            want_long = ma5 >= ma20
+            basis = f"MA5 {ma5.quantize(Decimal('0.01'))} vs MA20 {ma20.quantize(Decimal('0.01'))}"
+            up, down = "골든크로스(MA5≥MA20)", "데드크로스(MA5<MA20)"
+        else:  # pxma20 (기본)
+            want_long = price >= ma20
+            basis = f"가격 {price} vs MA20 {ma20.quantize(Decimal('0.01'))}"
+            up, down = "가격≥MA20", "가격<MA20"
+        holding = self.position.quantity > 0
+
+        if want_long and not holding:
+            if self.auth.remaining_usdc <= 0:
+                return Decision("hold", f"상승세({up})지만 운용현금 소진 — 진입 보류", source="rule")
+            spend = self.auth.remaining_usdc   # 올인 — 가진 현금 전액 진입
+            self._last_action = {"action": "buy", "price": price, "bars_ago": 0}
+            return Decision(
+                "buy", f"상승세 진입(전량 매수) — {up} · {basis}", spend, source="rule")
+        if not want_long and holding:
+            self._last_action = {"action": "sell", "price": price, "bars_ago": 0}
+            return Decision(
+                "sell", f"하락세 이탈(전량 매도, 자본 보존) — {down} · {basis}", source="rule")
+        state = "상승세 보유 중" if holding else "하락세 관망(현금 보유)"
+        return Decision("hold", f"추세 유지 — {basis} · {state}", source="rule")
 
     def _decide_by_rule(self, symbol: str, price: Decimal, ind: dict) -> Decision:
         """지표 규칙 — 익절(매도)을 먼저 검사한다: 급반등 구간에서 매수·매도 조건이
@@ -423,7 +486,9 @@ class TradingAgent:
                           quantity: Decimal, price: Decimal, total_usdc: Decimal) -> Receipt:
         if completed.status == "settled":
             self.position.apply_sell(quantity)
-            self.auth.credit_sale(total_usdc)
+            # 추세추종(올인/올아웃)은 매도 대금 전액을 운용현금으로 환입해 복리 재투자한다.
+            # 조건형/적립형은 기존대로 예산(순투입 한도)까지만 환입한다.
+            self.auth.credit_sale(total_usdc, allow_surplus=(self.strategy.mode == "trend"))
         return Receipt(
             order_id=completed.order_id, symbol=quote_symbol, side="sell",
             quantity=quantity, total_usdc=total_usdc,

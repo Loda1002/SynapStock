@@ -40,13 +40,21 @@ CENT = Decimal("0.01")
 
 def build_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="리플레이 백테스트 (드라이, 온체인 미전송)")
-    ap.add_argument("--symbol", default="AAPL", help="data/market/{SYMBOL}_daily.csv (기본 AAPL)")
+    ap.add_argument("--symbol", default="AAPL", help="data/market/{SYMBOL}{SUFFIX}.csv (기본 AAPL)")
+    ap.add_argument("--suffix", default="_daily",
+                    help="CSV 접미사 (기본 _daily · 하락장 실증은 _bear)")
     ap.add_argument("--file", default="", help="CSV 경로 직접 지정 (symbol 보다 우선)")
     ap.add_argument("--from", dest="date_from", default="", help="재생 시작일 YYYY-MM-DD")
     ap.add_argument("--to", dest="date_to", default="", help="재생 종료일 YYYY-MM-DD")
-    ap.add_argument("--brain", choices=["rule", "gemini"], default="rule")
+    ap.add_argument("--strategy", choices=["condition", "trend"], default="condition",
+                    help="condition(조건형 눌림목) / trend(추세추종 올인·올아웃)")
+    ap.add_argument("--trend-signal", dest="trend_signal",
+                    choices=["pxma20", "cross_5_20"], default="pxma20",
+                    help="추세 신호 (--strategy trend 에서만): 가격>MA20 / 골든크로스5/20")
+    ap.add_argument("--brain", choices=["rule", "gemini"], default="rule",
+                    help="판단 두뇌 (--strategy trend 이면 규칙 신호로 강제)")
     ap.add_argument("--mode", choices=["strict", "trend"], default="strict",
-                    help="gemini 재량 모드 (rule 이면 무시)")
+                    help="gemini 재량 모드 (rule/trend 전략이면 무시)")
     ap.add_argument("--ta", action="store_true",
                     help="TA 보강 켜기 — MA 배열·크로스·지지/저항·패턴을 판단 근거로")
     ap.add_argument("--max-bars", type=int, default=60, help="최대 재생 봉 수 (기본 60)")
@@ -65,7 +73,9 @@ def build_args() -> argparse.Namespace:
 
 def main() -> int:
     args = build_args()
-    csv_path = args.file or os.path.join(ROOT, "data", "market", f"{args.symbol.upper()}_daily.csv")
+    is_trend = args.strategy == "trend"
+    csv_path = args.file or os.path.join(
+        ROOT, "data", "market", f"{args.symbol.upper()}{args.suffix}.csv")
     try:
         feed = ReplayPriceFeed(csv_path, start=args.date_from, end=args.date_to, warmup=args.warmup)
     except (FileNotFoundError, ValueError) as e:
@@ -79,12 +89,18 @@ def main() -> int:
     strategy = Strategy(
         buy_dip_pct=Decimal(args.dip), take_profit_pct=Decimal(args.profit),
         spend_per_trade_usdc=Decimal(args.spend), decision_mode=args.mode,
-        ta_mode=args.ta, max_hold_bars=args.max_hold,
+        ta_mode=args.ta,
+        mode="trend" if is_trend else "condition",
+        trend_signal=args.trend_signal,
+        # 추세추종은 추세를 태워야 하므로 시간청산 미적용, 조건형은 인자값 사용
+        max_hold_bars=0 if is_trend else args.max_hold,
     )
     kp = Keypair()
+    # 추세추종(올인)은 '가진 현금 전량 매수'라 건별 한도가 총자산까지 열려야 한다(엔진과 동일).
+    per_trade = CFG.max_budget_usdc if is_trend else Decimal(args.per_trade)
     mandate = OpenPaymentMandate(
         user_pubkey=str(kp.pubkey()), allowed_asset=CFG.usdc_mint,
-        budget_total_usdc=Decimal(args.budget), per_trade_max_usdc=Decimal(args.per_trade),
+        budget_total_usdc=Decimal(args.budget), per_trade_max_usdc=per_trade,
         allowed_symbols=[symbol],
     ).sign(kp)
     auth = PaymentAuthorizer(mandate, agent_kp=kp)
@@ -92,7 +108,11 @@ def main() -> int:
     ta_tag = "+ta" if args.ta else ""
     brain = None
     brain_desc = f"rule{ta_tag}"
-    if args.brain == "gemini":
+    if is_trend:
+        # 추세추종은 결정론적 규칙 신호(Gemini 미사용) — 검증(explore_trend)이 그대로 재현
+        sig_label = {"pxma20": "가격>MA20", "cross_5_20": "골든크로스5/20"}[args.trend_signal]
+        brain_desc = f"추세추종/{sig_label} (올인·올아웃)"
+    elif args.brain == "gemini":
         if not CFG.gemini_api_key:
             print("GEMINI_API_KEY 미설정 — gemini 백테스트 불가 (.env 확인)")
             return 1
@@ -128,9 +148,10 @@ def main() -> int:
     last_call = 0.0
     played = 0
 
+    rule_desc = ("추세: 상승세 전량 보유 · 하락세 전량 매도" if is_trend
+                 else f"규칙: MA5 −{args.dip}% 매수 · 평단 +{args.profit}% 익절")
     print(f"백테스트 시작 — {feed.source_label} / 두뇌 {brain_desc} / "
-          f"규칙: MA5 −{args.dip}% 매수 · 평단 +{args.profit}% 익절 / "
-          f"예산 {budget} USDC (최대 {args.max_bars}봉)")
+          f"{rule_desc} / 예산 {budget} USDC (최대 {args.max_bars}봉)")
 
     while not feed.exhausted and played < args.max_bars:
         price = feed.get_price(symbol)
@@ -180,7 +201,7 @@ def main() -> int:
             realized += pnl
             fees += q.fee_usdc
             trading.position.apply_sell(qty)
-            auth.credit_sale(q.total_usdc)
+            auth.credit_sale(q.total_usdc, allow_surplus=is_trend)  # 추세추종은 복리 재투자
             if pnl > 0:
                 wins += 1
             trades.append({"date": bar.date, "side": "sell", "qty": str(qty),
@@ -222,7 +243,10 @@ def main() -> int:
             # 저장소 상대경로로 기록 — 공개 저장소에 로컬 사용자명·디렉터리가 새지 않게
             "source": feed.source_label, "file": os.path.relpath(csv_path, ROOT).replace("\\", "/"),
             "from": args.date_from, "to": args.date_to, "bars_played": played,
-            "brain": args.brain, "mode": args.mode if args.brain == "gemini" else "-",
+            "strategy": args.strategy,
+            "trend_signal": args.trend_signal if is_trend else "-",
+            "brain": "rule" if is_trend else args.brain,
+            "mode": args.mode if (args.brain == "gemini" and not is_trend) else "-",
             "ta_mode": args.ta,
             "rules": {"buy_dip_pct": args.dip, "take_profit_pct": args.profit,
                       "spend_per_trade": args.spend},
@@ -269,9 +293,10 @@ def main() -> int:
 
     out_dir = os.path.join(ROOT, "artifacts", "backtests")
     os.makedirs(out_dir, exist_ok=True)
-    tag = (f"{args.symbol.upper()}_{args.brain}"
-           + (f"-{args.mode}" if args.brain == "gemini" else "")
-           + ("-ta" if args.ta else ""))
+    tag = (f"{args.symbol.upper()}{args.suffix}_"
+           + (f"trend-{args.trend_signal}" if is_trend
+              else args.brain + (f"-{args.mode}" if args.brain == "gemini" else ""))
+           + ("-ta" if args.ta and not is_trend else ""))
     path = os.path.join(out_dir, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{tag}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2, default=str)

@@ -64,14 +64,25 @@
         <option value="replay">실데이터 재생 (일봉)</option>
         <option value="mock">목 시세 (데모 패턴)</option>
       </select>
+      <select data-feed-dataset aria-label="데이터셋"
+              title="일봉: 최근 상승장 일봉 / 하락장: 2022 폭락+2023 회복 (추세추종 폭락회피 실증용)">
+        <option value="daily">상승장 일봉</option>
+        <option value="bear">하락장 (2022 폭락→회복)</option>
+      </select>
       <select data-strategy-select aria-label="매매 전략">
         <option value="condition">조건형 (AI 판단 매수·매도)</option>
+        <option value="trend">추세추종 (상승세 보유·하락세 매도)</option>
         <option value="dca">적립형 (주기 정액 매수)</option>
       </select>
       <select data-decision-mode aria-label="AI 판단 모드"
               title="엄격: 규칙 충족 여부만 판단 / 추세: 규칙 신호가 떠도 추세가 나쁘면 AI가 보류 가능 (한도 차단은 항상 AP2가 기계적으로 수행)">
         <option value="strict">AI 엄격 (규칙 그대로)</option>
         <option value="trend">AI 추세 (보류 재량)</option>
+      </select>
+      <select data-trend-signal aria-label="추세 판단 신호"
+              title="가격>MA20: 종가가 20일 이동평균 위면 상승세로 보유, 아래면 전량 매도 / 골든크로스5/20: MA5가 MA20 위면 상승세. 검증에서 가격>MA20 이 가장 단순·우수.">
+        <option value="pxma20">신호: 가격 &gt; MA20</option>
+        <option value="cross_5_20">신호: 골든크로스 5/20</option>
       </select>
       <label class="sub" data-ta-wrap
              title="켜면 이동평균 배열(1~200일)·골든/데드크로스·지지/저항·차트/캔들 패턴을 코드로 계산해 AI 판단과 규칙 폴백에 함께 반영합니다. 실데이터 재생에서 의미가 있으며, 백테스트 검증 전이라 기본은 꺼짐입니다.">

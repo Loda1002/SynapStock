@@ -68,8 +68,9 @@
 |---|---|---|---|
 | **실데이터 재생** | 실제 미국 주식 일봉 CSV를 1틱=1봉으로 재생(워밍업 20봉, 소진 시 자동 종료) | `market/price_feed.py` (ReplayPriceFeed) | ✅ AAPL·TSLA·NVDA |
 | **적립식(DCA)** | 조건형 / 적립형(틱·분·매일 시각 정액 매수), mandate 한도 동일 적용 | 전략 선택 | ✅ 테스트 7케이스 |
-| **백테스트 러너** | 규칙 vs Gemini(엄격/추세) 비교 + **매수후보유 벤치마크**·시장노출 | `scripts/backtest.py` | ✅ 3종목 실측 |
-| **데이터 수집** | Alpha Vantage 일봉(무료 25콜/일 보호) | `scripts/fetch_market_data.py` | ✅ |
+| **추세추종** | 상승세(가격≥MA20/골든크로스5/20) 전량 보유·하락세 전량 매도(자본 보존)·재상승 재매수. 올인/올아웃·복리·결정론 규칙 신호 | 전략 선택 `Strategy.mode="trend"` | ✅ 재현검증 시퀀스 정확일치·_bear TSLA +67.8% vs 보유 −20.5% |
+| **백테스트 러너** | 규칙 vs Gemini(엄격/추세) vs 추세추종 비교 + **매수후보유 벤치마크**·시장노출 (`--strategy trend --suffix _bear`) | `scripts/backtest.py` | ✅ 3종목 실측 |
+| **데이터 수집** | Alpha Vantage 일봉(무료 25콜/일 보호) + 하락장 yfinance(`fetch_bear_data.py`) | `scripts/fetch_market_data.py` | ✅ |
 
 ### 1-5. 배포·영속화 (2026-07-23~24)
 

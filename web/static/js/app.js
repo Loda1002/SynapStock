@@ -14,7 +14,9 @@
     feedBadge: $("[data-feed-badge]"),
     modeSelect: $("[data-mode-select]"),
     feedSelect: $("[data-feed-select]"),
+    feedDataset: $("[data-feed-dataset]"),
     strategySelect: $("[data-strategy-select]"),
+    trendSignal: $("[data-trend-signal]"),
     decisionMode: $("[data-decision-mode]"),
     taWrap: $("[data-ta-wrap]"),
     taMode: $("[data-ta-mode]"),
@@ -176,10 +178,18 @@
     const strat = s.strategy || { type: "condition" };
     const modeLabel = (strat.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격")
       + (strat.ta_mode ? "+TA" : "");
-    const ruleText = strat.type === "dca"
-      ? `적립형: ${dcaSchedule(strat)} ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`
-      : `조건형(${modeLabel}): ${s.symbol} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${s.rules.spend_per_trade} USDC 어치 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
-    el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${s.budget.per_trade_max_usdc}) · 브로커 수수료 ${feePct}%`;
+    let ruleText;
+    if (strat.type === "dca") {
+      ruleText = `적립형: ${dcaSchedule(strat)} ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`;
+    } else if (strat.type === "trend") {
+      const sig = strat.trend_signal_label
+        || (strat.trend_signal === "cross_5_20" ? "골든크로스5/20" : "가격>MA20");
+      ruleText = `추세추종(${sig}): ${s.symbol} 이 상승세면 전량 보유, 하락세로 꺾이면 전량 매도(자본 보존)·재상승 시 재매수 (올인/올아웃)`;
+    } else {
+      ruleText = `조건형(${modeLabel}): ${s.symbol} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${s.rules.spend_per_trade} USDC 어치 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
+    }
+    const perTradeText = s.budget.all_in ? "전량(올인)" : s.budget.per_trade_max_usdc;
+    el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${perTradeText}) · 브로커 수수료 ${feePct}%`;
 
     el.symbol.textContent = s.symbol;
     el.posSymbol.textContent = s.symbol;
@@ -214,7 +224,7 @@
     el.budgetSpent.textContent = s.budget.spent_usdc;
     el.budgetTotal.textContent = s.budget.total_usdc;
     el.budgetRemaining.textContent = s.budget.remaining_usdc;
-    el.budgetPerTrade.textContent = s.budget.per_trade_max_usdc;
+    el.budgetPerTrade.textContent = s.budget.all_in ? "전량(올인)" : s.budget.per_trade_max_usdc;
 
     const pnl = num(s.pnl.realized_usdc);
     el.pnl.textContent = (pnl > 0 ? "+" : "") + s.pnl.realized_usdc;
@@ -249,7 +259,9 @@
     el.btnStop.disabled = !running;
     el.modeSelect.disabled = running;
     el.feedSelect.disabled = running;
+    el.feedDataset.disabled = running;
     el.strategySelect.disabled = running;
+    el.trendSignal.disabled = running;
     el.decisionMode.disabled = running;
     el.taMode.disabled = running;
     el.dcaUnit.disabled = running;
@@ -660,12 +672,17 @@
         break;
       case "engine_started": {
         const st = d.strategy || {};
-        const stText = st.type === "dca"
-          ? `적립형(${dcaSchedule(st)} ${st.dca_amount_usdc} USDC)`
-          : `조건형(${st.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격"}${st.ta_mode ? "+TA" : ""})`;
-        const srcNote = st.type === "dca"
-          ? "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용"
-          : "판단 출처 gemini / rule";
+        let stText, srcNote;
+        if (st.type === "dca") {
+          stText = `적립형(${dcaSchedule(st)} ${st.dca_amount_usdc} USDC)`;
+          srcNote = "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용";
+        } else if (st.type === "trend") {
+          stText = `추세추종(${st.trend_signal_label || st.trend_signal} · 올인/올아웃)`;
+          srcNote = "판단 출처 rule — 추세 신호(가격/MA20)로 전량 진입·청산, Gemini 미사용";
+        } else {
+          stText = `조건형(${st.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격"}${st.ta_mode ? "+TA" : ""})`;
+          srcNote = "판단 출처 gemini / rule";
+        }
         sessionBoundary(evt.ts, `─── 새 세션 시작 · ${stText} · ${srcNote} ───`, true);
         addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "드라이런"} · ${d.network} · ${d.symbol} · 시세: ${d.feed ? d.feed.label : "—"} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
         fetchState();
@@ -742,24 +759,32 @@
   }
 
   function syncDcaInputs() {
-    el.dcaParams.classList.toggle("hidden", el.strategySelect.value !== "dca");
-    el.decisionMode.classList.toggle("hidden", el.strategySelect.value !== "condition");
-    el.taWrap.classList.toggle("hidden", el.strategySelect.value !== "condition");
+    const strat = el.strategySelect.value;
+    el.dcaParams.classList.toggle("hidden", strat !== "dca");
+    // 조건형만 AI 판단 모드·TA 보강 노출, 추세추종만 추세 신호 노출
+    el.decisionMode.classList.toggle("hidden", strat !== "condition");
+    el.taWrap.classList.toggle("hidden", strat !== "condition");
+    el.trendSignal.classList.toggle("hidden", strat !== "trend");
+    // 데이터셋(일봉/하락장)은 실데이터 재생일 때만 의미
+    el.feedDataset.classList.toggle("hidden", el.feedSelect.value !== "replay");
     const unit = el.dcaUnit.value;
     el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
     el.dcaMinutesWrap.classList.toggle("hidden", unit !== "minutes");
     el.dcaTimeWrap.classList.toggle("hidden", unit !== "daily");
   }
   el.strategySelect.addEventListener("change", syncDcaInputs);
+  el.feedSelect.addEventListener("change", syncDcaInputs);
   el.dcaUnit.addEventListener("change", syncDcaInputs);
+  syncDcaInputs();   // 초기 1회 — 기본 전략/피드에 맞춰 표시 정리
   el.btnStart.addEventListener("click", async () => {
     el.btnStart.disabled = true;
     const s = await post("/api/engine/start", {
       mode: el.modeSelect.value,
-      feed: { type: el.feedSelect.value },
+      feed: { type: el.feedSelect.value, dataset: el.feedDataset.value },
       strategy: {
         type: el.strategySelect.value,
         decision_mode: el.decisionMode.value,
+        trend_signal: el.trendSignal.value,
         ta_mode: el.taMode.checked,
         dca_unit: el.dcaUnit.value,
         dca_every_ticks: parseInt(el.dcaTicks.value, 10) || 5,

@@ -149,12 +149,15 @@ class StrictBody(BaseModel):
 
 
 class StrategyBody(StrictBody):
-    """B7 전략 선택 — condition(조건형) / dca(적립형: 주기마다 정액 매수).
+    """B7 전략 선택 — condition(조건형) / dca(적립형: 주기마다 정액 매수)
+    / trend(추세추종: 상승세 전량 보유·하락세 전량 매도).
 
     적립 주기 기준(dca_unit): ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM).
-    decision_mode: 조건형의 Gemini 재량 — strict(규칙 그대로) / trend(보류 재량)."""
+    decision_mode: 조건형의 Gemini 재량 — strict(규칙 그대로) / trend(보류 재량).
+    trend_signal: 추세추종 판단 방식 — pxma20(가격≥MA20) / cross_5_20(골든크로스5/20)."""
     type: str = "condition"
     decision_mode: str = "strict"
+    trend_signal: str = "pxma20"   # 추세추종 신호 (type=trend 에서만 의미)
     ta_mode: bool = False  # TA 보강 — MA 배열·크로스·지지/저항·패턴 근거 판단
     dca_unit: str = "ticks"
     dca_every_ticks: int = 5
@@ -170,7 +173,8 @@ class FeedBody(StrictBody):
     ※ CSV 경로는 API 로 받지 않는다(경로 주입 차단) — 심볼만 받아 서버가 조립하고,
       테스트용 커스텀 파일은 .env REPLAY_FILE 로만 지정한다."""
     type: str = ""         # "" / mock / replay
-    symbol: str = ""       # replay: data/market/{SYMBOL}_daily.csv (영문 대문자 1~5자)
+    symbol: str = ""       # replay: data/market/{SYMBOL}_{dataset}.csv (영문 대문자 1~5자)
+    dataset: str = "daily"  # daily(상승장 일봉) / bear(2022 폭락+2023 회복, 추세추종 데모)
     start: str = ""        # 재생 시작일 YYYY-MM-DD
     end: str = ""          # 재생 종료일 YYYY-MM-DD
 

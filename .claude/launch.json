@@ -44,6 +44,20 @@
         "8030"
       ],
       "port": 8030
+    },
+    {
+      "name": "dashboard-fast",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "web.server",
+        "--port",
+        "8040"
+      ],
+      "port": 8040,
+      "env": {
+        "WEB_TICK_INTERVAL_SEC": "0.4"
+      }
     }
   ]
 }

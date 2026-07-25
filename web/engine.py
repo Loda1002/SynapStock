@@ -75,6 +75,10 @@ class TradingEngine:
         # A3 유효 한도 — .env 기본값에서 시작, 한도 설정 화면으로 변경 가능
         self.budget_total: Decimal = CFG.budget_usdc
         self.per_trade_max: Decimal = CFG.per_trade_max_usdc
+        # 세션에서 실제 적용되는 건별 한도 — 조건형/적립형은 per_trade_max 그대로,
+        # 추세추종(올인/올아웃)은 '가진 현금 전량 매수'라 건별 한도가 총자산까지 열려야 해서
+        # 세션 동안만 상한(max_budget)으로 확장한다. 표시·mandate·가드가 이 값을 쓴다.
+        self._session_per_trade: Decimal = CFG.per_trade_max_usdc
         self.mandate_history: List[Dict[str, Any]] = []  # 세션 중 변경 이력 (아카이브 포함)
 
         # 세션 상태
@@ -139,6 +143,11 @@ class TradingEngine:
             raise EngineError("feed.type 은 'mock' 또는 'replay' 여야 합니다.")
         if ftype == "mock":
             return MockPriceFeed(), {"type": "mock", "label": "목 시세 (10스텝 데모 패턴)"}
+        # 데이터셋 — daily(상승장 최근 일봉, 기본) / bear(2022 폭락+2023 회복, 추세추종 데모).
+        # 화이트리스트라 경로 주입이 불가능하다(임의 접미사 차단).
+        dataset = str(fcfg.get("dataset") or "daily")
+        if dataset not in ("daily", "bear"):
+            raise EngineError("데이터셋은 'daily' 또는 'bear' 여야 합니다.")
         # 경로 주입 차단: API 로는 심볼만 받고(정규식 검증) 경로는 서버가 조립한다.
         # 임의 CSV 경로를 받으면 컨테이너의 아무 파일이나 열게 되고, 파싱 오류 메시지에
         # 파일 내용이 실려 400 응답으로 새어나간다. 테스트용 직접 지정은 .env REPLAY_FILE 만.
@@ -146,10 +155,15 @@ class TradingEngine:
             sym = str(fcfg["symbol"]).upper()
             if not re.fullmatch(r"[A-Z]{1,5}", sym):
                 raise EngineError("종목 코드는 영문 대문자 1~5자여야 합니다.")
-            path = os.path.join("data", "market", f"{sym}_daily.csv")
+            path = os.path.join("data", "market", f"{sym}_{dataset}.csv")
             market_dir = os.path.realpath(os.path.join("data", "market"))
             if os.path.commonpath([os.path.realpath(path), market_dir]) != market_dir:
                 raise EngineError("허용되지 않은 시세 파일 경로입니다.")
+        elif dataset == "bear":
+            # 심볼 미지정 + bear 데이터셋 — 기본 종목의 _bear.csv 로 유도
+            base = os.path.basename(self.default_replay_path())
+            sym = base.split("_")[0]
+            path = os.path.join("data", "market", f"{sym}_bear.csv")
         else:
             path = self.default_replay_path()
         try:
@@ -163,9 +177,11 @@ class TradingEngine:
             raise EngineError(f"실데이터 재생 준비 실패 — {e}")
         info = {
             "type": "replay",
+            "dataset": dataset,      # daily / bear (추세추종 폭락회피 데모)
             "label": feed.source_label,
             "file": path,
-            "source": "Alpha Vantage 일봉 (fetch_market_data.py)",
+            "source": ("yfinance 조정 일봉 (2022 폭락+2023 회복, fetch_bear_data.py)"
+                       if dataset == "bear" else "Alpha Vantage 일봉 (fetch_market_data.py)"),
             "bars_total": feed.total_bars,
             "warmup_bars": len(feed.warmup_bars),
         }
@@ -235,11 +251,15 @@ class TradingEngine:
             raise EngineError("이 서버는 웹에서 라이브 세션 시작이 차단돼 있습니다 "
                               "(ALLOW_LIVE_FROM_WEB=1 필요).")
 
-        # B7 전략 선택 — condition(조건형, 현행) / dca(적립형, N틱마다 정액 매수)
+        # B7 전략 선택 — condition(조건형) / dca(적립형, 주기 정액) / trend(추세추종, 올인·올아웃)
         scfg = strategy_cfg or {}
         strat_type = scfg.get("type", "condition")
-        if strat_type not in ("condition", "dca"):
-            raise EngineError("strategy.type 은 'condition' 또는 'dca' 여야 합니다.")
+        if strat_type not in ("condition", "dca", "trend"):
+            raise EngineError("strategy.type 은 'condition' / 'dca' / 'trend' 중 하나여야 합니다.")
+        # 추세추종 판단 방식 — pxma20(가격≥MA20) / cross_5_20(골든크로스5/20). trend 에서만 의미.
+        trend_signal = scfg.get("trend_signal") or "pxma20"
+        if trend_signal not in ("pxma20", "cross_5_20"):
+            raise EngineError("추세 신호는 'pxma20' 또는 'cross_5_20' 여야 합니다.")
         # Gemini 재량 모드 — strict(규칙 그대로) / trend(보류 재량). 조건형에서만 의미 있음.
         decision_mode = scfg.get("decision_mode") or "strict"
         if decision_mode not in ("strict", "trend"):
@@ -300,9 +320,13 @@ class TradingEngine:
         schedule_label = ({"minutes": f"{dca_minutes}분마다",
                            "daily": f"매일 {dca_at_time}"}
                           .get(dca_unit, f"{dca_every}틱마다"))
+        signal_label = {"pxma20": "가격>MA20", "cross_5_20": "골든크로스5/20"}[trend_signal]
         brain = None
         if strat_type == "dca":
             brain_label = f"적립식 스케줄 ({schedule_label} {dca_amount} USDC, Gemini 미사용)"
+        elif strat_type == "trend":
+            # 추세추종은 결정론적 규칙 신호(검증이 그대로 재현되도록) — Gemini 를 쓰지 않는다
+            brain_label = f"추세추종 규칙 ({signal_label} 신호 · 올인/올아웃 · Gemini 미사용)"
         elif CFG.gemini_api_key:
             try:
                 from agents.gemini_decider import GeminiDecider
@@ -313,12 +337,19 @@ class TradingEngine:
         else:
             brain_label = "규칙 기반 (GEMINI_API_KEY 미설정)"
 
+        # 세션 건별 한도 — 추세추종은 '가진 현금 전량 매수'(올인)라 건별 한도가 총자산까지
+        # 열려야 한다(복리로 예산 초과 매수 가능). 이때 실질 방어선은 '수취인 allowlist +
+        # 청구=합의견적 + 의도지출(올인 전액) 상한 + 자산/종목'이고(가드 그대로 작동),
+        # 총 사용자 자금 노출은 여전히 예산(첫 진입 상한)까지다. 조건형/적립형은 그대로.
+        is_trend = strat_type == "trend"
+        self._session_per_trade = CFG.max_budget_usdc if is_trend else self.per_trade_max
+
         # AP2 mandate — 사용자가 설정한 한도에 서명 (예산=순투입 한도, A3 로 변경 가능)
         mandate = OpenPaymentMandate(
             user_pubkey=str(user_kp.pubkey()),          # 위임자(사용자) 키 — 에이전트 키와 분리
             allowed_asset=str(usdc_mint),
             budget_total_usdc=self.budget_total,
-            per_trade_max_usdc=self.per_trade_max,
+            per_trade_max_usdc=self._session_per_trade,
             allowed_symbols=[CFG.stock_symbol],
         ).sign(user_kp)                                 # 사용자가 한도에 서명(위임 근거)
         auth = PaymentAuthorizer(mandate, agent_kp=trading_kp)  # 에이전트는 한도 내 결제만 서명
@@ -330,12 +361,14 @@ class TradingEngine:
             decision_mode=decision_mode,
             ta_mode=ta_mode,
             mode=strat_type,
+            trend_signal=trend_signal,
             dca_unit=dca_unit,
             dca_every_ticks=dca_every,
             dca_every_minutes=dca_minutes,
             dca_at_time=dca_at_time,
             dca_amount_usdc=dca_amount,
-            max_hold_bars=CFG.max_hold_bars,   # 시간청산(안전레일) — 조건형에만 적용
+            # 시간청산(안전레일)은 조건형에만 적용 — 추세추종은 추세가 살아 있는 한 태워야 한다
+            max_hold_bars=0 if is_trend else CFG.max_hold_bars,
         )
         trading = TradingAgent(
             trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain,
@@ -394,9 +427,13 @@ class TradingEngine:
         self.brain_label = brain_label
         self.strategy_info = {
             "type": strat_type,
-            "decision_mode": decision_mode,   # strict(엄격) / trend(추세 재량)
+            "decision_mode": decision_mode,   # strict(엄격) / trend(추세 재량) — 조건형 전용
+            "trend_signal": trend_signal,     # 추세추종 신호 (pxma20 / cross_5_20)
+            "trend_signal_label": signal_label,  # 사람이 읽는 신호 문구
+            "all_in": is_trend,               # 추세추종: 올인/올아웃 (건별 한도 = 총자산)
             "ta_mode": ta_mode,               # TA 보강(이동평균 배열·패턴 근거 판단)
-            "max_hold_bars": CFG.max_hold_bars,  # 시간청산(안전레일) — 0=비활성
+            # 시간청산(안전레일) — 조건형만 적용, 추세추종은 0(미적용)
+            "max_hold_bars": 0 if is_trend else CFG.max_hold_bars,
             "dca_unit": dca_unit,
             "dca_every_ticks": dca_every,
             "dca_every_minutes": dca_minutes,
@@ -491,6 +528,10 @@ class TradingEngine:
                "per_trade_max_usdc": str(self.per_trade_max)}
         applied = "next-session"
 
+        # 추세추종(올인) 세션이면 건별 한도는 총자산까지 열려 있어야 한다 — 사용자가 준
+        # per_trade 값 대신 세션 실효 한도(max_budget)로 재서명한다(재진입 올인이 안 막히게).
+        is_trend = (getattr(self, "strategy_info", None) or {}).get("type") == "trend"
+
         if self.status == "running":
             if self.trading_enabled:
                 raise EngineError("실행 중에는 긴급정지 상태에서만 한도를 변경할 수 있습니다.")
@@ -498,25 +539,32 @@ class TradingEngine:
             if budget_total < spent:
                 raise EngineError(
                     f"새 예산({budget_total})이 이미 사용한 금액({spent})보다 작습니다.")
+            eff_per_trade = CFG.max_budget_usdc if is_trend else per_trade_max
             new_mandate = OpenPaymentMandate(
                 user_pubkey=str(self._user_kp.pubkey()),   # 위임자(사용자) 키로 재서명
                 allowed_asset=str(self._usdc_mint),
                 budget_total_usdc=budget_total,
-                per_trade_max_usdc=per_trade_max,
+                per_trade_max_usdc=eff_per_trade,
                 allowed_symbols=[CFG.stock_symbol],
             ).sign(self._user_kp)
             new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
             new_auth.spent_usdc = spent  # 사용액 이월
             self._mandate, self._auth = new_mandate, new_auth
             self._trading.auth = new_auth
+            self._session_per_trade = eff_per_trade
             applied = "immediate"
 
-        self.budget_total, self.per_trade_max = budget_total, per_trade_max
+        self.budget_total = budget_total
+        # 추세추종 세션 중에는 사용자 per_trade 기본값을 덮어쓰지 않는다(올인이라 무의미).
+        if not (is_trend and self.status == "running"):
+            self.per_trade_max = per_trade_max
         rec = {
             "ts": _now(), "actor": actor, "applied": applied,
             "old": old,
             "new": {"budget_total_usdc": str(budget_total),
-                    "per_trade_max_usdc": str(per_trade_max)},
+                    # 즉시 적용이면 실제 재서명된 실효 한도(추세추종은 올인 캡)를 기록한다
+                    "per_trade_max_usdc": str(self._session_per_trade
+                                              if applied == "immediate" else per_trade_max)},
             "signature": self._mandate.signature if applied == "immediate" else "",
             "mandate_verified": self._mandate.verify() if applied == "immediate" else None,
         }
@@ -539,10 +587,8 @@ class TradingEngine:
         buys = [t for t in settled if t["side"] == "buy"]
         sells = [t for t in settled if t["side"] == "sell"]
         pos = self._trading.position if self._trading else None
-        return_pct = (
-            (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
-            if self.cum_buy_usdc > 0 else Decimal(0))
         val = self._valuation(pos, self._auth.remaining_usdc if self._auth else self.budget_total)
+        return_pct = self._display_return_pct(val)
         by_action: Dict[str, int] = {}
         by_source: Dict[str, int] = {}
         for d in self.decisions:
@@ -1070,9 +1116,8 @@ class TradingEngine:
         """Firestore sessions 문서 — artifacts/tx 아카이브의 DB판 (dry 세션 포함).
         판단 로그는 문서 1MB 한도 보호를 위해 최근 300건까지만 담는다."""
         pos = self._trading.position if self._trading else None
-        return_pct = (
-            (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
-            if self.cum_buy_usdc > 0 else Decimal(0))
+        remaining = self._auth.remaining_usdc if self._auth else self.budget_total
+        return_pct = self._display_return_pct(self._valuation(pos, remaining))
         return jsonable({
             "session_id": self.session_id,
             "mode": self.mode, "network": CFG.network, "symbol": CFG.stock_symbol,
@@ -1080,7 +1125,7 @@ class TradingEngine:
             "ticks": self.tick, "brain": self.brain_label,
             "strategy": self.strategy_info, "feed": self.feed_info,
             "budget_total_usdc": str(self.budget_total),
-            "per_trade_max_usdc": str(self.per_trade_max),
+            "per_trade_max_usdc": str(self._session_per_trade),  # 세션 실효 한도(추세추종=올인 캡)
             "realized_pnl_usdc": str(self.realized_pnl),
             "return_pct": str(return_pct),
             "cum_buy_usdc": str(self.cum_buy_usdc),
@@ -1127,14 +1172,27 @@ class TradingEngine:
                              if self._snap_last else None),  # 라이브: 최근 스냅샷
         }
 
+    def _is_trend(self) -> bool:
+        return (getattr(self, "strategy_info", None) or {}).get("type") == "trend"
+
+    def _display_return_pct(self, valuation: Dict[str, Any]) -> Decimal:
+        """세션 수익률(%). 추세추종은 올인/올아웃(복리)이라 '초기자본 대비 총자산'이 정직한
+        수익률이고(realized/cum_buy 는 분할매수 기준이라 올인엔 왜곡), 조건형/적립형은 기존대로
+        실현손익/누적매수액을 쓴다. valuation 은 _valuation() 결과."""
+        if self._is_trend() and self.budget_total > 0:
+            return ((Decimal(valuation["total_asset_usdc"]) - self.budget_total)
+                    / self.budget_total * 100).quantize(Decimal("0.01"))
+        if self.cum_buy_usdc > 0:
+            return (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
+        return Decimal(0)
+
     def state_snapshot(self) -> Dict[str, Any]:
         pos = self._trading.position if self._trading else None
         spent = self._auth.spent_usdc if self._auth else Decimal(0)
         remaining = self._auth.remaining_usdc if self._auth else self.budget_total
-        return_pct = (
-            (self.realized_pnl / self.cum_buy_usdc * 100).quantize(Decimal("0.01"))
-            if self.cum_buy_usdc > 0 else Decimal(0)
-        )
+        valuation = self._valuation(pos, remaining)
+        is_trend = self._is_trend()
+        return_pct = self._display_return_pct(valuation)
         return {
             "engine": {
                 "status": self.status, "mode": self.mode, "network": CFG.network,
@@ -1171,14 +1229,18 @@ class TradingEngine:
                 "total_usdc": str(self.budget_total),
                 "spent_usdc": str(spent),
                 "remaining_usdc": str(remaining),
-                "per_trade_max_usdc": str(self.per_trade_max),
+                # 세션 실효 건별 한도 — 실행 중이면 세션값(추세추종은 올인 캡), 대기 중이면 기본값
+                "per_trade_max_usdc": str(self._session_per_trade
+                                          if self.status == "running" else self.per_trade_max),
+                "all_in": is_trend,
             },
-            "pnl": {  # A7 라이트: 수익률 = 실현손익 / 누적 매수금액
+            "pnl": {  # 수익률 — 조건형: 실현손익/누적매수 · 추세추종: 초기자본 대비 총자산
                 "realized_usdc": str(self.realized_pnl),
                 "return_pct": str(return_pct),
                 "cum_buy_usdc": str(self.cum_buy_usdc),
+                "basis": "initial-capital" if is_trend else "cum-buy",
             },
-            "valuation": self._valuation(pos, remaining),  # 평가손익(미실현) · 총자산
+            "valuation": valuation,  # 평가손익(미실현) · 총자산
             "fees": {  # A8 수수료 투명화 — 브로커 수익모델 증명
                 "fee_bps": CFG.broker_fee_bps,
                 "cum_fee_usdc": str(self.total_fees),
