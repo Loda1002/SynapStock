@@ -188,6 +188,7 @@ class StartBody(StrictBody):
     mode: str = "dry"      # dry / live
     strategy: StrategyBody = StrategyBody()
     feed: FeedBody = FeedBody()
+    tick_interval_sec: float | None = None  # 재생 속도(틱 간격 초). 미지정=.env 기본. 엔진이 안전범위로 클램프
 
 
 class ActorBody(StrictBody):
@@ -198,7 +199,8 @@ class ActorBody(StrictBody):
 async def engine_start(body: StartBody):
     try:
         return await engine.start(body.mode, body.strategy.model_dump(),
-                                  body.feed.model_dump())
+                                  body.feed.model_dump(),
+                                  tick_interval_sec=body.tick_interval_sec)
     except EngineError as e:
         code = 409 if "이미 실행" in str(e) else 400
         raise HTTPException(status_code=code, detail=str(e))

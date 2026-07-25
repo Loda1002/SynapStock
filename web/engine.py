@@ -311,6 +311,7 @@ class TradingEngine:
     async def start(self, mode: str,
                     strategy_cfg: Optional[Dict[str, Any]] = None,
                     feed_cfg: Optional[Dict[str, Any]] = None,
+                    tick_interval_sec: Optional[float] = None,
                     autostart: bool = True) -> Dict[str, Any]:
         # autostart=False 는 테스트 시드 — 세션을 구성하되 백그라운드 루프를 띄우지 않는다.
         # (테스트가 _tick_once/_finalize 를 결정론적으로 직접 스텝한다. 운영은 항상 True.)
@@ -575,7 +576,13 @@ class TradingEngine:
             "schedule_label": schedule_label,   # 사람이 읽는 주기 문구 (UI 공용)
         }
         self.feed_info = feed_info
-        self.tick_interval = CFG.web_tick_interval_sec
+        # 재생 속도 — UI 가 넘긴 틱 간격(초)을 안전 범위[0.05, 60]로 클램프. 미지정이면 .env 기본.
+        _ti = tick_interval_sec if tick_interval_sec is not None else CFG.web_tick_interval_sec
+        try:
+            _ti = float(_ti)
+        except (TypeError, ValueError):
+            _ti = CFG.web_tick_interval_sec
+        self.tick_interval = min(max(_ti, 0.05), 60.0)
         self.last_archive_path = ""
         self._usdc_mint, self._stock_mint = usdc_mint, stock_mint
         self._user_kp = user_kp

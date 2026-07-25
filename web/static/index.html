@@ -84,6 +84,14 @@
         <option value="daily">상승장 일봉</option>
         <option value="bear">하락장 (2022 폭락→회복)</option>
       </select>
+      <select data-speed-select aria-label="재생 속도"
+              title="재생 속도(틱 간격). 빠를수록 봉이 빨리 넘어가 결과를 빨리 확인합니다. 조건형+Gemini 는 아주 빠른 속도에서 무료 티어 호출 제한에 걸려 규칙 폴백될 수 있습니다(추세추종·적립형은 무관).">
+        <option value="0.15">⚡ 초고속 (0.15초/봉)</option>
+        <option value="0.3" selected>빠름 (0.3초/봉)</option>
+        <option value="1">보통 (1초/봉)</option>
+        <option value="3">느림 (3초/봉)</option>
+        <option value="8">발표용 (8초/봉)</option>
+      </select>
       <div class="sym-picker hidden" data-sym-picker
            title="여러 종목을 고르면 하나의 예산·하나의 402 Guard 아래 각 종목을 독립 포지션으로 동시에 매수합니다(드라이 전용). 아무것도 안 고르면 기본 단일 종목입니다.">
         <span class="sub" data-sym-picker-label>동시 매수 종목 (여러 개 = 멀티 · 비우면 기본 단일):</span>
@@ -94,7 +102,8 @@
       <select data-strategy-select aria-label="매매 전략">
         <option value="condition">조건형 (AI 판단 매수·매도)</option>
         <option value="trend">추세추종 (상승세 보유·하락세 매도)</option>
-        <option value="dca">적립형 (주기 정액 매수)</option>
+        <!-- TEMP: 성능 평가 위해 적립형(DCA) 임시 비활성화 — 복원 시 disabled 제거 + 원 라벨 "적립형 (주기 정액 매수)" 되돌리기 -->
+        <option value="dca" disabled>적립형 (성능 평가 위해 임시 비활성화)</option>
       </select>
       <select data-decision-mode aria-label="AI 판단 모드"
               title="엄격: 규칙 충족 여부만 판단 / 추세: 규칙 신호가 떠도 추세가 나쁘면 AI가 보류 가능 (한도 차단은 항상 AP2가 기계적으로 수행)">

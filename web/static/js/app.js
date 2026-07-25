@@ -21,6 +21,7 @@
     focusSelect: $("[data-focus-select]"),
     symSummary: $("[data-sym-summary]"),
     strategySelect: $("[data-strategy-select]"),
+    speedSelect: $("[data-speed-select]"),
     trendSignal: $("[data-trend-signal]"),
     decisionMode: $("[data-decision-mode]"),
     taWrap: $("[data-ta-wrap]"),
@@ -907,6 +908,7 @@
     focusSymbol = null;   // 새 세션 — 포커스는 첫 종목으로 재설정
     const s = await post("/api/engine/start", {
       mode: el.modeSelect.value,
+      tick_interval_sec: parseFloat(el.speedSelect.value),
       feed: { type: el.feedSelect.value, dataset: el.feedDataset.value, symbols: pickedSymbols() },
       strategy: {
         type: el.strategySelect.value,
