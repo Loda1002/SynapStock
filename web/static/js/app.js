@@ -15,6 +15,7 @@
     modeSelect: $("[data-mode-select]"),
     feedSelect: $("[data-feed-select]"),
     feedDataset: $("[data-feed-dataset]"),
+    subBars: $("[data-sub-bars]"),
     symPicker: $("[data-sym-picker]"),
     symPickerLabel: $("[data-sym-picker-label]"),
     focusWrap: $("[data-focus-wrap]"),
@@ -341,6 +342,7 @@
     el.modeSelect.disabled = running;
     el.feedSelect.disabled = running;
     el.feedDataset.disabled = running;
+    el.subBars.disabled = running;
     // 세션 종목은 실행 중 변경 불가 · 추세추종·라이브는 대기 상태에서도 단일 잠금 · 포커스 전환은 항상 허용
     // (대기 상태 판정은 사용자가 고른 드롭다운 값을 쓴다 — 스냅샷 strategy 는 직전 세션 값일 수 있음)
     for (const c of document.querySelectorAll("[data-sym-check]"))
@@ -872,6 +874,7 @@
     // 데이터셋(일봉/하락장)은 실데이터 재생일 때만 의미
     const replay = el.feedSelect.value === "replay";
     el.feedDataset.classList.toggle("hidden", !replay);
+    el.subBars.classList.toggle("hidden", !replay);
     // 멀티 종목 선택은 실데이터 재생에서만. 추세추종(올인)·라이브(온체인)는 단일만이라 잠근다.
     const isTrend = strat === "trend";
     const isLive = el.modeSelect.value === "live";
@@ -909,7 +912,7 @@
     const s = await post("/api/engine/start", {
       mode: el.modeSelect.value,
       tick_interval_sec: parseFloat(el.speedSelect.value),
-      feed: { type: el.feedSelect.value, dataset: el.feedDataset.value, symbols: pickedSymbols() },
+      feed: { type: el.feedSelect.value, dataset: el.feedDataset.value, sub_bars: parseInt(el.subBars.value, 10) || 1, symbols: pickedSymbols() },
       strategy: {
         type: el.strategySelect.value,
         decision_mode: el.decisionMode.value,

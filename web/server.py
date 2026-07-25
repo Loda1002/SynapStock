@@ -180,6 +180,7 @@ class FeedBody(StrictBody):
     symbol: str = ""       # replay: data/market/{SYMBOL}_{dataset}.csv (영문 대문자 1~5자)
     symbols: list[str] = []  # 멀티 종목 티커 목록 (비우면 단일). 각 티커는 대문자 1~5자.
     dataset: str = "daily"  # daily(상승장 일봉) / bear(2022 폭락+2023 회복, 추세추종 데모)
+    sub_bars: int = 1       # 1=일봉, >1=하루당 N개 합성 인트라바(더 짧은 간격 재현). 엔진이 1~12 클램프
     start: str = ""        # 재생 시작일 YYYY-MM-DD
     end: str = ""          # 재생 종료일 YYYY-MM-DD
 

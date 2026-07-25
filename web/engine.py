@@ -25,7 +25,7 @@ from solders.keypair import Keypair
 from solders.pubkey import Pubkey
 
 from config import CFG, to_base_units
-from market.price_feed import Bar, MockPriceFeed, PriceFeed, ReplayPriceFeed
+from market.price_feed import Bar, IntradayReplayFeed, MockPriceFeed, PriceFeed, ReplayPriceFeed
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from payments.guard import Guard, GuardError
@@ -140,6 +140,24 @@ class TradingEngine:
             sym = s[1:] if len(s) > 1 and s[0] == "t" and s[1:].isupper() else s.upper()
         return os.path.join("data", "market", f"{sym}_daily.csv")
 
+    def _replay_feed(self, path: str, fcfg: Dict[str, Any], err_prefix: str = ""):
+        """재생 피드 생성 — sub_bars>1 이면 하루당 sub 개의 합성 인트라바로 확장한다.
+        일 단위 궤적(종가)은 실데이터 그대로고 하위 경로만 합성이다. 실패는 EngineError."""
+        try:
+            sub = int(fcfg.get("sub_bars") or 1)
+        except (TypeError, ValueError):
+            sub = 1
+        sub = min(max(sub, 1), 12)          # 과도한 봉 수(세션 지연) 방지
+        start = str(fcfg.get("start") or CFG.replay_start)
+        end = str(fcfg.get("end") or CFG.replay_end)
+        try:
+            if sub > 1:
+                return IntradayReplayFeed(path, start=start, end=end,
+                                          warmup=CFG.replay_warmup, sub=sub)
+            return ReplayPriceFeed(path, start=start, end=end, warmup=CFG.replay_warmup)
+        except (FileNotFoundError, ValueError) as e:
+            raise EngineError(f"{err_prefix}실데이터 재생 준비 실패 — {e}")
+
     def _build_feed(self, feed_cfg: Optional[Dict[str, Any]]):
         """세션 피드 구성 — (feed, feed_info). 실패는 EngineError 로 사용자에게 안내."""
         fcfg = feed_cfg or {}
@@ -171,15 +189,7 @@ class TradingEngine:
             path = os.path.join("data", "market", f"{sym}_bear.csv")
         else:
             path = self.default_replay_path()
-        try:
-            feed = ReplayPriceFeed(
-                path,
-                start=str(fcfg.get("start") or CFG.replay_start),
-                end=str(fcfg.get("end") or CFG.replay_end),
-                warmup=CFG.replay_warmup,
-            )
-        except (FileNotFoundError, ValueError) as e:
-            raise EngineError(f"실데이터 재생 준비 실패 — {e}")
+        feed = self._replay_feed(path, fcfg)
         info = {
             "type": "replay",
             "dataset": dataset,      # daily / bear (추세추종 폭락회피 데모)
@@ -187,6 +197,7 @@ class TradingEngine:
             "file": path,
             "source": ("yfinance 조정 일봉 (2022 폭락+2023 회복, fetch_bear_data.py)"
                        if dataset == "bear" else "Alpha Vantage 일봉 (fetch_market_data.py)"),
+            "sub_bars": getattr(feed, "sub", 1),   # 1=일봉, >1=합성 인트라바(하루당 봉 수)
             "bars_total": feed.total_bars,
             "warmup_bars": len(feed.warmup_bars),
         }
@@ -244,16 +255,12 @@ class TradingEngine:
         market_dir = os.path.realpath(os.path.join("data", "market"))
         if os.path.commonpath([os.path.realpath(path), market_dir]) != market_dir:
             raise EngineError("허용되지 않은 시세 파일 경로입니다.")
-        try:
-            feed = ReplayPriceFeed(
-                path, start=str(fcfg.get("start") or CFG.replay_start),
-                end=str(fcfg.get("end") or CFG.replay_end), warmup=CFG.replay_warmup)
-        except (FileNotFoundError, ValueError) as e:
-            raise EngineError(f"{ticker} 실데이터 재생 준비 실패 — {e}")
+        feed = self._replay_feed(path, fcfg, f"{ticker} ")
         info = {
             "type": "replay", "dataset": dataset, "label": feed.source_label, "file": path,
             "source": ("yfinance 조정 일봉 (2022 폭락+2023 회복)"
                        if dataset == "bear" else "Alpha Vantage 일봉"),
+            "sub_bars": getattr(feed, "sub", 1),
             "bars_total": feed.total_bars, "warmup_bars": len(feed.warmup_bars),
         }
         return feed, info

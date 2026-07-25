@@ -140,6 +140,64 @@ class ReplayPriceFeed(PriceFeed):
         return bar.close
 
 
+def _seg_interp(wp: List[Decimal], t: Decimal) -> Decimal:
+    """4개 웨이포인트(3구간 균등)를 지나는 조각선형 보간. t in (0,1], t=1 → 마지막 값."""
+    x = t * 3
+    seg = int(x)
+    if seg > 2:
+        seg = 2                     # t=1 이면 x=3 → 마지막 구간의 끝(=wp[3])
+    local = x - seg
+    a, c = wp[seg], wp[seg + 1]
+    return a + (c - a) * local
+
+
+class IntradayReplayFeed(ReplayPriceFeed):
+    """일봉 CSV 를 하루당 sub 개의 '합성 인트라바'로 확장해 재생한다.
+
+    실제 일봉(시가·고가·저가·종가)을 지나는 결정론적 경로를 만든다:
+      상승일(종가≥시가): 시가 → 저가 → 고가 → 종가 (눌림목 후 반등)
+      하락일(종가<시가) : 시가 → 고가 → 저가 → 종가
+    하루의 마지막 인트라바 종가는 실제 일봉 종가와 정확히 같아, '일 단위 궤적'은
+    실데이터 그대로다(하위 경로만 합성). 이동평균(MA5/MA20)이 인트라바 단위로 계산돼
+    아주 짧은 시간의 변동에도 신호가 반응한다 — 대신 봉 수가 늘어 세션이 길어지고
+    잦은 매매(휩쏘)가 늘 수 있다.
+
+    주의: 인트라바는 '합성(가상)'이며 데모 재현용이다. 실제 분/시간봉이 아니다
+    (일봉 자체는 실데이터). start/end/warmup 슬라이싱은 일 단위로 먼저 하고 확장한다.
+    """
+
+    def __init__(self, csv_path: str, start: str = "", end: str = "",
+                 warmup: int = 20, sub: int = 8):
+        super().__init__(csv_path, start=start, end=end, warmup=warmup)
+        self.sub = max(1, int(sub))
+        if self.sub > 1:
+            self._bars = self._explode(self._bars, self.sub)
+            self.warmup_bars = self._explode(self.warmup_bars, self.sub)
+            days = self.total_bars // self.sub
+            self.source_label = (
+                f"{self.symbol_name} 인트라바 재생(합성 {self.sub}봉/일) "
+                f"{self._bars[0].date}~{self._bars[-1].date} "
+                f"({self.total_bars}봉≈{days}일)")
+
+    @staticmethod
+    def _explode(bars: List[Bar], sub: int) -> List[Bar]:
+        """일봉 리스트를 하루당 sub 개의 인트라바로 확장(각 종가는 O/H/L/C 경로 위의 점)."""
+        out: List[Bar] = []
+        for b in bars:
+            up = b.close >= b.open
+            wp = [b.open, b.low, b.high, b.close] if up else [b.open, b.high, b.low, b.close]
+            prev = b.open
+            for k in range(sub):
+                t = Decimal(k + 1) / Decimal(sub)      # (0,1], 마지막은 정확히 종가
+                price = _seg_interp(wp, t)
+                hi, lo = max(prev, price), min(prev, price)
+                out.append(Bar(
+                    date=b.date, open=prev.quantize(_CENT), high=hi.quantize(_CENT),
+                    low=lo.quantize(_CENT), close=price.quantize(_CENT)))
+                prev = price
+        return out
+
+
 # --- 라이브 시세로 확장할 때 참고 스텁 ---
 # class AlpacaPriceFeed(PriceFeed):
 #     """Alpaca market data API (페이퍼/무료) 로 실시간 시세 — 실패 시 Replay 폴백."""

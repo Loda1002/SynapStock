@@ -28,7 +28,7 @@ sys.path.insert(0, ROOT)
 from solders.keypair import Keypair  # noqa: E402
 
 from config import CFG  # noqa: E402
-from market.price_feed import ReplayPriceFeed, Bar, load_bars  # noqa: E402
+from market.price_feed import ReplayPriceFeed, IntradayReplayFeed, Bar, load_bars  # noqa: E402
 from agents.trading_agent import TradingAgent, Strategy  # noqa: E402
 from agents.broker_agent import BrokerAgent  # noqa: E402
 from payments.ap2_mandate import (  # noqa: E402
@@ -62,6 +62,8 @@ def build_args() -> argparse.Namespace:
                     help="TA 보강 켜기 — MA 배열·크로스·지지/저항·패턴을 판단 근거로")
     ap.add_argument("--max-bars", type=int, default=60, help="최대 재생 봉 수 (기본 60)")
     ap.add_argument("--warmup", type=int, default=20, help="지표 워밍업 봉 수 (기본 20)")
+    ap.add_argument("--sub-bars", dest="sub_bars", type=int, default=1,
+                    help="1=일봉(기본) · >1=하루당 N개 합성 인트라바 (단일 종목 경로만)")
     ap.add_argument("--budget", default="100", help="AP2 총예산 USDC")
     ap.add_argument("--per-trade", default="50", help="AP2 건별 한도 USDC")
     ap.add_argument("--spend", default="30", help="1회 매수 금액 USDC")
@@ -244,7 +246,10 @@ def main() -> int:
     csv_path = args.file or os.path.join(
         ROOT, "data", "market", f"{args.symbol.upper()}{args.suffix}.csv")
     try:
-        feed = ReplayPriceFeed(csv_path, start=args.date_from, end=args.date_to, warmup=args.warmup)
+        sub = max(1, int(args.sub_bars))
+        feed = (IntradayReplayFeed(csv_path, start=args.date_from, end=args.date_to,
+                                   warmup=args.warmup, sub=sub) if sub > 1
+                else ReplayPriceFeed(csv_path, start=args.date_from, end=args.date_to, warmup=args.warmup))
     except (FileNotFoundError, ValueError) as e:
         # 스택트레이스 대신 사람이 읽는 안내 — 구간을 잘못 준 경우가 대부분이다
         print(f"[오류] {e}")
