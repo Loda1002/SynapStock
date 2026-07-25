@@ -376,10 +376,9 @@ class TradingEngine:
                               "멀티 종목은 드라이 전용입니다. 종목을 하나만 선택하세요.")
         if live:
             symbols, multi = [CFG.stock_symbol], False   # 라이브는 항상 레거시 단일(민트=STOCK_MINT)
-        if strat_type == "trend" and len(symbols) > 1:
-            raise EngineError("추세추종(올인/올아웃)은 단일 종목에서만 지원됩니다 — 여러 종목이 하나의 "
-                              "예산을 전량 매수로 경쟁하면 먼저 진입한 종목이 예산을 독식합니다. "
-                              "종목을 하나만 선택하세요.")
+        # 추세추종 멀티는 종목별 예산 슬라이스(예산/N)로 각자 올인·복리한다(아래 per-symbol auth)
+        # — 공유 예산이 아니라 독립 예산이라 한 종목이 전액을 독식하거나 다른 종목 예산을
+        # 잠식하지 못한다. 라이브(온체인)는 위에서 단일로 강제되므로 멀티 추세는 드라이 전용이다.
         # 목 시세는 종목별 기준가가 없어 전 종목이 동일 가격 경로가 된다(완전 상관 → 분산 무의미).
         # 멀티는 실데이터 재생만 지원한다(live/trend 멀티 거부와 같은 관례).
         if len(symbols) > 1 and ((feed_cfg or {}).get("type") or CFG.price_feed) == "mock":
@@ -469,6 +468,26 @@ class TradingEngine:
         if strat_type == "dca" and per_symbol_dca <= 0:
             raise EngineError("적립식 회당 금액이 종목 수로 나누면 0이 됩니다 — 금액을 올리거나 종목을 줄이세요.")
 
+        # 종목별 authorizer 배정. 단일·조건형/적립형 멀티는 공유 예산(auth 1개)을 쓰고,
+        # 추세추종 멀티(올인/올아웃)만 종목별 예산 슬라이스(예산/N)로 독립 auth 를 준다 —
+        # 공유 예산이면 먼저 상승세로 돌아선 종목이 전액을 올인해 독식하기 때문. 각 슬라이스는
+        # 자기 매도 대금으로 복리(allow_surplus)하고, 한 종목의 손실은 제 슬라이스에만 갇힌다.
+        # 가드는 세션 mandate 하나로 전 종목의 서명을 검문(수취인·자산·종목·건별·의도 상한).
+        multi_trend = is_trend and n > 1
+        if multi_trend:
+            slice_budget = (self.budget_total / n).quantize(cent)
+            symbol_auths: Dict[str, PaymentAuthorizer] = {}
+            for i, sym in enumerate(symbols):
+                sb = self.budget_total - slice_budget * (n - 1) if i == n - 1 else slice_budget
+                sm = OpenPaymentMandate(
+                    user_pubkey=str(user_kp.pubkey()), allowed_asset=str(usdc_mint),
+                    budget_total_usdc=sb, per_trade_max_usdc=self._session_per_trade,
+                    allowed_symbols=[sym]).sign(user_kp)
+                symbol_auths[sym] = PaymentAuthorizer(sm, agent_kp=trading_kp)
+            auth = None   # 공유 auth 없음 — 종목별. 예산 보고는 _total_remaining/_total_spent 가 합산.
+        else:
+            symbol_auths = {sym: auth for sym in symbols}
+
         # ---- 종목별 레이어: TradingAgent·피드 (position·이력·시간청산 독립) ----
         agents: Dict[str, TradingAgent] = {}
         feeds: Dict[str, PriceFeed] = {}
@@ -487,7 +506,7 @@ class TradingEngine:
                 # 시간청산(안전레일)은 조건형에만 — 추세추종은 추세가 살아 있는 한 태운다
                 max_hold_bars=0 if is_trend else CFG.max_hold_bars,
             )
-            ag = TradingAgent(trading_kp, auth, strat, CFG.usdc_decimals, CFG.network,
+            ag = TradingAgent(trading_kp, symbol_auths[sym], strat, CFG.usdc_decimals, CFG.network,
                               brain=brain, fee_bps=CFG.broker_fee_bps)
             if warm:
                 ag.preload_bars(warm)   # 첫 틱부터 MA/TA 성립하게 봉(OHLC)째 주입
@@ -681,11 +700,12 @@ class TradingEngine:
         if self.status == "running":
             if self.trading_enabled:
                 raise EngineError("실행 중에는 긴급정지 상태에서만 한도를 변경할 수 있습니다.")
-            spent = self._auth.spent_usdc
+            spent = self._total_spent()   # 공유 예산은 auth 1개, 추세추종 멀티는 종목별 합산
             if budget_total < spent:
                 raise EngineError(
                     f"새 예산({budget_total})이 이미 사용한 금액({spent})보다 작습니다.")
             eff_per_trade = CFG.max_budget_usdc if is_trend else per_trade_max
+            # 세션 가드는 항상 이 mandate 하나로 검문한다(허용종목=전 종목, 건별=실효 한도).
             new_mandate = OpenPaymentMandate(
                 user_pubkey=str(self._user_kp.pubkey()),   # 위임자(사용자) 키로 재서명
                 allowed_asset=str(self._usdc_mint),
@@ -693,14 +713,31 @@ class TradingEngine:
                 per_trade_max_usdc=eff_per_trade,
                 allowed_symbols=list(self.symbols),        # 세션 전 종목 (멀티 유지)
             ).sign(self._user_kp)
-            new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
-            new_auth.spent_usdc = spent  # 사용액 이월 (공유 예산이라 전 종목 합산치)
-            self._mandate, self._auth = new_mandate, new_auth
+            self._mandate = new_mandate
             # 공유 가드도 새 mandate 로 정합시킨다 — 안 하면 Guard 의 한도(per_trade)·허용종목
             # 검사가 옛 mandate 를 계속 봐서 활성 서명 mandate 와 어긋난다(헤드라인 가드 정합).
             self._guard.mandate = new_mandate
-            for a in self.agents.values():   # 모든 종목 에이전트가 새 공유 auth 를 쓴다
-                a.auth = new_auth
+            if is_trend and len(self.symbols) > 1:
+                # 추세추종 멀티 — 종목별 예산 슬라이스(새 예산/N)를 재산정하고 사용액을 이월한다.
+                n = len(self.symbols)
+                slice_budget = (budget_total / n).quantize(Decimal("0.01"))
+                for i, sym in enumerate(self.symbols):
+                    sb = budget_total - slice_budget * (n - 1) if i == n - 1 else slice_budget
+                    sm = OpenPaymentMandate(
+                        user_pubkey=str(self._user_kp.pubkey()),
+                        allowed_asset=str(self._usdc_mint),
+                        budget_total_usdc=sb, per_trade_max_usdc=eff_per_trade,
+                        allowed_symbols=[sym]).sign(self._user_kp)
+                    sa = PaymentAuthorizer(sm, agent_kp=self._trading_kp)
+                    sa.spent_usdc = self.agents[sym].auth.spent_usdc   # 종목별 사용액 이월
+                    self.agents[sym].auth = sa
+                self._auth = None
+            else:
+                new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
+                new_auth.spent_usdc = spent  # 사용액 이월 (공유 예산이라 전 종목 합산치)
+                self._auth = new_auth
+                for a in self.agents.values():   # 모든 종목 에이전트가 새 공유 auth 를 쓴다
+                    a.auth = new_auth
             self._session_per_trade = eff_per_trade
             applied = "immediate"
 
@@ -738,7 +775,7 @@ class TradingEngine:
         settled = [t for t in self.trades if t["status"] == "settled"]
         buys = [t for t in settled if t["side"] == "buy"]
         sells = [t for t in settled if t["side"] == "sell"]
-        remaining = self._auth.remaining_usdc if self._auth else self.budget_total
+        remaining = self._total_remaining()
         val = self._valuation(remaining)
         return_pct = self._display_return_pct(val)
         by_action: Dict[str, int] = {}
@@ -995,7 +1032,7 @@ class TradingEngine:
             return
         self.bus.emit(ev.X402_SUBMITTED, {
             "side": "buy", "order_id": required.order_id,
-            "remaining_usdc": str(self._auth.remaining_usdc),
+            "remaining_usdc": str(agent.auth.remaining_usdc),
             "payload_b64_len": len(submitted.payment.serialized_transaction),
         })
 
@@ -1008,7 +1045,7 @@ class TradingEngine:
                 before_stock = await x.get_token_balance_base(
                     self._client, self._trading_kp.pubkey(), self._stock_mint)
             except Exception as e:
-                self._auth.release(required.order_id)
+                agent.auth.release(required.order_id)
                 self.bus.emit(ev.GUARD_PENDING, {
                     "side": "buy", "order_id": required.order_id, "ok": False,
                     "code": "GUARD_BASELINE_UNREAD",
@@ -1058,9 +1095,9 @@ class TradingEngine:
         finally:
             # 결함 H: settled 가 아니면 AP2 예약분을 원복해 한도를 되돌린다(실패해도 예산 소진 방지)
             if settled:
-                self._auth.settle(required.order_id)
+                agent.auth.settle(required.order_id)
             else:
-                self._auth.release(required.order_id)
+                agent.auth.release(required.order_id)
 
         # 배송 미확인(partial)이면 세션을 정지한다 — 반복 결제로 손실이 누적되지 않게
         if completed is not None and completed.status == "partial" and self.trading_enabled:
@@ -1308,7 +1345,7 @@ class TradingEngine:
     def _session_summary(self, archive_path: str, cross: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """Firestore sessions 문서 — artifacts/tx 아카이브의 DB판 (dry 세션 포함).
         판단 로그는 문서 1MB 한도 보호를 위해 최근 300건까지만 담는다."""
-        remaining = self._auth.remaining_usdc if self._auth else self.budget_total
+        remaining = self._total_remaining()
         return_pct = self._display_return_pct(self._valuation(remaining))
         positions = [{"symbol": s, "quantity": str(self.agents[s].position.quantity),
                       "avg_price_usdc": str(self.agents[s].position.avg_price_usdc)}
@@ -1357,6 +1394,31 @@ class TradingEngine:
         net = (qty * price * (1 - fee_rate)).quantize(Decimal("0.01"))
         cost = ((pos.avg_price_usdc if pos else Decimal(0)) * qty).quantize(Decimal("0.01"))
         return {"gross": gross, "net": net, "cost": cost, "unrealized": net - cost}
+
+    def _session_auths(self) -> List[PaymentAuthorizer]:
+        """세션에 실재하는 '구별되는' authorizer 목록. 공유 예산(단일·조건형/적립형 멀티)은
+        전 종목이 같은 객체 1개를 참조하므로 중복 제거하면 1개, 추세추종 멀티는 종목별 N개."""
+        seen: set = set()
+        out: List[PaymentAuthorizer] = []
+        for ag in self.agents.values():
+            if id(ag.auth) not in seen:
+                seen.add(id(ag.auth))
+                out.append(ag.auth)
+        return out
+
+    def _total_remaining(self) -> Decimal:
+        """세션 잔여 예산 — 공유는 그 auth 의 잔여, 추세추종 멀티는 종목별 슬라이스 합산."""
+        auths = self._session_auths()
+        if auths:
+            return sum((a.remaining_usdc for a in auths), Decimal(0))
+        return self._auth.remaining_usdc if self._auth else self.budget_total
+
+    def _total_spent(self) -> Decimal:
+        """세션 사용액 — 공유는 그 auth 의 사용액, 추세추종 멀티는 종목별 합산."""
+        auths = self._session_auths()
+        if auths:
+            return sum((a.spent_usdc for a in auths), Decimal(0))
+        return self._auth.spent_usdc if self._auth else Decimal(0)
 
     def _symbol_valuation(self, sym: str) -> Dict[str, Any]:
         """종목 1개의 평가손익 블록 (현금 없음 — 현금은 세션 공유라 aggregate 에만)."""
@@ -1431,8 +1493,8 @@ class TradingEngine:
     def state_snapshot(self) -> Dict[str, Any]:
         focus_agent = self.agents.get(self._focus)
         pos = focus_agent.position if focus_agent else None
-        spent = self._auth.spent_usdc if self._auth else Decimal(0)
-        remaining = self._auth.remaining_usdc if self._auth else self.budget_total
+        spent = self._total_spent()
+        remaining = self._total_remaining()
         valuation = self._valuation(remaining)   # 전 종목 합산 (총자산·평가손익)
         is_trend = self._is_trend()
         return_pct = self._display_return_pct(valuation)

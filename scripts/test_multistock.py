@@ -10,7 +10,7 @@
 
 추가:
   - 하위호환: 단일 종목(N=1) 스냅샷이 per_symbol 1개 = top-level 과 일치
-  - 방어: 추세추종(올인)+멀티는 거부(먼저 진입한 종목의 예산 독식 방지)
+  - 추세추종(올인)+멀티: 종목별 예산 슬라이스(예산/N)로 독립 운용·완전 격리(한 종목 손실이 남을 잠식 못함)
 
 재현: python scripts/test_multistock.py  (프로젝트 루트)
 """
@@ -157,7 +157,7 @@ async def test_single_symbol_backcompat() -> None:
 
 # ---------- 방어: 멀티 spend 분할 + 추세추종/라이브 멀티 거부 ----------
 async def test_multi_guards() -> None:
-    print("\n[7] 방어 — spend 분할 · 추세/라이브 멀티 거부")
+    print("\n[7] spend 분할 · 추세 멀티 슬라이스 격리 · 목시세 멀티 거부")
     engine = _engine()
     await _start(engine, ["AAPL", "TSLA", "NVDA"])
     check("멀티는 1회 매수 = 총 spend/N (30/3=10.00)",
@@ -165,15 +165,34 @@ async def test_multi_guards() -> None:
           f"spend_per_symbol={engine.strategy_info['spend_per_symbol_usdc']}")
     check("mandate 허용 종목 = 전 종목", set(engine._mandate.allowed_symbols) == {"AAPL", "TSLA", "NVDA"})
 
-    # 추세추종 + 멀티 → 거부 (올인이 예산 독식)
+    # 추세추종 + 멀티 → 허용 (종목별 예산 슬라이스로 독식 방지·완전 격리)
     e2 = _engine()
-    rejected = False
-    try:
-        await e2.start("dry", {"type": "trend"},
-                       {"type": "replay", "symbols": ["AAPL", "TSLA"]}, autostart=False)
-    except EngineError:
-        rejected = True
-    check("추세추종 + 멀티 종목은 거부됨", rejected)
+    await e2.start("dry", {"type": "trend"},
+                   {"type": "replay", "symbols": ["AAPL", "TSLA"]}, autostart=False)
+    a_auth, t_auth = e2.agents["AAPL"].auth, e2.agents["TSLA"].auth
+    check("추세추종 멀티 — 종목별 독립 auth (공유 예산 아님)", a_auth is not t_auth)
+    check("추세추종 멀티 — 슬라이스 합 = 총예산", e2._total_remaining() == e2.budget_total,
+          f"AAPL {a_auth.remaining_usdc} + TSLA {t_auth.remaining_usdc} = {e2._total_remaining()} (예산 {e2.budget_total})")
+    check("추세추종 멀티 — 각 슬라이스 <= 예산/N (한 종목 독식 불가)",
+          a_auth.remaining_usdc > 0 and t_auth.remaining_usdc > 0
+          and a_auth.remaining_usdc <= e2.budget_total / 2 + Decimal("0.01")
+          and t_auth.remaining_usdc <= e2.budget_total / 2 + Decimal("0.01"))
+    # 한 종목 소진이 다른 종목 슬라이스를 건드리지 않는가 (완전 격리)
+    t_before = t_auth.remaining_usdc
+    a_auth.spent_usdc += a_auth.remaining_usdc     # AAPL 슬라이스 전액 소진(시뮬)
+    check("추세추종 멀티 — 한 종목 소진이 다른 종목 예산을 안 건드림 (완전 격리)",
+          t_auth.remaining_usdc == t_before and a_auth.remaining_usdc == Decimal("0"),
+          f"AAPL 소진후 {a_auth.remaining_usdc}, TSLA {t_auth.remaining_usdc}(전 {t_before})")
+    a_auth.spent_usdc = Decimal(0)                 # 격리 확인용 원복
+    # 한도 변경도 종목별 슬라이스를 재산정하는가 (실행 중 긴급정지 상태에서)
+    e2.pause()
+    e2.update_limits(Decimal("200"), Decimal("80"))
+    na, nt = e2.agents["AAPL"].auth, e2.agents["TSLA"].auth
+    check("추세추종 멀티 한도변경 — 여전히 종목별 독립 auth", na is not nt)
+    check("추세추종 멀티 한도변경 — 슬라이스 합 = 새 예산(200)",
+          e2._total_remaining() == Decimal("200"), f"합 {e2._total_remaining()}")
+    check("추세추종 멀티 한도변경 — 가드 mandate 허용종목 = 전 종목",
+          set(e2._guard.mandate.allowed_symbols) == {"AAPL", "TSLA"})
 
     # 잘못된 종목 코드 → 거부
     e3 = _engine()

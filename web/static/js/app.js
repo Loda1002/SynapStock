@@ -875,7 +875,7 @@
     // 멀티 종목 선택은 실데이터 재생에서만. 추세추종(올인)·라이브(온체인)는 단일만이라 잠근다.
     const isTrend = strat === "trend";
     const isLive = el.modeSelect.value === "live";
-    const singleOnly = isTrend || isLive;
+    const singleOnly = isLive;   // 추세추종도 멀티 가능(종목별 예산 슬라이스). 라이브(온체인)만 단일.
     el.symPicker.classList.toggle("hidden", !replay);
     for (const c of document.querySelectorAll("[data-sym-check]")) {
       c.disabled = singleOnly;
@@ -884,7 +884,7 @@
     el.symPickerLabel.textContent = isLive
       ? "라이브(온체인)는 단일 종목만 지원합니다 — 멀티 종목은 드라이 전용"
       : isTrend
-        ? "추세추종은 단일 종목만 지원합니다 (여러 종목이 예산을 독식)"
+        ? "동시 매수 종목 — 추세추종 멀티는 예산/N 슬라이스로 각자 독립 운용:"
         : "동시 매수 종목 (여러 개 = 멀티 · 비우면 기본 단일):";
     const unit = el.dcaUnit.value;
     el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
