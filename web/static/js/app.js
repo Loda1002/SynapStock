@@ -214,13 +214,15 @@
     replayOpt.disabled = !s.replay_available;
     replayOpt.textContent = s.replay_available
       ? "실데이터 재생 (일봉)" : "실데이터 재생 — CSV 없음 (fetch 필요)";
-    if (!s.replay_available && el.feedSelect.value === "replay") el.feedSelect.value = "mock";
+    if (!s.replay_available && el.feedSelect.value === "replay") { el.feedSelect.value = "mock"; syncDcaInputs(); }
 
     el.posQty.textContent = s.position.quantity;
     el.posAvg.textContent = s.position.avg_price_usdc;
 
     const total = num(s.budget.total_usdc), spent = num(s.budget.spent_usdc);
-    el.budgetFill.style.width = total > 0 ? Math.min(100, (spent / total) * 100).toFixed(1) + "%" : "0%";
+    // 추세추종은 이익 실현 시 spent 가 음수(운용현금>예산)가 될 수 있어 하한 0 으로 clamp
+    // (없으면 음수 % 폭이 무효 CSS 값이라 게이지 막대가 갱신되지 않음).
+    el.budgetFill.style.width = total > 0 ? Math.max(0, Math.min(100, (spent / total) * 100)).toFixed(1) + "%" : "0%";
     el.budgetSpent.textContent = s.budget.spent_usdc;
     el.budgetTotal.textContent = s.budget.total_usdc;
     el.budgetRemaining.textContent = s.budget.remaining_usdc;
@@ -678,7 +680,7 @@
           srcNote = "판단 출처 dca — 적립 스케줄이 매수, Gemini 미사용";
         } else if (st.type === "trend") {
           stText = `추세추종(${st.trend_signal_label || st.trend_signal} · 올인/올아웃)`;
-          srcNote = "판단 출처 rule — 추세 신호(가격/MA20)로 전량 진입·청산, Gemini 미사용";
+          srcNote = `판단 출처 rule — 추세 신호(${st.trend_signal_label || st.trend_signal})로 전량 진입·청산, Gemini 미사용`;
         } else {
           stText = `조건형(${st.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격"}${st.ta_mode ? "+TA" : ""})`;
           srcNote = "판단 출처 gemini / rule";

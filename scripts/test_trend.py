@@ -34,6 +34,10 @@ from scripts.explore_trend import simulate, desired_long, ma  # noqa: E402
 SYMBOLS = ["AAPL", "TSLA", "NVDA"]
 VARIANTS = ["pxma20", "cross_5_20"]
 WARMUP = 20
+# 검증 예산 = 100(데모·앱 기본값). 이 예산에서 6개 조합 모두 AP2 거부 0(actual_run 이 MandateError 를
+# AssertionError 로 승격해 강제)이라 진입/청산 시퀀스가 그대로 재현된다. 참고: 브로커 quote 가 소계·수수료를
+# 각각 센트 반올림하므로 총액이 요청 spend 를 최대 0.01 초과할 수 있고, 올인(spend=remaining)이라 이 초과가
+# 특정 다른 예산값에서 드물게 AP2 거부(페일세이프 — 자금·가드 무관, 진입 1봉 지연)를 낳을 수 있다.
 BUDGET = Decimal("100")
 # 실제 브로커 경로(소계/수수료 각각 센트 반올림) vs 탐색 도구(합계 1회 반올림)의 누적 반올림
 # 차이 상한. 시퀀스가 정확히 같으면 남는 차이는 순수 반올림이라 이 안에 들어와야 한다.

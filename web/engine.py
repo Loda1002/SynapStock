@@ -555,9 +555,11 @@ class TradingEngine:
             applied = "immediate"
 
         self.budget_total = budget_total
-        # 추세추종 세션 중에는 사용자 per_trade 기본값을 덮어쓰지 않는다(올인이라 무의미).
-        if not (is_trend and self.status == "running"):
-            self.per_trade_max = per_trade_max
+        # per_trade_max 는 사용자가 지정한 '기본 건별 한도'로 항상 추적한다(다음 비추세 세션·
+        # 재시작 복원의 기준). 추세추종 세션의 실효 한도(올인 캡)는 별도로 _session_per_trade 에
+        # 담겨 mandate 에만 쓰이므로, 여기서 self.per_trade_max 를 인메모리·영속 모두 같은 값으로
+        # 갱신해야 둘이 갈라지지 않는다(과거: 인메모리만 스킵돼 재시작 유무로 결과가 달라짐).
+        self.per_trade_max = per_trade_max
         rec = {
             "ts": _now(), "actor": actor, "applied": applied,
             "old": old,
@@ -1125,7 +1127,7 @@ class TradingEngine:
             "ticks": self.tick, "brain": self.brain_label,
             "strategy": self.strategy_info, "feed": self.feed_info,
             "budget_total_usdc": str(self.budget_total),
-            "per_trade_max_usdc": str(self._session_per_trade),  # 세션 실효 한도(추세추종=올인 캡)
+            "per_trade_max_usdc": str(self.per_trade_max),  # 사용자 기본 한도(추세추종 올인은 strategy.all_in 로 표시)
             "realized_pnl_usdc": str(self.realized_pnl),
             "return_pct": str(return_pct),
             "cum_buy_usdc": str(self.cum_buy_usdc),
@@ -1229,9 +1231,10 @@ class TradingEngine:
                 "total_usdc": str(self.budget_total),
                 "spent_usdc": str(spent),
                 "remaining_usdc": str(remaining),
-                # 세션 실효 건별 한도 — 실행 중이면 세션값(추세추종은 올인 캡), 대기 중이면 기본값
-                "per_trade_max_usdc": str(self._session_per_trade
-                                          if self.status == "running" else self.per_trade_max),
+                # 건별 한도(숫자)는 항상 사용자 '기본값'을 노출한다 — A3 한도변경 폼의 사전채움에
+                # 쓰이므로 올인 캡(max_budget)을 노출하면 per_trade>budget 검증에 걸려 제출이 막힌다.
+                # 추세추종의 '올인'은 숫자가 아니라 all_in 플래그로 표시한다(mandate 는 _session_per_trade).
+                "per_trade_max_usdc": str(self.per_trade_max),
                 "all_in": is_trend,
             },
             "pnl": {  # 수익률 — 조건형: 실현손익/누적매수 · 추세추종: 초기자본 대비 총자산
