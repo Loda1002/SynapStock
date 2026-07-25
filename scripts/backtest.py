@@ -28,7 +28,7 @@ sys.path.insert(0, ROOT)
 from solders.keypair import Keypair  # noqa: E402
 
 from config import CFG  # noqa: E402
-from market.price_feed import ReplayPriceFeed  # noqa: E402
+from market.price_feed import ReplayPriceFeed, Bar, load_bars  # noqa: E402
 from agents.trading_agent import TradingAgent, Strategy  # noqa: E402
 from agents.broker_agent import BrokerAgent  # noqa: E402
 from payments.ap2_mandate import (  # noqa: E402
@@ -41,6 +41,9 @@ CENT = Decimal("0.01")
 def build_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="리플레이 백테스트 (드라이, 온체인 미전송)")
     ap.add_argument("--symbol", default="AAPL", help="data/market/{SYMBOL}{SUFFIX}.csv (기본 AAPL)")
+    ap.add_argument("--symbols", default="",
+                    help="멀티 종목 포트폴리오(콤마 구분, 예: AAPL,TSLA,NVDA) — "
+                         "엔진과 동일하게 하나의 예산·가드 아래 각 종목 독립 운용. 주면 --symbol 무시")
     ap.add_argument("--suffix", default="_daily",
                     help="CSV 접미사 (기본 _daily · 하락장 실증은 _bear)")
     ap.add_argument("--file", default="", help="CSV 경로 직접 지정 (symbol 보다 우선)")
@@ -71,8 +74,172 @@ def build_args() -> argparse.Namespace:
     return ap.parse_args()
 
 
+def run_portfolio(args) -> int:
+    """멀티 종목 포트폴리오 백테스트 — web/engine.py 의 멀티 모델을 그대로 재현.
+
+    공유 1개: mandate(allowed_symbols=전종목)·auth(예산)·broker. 종목별 N개: TradingAgent
+    (position 독립). 1회 매수 = 총 spend/N. 같은 날짜 구간(교집합)을 봉 단위로 동시 진행한다.
+    추세추종(올인)은 예산 독식이라 멀티 미지원(엔진과 동일하게 거부)."""
+    symbols = [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
+    symbols = list(dict.fromkeys(symbols))   # 중복 제거(순서 유지)
+    if args.strategy == "trend":
+        print("[오류] 추세추종(올인/올아웃)은 멀티 종목을 지원하지 않습니다 — 단일 --symbol 로 실행하세요.")
+        return 1
+
+    bars_by: dict[str, list[Bar]] = {}
+    for sym in symbols:
+        path = os.path.join(ROOT, "data", "market", f"{sym}{args.suffix}.csv")
+        try:
+            bars_by[sym] = load_bars(path)
+        except (FileNotFoundError, ValueError) as e:
+            print(f"[오류] {sym}: {e}")
+            return 1
+    # 공통 날짜 교집합 → from/to 필터 → 봉 정렬
+    date_maps = {s: {b.date: b for b in bs} for s, bs in bars_by.items()}
+    common = sorted(set.intersection(*(set(m) for m in date_maps.values())))
+    if args.date_from:
+        common = [d for d in common if d >= args.date_from]
+    if args.date_to:
+        common = [d for d in common if d <= args.date_to]
+    aligned = {s: [date_maps[s][d] for d in common] for s in symbols}
+    n = len(symbols)
+    warm = args.warmup
+    if len(common) <= warm + 1:
+        print(f"[오류] 공통 구간이 너무 짧습니다({len(common)}봉) — 워밍업 {warm}봉 이후 재생할 봉이 없습니다.")
+        return 1
+
+    fee_rate = Decimal(CFG.broker_fee_bps) / Decimal(10000)
+    budget = Decimal(args.budget)
+    spend = (Decimal(args.spend) / n).quantize(CENT)   # 종목별 1회 매수 = 총 spend/N (엔진과 동일)
+
+    # 공유 레이어
+    kp = Keypair()
+    from solders.pubkey import Pubkey
+    mandate = OpenPaymentMandate(
+        user_pubkey=str(kp.pubkey()), allowed_asset=CFG.usdc_mint,
+        budget_total_usdc=budget, per_trade_max_usdc=Decimal(args.per_trade),
+        allowed_symbols=list(symbols)).sign(kp)
+    auth = PaymentAuthorizer(mandate, agent_kp=kp)
+    broker = BrokerAgent(Keypair(), Pubkey.from_string(CFG.usdc_mint), CFG.usdc_decimals,
+                         None, CFG.stock_decimals, "backtest", fee_bps=CFG.broker_fee_bps)
+    # 종목별 에이전트 (공유 auth) + 워밍업 프리로드
+    agents: dict[str, TradingAgent] = {}
+    for s in symbols:
+        strat = Strategy(buy_dip_pct=Decimal(args.dip), take_profit_pct=Decimal(args.profit),
+                         spend_per_trade_usdc=spend, decision_mode=args.mode, ta_mode=args.ta,
+                         mode="condition", max_hold_bars=args.max_hold)
+        ag = TradingAgent(kp, auth, strat, CFG.usdc_decimals, "backtest",
+                          brain=None, fee_bps=CFG.broker_fee_bps)
+        ag.preload_bars(aligned[s][:warm])
+        agents[s] = ag
+
+    realized = Decimal(0); fees = Decimal(0); cum_buy = Decimal(0); rejects = 0
+    per_sym = {s: {"buys": 0, "sells": 0, "realized": Decimal(0)} for s in symbols}
+    peak = budget; mdd = Decimal(0)
+    play_dates = common[warm:]
+    print(f"포트폴리오 백테스트 — {'+'.join(symbols)}{args.suffix} / 규칙 MA5 -{args.dip}% 매수·평단 +{args.profit}% 익절 / "
+          f"예산 {budget} USDC (종목별 1회 {spend}) / {len(play_dates)}봉")
+
+    for i in range(len(play_dates)):
+        for s in symbols:
+            bar = aligned[s][warm + i]
+            price = bar.close
+            d = agents[s].decide(s, price, bar)
+            pos = agents[s].position
+            if d.action == "buy":
+                q = broker.quote(s, d.spend_usdc, price)
+                try:
+                    auth.authorize(order_id=f"bt_{s}_{i}", symbol=s,
+                                   amount_usdc=q.total_usdc, pay_to=str(broker.pubkey))
+                except MandateError:
+                    rejects += 1
+                else:
+                    eff = (q.total_usdc / q.quantity).quantize(CENT) if q.quantity else price
+                    pos.apply_buy(q.quantity, eff)
+                    cum_buy += q.total_usdc; fees += q.fee_usdc; per_sym[s]["buys"] += 1
+            elif d.action == "sell" and pos.quantity > 0:
+                qty = pos.quantity; avg = pos.avg_price_usdc
+                q = broker.sell_quote(s, qty, price)
+                pnl = (q.total_usdc - avg * qty).quantize(CENT)
+                realized += pnl; per_sym[s]["realized"] += pnl; fees += q.fee_usdc
+                pos.apply_sell(qty); auth.credit_sale(q.total_usdc); per_sym[s]["sells"] += 1
+        # 자산가치 곡선(공유 현금 + 전 종목 평가액) → 최대낙폭
+        equity = auth.remaining_usdc + sum(
+            (agents[s].position.quantity * aligned[s][warm + i].close * (1 - fee_rate)
+             for s in symbols), Decimal(0))
+        peak = max(peak, equity)
+        if peak > 0:
+            mdd = max(mdd, (peak - equity) / peak * 100)
+
+    # 미실현 + 최종 지표 (마지막 봉 종가 기준)
+    unreal = Decimal(0)
+    sym_rows = []
+    for s in symbols:
+        pos = agents[s].position
+        last = aligned[s][-1].close
+        u = ((pos.quantity * last * (1 - fee_rate)) - pos.avg_price_usdc * pos.quantity).quantize(CENT)
+        unreal += u
+        sym_rows.append({"symbol": s, "buys": per_sym[s]["buys"], "sells": per_sym[s]["sells"],
+                         "realized_pnl_usdc": str(per_sym[s]["realized"]),
+                         "unrealized_pnl_usdc": str(u), "left_qty": str(pos.quantity),
+                         "last_price": str(last)})
+    total_pnl = (realized + unreal).quantize(CENT)
+    strat_pct = (total_pnl / budget * 100).quantize(CENT) if budget > 0 else Decimal(0)
+    # 벤치마크: 예산을 N등분해 각 종목 첫 봉 매수 → 마지막 봉 매도(등가중 매수후보유, 같은 수수료)
+    bh_pnl = Decimal(0)
+    per_bud = (budget / n).quantize(CENT)
+    for s in symbols:
+        f, l = aligned[s][warm].close, aligned[s][-1].close
+        qty = ((per_bud / (f * (1 + fee_rate))).quantize(Decimal("0.0001"), rounding=ROUND_DOWN)
+               if f > 0 else Decimal(0))
+        bh_pnl += (qty * l * (1 - fee_rate)).quantize(CENT) - per_bud
+    bh_pct = (bh_pnl / budget * 100).quantize(CENT) if budget > 0 else Decimal(0)
+
+    result = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "config": {"symbols": symbols, "suffix": args.suffix,
+                   "from": common[warm] if play_dates else "", "to": common[-1] if common else "",
+                   "bars_played": len(play_dates), "strategy": "condition-portfolio",
+                   "rules": {"buy_dip_pct": args.dip, "take_profit_pct": args.profit,
+                             "spend_per_trade_total": args.spend, "spend_per_symbol": str(spend)},
+                   "budget_usdc": args.budget, "per_trade_max_usdc": args.per_trade,
+                   "fee_bps": CFG.broker_fee_bps, "shared_budget": True},
+        "metrics": {
+            "realized_pnl_usdc": str(realized.quantize(CENT)),
+            "unrealized_pnl_usdc": str(unreal), "total_pnl_usdc": str(total_pnl),
+            "return_on_budget_pct": str(strat_pct),
+            "benchmark_equalweight_pct": str(bh_pct),
+            "excess_return_pct": str((strat_pct - bh_pct).quantize(CENT)),
+            "max_drawdown_pct": str(mdd.quantize(CENT)),
+            "cum_buy_usdc": str(cum_buy), "fees_usdc": str(fees), "ap2_rejects": rejects,
+            "final_remaining_usdc": str(auth.remaining_usdc),
+        },
+        "by_symbol": sym_rows,
+    }
+    m = result["metrics"]
+    print(f"\n===== 포트폴리오 결과 ({'+'.join(symbols)}) =====")
+    print(f"  총손익      : {m['total_pnl_usdc']} USDC (실현 {m['realized_pnl_usdc']} + 평가 {m['unrealized_pnl_usdc']})")
+    print(f"  예산 수익률 : {m['return_on_budget_pct']}%  ·  최대낙폭(MDD) {m['max_drawdown_pct']}%")
+    verdict = "우위" if Decimal(m["excess_return_pct"]) >= 0 else "열위"
+    print(f"  벤치마크    : 등가중 매수후보유 {m['benchmark_equalweight_pct']}% → 초과수익 {m['excess_return_pct']}%p ({verdict})")
+    print(f"  AP2 거부 {m['ap2_rejects']}건 · 수수료 {m['fees_usdc']} USDC · 잔여 예산 {m['final_remaining_usdc']} USDC")
+    for r in sym_rows:
+        print(f"    {r['symbol']:<6} 매수 {r['buys']} 매도 {r['sells']} · 실현 {r['realized_pnl_usdc']} · 평가 {r['unrealized_pnl_usdc']} USDC")
+
+    out_dir = os.path.join(ROOT, "artifacts", "backtests")
+    os.makedirs(out_dir, exist_ok=True)
+    tag = "portfolio_" + "-".join(symbols) + args.suffix
+    path = os.path.join(out_dir, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{tag}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2, default=str)
+    print(f"  저장        : {os.path.relpath(path, ROOT)}")
+    return 0
+
+
 def main() -> int:
     args = build_args()
+    if args.symbols.strip():
+        return run_portfolio(args)   # 멀티 종목 포트폴리오 (엔진 모델 재현)
     is_trend = args.strategy == "trend"
     csv_path = args.file or os.path.join(
         ROOT, "data", "market", f"{args.symbol.upper()}{args.suffix}.csv")
