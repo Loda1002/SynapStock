@@ -103,6 +103,7 @@ def simulate(warmup: List[Bar], play: List[Bar], variant: str,
 def main() -> int:
     ap = argparse.ArgumentParser(description="추세추종 vs 매수후보유")
     ap.add_argument("--symbols", default="AAPL,TSLA,NVDA")
+    ap.add_argument("--suffix", default="_daily", help="CSV 파일 접미사 (예: _bear 로 하락장 데이터)")
     ap.add_argument("--windows", default="30,50", help="롤링 윈도우 길이(전체는 자동 포함)")
     ap.add_argument("--warmup", type=int, default=20)
     ap.add_argument("--budget", default="100")
@@ -120,7 +121,7 @@ def main() -> int:
     bars_by = {}
     for s in symbols:
         try:
-            bars_by[s] = load_bars(os.path.join(ROOT, "data", "market", f"{s}_daily.csv"))
+            bars_by[s] = load_bars(os.path.join(ROOT, "data", "market", f"{s}{args.suffix}.csv"))
         except (FileNotFoundError, ValueError) as e:
             print(f"[건너뜀] {s}: {e}")
 
