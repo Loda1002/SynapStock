@@ -249,3 +249,14 @@ td a { color: var(--accent); }
 .auth-result { margin-top: 8px; }
 .auth-back { text-align: center; margin-top: var(--gap); }
 .auth-back a { color: var(--accent); text-decoration: none; }
+
+/* 멀티 종목 (동시 매수) — 심볼 선택·포커스·종목별 요약 */
+.sym-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0; }
+.sym-opt { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-small); }
+.linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--accent);
+  text-decoration: underline; cursor: pointer; }
+tr.focus-row { font-weight: 600; }
+tr.focus-row .linklike { text-decoration: none; }
+[data-focus-select] { font: inherit; }
+.feed .sym { font-weight: 600; color: var(--accent); }
+td.sym { font-weight: 600; }

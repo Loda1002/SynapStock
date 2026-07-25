@@ -83,17 +83,19 @@ class TradingEngine:
 
         # 세션 상태
         self.tick = 0
-        self.decisions: List[Dict[str, Any]] = []   # A6 판단 타임라인
-        self.trades: List[Dict[str, Any]] = []      # A5 거래 내역
-        self.price_history: List[Dict[str, str]] = []
-        self.candles: List[Dict[str, Any]] = []     # 캔들차트용 OHLC (N틱 = 1캔들)
-        self.realized_pnl = Decimal(0)              # A7 실현손익
-        self.cum_buy_usdc = Decimal(0)              # A7 수익률 분모(누적 매수금액)
-        self.total_fees = Decimal(0)                # A8 누적 브로커 수수료 (수익모델 증명)
+        self.symbols: List[str] = []                # 세션 종목 목록 (단일=길이 1, 멀티=N)
+        self.decisions: List[Dict[str, Any]] = []   # A6 판단 타임라인 (전 종목, 행마다 symbol)
+        self.trades: List[Dict[str, Any]] = []      # A5 거래 내역 (전 종목)
+        # 종목별 시세 이력·캔들 (멀티 종목: dict[sym]). 집계·차트는 종목 단위로 분리한다.
+        self._price_history: Dict[str, List[Dict[str, str]]] = {}
+        self._candles: Dict[str, List[Dict[str, Any]]] = {}
+        self.realized_pnl = Decimal(0)              # A7 실현손익 (전 종목 합산)
+        self.cum_buy_usdc = Decimal(0)              # A7 수익률 분모(누적 매수금액, 합산)
+        self.total_fees = Decimal(0)                # A8 누적 브로커 수수료 (합산, 수익모델 증명)
         self.started_at: str = ""
         self.brain_label: str = ""
         self.strategy_info: Dict[str, Any] = {"type": "condition"}  # B7 세션 전략
-        self.feed_info: Dict[str, Any] = {"type": "", "label": ""}  # 시세 피드 (mock/replay)
+        self.feed_info: Dict[str, Any] = {"type": "", "label": ""}  # 시세 피드 (세션 공통 type/label)
         self.reject_count = 0                       # B2 브리핑용: AP2 거부 횟수
         self.pause_count = 0                        # B2 브리핑용: 긴급정지 횟수
         self.guard_block_count = 0                  # 402 Guard check_demand 차단 횟수 (첫 화면 KPI)
@@ -105,11 +107,14 @@ class TradingEngine:
         self._task: Optional[asyncio.Task] = None
         self._stop_event = asyncio.Event()
         self._client = None
-        self._trading: Optional[TradingAgent] = None
-        self._broker: Optional[BrokerAgent] = None
-        self._feed: Optional[PriceFeed] = None
-        self._prev_close: Optional[Decimal] = None   # 직전 봉 종가 (등락 표시 기준)
-        self._change_ref: Optional[Decimal] = None   # 마지막 틱에서 쓴 등락 기준값
+        # 종목별(멀티): 각자 position·이력·시간청산 카운터를 가진 TradingAgent 와 피드.
+        # 모두 같은 auth·guard·broker(공유) 를 쓴다 → 하나의 예산·하나의 가드로 N종목 통제.
+        self.agents: Dict[str, TradingAgent] = {}
+        self.feeds: Dict[str, PriceFeed] = {}
+        self._feeds_info: Dict[str, Dict[str, Any]] = {}  # 종목별 피드 상세 (label·file·bars)
+        self._broker: Optional[BrokerAgent] = None        # 공유 브로커 (드라이 1개로 충분)
+        self._prev_close: Dict[str, Optional[Decimal]] = {}  # 종목별 직전 봉 종가 (등락 기준)
+        self._change_ref: Dict[str, Optional[Decimal]] = {}  # 종목별 마지막 틱 등락 기준값
         self._auth: Optional[PaymentAuthorizer] = None
         self._guard: Optional[Guard] = None
         self._mandate: Optional[OpenPaymentMandate] = None
@@ -187,6 +192,72 @@ class TradingEngine:
         }
         return feed, info
 
+    # ---------- 멀티 종목 (동시 매수) ----------
+
+    @property
+    def _focus(self) -> str:
+        """상태 스냅샷 top-level 이 가리키는 대표(포커스) 종목 — 첫 종목. N=1 이면 그 종목."""
+        return self.symbols[0] if self.symbols else CFG.stock_symbol
+
+    def _resolve_symbols(self, feed_cfg: Optional[Dict[str, Any]]) -> tuple[List[str], bool]:
+        """세션 종목 목록과 '멀티 여부'를 정한다.
+
+        - feed.symbols(리스트, 대문자 티커)가 있으면 멀티 모드 — 거래 심볼 = 티커,
+          피드 CSV = data/market/{티커}_{dataset}.csv. (경로 주입 차단: 정규식 검증만 통과)
+        - 없으면 레거시 단일 — 거래 심볼 = CFG.stock_symbol, 기존 _build_feed 경로(feed.symbol 은
+          CSV 선택만, 거래 라벨은 STOCK_SYMBOL). 하위호환 위해 그대로 둔다.
+        반환: (symbols, multi)."""
+        fcfg = feed_cfg or {}
+        raw = fcfg.get("symbols") or []
+        if isinstance(raw, str):
+            raw = [s for s in raw.split(",")]
+        syms: List[str] = []
+        for s in raw:
+            s = str(s).strip().upper()
+            if not s:
+                continue
+            if not re.fullmatch(r"[A-Z]{1,5}", s):
+                raise EngineError(f"종목 코드는 영문 대문자 1~5자여야 합니다: {s!r}")
+            if s not in syms:
+                syms.append(s)          # 중복 제거(순서 유지)
+        if not syms:
+            return [CFG.stock_symbol], False
+        if len(syms) > 5:
+            raise EngineError("동시 매수 종목은 최대 5개까지 지원합니다.")
+        return syms, True
+
+    def _build_symbol_feed(self, ticker: str, feed_cfg: Optional[Dict[str, Any]]):
+        """멀티 종목용 — 명시 티커의 피드를 만든다.
+
+        replay: data/market/{ticker}_{dataset}.csv (없으면 EngineError). mock: 종목별 목 시세.
+        _build_feed(레거시 단일)와 달리 티커를 그대로 거래 심볼로 쓴다(tAAPL 유도 없음)."""
+        fcfg = feed_cfg or {}
+        ftype = fcfg.get("type") or CFG.price_feed
+        if ftype not in ("mock", "replay"):
+            raise EngineError("feed.type 은 'mock' 또는 'replay' 여야 합니다.")
+        if ftype == "mock":
+            return MockPriceFeed(), {"type": "mock", "label": f"목 시세 ({ticker})"}
+        dataset = str(fcfg.get("dataset") or "daily")
+        if dataset not in ("daily", "bear"):
+            raise EngineError("데이터셋은 'daily' 또는 'bear' 여야 합니다.")
+        path = os.path.join("data", "market", f"{ticker}_{dataset}.csv")
+        market_dir = os.path.realpath(os.path.join("data", "market"))
+        if os.path.commonpath([os.path.realpath(path), market_dir]) != market_dir:
+            raise EngineError("허용되지 않은 시세 파일 경로입니다.")
+        try:
+            feed = ReplayPriceFeed(
+                path, start=str(fcfg.get("start") or CFG.replay_start),
+                end=str(fcfg.get("end") or CFG.replay_end), warmup=CFG.replay_warmup)
+        except (FileNotFoundError, ValueError) as e:
+            raise EngineError(f"{ticker} 실데이터 재생 준비 실패 — {e}")
+        info = {
+            "type": "replay", "dataset": dataset, "label": feed.source_label, "file": path,
+            "source": ("yfinance 조정 일봉 (2022 폭락+2023 회복)"
+                       if dataset == "bear" else "Alpha Vantage 일봉"),
+            "bars_total": feed.total_bars, "warmup_bars": len(feed.warmup_bars),
+        }
+        return feed, info
+
     # ---------- 영속화 (Firestore — 실패해도 매매 루프는 계속) ----------
 
     def _persist(self, coro) -> None:
@@ -239,7 +310,10 @@ class TradingEngine:
 
     async def start(self, mode: str,
                     strategy_cfg: Optional[Dict[str, Any]] = None,
-                    feed_cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                    feed_cfg: Optional[Dict[str, Any]] = None,
+                    autostart: bool = True) -> Dict[str, Any]:
+        # autostart=False 는 테스트 시드 — 세션을 구성하되 백그라운드 루프를 띄우지 않는다.
+        # (테스트가 _tick_once/_finalize 를 결정론적으로 직접 스텝한다. 운영은 항상 True.)
         if self.status != "idle":
             raise EngineError("엔진이 이미 실행 중입니다 — 먼저 세션을 종료하세요.")
         if mode not in ("dry", "live"):
@@ -293,9 +367,28 @@ class TradingEngine:
                 except ValueError:
                     raise EngineError("적립 시각은 HH:MM 형식(00:00~23:59)이어야 합니다.")
 
-        # 시세 피드 — UI 선택(mock/replay) 우선, 미지정 시 .env(PRICE_FEED)
-        feed, feed_info = self._build_feed(feed_cfg)
-        warmup_bars: List[Bar] = list(getattr(feed, "warmup_bars", []))
+        # 종목 목록 — feed.symbols(멀티) 또는 레거시 단일(STOCK_SYMBOL).
+        symbols, multi = self._resolve_symbols(feed_cfg)
+        if live and len(symbols) > 1:
+            raise EngineError("라이브(온체인) 세션은 여러 종목을 동시에 지원하지 않습니다 — "
+                              "멀티 종목은 드라이 전용입니다. 종목을 하나만 선택하세요.")
+        if live:
+            symbols, multi = [CFG.stock_symbol], False   # 라이브는 항상 레거시 단일(민트=STOCK_MINT)
+        if strat_type == "trend" and len(symbols) > 1:
+            raise EngineError("추세추종(올인/올아웃)은 단일 종목에서만 지원됩니다 — 여러 종목이 하나의 "
+                              "예산을 전량 매수로 경쟁하면 먼저 진입한 종목이 예산을 독식합니다. "
+                              "종목을 하나만 선택하세요.")
+        # 목 시세는 종목별 기준가가 없어 전 종목이 동일 가격 경로가 된다(완전 상관 → 분산 무의미).
+        # 멀티는 실데이터 재생만 지원한다(live/trend 멀티 거부와 같은 관례).
+        if len(symbols) > 1 and ((feed_cfg or {}).get("type") or CFG.price_feed) == "mock":
+            raise EngineError("목 시세는 멀티 종목을 지원하지 않습니다 — 멀티 종목은 실데이터 재생(replay)만 "
+                              "지원합니다. 종목을 하나만 고르거나 시세를 실데이터 재생으로 바꾸세요.")
+
+        # 시세 피드 — 레거시 단일은 기존 _build_feed(tAAPL 유도·bear 기본·feed.symbol 처리 포함),
+        # 멀티는 종목별로 _build_symbol_feed 로 조립한다(아래 종목 루프에서).
+        feed0 = feed0_info = None
+        if not multi:
+            feed0, feed0_info = self._build_feed(feed_cfg)
 
         usdc_mint = Pubkey.from_string(CFG.usdc_mint)
         if live and not CFG.stock_mint:
@@ -344,44 +437,74 @@ class TradingEngine:
         is_trend = strat_type == "trend"
         self._session_per_trade = CFG.max_budget_usdc if is_trend else self.per_trade_max
 
-        # AP2 mandate — 사용자가 설정한 한도에 서명 (예산=순투입 한도, A3 로 변경 가능)
+        # ---- 공유 레이어 (세션 1개): mandate·auth·guard·broker ----
+        # 하나의 예산 한도(mandate) 아래 N종목이 경쟁 소비하고, 하나의 가드가 모든 서명을 검문한다.
+        # 이게 "다중 지출을 하나의 402 Guard 로 통제" 서사의 핵심(멀티=조건형/적립형만, 위에서 강제).
+        n = len(symbols)
+        # AP2 mandate — 허용 종목은 세션 전 종목. 사용자가 설정한 한도에 서명(예산=순투입 한도).
         mandate = OpenPaymentMandate(
             user_pubkey=str(user_kp.pubkey()),          # 위임자(사용자) 키 — 에이전트 키와 분리
             allowed_asset=str(usdc_mint),
             budget_total_usdc=self.budget_total,
             per_trade_max_usdc=self._session_per_trade,
-            allowed_symbols=[CFG.stock_symbol],
+            allowed_symbols=list(symbols),              # 전 종목 허용
         ).sign(user_kp)                                 # 사용자가 한도에 서명(위임 근거)
         auth = PaymentAuthorizer(mandate, agent_kp=trading_kp)  # 에이전트는 한도 내 결제만 서명
-
-        strategy = Strategy(
-            buy_dip_pct=Decimal(DEFAULT_RULES["buy_dip_pct"]),
-            take_profit_pct=Decimal(DEFAULT_RULES["take_profit_pct"]),
-            spend_per_trade_usdc=Decimal(DEFAULT_RULES["spend_per_trade"]),
-            decision_mode=decision_mode,
-            ta_mode=ta_mode,
-            mode=strat_type,
-            trend_signal=trend_signal,
-            dca_unit=dca_unit,
-            dca_every_ticks=dca_every,
-            dca_every_minutes=dca_minutes,
-            dca_at_time=dca_at_time,
-            dca_amount_usdc=dca_amount,
-            # 시간청산(안전레일)은 조건형에만 적용 — 추세추종은 추세가 살아 있는 한 태워야 한다
-            max_hold_bars=0 if is_trend else CFG.max_hold_bars,
-        )
-        trading = TradingAgent(
-            trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain,
-            fee_bps=CFG.broker_fee_bps)
-        if warmup_bars:
-            # 재생 피드 워밍업 — 첫 틱부터 MA/TA 지표가 계산되게 봉(OHLC)째로 주입
-            trading.preload_bars(warmup_bars)
         broker = BrokerAgent(
             broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
             fee_bps=CFG.broker_fee_bps)
-        # 402 Guard — 신뢰 수취인은 A2A 협의를 마친 브로커뿐. 구매 에이전트가 서명 직전 통과.
+        # 402 Guard — 신뢰 수취인은 A2A 협의를 마친 브로커뿐. 전 종목 에이전트가 공유한다.
         guard = Guard(mandate, [str(broker_kp.pubkey())], CFG.usdc_decimals)
-        trading.guard = guard
+
+        # 1회 매수 금액은 종목 수로 나눈다 — 한 종목이 예산을 독식하지 않게(검증 포트폴리오와 동형).
+        # 단일(N=1)이면 나눗셈이 항등이라 기존 동작 그대로. 적립형 회당 금액도 동일하게 분할한다.
+        cent = Decimal("0.01")
+        base_spend = Decimal(DEFAULT_RULES["spend_per_trade"])
+        spend_per_symbol = (base_spend / n).quantize(cent) if n > 1 else base_spend
+        per_symbol_dca = (dca_amount / n).quantize(cent) if n > 1 else dca_amount
+        if strat_type == "dca" and per_symbol_dca <= 0:
+            raise EngineError("적립식 회당 금액이 종목 수로 나누면 0이 됩니다 — 금액을 올리거나 종목을 줄이세요.")
+
+        # ---- 종목별 레이어: TradingAgent·피드 (position·이력·시간청산 독립) ----
+        agents: Dict[str, TradingAgent] = {}
+        feeds: Dict[str, PriceFeed] = {}
+        feeds_info: Dict[str, Dict[str, Any]] = {}
+        for sym in symbols:
+            f, info = (self._build_symbol_feed(sym, feed_cfg) if multi else (feed0, feed0_info))
+            warm = list(getattr(f, "warmup_bars", []))
+            strat = Strategy(
+                buy_dip_pct=Decimal(DEFAULT_RULES["buy_dip_pct"]),
+                take_profit_pct=Decimal(DEFAULT_RULES["take_profit_pct"]),
+                spend_per_trade_usdc=spend_per_symbol,
+                decision_mode=decision_mode, ta_mode=ta_mode, mode=strat_type,
+                trend_signal=trend_signal, dca_unit=dca_unit, dca_every_ticks=dca_every,
+                dca_every_minutes=dca_minutes, dca_at_time=dca_at_time,
+                dca_amount_usdc=per_symbol_dca,
+                # 시간청산(안전레일)은 조건형에만 — 추세추종은 추세가 살아 있는 한 태운다
+                max_hold_bars=0 if is_trend else CFG.max_hold_bars,
+            )
+            ag = TradingAgent(trading_kp, auth, strat, CFG.usdc_decimals, CFG.network,
+                              brain=brain, fee_bps=CFG.broker_fee_bps)
+            if warm:
+                ag.preload_bars(warm)   # 첫 틱부터 MA/TA 성립하게 봉(OHLC)째 주입
+            ag.guard = guard            # 전 종목이 같은 게이트를 통과
+            agents[sym], feeds[sym], feeds_info[sym] = ag, f, info
+
+        # 세션 공통 피드 정보 (top-level 표시·아카이브용) — 멀티는 종목 목록을 합쳐 라벨링
+        if multi:
+            ftype = feeds_info[symbols[0]]["type"]
+            feed_info = {
+                "type": ftype,
+                "dataset": feeds_info[symbols[0]].get("dataset"),
+                "label": (f"{n}종목 " + ("재생" if ftype == "replay" else "목 시세")
+                          + ": " + "·".join(symbols)),
+                "source": feeds_info[symbols[0]].get("source", ""),
+                "symbols": list(symbols),
+                "per_symbol": {s: {k: feeds_info[s].get(k)
+                                   for k in ("label", "file", "bars_total")} for s in symbols},
+            }
+        else:
+            feed_info = feed0_info
 
         client = None
         snap_before = None
@@ -403,17 +526,23 @@ class TradingEngine:
         self.trading_enabled = True
         self.pause_info = None
         self.tick = 0
+        self.symbols = list(symbols)
         self.decisions = []
         self.trades = []
-        self.price_history = []
-        # 워밍업 봉은 차트 사전 이력으로 미리 그린다 (UI 에서 반투명 표시)
-        self.candles = [{
-            "ts": b.date, "open": str(b.open), "high": str(b.high),
-            "low": str(b.low), "close": str(b.close),
-            "count": TICKS_PER_CANDLE, "warmup": True,
-        } for b in warmup_bars][-MAX_CANDLES:]
-        self._prev_close = warmup_bars[-1].close if warmup_bars else None
-        self._change_ref = None
+        # 종목별 시세 이력·캔들·등락기준 초기화. 워밍업 봉은 차트 사전 이력으로 미리 그린다(반투명).
+        self._price_history = {s: [] for s in symbols}
+        self._candles = {}
+        self._prev_close = {}
+        self._change_ref = {}
+        for s in symbols:
+            warm = list(getattr(feeds[s], "warmup_bars", []))
+            self._candles[s] = [{
+                "ts": b.date, "open": str(b.open), "high": str(b.high),
+                "low": str(b.low), "close": str(b.close),
+                "count": TICKS_PER_CANDLE, "warmup": True,
+            } for b in warm][-MAX_CANDLES:]
+            self._prev_close[s] = warm[-1].close if warm else None
+            self._change_ref[s] = None
         self.realized_pnl = Decimal(0)
         self.cum_buy_usdc = Decimal(0)
         self.total_fees = Decimal(0)
@@ -427,6 +556,10 @@ class TradingEngine:
         self.brain_label = brain_label
         self.strategy_info = {
             "type": strat_type,
+            "symbols": list(symbols),         # 세션 종목 목록 (멀티=N개)
+            "multi": multi,                   # 멀티 종목 세션 여부
+            "spend_per_symbol_usdc": str(spend_per_symbol),  # 조건형 종목별 1회 매수(총 spend/N)
+            "dca_amount_per_symbol_usdc": str(per_symbol_dca),  # 적립형 종목별 회당(총 amount/N)
             "decision_mode": decision_mode,   # strict(엄격) / trend(추세 재량) — 조건형 전용
             "trend_signal": trend_signal,     # 추세추종 신호 (pxma20 / cross_5_20)
             "trend_signal_label": signal_label,  # 사람이 읽는 신호 문구
@@ -449,13 +582,15 @@ class TradingEngine:
         self._trading_kp, self._broker_kp = trading_kp, broker_kp
         self._mandate, self._auth = mandate, auth
         self._guard = guard
-        self._trading, self._broker, self._feed = trading, broker, feed
+        self.agents, self.feeds, self._feeds_info = agents, feeds, feeds_info
+        self._broker = broker
         self._client = client
         self._snap_before = self._snap_last = snap_before
         self._stop_event = asyncio.Event()
 
         self.bus.emit(ev.ENGINE_STARTED, {
-            "mode": mode, "network": CFG.network, "symbol": CFG.stock_symbol,
+            "mode": mode, "network": CFG.network,
+            "symbol": self._focus, "symbols": list(symbols),
             "brain": brain_label,
             "feed": feed_info,
             "budget_total_usdc": str(self.budget_total),
@@ -470,7 +605,8 @@ class TradingEngine:
         if snap_before is not None:
             self.bus.emit(ev.BALANCES, {"stage": "before", "balances": snap_before})
 
-        self._task = asyncio.create_task(self._run_loop())
+        if autostart:
+            self._task = asyncio.create_task(self._run_loop())
         return self.state_snapshot()
 
     async def stop(self) -> Dict[str, Any]:
@@ -545,12 +681,16 @@ class TradingEngine:
                 allowed_asset=str(self._usdc_mint),
                 budget_total_usdc=budget_total,
                 per_trade_max_usdc=eff_per_trade,
-                allowed_symbols=[CFG.stock_symbol],
+                allowed_symbols=list(self.symbols),        # 세션 전 종목 (멀티 유지)
             ).sign(self._user_kp)
             new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
-            new_auth.spent_usdc = spent  # 사용액 이월
+            new_auth.spent_usdc = spent  # 사용액 이월 (공유 예산이라 전 종목 합산치)
             self._mandate, self._auth = new_mandate, new_auth
-            self._trading.auth = new_auth
+            # 공유 가드도 새 mandate 로 정합시킨다 — 안 하면 Guard 의 한도(per_trade)·허용종목
+            # 검사가 옛 mandate 를 계속 봐서 활성 서명 mandate 와 어긋난다(헤드라인 가드 정합).
+            self._guard.mandate = new_mandate
+            for a in self.agents.values():   # 모든 종목 에이전트가 새 공유 auth 를 쓴다
+                a.auth = new_auth
             self._session_per_trade = eff_per_trade
             applied = "immediate"
 
@@ -584,23 +724,31 @@ class TradingEngine:
     # ---------- B2 데일리 브리핑 ----------
 
     def _briefing_stats(self) -> Dict[str, Any]:
-        """브리핑 근거 데이터 — 현재(실행 중) 또는 직전 세션의 집계."""
+        """브리핑 근거 데이터 — 현재(실행 중) 또는 직전 세션의 집계 (전 종목 합산)."""
         settled = [t for t in self.trades if t["status"] == "settled"]
         buys = [t for t in settled if t["side"] == "buy"]
         sells = [t for t in settled if t["side"] == "sell"]
-        pos = self._trading.position if self._trading else None
-        val = self._valuation(pos, self._auth.remaining_usdc if self._auth else self.budget_total)
+        remaining = self._auth.remaining_usdc if self._auth else self.budget_total
+        val = self._valuation(remaining)
         return_pct = self._display_return_pct(val)
         by_action: Dict[str, int] = {}
         by_source: Dict[str, int] = {}
         for d in self.decisions:
             by_action[d["action"]] = by_action.get(d["action"], 0) + 1
             by_source[d["source"]] = by_source.get(d["source"], 0) + 1
+        # 종목별 보유 요약 + 합산 수량 (멀티는 종목이 섞여 단일 평단이 없어 리스트로 함께 준다)
+        positions = [{"symbol": s, "quantity": str(self.agents[s].position.quantity),
+                      "avg_price_usdc": str(self.agents[s].position.avg_price_usdc)}
+                     for s in self.symbols]
+        total_qty = sum((self.agents[s].position.quantity for s in self.symbols), Decimal(0))
+        focus_pos = self.agents[self._focus].position if self.symbols else None
         return {
             "date": datetime.now().strftime("%Y-%m-%d"),
             "session_started_at": self.started_at,
             "engine_status": self.status,
-            "mode": self.mode, "network": CFG.network, "symbol": CFG.stock_symbol,
+            "mode": self.mode, "network": CFG.network,
+            "symbol": "·".join(self.symbols) if self.symbols else CFG.stock_symbol,
+            "symbols": list(self.symbols),
             "strategy": self.strategy_info,
             "ticks": self.tick,
             "buy_count": len(buys), "sell_count": len(sells),
@@ -608,17 +756,19 @@ class TradingEngine:
             "sell_total_usdc": str(sum((Decimal(t["total_usdc"]) for t in sells), Decimal(0))),
             "realized_pnl_usdc": str(self.realized_pnl),
             "return_pct": str(return_pct),
-            "unrealized_pnl_usdc": val["unrealized_pnl_usdc"],   # 평가손익(미실현)
+            "unrealized_pnl_usdc": val["unrealized_pnl_usdc"],   # 평가손익(미실현, 합산)
             "position_value_usdc": val["position_net_value_usdc"],
             "total_asset_usdc": val["total_asset_usdc"],
             "budget_total_usdc": str(self.budget_total),
-            "budget_remaining_usdc": str(self._auth.remaining_usdc if self._auth else self.budget_total),
+            "budget_remaining_usdc": str(remaining),
             "cum_fee_usdc": str(self.total_fees),
             "ap2_reject_count": self.reject_count,
             "pause_count": self.pause_count,
-            "position_qty": str(pos.quantity) if pos else "0",
-            "position_avg_usdc": str(pos.avg_price_usdc) if pos else "0",
-            "last_price_usdc": self.price_history[-1]["price"] if self.price_history else None,
+            "position_qty": str(total_qty),
+            "position_avg_usdc": str(focus_pos.avg_price_usdc) if focus_pos else "0",
+            "positions": positions,   # 종목별 보유 (멀티 브리핑 근거)
+            "last_price_usdc": self._price_history.get(self._focus, [{}])[-1].get("price")
+                               if self._price_history.get(self._focus) else None,
             "decisions_by_action": by_action,
             "decisions_by_source": by_source,
         }
@@ -695,54 +845,70 @@ class TradingEngine:
         finally:
             await self._finalize()
 
-    def _append_candle(self, price: Decimal) -> None:
-        """틱 가격을 캔들에 반영 — 진행 중 캔들이 차면 새 캔들을 연다(시가=첫 틱가)."""
-        cur = self.candles[-1] if self.candles else None
+    def _append_candle(self, candles: List[Dict[str, Any]], price: Decimal) -> None:
+        """틱 가격을 (종목별) 캔들 리스트에 반영 — 진행 중 캔들이 차면 새 캔들을 연다(시가=첫 틱가)."""
+        cur = candles[-1] if candles else None
         if cur is not None and cur["count"] < TICKS_PER_CANDLE:
             cur["high"] = str(max(Decimal(cur["high"]), price))
             cur["low"] = str(min(Decimal(cur["low"]), price))
             cur["close"] = str(price)
             cur["count"] += 1
             return
-        self.candles.append({
+        candles.append({
             "ts": _now(), "open": str(price), "high": str(price),
             "low": str(price), "close": str(price), "count": 1,
         })
-        if len(self.candles) > MAX_CANDLES:
-            self.candles.pop(0)
+        if len(candles) > MAX_CANDLES:
+            candles.pop(0)
 
     async def _tick_once(self) -> None:
-        symbol = CFG.stock_symbol
-        feed = self._feed
-
-        # 재생 피드 소진 → 세션 자동 종료 (마지막 봉까지 처리한 다음 틱에서)
-        if isinstance(feed, ReplayPriceFeed) and feed.exhausted:
+        # 재생 피드가 전부 소진 → 세션 자동 종료. 일부만 소진되면 그 종목만 건너뛰고 나머지는 계속.
+        replay = [f for f in self.feeds.values() if isinstance(f, ReplayPriceFeed)]
+        if replay and all(f.exhausted for f in replay):
+            played = max((f.played_bars for f in replay), default=0)
+            last = next((f.last_bar.date for f in replay if f.last_bar), "")
             self.bus.emit(ev.REPLAY_ENDED, {
                 "message": "실데이터 재생 완료 — 세션을 자동 종료합니다",
-                "bars_played": feed.played_bars,
-                "last_date": feed.last_bar.date if feed.last_bar else "",
+                "bars_played": played, "last_date": last,
+                "symbols": list(self.symbols),
             })
             self._stop_event.set()
             return
 
+        self.tick += 1
+        for sym in self.symbols:
+            feed = self.feeds[sym]
+            if isinstance(feed, ReplayPriceFeed) and feed.exhausted:
+                continue                          # 이 종목만 소진 — 나머지 진행
+            try:
+                await self._process_symbol(sym, feed)
+            except Exception as e:                # 한 종목 오류 격리 — 나머지 계속
+                self.bus.emit(ev.ERROR, {
+                    "symbol": sym,
+                    "message": f"틱 처리 실패({sym}): {type(e).__name__}: {e}"})
+
+    async def _process_symbol(self, symbol: str, feed: PriceFeed) -> None:
+        """한 종목의 1틱 처리 — 시세 반영·판단·매매 사이클. 종목별 상태(agents/dict)만 만진다."""
+        agent = self.agents[symbol]
+        ph = self._price_history[symbol]
+        candles = self._candles[symbol]
         price = feed.get_price(symbol)
         bar: Optional[Bar] = feed.last_bar if isinstance(feed, ReplayPriceFeed) else None
-        prev = self._prev_close
-        self.tick += 1
-        self.price_history.append({"ts": bar.date if bar else _now(), "price": str(price)})
-        if len(self.price_history) > MAX_PRICE_POINTS:
-            self.price_history.pop(0)
+        prev = self._prev_close.get(symbol)
+        ph.append({"ts": bar.date if bar else _now(), "price": str(price)})
+        if len(ph) > MAX_PRICE_POINTS:
+            ph.pop(0)
 
         if bar is not None:
             # 실데이터: 1틱 = 1봉 — 시가·고가·저가·종가를 그대로 캔들로
-            self.candles.append({
+            candles.append({
                 "ts": bar.date, "open": str(bar.open), "high": str(bar.high),
                 "low": str(bar.low), "close": str(bar.close), "count": TICKS_PER_CANDLE,
             })
-            if len(self.candles) > MAX_CANDLES:
-                self.candles.pop(0)
+            if len(candles) > MAX_CANDLES:
+                candles.pop(0)
         else:
-            self._append_candle(price)
+            self._append_candle(candles, price)
 
         payload: Dict[str, Any] = {"tick": self.tick, "symbol": symbol, "price": str(price)}
         if prev is not None:
@@ -753,15 +919,15 @@ class TradingEngine:
                               "low": str(bar.low), "close": str(bar.close)}
             payload["progress"] = {"played": feed.played_bars, "total": feed.total_bars}
         self.bus.emit(ev.PRICE_TICK, payload)
-        self._change_ref = prev
-        self._prev_close = price
+        self._change_ref[symbol] = prev
+        self._prev_close[symbol] = price
 
         if not self.trading_enabled:
             return  # A2 긴급정지 — 시세만 흐르고 신규 판단·결제 없음
 
         # Gemini 호출은 동기(blocking) — 서버 이벤트 루프를 막지 않게 워커 스레드에서.
-        # 재생 피드는 봉(OHLC)을 함께 전달해 TA(캔들·패턴) 근거를 살린다.
-        decision = await asyncio.to_thread(self._trading.decide, symbol, price, bar)
+        # (종목 순회는 순차라 같은 brain 을 동시에 부르지 않는다 — 429 충돌 없음.)
+        decision = await asyncio.to_thread(agent.decide, symbol, price, bar)
         drec = {
             "ts": _now(), "tick": self.tick, "symbol": symbol, "price": str(price),
             "action": decision.action, "source": decision.source, "reason": decision.reason,
@@ -772,14 +938,15 @@ class TradingEngine:
             self.decisions.pop(0)
         self.bus.emit(ev.DECISION, drec)
 
-        if decision.action == "sell" and self._trading.position.quantity > 0:
-            await self._sell_cycle(symbol, price, decision)
+        if decision.action == "sell" and agent.position.quantity > 0:
+            await self._sell_cycle(symbol, agent, price, decision)
         elif decision.action == "buy":
-            await self._buy_cycle(symbol, price, decision)
+            await self._buy_cycle(symbol, agent, price, decision)
 
     # ---------- 매수 사이클 (run_demo 이식) ----------
 
-    async def _buy_cycle(self, symbol: str, price: Decimal, decision: Decision) -> None:
+    async def _buy_cycle(self, symbol: str, agent: TradingAgent,
+                         price: Decimal, decision: Decision) -> None:
         live = self.mode == "live"
         quote = self._broker.quote(symbol, decision.spend_usdc, price)
         self.bus.emit(ev.QUOTE, {
@@ -802,7 +969,7 @@ class TradingEngine:
         # 402 Guard(청구서 검증) + AP2 한도 검사 — 위반이면 서명 자체가 일어나지 않는다(유출 0)
         try:
             blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
-            submitted = self._trading.build_payment(
+            submitted = agent.build_payment(
                 required, blockhash, quote, max_spend_usdc=decision.spend_usdc)
         except GuardError as e:
             self.guard_block_count += 1
@@ -873,7 +1040,7 @@ class TradingEngine:
             # 평단은 수수료 포함 실효 단가(total/qty)로 반영 — 실현손익이 수수료 차감 후 순손익
             eff_price = ((quote.total_usdc / quote.quantity).quantize(Decimal("0.01"))
                          if quote.quantity > 0 else price)
-            self._trading.on_completed(completed, symbol, quote.quantity, eff_price, quote.total_usdc)
+            agent.on_completed(completed, symbol, quote.quantity, eff_price, quote.total_usdc)
             if settled:
                 self.cum_buy_usdc += quote.total_usdc
                 self.total_fees += quote.fee_usdc
@@ -891,10 +1058,11 @@ class TradingEngine:
 
     # ---------- 매도 사이클 (run_demo 이식 + A7 실현손익) ----------
 
-    async def _sell_cycle(self, symbol: str, price: Decimal, decision: Decision) -> None:
+    async def _sell_cycle(self, symbol: str, agent: TradingAgent,
+                          price: Decimal, decision: Decision) -> None:
         live = self.mode == "live"
-        qty = self._trading.position.quantity
-        avg_before = self._trading.position.avg_price_usdc  # 실현손익 계산용 평단 캡처
+        qty = agent.position.quantity
+        avg_before = agent.position.avg_price_usdc  # 실현손익 계산용 평단 캡처
         quote = self._broker.sell_quote(symbol, qty, price)
         self.bus.emit(ev.QUOTE, {
             "side": "sell",
@@ -917,7 +1085,7 @@ class TradingEngine:
         # 기준(self._stock_mint·보유 수량 qty)과 대조한다. 위반이면 서명 자체가 일어나지 않는다(유출 0).
         blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
         try:
-            submitted = self._trading.build_stock_transfer(
+            submitted = agent.build_stock_transfer(
                 required, blockhash,
                 expected_stock_mint=self._stock_mint,
                 expected_quantity=qty,
@@ -975,7 +1143,7 @@ class TradingEngine:
                         "side": "sell", "order_id": required.order_id, **delivery.as_event(),
                     })
 
-        self._trading.on_sale_completed(completed, symbol, qty, price, quote.total_usdc)
+        agent.on_sale_completed(completed, symbol, qty, price, quote.total_usdc)
 
         realized = None
         if completed.status == "settled":
@@ -1130,12 +1298,18 @@ class TradingEngine:
     def _session_summary(self, archive_path: str, cross: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """Firestore sessions 문서 — artifacts/tx 아카이브의 DB판 (dry 세션 포함).
         판단 로그는 문서 1MB 한도 보호를 위해 최근 300건까지만 담는다."""
-        pos = self._trading.position if self._trading else None
         remaining = self._auth.remaining_usdc if self._auth else self.budget_total
-        return_pct = self._display_return_pct(self._valuation(pos, remaining))
+        return_pct = self._display_return_pct(self._valuation(remaining))
+        positions = [{"symbol": s, "quantity": str(self.agents[s].position.quantity),
+                      "avg_price_usdc": str(self.agents[s].position.avg_price_usdc)}
+                     for s in self.symbols]
+        total_qty = sum((self.agents[s].position.quantity for s in self.symbols), Decimal(0))
+        focus_pos = self.agents[self._focus].position if self.symbols else None
         return jsonable({
             "session_id": self.session_id,
-            "mode": self.mode, "network": CFG.network, "symbol": CFG.stock_symbol,
+            "mode": self.mode, "network": CFG.network,
+            "symbol": "·".join(self.symbols) if self.symbols else CFG.stock_symbol,
+            "symbols": list(self.symbols),
             "started_at": self.started_at, "ended_at": _now(),
             "ticks": self.tick, "brain": self.brain_label,
             "strategy": self.strategy_info, "feed": self.feed_info,
@@ -1148,8 +1322,9 @@ class TradingEngine:
             "fee_bps": CFG.broker_fee_bps,
             "reject_count": self.reject_count, "pause_count": self.pause_count,
             "guard_block_count": self.guard_block_count,   # 402 Guard check_demand 차단
-            "position_qty": str(pos.quantity) if pos else "0",
-            "position_avg_usdc": str(pos.avg_price_usdc) if pos else "0",
+            "position_qty": str(total_qty),
+            "position_avg_usdc": str(focus_pos.avg_price_usdc) if focus_pos else "0",
+            "positions": positions,   # 종목별 최종 보유 (멀티)
             "trade_count": len(self.trades), "decision_count": len(self.decisions),
             "trades": self.trades,
             "decisions": self.decisions[-300:],
@@ -1160,31 +1335,73 @@ class TradingEngine:
 
     # ---------- 상태 스냅샷 (GET /api/state) ----------
 
-    def _valuation(self, pos, remaining: Decimal) -> Dict[str, Any]:
-        """평가손익(미실현) · 총자산 — 실현손익과 같은 기준으로 계산한다.
+    def _symbol_last_price(self, sym: str) -> Decimal:
+        ph = self._price_history.get(sym) or []
+        return Decimal(ph[-1]["price"]) if ph else Decimal(0)
 
-        지금 전량 매도하면 받을 금액(수수료 차감) − 실효 평단 × 보유수량.
-        평단이 이미 매수 수수료를 포함하므로 이 값이 곧 수수료 반영 후 순손익이다.
-        총자산 = 가용 현금(AP2 잔여 예산) + 보유 주식의 매도 예상 수령액."""
+    def _position_value(self, pos, price: Decimal) -> Dict[str, Decimal]:
+        """한 종목의 평가 지표(현금 제외). 지금 전량 매도 시 수령액(수수료 차감) − 실효 평단×수량."""
         qty = pos.quantity if pos else Decimal(0)
-        price = Decimal(self.price_history[-1]["price"]) if self.price_history else Decimal(0)
         fee_rate = Decimal(CFG.broker_fee_bps) / Decimal(10000)
         gross = (qty * price).quantize(Decimal("0.01"))
         net = (qty * price * (1 - fee_rate)).quantize(Decimal("0.01"))
         cost = ((pos.avg_price_usdc if pos else Decimal(0)) * qty).quantize(Decimal("0.01"))
-        unrealized = net - cost
-        pct = (unrealized / cost * 100).quantize(Decimal("0.01")) if cost > 0 else Decimal(0)
+        return {"gross": gross, "net": net, "cost": cost, "unrealized": net - cost}
+
+    def _symbol_valuation(self, sym: str) -> Dict[str, Any]:
+        """종목 1개의 평가손익 블록 (현금 없음 — 현금은 세션 공유라 aggregate 에만)."""
+        agent = self.agents.get(sym)
+        price = self._symbol_last_price(sym)
+        pv = self._position_value(agent.position if agent else None, price)
+        pct = (pv["unrealized"] / pv["cost"] * 100).quantize(Decimal("0.01")) if pv["cost"] > 0 else Decimal(0)
         return {
             "market_price_usdc": str(price),
-            "position_value_usdc": str(gross),       # 현재가 × 보유수량
-            "position_net_value_usdc": str(net),     # 지금 매도 시 수령 예상액
-            "cost_basis_usdc": str(cost),
-            "unrealized_pnl_usdc": str(unrealized),
+            "position_value_usdc": str(pv["gross"]),
+            "position_net_value_usdc": str(pv["net"]),
+            "cost_basis_usdc": str(pv["cost"]),
+            "unrealized_pnl_usdc": str(pv["unrealized"]),
             "unrealized_pct": str(pct),
-            "cash_usdc": str(remaining),             # 가용 현금 = AP2 잔여 예산
+        }
+
+    def _valuation(self, remaining: Decimal) -> Dict[str, Any]:
+        """세션 전체(전 종목 합산) 평가손익 · 총자산.
+
+        총자산 = 가용 현금(공유 AP2 잔여 예산) + 전 종목 보유 주식의 매도 예상 수령액(수수료 차감).
+        N=1 이면 단일 종목 평가와 동일하다(하위호환). market_price 는 멀티에서 단일가가 없어
+        비워 두고, 종목별 가격은 per_symbol 을 참조한다."""
+        gross = net = cost = unreal = Decimal(0)
+        for sym in self.symbols:
+            pv = self._position_value(self.agents[sym].position, self._symbol_last_price(sym))
+            gross += pv["gross"]; net += pv["net"]; cost += pv["cost"]; unreal += pv["unrealized"]
+        pct = (unreal / cost * 100).quantize(Decimal("0.01")) if cost > 0 else Decimal(0)
+        single = len(self.symbols) == 1
+        return {
+            "market_price_usdc": str(self._symbol_last_price(self._focus)) if single else "",
+            "position_value_usdc": str(gross),
+            "position_net_value_usdc": str(net),     # 지금 전량 매도 시 수령 예상액(전 종목)
+            "cost_basis_usdc": str(cost),
+            "unrealized_pnl_usdc": str(unreal),
+            "unrealized_pct": str(pct),
+            "cash_usdc": str(remaining),             # 가용 현금 = 공유 AP2 잔여 예산
             "total_asset_usdc": str(remaining + net),
             "onchain_usdc": (self._snap_last["trading"]["usdc"]
-                             if self._snap_last else None),  # 라이브: 최근 스냅샷
+                             if self._snap_last else None),  # 라이브(N=1): 최근 스냅샷
+        }
+
+    def _symbol_price_block(self, sym: str) -> Dict[str, Any]:
+        """종목 1개의 시세 블록 (차트·등락 표시용) — state_snapshot per_symbol 및 top-level 공용."""
+        ph = self._price_history.get(sym) or []
+        candles = self._candles.get(sym) or []
+        change_ref = self._change_ref.get(sym)
+        return {
+            "current": ph[-1]["price"] if ph else None,
+            "session_open": ph[0]["price"] if ph else None,
+            "prev_close": str(change_ref) if change_ref is not None else None,
+            "change_basis": ("prev-close" if self.feed_info.get("type") == "replay"
+                             else "session-open"),
+            "history": ph[-60:],
+            "candles": candles[-60:],
+            "ticks_per_candle": TICKS_PER_CANDLE,
         }
 
     def _is_trend(self) -> bool:
@@ -1202,18 +1419,31 @@ class TradingEngine:
         return Decimal(0)
 
     def state_snapshot(self) -> Dict[str, Any]:
-        pos = self._trading.position if self._trading else None
+        focus_agent = self.agents.get(self._focus)
+        pos = focus_agent.position if focus_agent else None
         spent = self._auth.spent_usdc if self._auth else Decimal(0)
         remaining = self._auth.remaining_usdc if self._auth else self.budget_total
-        valuation = self._valuation(pos, remaining)
+        valuation = self._valuation(remaining)   # 전 종목 합산 (총자산·평가손익)
         is_trend = self._is_trend()
         return_pct = self._display_return_pct(valuation)
+        # top-level price/position 은 포커스(첫) 종목 — N=1 이면 기존과 동일. 멀티는 per_symbol 참조.
+        price_block = self._symbol_price_block(self._focus)
+        price_block["feed"] = self.feed_info
+        per_symbol = {
+            s: {
+                "price": self._symbol_price_block(s),
+                "position": {"quantity": str(self.agents[s].position.quantity),
+                             "avg_price_usdc": str(self.agents[s].position.avg_price_usdc)},
+                "valuation": self._symbol_valuation(s),
+                "feed": self._feeds_info.get(s, {}),
+            } for s in self.symbols
+        }
         return {
             "engine": {
                 "status": self.status, "mode": self.mode, "network": CFG.network,
                 "tick": self.tick, "tick_interval_sec": self.tick_interval,
                 "started_at": self.started_at, "brain": self.brain_label,
-                "session_id": self.session_id,
+                "session_id": self.session_id, "symbols": list(self.symbols),
             },
             "persistence": {  # Firestore 영속화 상태 (Cloud Run 재시작 대비)
                 "enabled": self.store.enabled,
@@ -1223,20 +1453,12 @@ class TradingEngine:
             },
             "trading_enabled": self.trading_enabled,
             "pause_info": self.pause_info,
-            "symbol": CFG.stock_symbol,
+            "symbol": self._focus,                    # 포커스(대표) 종목 — 멀티는 symbols/per_symbol 참조
+            "symbols": list(self.symbols),            # 세션 종목 목록
             "replay_available": os.path.exists(self.default_replay_path()),
-            "price": {
-                "current": self.price_history[-1]["price"] if self.price_history else None,
-                "session_open": self.price_history[0]["price"] if self.price_history else None,
-                "prev_close": str(self._change_ref) if self._change_ref is not None else None,
-                "change_basis": ("prev-close" if self.feed_info.get("type") == "replay"
-                                 else "session-open"),
-                "feed": self.feed_info,
-                "history": self.price_history[-60:],
-                "candles": self.candles[-60:],           # 캔들차트 (OHLC)
-                "ticks_per_candle": TICKS_PER_CANDLE,
-            },
-            "position": {
+            "price": price_block,                     # 포커스 종목 시세 (멀티: per_symbol[sym].price)
+            "per_symbol": per_symbol,                 # 종목별 시세·포지션·평가·피드
+            "position": {                             # 포커스 종목 포지션
                 "quantity": str(pos.quantity) if pos else "0",
                 "avg_price_usdc": str(pos.avg_price_usdc) if pos else "0",
             },

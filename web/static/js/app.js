@@ -15,6 +15,11 @@
     modeSelect: $("[data-mode-select]"),
     feedSelect: $("[data-feed-select]"),
     feedDataset: $("[data-feed-dataset]"),
+    symPicker: $("[data-sym-picker]"),
+    symPickerLabel: $("[data-sym-picker-label]"),
+    focusWrap: $("[data-focus-wrap]"),
+    focusSelect: $("[data-focus-select]"),
+    symSummary: $("[data-sym-summary]"),
     strategySelect: $("[data-strategy-select]"),
     trendSignal: $("[data-trend-signal]"),
     decisionMode: $("[data-decision-mode]"),
@@ -91,6 +96,10 @@
   let prevClose = null;     // 직전 봉 종가 — 실데이터 재생의 등락 표시 기준
   let changeBasis = "session-open";  // 서버 state.price.change_basis
   let lastState = null;     // 최근 /api/state — 틱 사이 평가손익 재계산에 사용
+  // 멀티 종목: 세션 종목 목록·포커스(차트 표시 종목)·종목별 스냅샷
+  let sessionSymbols = [];  // state.symbols
+  let focusSymbol = null;   // 차트/가격/포지션 카드가 보여줄 종목 (기본 = 첫 종목)
+  let perSymbol = {};       // state.per_symbol (종목별 price·position·valuation)
   let lastEventId = 0;
   const pageLoadedAt = Date.now();  // A4: SSE 히스토리 재생분 알림 제외 기준
 
@@ -167,8 +176,64 @@
     return `${st.dca_every_ticks}틱마다`;
   }
 
+  // ---------- 멀티 종목: 포커스 선택 · 종목별 요약 ----------
+  function setFocus(sym) {
+    if (!sessionSymbols.includes(sym)) return;
+    focusSymbol = sym;
+    if (el.focusSelect) el.focusSelect.value = sym;
+    if (lastState) renderState(lastState);   // 포커스 종목 시세·차트·포지션 다시 그림
+  }
+
+  function populateFocusSelect(syms) {
+    const want = (syms || []).join(",");
+    if (el.focusSelect.dataset.syms !== want) {   // 목록이 바뀔 때만 옵션 재생성
+      el.focusSelect.dataset.syms = want;
+      el.focusSelect.textContent = "";
+      for (const sym of syms || []) {
+        const o = make("option", null, sym);
+        o.value = sym;
+        el.focusSelect.appendChild(o);
+      }
+    }
+    if (focusSymbol) el.focusSelect.value = focusSymbol;
+  }
+
+  // 종목별 요약 표 (멀티에서만 보임) — 종목명을 누르면 그 종목으로 포커스 전환
+  function renderSymbolStrip() {
+    const multi = sessionSymbols.length > 1;
+    const card = el.symSummary.closest("[data-card]");
+    if (card) card.classList.toggle("hidden", !multi);
+    if (!multi) return;
+    el.symSummary.textContent = "";
+    for (const sym of sessionSymbols) {
+      const d = perSymbol[sym] || {};
+      const p = d.price || {}, pos = d.position || {}, v = d.valuation || {};
+      const tr = make("tr", sym === focusSymbol ? "focus-row" : null);
+      const symTd = make("td");
+      const btn = make("button", "linklike", sym + (sym === focusSymbol ? " ●" : ""));
+      btn.title = "이 종목을 차트에 표시";
+      btn.addEventListener("click", () => setFocus(sym));
+      symTd.appendChild(btn);
+      tr.appendChild(symTd);
+      tr.appendChild(make("td", null, p.current != null ? p.current : "—"));
+      tr.appendChild(make("td", null, pos.quantity != null ? pos.quantity : "0"));
+      tr.appendChild(make("td", null, pos.avg_price_usdc != null ? pos.avg_price_usdc : "0"));
+      tr.appendChild(make("td", null, v.position_net_value_usdc != null ? v.position_net_value_usdc : "0"));
+      const u = num(v.unrealized_pnl_usdc);
+      tr.appendChild(make("td", u > 0 ? "pos" : u < 0 ? "neg" : null,
+        (u > 0 ? "+" : "") + (v.unrealized_pnl_usdc || "0") + " (" + (v.unrealized_pct || "0") + "%)"));
+      el.symSummary.appendChild(tr);
+    }
+  }
+
   function renderState(s) {
     lastState = s;
+    // 멀티 종목 정리 (rules 텍스트·포커스에서 함께 쓰이므로 먼저) — 포커스는 첫 종목이 기본
+    sessionSymbols = s.symbols || (s.symbol ? [s.symbol] : []);
+    perSymbol = s.per_symbol || {};
+    if (!focusSymbol || !sessionSymbols.includes(focusSymbol)) focusSymbol = sessionSymbols[0] || s.symbol;
+    const multi = sessionSymbols.length > 1;
+    const symLabel = multi ? sessionSymbols.join("·") : (s.symbol || focusSymbol || "—");
     const eng = s.engine || {};
     el.net.textContent = (eng.network || "—") + (eng.mode ? " · " + (eng.mode === "live" ? "라이브" : "드라이런") : "");
     el.engineStatus.textContent = { idle: "엔진 대기", running: "엔진 실행 중", stopping: "종료 중…" }[eng.status] || eng.status;
@@ -178,35 +243,48 @@
     const strat = s.strategy || { type: "condition" };
     const modeLabel = (strat.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격")
       + (strat.ta_mode ? "+TA" : "");
+    // 멀티면 종목별 1회 매수 금액(총 spend/N)을 쓰고, 종목 여러 개임을 문구에 드러낸다.
+    const spendText = strat.spend_per_symbol_usdc || s.rules.spend_per_trade;
+    const multiTag = multi ? ` · ${sessionSymbols.length}종목 동시(각자 독립 포지션, 예산·가드 공유)` : "";
     let ruleText;
     if (strat.type === "dca") {
-      ruleText = `적립형: ${dcaSchedule(strat)} ${strat.dca_amount_usdc} USDC 정액 매수 (매도 없음)`;
+      // 적립형 종목별 금액은 회당 amount/N (조건형 spend/N 과 다르다)
+      const dcaAmt = multi ? (strat.dca_amount_per_symbol_usdc || strat.dca_amount_usdc) + " USDC(종목별)"
+                           : strat.dca_amount_usdc + " USDC";
+      ruleText = `적립형: ${dcaSchedule(strat)} ${dcaAmt} 정액 매수 (매도 없음)`;
     } else if (strat.type === "trend") {
       const sig = strat.trend_signal_label
         || (strat.trend_signal === "cross_5_20" ? "골든크로스5/20" : "가격>MA20");
-      ruleText = `추세추종(${sig}): ${s.symbol} 이 상승세면 전량 보유, 하락세로 꺾이면 전량 매도(자본 보존)·재상승 시 재매수 (올인/올아웃)`;
+      ruleText = `추세추종(${sig}): ${symLabel} 이 상승세면 전량 보유, 하락세로 꺾이면 전량 매도(자본 보존)·재상승 시 재매수 (올인/올아웃)`;
     } else {
-      ruleText = `조건형(${modeLabel}): ${s.symbol} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${s.rules.spend_per_trade} USDC 어치 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
+      ruleText = `조건형(${modeLabel}): ${symLabel} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${spendText} USDC 어치${multi ? "(종목별)" : ""} 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
     }
     const perTradeText = s.budget.all_in ? "전량(올인)" : s.budget.per_trade_max_usdc;
-    el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${perTradeText}) · 브로커 수수료 ${feePct}%`;
+    el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${perTradeText})${multiTag} · 브로커 수수료 ${feePct}%`;
 
-    el.symbol.textContent = s.symbol;
-    el.posSymbol.textContent = s.symbol;
-    if (s.price.current != null) el.price.textContent = s.price.current + " USDC";
-    ticksPerCandle = s.price.ticks_per_candle || ticksPerCandle;
-    sessionOpen = s.price.session_open != null ? num(s.price.session_open) : null;
-    prevClose = s.price.prev_close != null ? num(s.price.prev_close) : prevClose;
-    changeBasis = s.price.change_basis || changeBasis;
+    // 포커스 종목의 시세/포지션/차트를 그린다 (멀티 정리는 renderState 상단에서 끝냈다).
+    const fp = (perSymbol[focusSymbol] && perSymbol[focusSymbol].price) || s.price || {};
+    const fpos = (perSymbol[focusSymbol] && perSymbol[focusSymbol].position) || s.position || {};
+    populateFocusSelect(sessionSymbols);
+    el.focusWrap.classList.toggle("hidden", !multi);
+
+    el.symbol.textContent = focusSymbol || s.symbol;
+    el.posSymbol.textContent = focusSymbol || s.symbol;
+    if (fp.current != null) el.price.textContent = fp.current + " USDC";
+    ticksPerCandle = fp.ticks_per_candle || ticksPerCandle;
+    sessionOpen = fp.session_open != null ? num(fp.session_open) : null;
+    prevClose = fp.prev_close != null ? num(fp.prev_close) : prevClose;
+    changeBasis = fp.change_basis || changeBasis;
     el.changeBasis.textContent = changeBasis === "prev-close" ? "전일 종가 대비" : "세션 시작가 대비";
-    const feed = s.price.feed || {};
+    const feed = s.price.feed || {};   // 피드 라벨은 세션 공통(top-level)
     el.feedBadge.textContent = "시세: " + (feed.label || "—");
-    candles = (s.price.candles || []).map((c) => ({
+    candles = (fp.candles || []).map((c) => ({
       o: num(c.open), h: num(c.high), l: num(c.low), c: num(c.close), n: c.count,
       t: c.ts || null, w: !!c.warmup,
     }));
     drawChart();
-    renderPriceChange(s.price.current);
+    renderPriceChange(fp.current);
+    renderSymbolStrip();   // 종목별 요약 행 (멀티에서만 표시)
     if (eng.tick) el.tickInfo.textContent = `틱 ${eng.tick} · 간격 ${eng.tick_interval_sec}s`;
 
     // 실데이터 CSV 가 없으면 재생 옵션을 잠근다 (fetch_market_data.py 안내)
@@ -216,8 +294,8 @@
       ? "실데이터 재생 (일봉)" : "실데이터 재생 — CSV 없음 (fetch 필요)";
     if (!s.replay_available && el.feedSelect.value === "replay") { el.feedSelect.value = "mock"; syncDcaInputs(); }
 
-    el.posQty.textContent = s.position.quantity;
-    el.posAvg.textContent = s.position.avg_price_usdc;
+    el.posQty.textContent = fpos.quantity;
+    el.posAvg.textContent = fpos.avg_price_usdc;
 
     const total = num(s.budget.total_usdc), spent = num(s.budget.spent_usdc);
     // 추세추종은 이익 실현 시 spent 가 음수(운용현금>예산)가 될 수 있어 하한 0 으로 clamp
@@ -248,7 +326,7 @@
     const running = eng.status === "running";
     if (document.activeElement !== el.mandateBudget) el.mandateBudget.value = s.budget.total_usdc;
     if (document.activeElement !== el.mandatePerTrade) el.mandatePerTrade.value = s.budget.per_trade_max_usdc;
-    el.mandateSymbols.textContent = s.symbol;
+    el.mandateSymbols.textContent = symLabel;
     el.btnMandate.disabled = running && s.trading_enabled;
     el.mandateHint.textContent = running
       ? (s.trading_enabled
@@ -262,6 +340,10 @@
     el.modeSelect.disabled = running;
     el.feedSelect.disabled = running;
     el.feedDataset.disabled = running;
+    // 세션 종목은 실행 중 변경 불가 · 추세추종·라이브는 대기 상태에서도 단일 잠금 · 포커스 전환은 항상 허용
+    // (대기 상태 판정은 사용자가 고른 드롭다운 값을 쓴다 — 스냅샷 strategy 는 직전 세션 값일 수 있음)
+    for (const c of document.querySelectorAll("[data-sym-check]"))
+      c.disabled = running || el.strategySelect.value === "trend" || el.modeSelect.value === "live";
     el.strategySelect.disabled = running;
     el.trendSignal.disabled = running;
     el.decisionMode.disabled = running;
@@ -431,6 +513,7 @@
   function addDecision(d) {
     const li = make("li");
     li.appendChild(make("time", null, timeOf(d.ts)));
+    if (sessionSymbols.length > 1 && d.symbol) li.appendChild(make("span", "sym", d.symbol));
     li.appendChild(make("span", "src src-" + (d.source || "rule"), d.source));
     li.appendChild(make("span", "act act-" + d.action, d.action.toUpperCase()));
     li.appendChild(make("span", null, `@ ${d.price} — ${d.reason}`));
@@ -473,6 +556,7 @@
     if (empty) empty.remove();
     const tr = make("tr");
     tr.appendChild(make("td", null, timeOf(t.ts)));
+    tr.appendChild(make("td", "sym", t.symbol || "—"));   // 멀티: 어느 종목 체결인지
     tr.appendChild(make("td", "side-" + t.side, t.side === "buy" ? "매수" : "매도"));
     tr.appendChild(make("td", null, t.quantity));
     tr.appendChild(make("td", null, t.price_usdc));
@@ -610,18 +694,35 @@
   function handleEvent(evt) {
     const d = evt.data || {};
     switch (evt.type) {
-      case "price_tick":
-        el.price.textContent = d.price + " USDC";
-        el.tickInfo.textContent = `틱 ${d.tick}`
-          + (d.date ? ` · ${d.date}` : "")
-          + (d.progress ? ` (${d.progress.played}/${d.progress.total}봉)` : "");
-        if (d.prev_close != null) prevClose = num(d.prev_close);
-        if (d.bar) pushBarCandle(d.bar);        // 실데이터: 1틱 = 1봉 (실제 OHLC)
-        else pushTickToCandle(num(d.price));    // 목 시세: N틱 집계
-        drawChart();
-        renderPriceChange(d.price);
-        renderValuation(valuationAtPrice(num(d.price)));  // 시세가 움직이면 평가손익도 갱신
+      case "price_tick": {
+        // 종목별 최신가를 캐시에 반영하고 요약 표를 갱신 (모든 종목)
+        if (d.symbol && perSymbol[d.symbol] && perSymbol[d.symbol].price) {
+          perSymbol[d.symbol].price.current = d.price;
+        }
+        renderSymbolStrip();
+        // 포커스 종목만 가격 카드·차트·평가손익을 갱신 (다른 종목 틱은 표만 갱신)
+        if (!d.symbol || d.symbol === focusSymbol) {
+          el.price.textContent = d.price + " USDC";
+          el.tickInfo.textContent = `틱 ${d.tick}`
+            + (d.date ? ` · ${d.date}` : "")
+            + (d.progress ? ` (${d.progress.played}/${d.progress.total}봉)` : "");
+          if (d.prev_close != null) prevClose = num(d.prev_close);
+          if (d.bar) pushBarCandle(d.bar);        // 실데이터: 1틱 = 1봉 (실제 OHLC)
+          else pushTickToCandle(num(d.price));    // 목 시세: N틱 집계
+          // 포커스 종목의 누적 캔들을 캐시에 되써서, 포커스 전환 재구성이 최신 봉을 읽게 한다
+          // (안 하면 마지막 fetchState 시점 캔들로 되감김). 키는 서버 캔들 형태로 맞춘다.
+          if (perSymbol[focusSymbol] && perSymbol[focusSymbol].price) {
+            perSymbol[focusSymbol].price.candles = candles.map((c) => ({
+              open: c.o, high: c.h, low: c.l, close: c.c, count: c.n, ts: c.t, warmup: c.w,
+            }));
+          }
+          drawChart();
+          renderPriceChange(d.price);
+          // 평가손익 즉시 갱신은 단일 종목만 (멀티 합산은 체결 시 fetchState 로 갱신)
+          if (sessionSymbols.length <= 1) renderValuation(valuationAtPrice(num(d.price)));
+        }
         break;
+      }
       case "replay_ended":
         addLog(evt.ts, `[재생 완료] ${d.message} (${d.bars_played}봉, 마지막 ${d.last_date})`, "log-ok");
         notify(evt, "실데이터 재생 완료", "데이터 마지막 봉까지 재생해 세션을 자동 종료합니다.", "ok");
@@ -768,7 +869,22 @@
     el.taWrap.classList.toggle("hidden", strat !== "condition");
     el.trendSignal.classList.toggle("hidden", strat !== "trend");
     // 데이터셋(일봉/하락장)은 실데이터 재생일 때만 의미
-    el.feedDataset.classList.toggle("hidden", el.feedSelect.value !== "replay");
+    const replay = el.feedSelect.value === "replay";
+    el.feedDataset.classList.toggle("hidden", !replay);
+    // 멀티 종목 선택은 실데이터 재생에서만. 추세추종(올인)·라이브(온체인)는 단일만이라 잠근다.
+    const isTrend = strat === "trend";
+    const isLive = el.modeSelect.value === "live";
+    const singleOnly = isTrend || isLive;
+    el.symPicker.classList.toggle("hidden", !replay);
+    for (const c of document.querySelectorAll("[data-sym-check]")) {
+      c.disabled = singleOnly;
+      if (singleOnly) c.checked = false;
+    }
+    el.symPickerLabel.textContent = isLive
+      ? "라이브(온체인)는 단일 종목만 지원합니다 — 멀티 종목은 드라이 전용"
+      : isTrend
+        ? "추세추종은 단일 종목만 지원합니다 (여러 종목이 예산을 독식)"
+        : "동시 매수 종목 (여러 개 = 멀티 · 비우면 기본 단일):";
     const unit = el.dcaUnit.value;
     el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
     el.dcaMinutesWrap.classList.toggle("hidden", unit !== "minutes");
@@ -776,13 +892,22 @@
   }
   el.strategySelect.addEventListener("change", syncDcaInputs);
   el.feedSelect.addEventListener("change", syncDcaInputs);
+  el.modeSelect.addEventListener("change", syncDcaInputs);   // 라이브 전환 시 종목 단일 잠금
   el.dcaUnit.addEventListener("change", syncDcaInputs);
+  el.focusSelect.addEventListener("change", () => setFocus(el.focusSelect.value));
   syncDcaInputs();   // 초기 1회 — 기본 전략/피드에 맞춰 표시 정리
+  function pickedSymbols() {
+    // 멀티 종목은 실데이터 재생에서만 — 체크된 티커 목록(비면 단일 기본)
+    if (el.feedSelect.value !== "replay") return [];
+    return Array.from(document.querySelectorAll("[data-sym-check]:checked")).map((c) => c.value);
+  }
+
   el.btnStart.addEventListener("click", async () => {
     el.btnStart.disabled = true;
+    focusSymbol = null;   // 새 세션 — 포커스는 첫 종목으로 재설정
     const s = await post("/api/engine/start", {
       mode: el.modeSelect.value,
-      feed: { type: el.feedSelect.value, dataset: el.feedDataset.value },
+      feed: { type: el.feedSelect.value, dataset: el.feedDataset.value, symbols: pickedSymbols() },
       strategy: {
         type: el.strategySelect.value,
         decision_mode: el.decisionMode.value,
@@ -834,7 +959,7 @@
      사용자는 카드 제목(h2)을 끌어 재배치할 수 있고 localStorage 에 저장된다.
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
   const LAYOUT_KEY = "autotrader_layout_v1";
-  const DEFAULT_LAYOUT = ["price", "session", "position", "budget", "pnl", "valuation",
+  const DEFAULT_LAYOUT = ["price", "symbols", "session", "position", "budget", "pnl", "valuation",
                           "mandate", "decisions", "log", "briefing", "trades"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));

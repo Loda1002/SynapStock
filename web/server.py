@@ -171,9 +171,14 @@ class FeedBody(StrictBody):
 
     빈값이면 .env(PRICE_FEED·REPLAY_*) 기본을 따른다.
     ※ CSV 경로는 API 로 받지 않는다(경로 주입 차단) — 심볼만 받아 서버가 조립하고,
-      테스트용 커스텀 파일은 .env REPLAY_FILE 로만 지정한다."""
+      테스트용 커스텀 파일은 .env REPLAY_FILE 로만 지정한다.
+
+    멀티 종목(동시 매수, 드라이 전용): symbols 에 티커 목록(예: ["AAPL","TSLA"])을 주면
+    한 예산·한 가드 아래 각 종목을 독립 포지션으로 굴린다. 비우면 단일(symbol/기본).
+    경로 주입·존재 여부·개수(최대 5) 검증은 엔진(_resolve_symbols/_build_symbol_feed)이 한다."""
     type: str = ""         # "" / mock / replay
     symbol: str = ""       # replay: data/market/{SYMBOL}_{dataset}.csv (영문 대문자 1~5자)
+    symbols: list[str] = []  # 멀티 종목 티커 목록 (비우면 단일). 각 티커는 대문자 1~5자.
     dataset: str = "daily"  # daily(상승장 일봉) / bear(2022 폭락+2023 회복, 추세추종 데모)
     start: str = ""        # 재생 시작일 YYYY-MM-DD
     end: str = ""          # 재생 종료일 YYYY-MM-DD
