@@ -1,0 +1,3013 @@
+{
+  "generated_at": "2026-07-25T18:08:32",
+  "config": {
+    "source": "TSLA 일봉 재생 2022-02-01~2023-12-29 (481봉)",
+    "file": "data/market/TSLA_bear.csv",
+    "from": "",
+    "to": "",
+    "bars_played": 400,
+    "strategy": "trend",
+    "trend_signal": "cross_5_20",
+    "brain": "rule",
+    "mode": "-",
+    "ta_mode": false,
+    "rules": {
+      "buy_dip_pct": "3",
+      "take_profit_pct": "5",
+      "spend_per_trade": "30"
+    },
+    "budget_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "fee_bps": 30
+  },
+  "metrics": {
+    "realized_pnl_usdc": "82.87",
+    "unrealized_pnl_usdc": "-1.58",
+    "total_pnl_usdc": "81.29",
+    "return_on_budget_pct": "81.29",
+    "benchmark_buyhold_pct": "-17.89",
+    "benchmark_buyhold_pnl_usdc": "-17.89",
+    "excess_return_pct": "99.18",
+    "first_price": "310.42",
+    "last_price": "256.49",
+    "exposure_pct": "44.50",
+    "buy_count": 11,
+    "sell_count": 10,
+    "win_rate_pct": "40.0",
+    "max_drawdown_pct": "35.35",
+    "cum_buy_usdc": "1243.76",
+    "fees_usdc": "7.17",
+    "ap2_rejects": 0,
+    "gemini_fallbacks": 0,
+    "decisions_by_action": {
+      "hold": 379,
+      "buy": 11,
+      "sell": 10
+    },
+    "decisions_by_source": {
+      "rule": 400
+    },
+    "position_left_qty": "0.7089"
+  },
+  "trades": [
+    {
+      "date": "2022-03-18",
+      "side": "buy",
+      "qty": "0.3303",
+      "price": "301.80",
+      "total": "99.98"
+    },
+    {
+      "date": "2022-04-13",
+      "side": "sell",
+      "qty": "0.3303",
+      "price": "340.79",
+      "total": "112.22",
+      "realized": "12.24"
+    },
+    {
+      "date": "2022-06-02",
+      "side": "buy",
+      "qty": "0.4331",
+      "price": "258.33",
+      "total": "112.22"
+    },
+    {
+      "date": "2022-06-09",
+      "side": "sell",
+      "qty": "0.4331",
+      "price": "239.71",
+      "total": "103.51",
+      "realized": "-8.71"
+    },
+    {
+      "date": "2022-06-27",
+      "side": "buy",
+      "qty": "0.4214",
+      "price": "244.92",
+      "total": "103.52"
+    },
+    {
+      "date": "2022-07-01",
+      "side": "sell",
+      "qty": "0.4214",
+      "price": "227.26",
+      "total": "95.48",
+      "realized": "-8.04"
+    },
+    {
+      "date": "2022-07-07",
+      "side": "buy",
+      "qty": "0.3893",
+      "price": "244.54",
+      "total": "95.49"
+    },
+    {
+      "date": "2022-08-24",
+      "side": "sell",
+      "qty": "0.3893",
+      "price": "297.10",
+      "total": "115.31",
+      "realized": "19.82"
+    },
+    {
+      "date": "2022-09-13",
+      "side": "buy",
+      "qty": "0.3935",
+      "price": "292.13",
+      "total": "115.29"
+    },
+    {
+      "date": "2022-09-27",
+      "side": "sell",
+      "qty": "0.3935",
+      "price": "282.94",
+      "total": "111.01",
+      "realized": "-4.28"
+    },
+    {
+      "date": "2022-10-31",
+      "side": "buy",
+      "qty": "0.4864",
+      "price": "227.54",
+      "total": "111.01"
+    },
+    {
+      "date": "2022-11-07",
+      "side": "sell",
+      "qty": "0.4864",
+      "price": "197.08",
+      "total": "95.57",
+      "realized": "-15.44"
+    },
+    {
+      "date": "2022-12-02",
+      "side": "buy",
+      "qty": "0.4890",
+      "price": "194.86",
+      "total": "95.58"
+    },
+    {
+      "date": "2022-12-08",
+      "side": "sell",
+      "qty": "0.4890",
+      "price": "173.44",
+      "total": "84.56",
+      "realized": "-11.02"
+    },
+    {
+      "date": "2023-01-17",
+      "side": "buy",
+      "qty": "0.6412",
+      "price": "131.49",
+      "total": "84.56"
+    },
+    {
+      "date": "2023-03-06",
+      "side": "sell",
+      "qty": "0.6412",
+      "price": "193.81",
+      "total": "123.90",
+      "realized": "39.34"
+    },
+    {
+      "date": "2023-03-24",
+      "side": "buy",
+      "qty": "0.6488",
+      "price": "190.41",
+      "total": "123.91"
+    },
+    {
+      "date": "2023-04-10",
+      "side": "sell",
+      "qty": "0.6488",
+      "price": "184.51",
+      "total": "119.35",
+      "realized": "-4.56"
+    },
+    {
+      "date": "2023-05-11",
+      "side": "buy",
+      "qty": "0.6914",
+      "price": "172.08",
+      "total": "119.34"
+    },
+    {
+      "date": "2023-07-25",
+      "side": "sell",
+      "qty": "0.6914",
+      "price": "265.28",
+      "total": "182.86",
+      "realized": "63.52"
+    },
+    {
+      "date": "2023-08-29",
+      "side": "buy",
+      "qty": "0.7089",
+      "price": "257.18",
+      "total": "182.86"
+    }
+  ],
+  "decisions": [
+    {
+      "date": "2022-02-01",
+      "price": "310.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 298.72 vs MA20 332.25 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-02",
+      "price": "301.89",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 296.61 vs MA20 328.18 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-03",
+      "price": "297.05",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.74 vs MA20 324.90 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-04",
+      "price": "307.77",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 305.87 vs MA20 322.54 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-07",
+      "price": "302.45",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 303.92 vs MA20 320.55 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-08",
+      "price": "307.33",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 303.30 vs MA20 318.28 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-09",
+      "price": "310.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 305.05 vs MA20 316.07 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-10",
+      "price": "301.52",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 305.95 vs MA20 312.71 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-11",
+      "price": "286.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 301.73 vs MA20 309.85 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-14",
+      "price": "291.92",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 299.62 vs MA20 306.96 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-15",
+      "price": "307.48",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 299.65 vs MA20 305.16 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-16",
+      "price": "307.80",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 299.08 vs MA20 303.95 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-17",
+      "price": "292.12",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 297.20 vs MA20 301.95 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-18",
+      "price": "285.66",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 297.00 vs MA20 300.50 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-22",
+      "price": "273.84",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 293.38 vs MA20 298.70 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-23",
+      "price": "254.68",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 282.82 vs MA20 296.12 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-24",
+      "price": "266.92",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 274.64 vs MA20 293.85 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-25",
+      "price": "269.96",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 270.21 vs MA20 293.53 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-02-28",
+      "price": "290.14",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 271.11 vs MA20 293.93 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-01",
+      "price": "288.12",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 273.96 vs MA20 292.72 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-02",
+      "price": "293.30",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 281.69 vs MA20 291.86 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-03",
+      "price": "279.76",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 284.26 vs MA20 290.76 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-04",
+      "price": "279.43",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 286.15 vs MA20 289.88 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-07",
+      "price": "268.19",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 281.76 vs MA20 287.90 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-08",
+      "price": "274.80",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 279.10 vs MA20 286.52 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-09",
+      "price": "286.32",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 277.70 vs MA20 285.46 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-10",
+      "price": "279.43",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 277.63 vs MA20 283.90 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-11",
+      "price": "265.12",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 274.77 vs MA20 282.08 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-14",
+      "price": "255.46",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 272.23 vs MA20 280.52 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-15",
+      "price": "267.30",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 270.73 vs MA20 279.29 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-16",
+      "price": "280.08",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 269.48 vs MA20 277.92 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-17",
+      "price": "290.53",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 271.70 vs MA20 277.06 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-03-18",
+      "price": "301.80",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 279.03 vs MA20 277.54"
+    },
+    {
+      "date": "2022-03-21",
+      "price": "307.05",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 289.35 vs MA20 278.61 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-22",
+      "price": "331.33",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 302.16 vs MA20 281.49 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-23",
+      "price": "333.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 312.75 vs MA20 285.40 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-24",
+      "price": "337.97",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 322.24 vs MA20 288.96 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-25",
+      "price": "336.88",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 329.25 vs MA20 292.30 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-28",
+      "price": "363.95",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 340.63 vs MA20 295.99 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-29",
+      "price": "366.52",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 347.67 vs MA20 299.91 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-30",
+      "price": "364.66",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 354.00 vs MA20 303.48 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-03-31",
+      "price": "359.20",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 358.24 vs MA20 307.45 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-01",
+      "price": "361.53",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 363.17 vs MA20 311.56 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-04",
+      "price": "381.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 366.75 vs MA20 317.24 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-05",
+      "price": "363.75",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 366.19 vs MA20 321.69 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-06",
+      "price": "348.59",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 362.98 vs MA20 324.80 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-07",
+      "price": "352.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 361.62 vs MA20 328.45 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-08",
+      "price": "341.83",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 357.68 vs MA20 332.29 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-11",
+      "price": "325.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 346.38 vs MA20 335.78 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-12",
+      "price": "328.98",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 339.43 vs MA20 338.86 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-04-13",
+      "price": "340.79",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 337.87 vs MA20 341.90"
+    },
+    {
+      "date": "2022-04-14",
+      "price": "328.33",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 333.05 vs MA20 343.79 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-18",
+      "price": "334.76",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 331.63 vs MA20 345.44 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-19",
+      "price": "342.72",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 335.12 vs MA20 347.22 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-20",
+      "price": "325.73",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 334.47 vs MA20 346.94 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-21",
+      "price": "336.26",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 333.56 vs MA20 347.10 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-22",
+      "price": "335.02",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 334.90 vs MA20 346.95 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-25",
+      "price": "332.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 334.48 vs MA20 346.74 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-26",
+      "price": "292.14",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 324.36 vs MA20 343.15 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-27",
+      "price": "293.84",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 317.99 vs MA20 339.52 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-28",
+      "price": "292.50",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 309.23 vs MA20 335.91 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-04-29",
+      "price": "290.25",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.28 vs MA20 332.46 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-02",
+      "price": "300.98",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 293.94 vs MA20 329.43 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-03",
+      "price": "303.08",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 296.13 vs MA20 325.50 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-04",
+      "price": "317.54",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.87 vs MA20 323.19 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-05",
+      "price": "291.09",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.59 vs MA20 320.31 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-06",
+      "price": "288.55",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.25 vs MA20 317.12 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-09",
+      "price": "262.37",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 292.53 vs MA20 313.15 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-10",
+      "price": "266.68",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 285.25 vs MA20 310.21 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-11",
+      "price": "244.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 270.67 vs MA20 306.00 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-12",
+      "price": "242.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 260.99 vs MA20 301.09 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-13",
+      "price": "256.53",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 254.58 vs MA20 297.50 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-16",
+      "price": "241.46",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 250.40 vs MA20 292.84 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-17",
+      "price": "253.87",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 247.84 vs MA20 288.40 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-18",
+      "price": "236.60",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 246.23 vs MA20 283.94 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-19",
+      "price": "236.47",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 244.99 vs MA20 278.95 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-20",
+      "price": "221.30",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 237.94 vs MA20 273.26 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-23",
+      "price": "224.97",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 234.64 vs MA20 267.88 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-24",
+      "price": "209.39",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 225.75 vs MA20 263.74 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-25",
+      "price": "219.60",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 222.35 vs MA20 260.03 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-26",
+      "price": "235.91",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 222.23 vs MA20 257.20 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-27",
+      "price": "253.21",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 228.62 vs MA20 255.35 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-05-31",
+      "price": "252.75",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 234.17 vs MA20 252.94 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-01",
+      "price": "246.79",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 241.65 vs MA20 250.12 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-02",
+      "price": "258.33",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 249.40 vs MA20 247.16"
+    },
+    {
+      "date": "2022-06-03",
+      "price": "234.52",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 249.12 vs MA20 244.33 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-06-06",
+      "price": "238.28",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 246.13 vs MA20 241.82 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-06-07",
+      "price": "238.89",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 243.36 vs MA20 240.64 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-06-08",
+      "price": "241.87",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 242.38 vs MA20 239.40 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-06-09",
+      "price": "239.71",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 238.65 vs MA20 239.16"
+    },
+    {
+      "date": "2022-06-10",
+      "price": "232.23",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 238.20 vs MA20 238.63 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-13",
+      "price": "215.74",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 233.69 vs MA20 236.59 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-14",
+      "price": "220.89",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 230.09 vs MA20 235.57 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-15",
+      "price": "233.00",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 228.31 vs MA20 234.52 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-16",
+      "price": "213.10",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 222.99 vs MA20 233.35 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-17",
+      "price": "216.76",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 219.90 vs MA20 232.36 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-21",
+      "price": "237.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 224.16 vs MA20 233.15 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-22",
+      "price": "236.09",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 227.20 vs MA20 233.70 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-23",
+      "price": "235.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 227.61 vs MA20 234.99 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-24",
+      "price": "245.71",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 234.13 vs MA20 236.29 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-06-27",
+      "price": "244.92",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 239.77 vs MA20 236.74"
+    },
+    {
+      "date": "2022-06-28",
+      "price": "232.66",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 238.89 vs MA20 235.72 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-06-29",
+      "price": "228.49",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 237.37 vs MA20 234.50 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-06-30",
+      "price": "224.47",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 235.25 vs MA20 233.39 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-01",
+      "price": "227.26",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 231.56 vs MA20 231.84"
+    },
+    {
+      "date": "2022-07-05",
+      "price": "233.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 229.19 vs MA20 231.76 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-07-06",
+      "price": "231.73",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 229.00 vs MA20 231.44 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-07-07",
+      "price": "244.54",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 232.21 vs MA20 231.72"
+    },
+    {
+      "date": "2022-07-08",
+      "price": "250.76",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 237.47 vs MA20 232.16 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-11",
+      "price": "234.34",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 238.89 vs MA20 231.89 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-12",
+      "price": "233.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 238.89 vs MA20 231.94 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-13",
+      "price": "237.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 239.95 vs MA20 233.00 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-14",
+      "price": "238.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 238.70 vs MA20 233.87 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-15",
+      "price": "240.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 236.57 vs MA20 234.22 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-18",
+      "price": "240.55",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 237.81 vs MA20 235.60 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-19",
+      "price": "245.53",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 240.30 vs MA20 237.04 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-20",
+      "price": "247.50",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 242.39 vs MA20 237.56 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-21",
+      "price": "271.71",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 249.07 vs MA20 239.34 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-22",
+      "price": "272.24",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 255.51 vs MA20 241.20 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-25",
+      "price": "268.43",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 261.08 vs MA20 242.33 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-26",
+      "price": "258.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 263.75 vs MA20 243.03 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-27",
+      "price": "274.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 269.21 vs MA20 245.14 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-28",
+      "price": "280.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 271.05 vs MA20 247.76 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-07-29",
+      "price": "297.15",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 276.03 vs MA20 251.39 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-01",
+      "price": "297.28",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 281.80 vs MA20 254.90 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-02",
+      "price": "300.59",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 290.15 vs MA20 258.27 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-03",
+      "price": "307.40",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 296.66 vs MA20 262.05 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-04",
+      "price": "308.63",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 302.21 vs MA20 265.26 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-05",
+      "price": "288.17",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.41 vs MA20 267.13 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-08",
+      "price": "290.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 299.04 vs MA20 269.93 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-09",
+      "price": "283.33",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 295.59 vs MA20 272.45 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-10",
+      "price": "294.36",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 292.98 vs MA20 275.31 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-11",
+      "price": "286.63",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 288.58 vs MA20 277.73 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-12",
+      "price": "300.03",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 290.95 vs MA20 280.73 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-15",
+      "price": "309.32",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 294.73 vs MA20 284.16 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-16",
+      "price": "306.56",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 299.38 vs MA20 287.22 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-17",
+      "price": "304.00",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 301.31 vs MA20 290.04 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-18",
+      "price": "302.87",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 304.56 vs MA20 291.60 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-19",
+      "price": "296.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 303.88 vs MA20 292.82 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-22",
+      "price": "289.91",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.00 vs MA20 293.90 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-23",
+      "price": "296.45",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 297.98 vs MA20 295.77 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-08-24",
+      "price": "297.10",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 296.60 vs MA20 296.89"
+    },
+    {
+      "date": "2022-08-25",
+      "price": "296.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 295.24 vs MA20 297.65 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-08-26",
+      "price": "288.09",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 293.52 vs MA20 297.19 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-08-29",
+      "price": "284.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 292.51 vs MA20 296.57 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-08-30",
+      "price": "277.70",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 288.76 vs MA20 295.43 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-08-31",
+      "price": "275.61",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 284.46 vs MA20 293.84 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-01",
+      "price": "277.16",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 280.68 vs MA20 292.26 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-02",
+      "price": "270.21",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 277.10 vs MA20 291.37 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-06",
+      "price": "274.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 275.02 vs MA20 290.57 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-07",
+      "price": "283.70",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 276.22 vs MA20 290.58 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-08",
+      "price": "289.26",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 278.95 vs MA20 290.33 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-09",
+      "price": "299.68",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 283.45 vs MA20 290.98 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-12",
+      "price": "304.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 290.30 vs MA20 291.20 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-13",
+      "price": "292.13",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 293.84 vs MA20 290.34"
+    },
+    {
+      "date": "2022-09-14",
+      "price": "302.61",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 297.62 vs MA20 290.14 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-15",
+      "price": "303.75",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 300.52 vs MA20 290.13 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-16",
+      "price": "303.35",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 301.25 vs MA20 290.16 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-19",
+      "price": "309.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 302.18 vs MA20 290.78 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-20",
+      "price": "308.73",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 305.50 vs MA20 291.72 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-21",
+      "price": "300.80",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 305.14 vs MA20 291.93 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-22",
+      "price": "288.59",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 302.11 vs MA20 291.51 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-23",
+      "price": "275.33",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 296.50 vs MA20 290.47 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-26",
+      "price": "276.01",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 289.89 vs MA20 289.87 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-09-27",
+      "price": "282.94",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 284.73 vs MA20 289.77"
+    },
+    {
+      "date": "2022-09-28",
+      "price": "287.81",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 282.14 vs MA20 290.28 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-29",
+      "price": "268.21",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 278.06 vs MA20 289.91 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-09-30",
+      "price": "265.25",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 276.04 vs MA20 289.31 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-03",
+      "price": "242.40",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 269.32 vs MA20 287.92 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-04",
+      "price": "249.44",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 262.62 vs MA20 286.67 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-05",
+      "price": "240.81",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 253.22 vs MA20 284.53 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-06",
+      "price": "238.13",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 247.21 vs MA20 281.97 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-07",
+      "price": "223.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 238.77 vs MA20 278.14 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-10",
+      "price": "222.96",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 234.88 vs MA20 274.07 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-11",
+      "price": "216.50",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 228.29 vs MA20 270.29 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-12",
+      "price": "217.24",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 223.58 vs MA20 266.02 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-13",
+      "price": "221.72",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 220.30 vs MA20 261.92 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-14",
+      "price": "204.99",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 216.68 vs MA20 257.00 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-17",
+      "price": "219.35",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 215.96 vs MA20 252.51 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-18",
+      "price": "220.19",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 216.70 vs MA20 248.09 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-19",
+      "price": "222.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 217.66 vs MA20 244.15 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-20",
+      "price": "207.28",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 214.77 vs MA20 240.08 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-21",
+      "price": "214.44",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 216.66 vs MA20 237.04 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-24",
+      "price": "211.25",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 215.04 vs MA20 233.80 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-25",
+      "price": "222.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 215.49 vs MA20 230.78 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-26",
+      "price": "224.64",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 216.01 vs MA20 227.62 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-27",
+      "price": "225.09",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 219.57 vs MA20 225.46 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-28",
+      "price": "228.52",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 222.38 vs MA20 223.62 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-10-31",
+      "price": "227.54",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 225.64 vs MA20 222.88"
+    },
+    {
+      "date": "2022-11-01",
+      "price": "227.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 226.72 vs MA20 221.80 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-11-02",
+      "price": "214.98",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 224.79 vs MA20 220.51 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-11-03",
+      "price": "215.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 222.83 vs MA20 219.37 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-11-04",
+      "price": "207.47",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 218.62 vs MA20 218.59 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-11-07",
+      "price": "197.08",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 212.53 vs MA20 217.29"
+    },
+    {
+      "date": "2022-11-08",
+      "price": "191.30",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 205.23 vs MA20 216.03 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-09",
+      "price": "177.59",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 197.75 vs MA20 214.05 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-10",
+      "price": "190.72",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 192.83 vs MA20 212.50 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-11",
+      "price": "195.97",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 190.53 vs MA20 212.05 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-14",
+      "price": "190.95",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 189.31 vs MA20 210.63 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-15",
+      "price": "194.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 189.93 vs MA20 209.34 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-16",
+      "price": "186.92",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 191.80 vs MA20 207.59 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-17",
+      "price": "183.17",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 190.29 vs MA20 206.38 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-18",
+      "price": "180.19",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 187.13 vs MA20 204.67 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-21",
+      "price": "167.87",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 182.51 vs MA20 202.50 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-22",
+      "price": "169.91",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 177.61 vs MA20 199.87 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-23",
+      "price": "183.20",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 176.87 vs MA20 197.80 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-25",
+      "price": "182.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 176.81 vs MA20 195.69 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-28",
+      "price": "182.92",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 177.35 vs MA20 193.41 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-29",
+      "price": "180.83",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 179.94 vs MA20 191.07 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-11-30",
+      "price": "194.70",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 184.90 vs MA20 189.42 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-01",
+      "price": "194.70",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 187.20 vs MA20 188.40 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-02",
+      "price": "194.86",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 189.60 vs MA20 187.38"
+    },
+    {
+      "date": "2022-12-05",
+      "price": "182.45",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 189.51 vs MA20 186.13 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-12-06",
+      "price": "179.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 189.31 vs MA20 185.27 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-12-07",
+      "price": "174.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 185.17 vs MA20 184.40 · 상승세 보유 중"
+    },
+    {
+      "date": "2022-12-08",
+      "price": "173.44",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 180.92 vs MA20 184.20"
+    },
+    {
+      "date": "2022-12-09",
+      "price": "179.05",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 177.76 vs MA20 183.61 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-12",
+      "price": "167.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 174.83 vs MA20 182.21 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-13",
+      "price": "160.95",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 171.06 vs MA20 180.71 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-14",
+      "price": "156.80",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 167.61 vs MA20 178.82 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-15",
+      "price": "157.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 164.46 vs MA20 177.36 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-16",
+      "price": "150.23",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 158.69 vs MA20 175.72 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-19",
+      "price": "149.87",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 155.10 vs MA20 174.20 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-20",
+      "price": "137.80",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 150.47 vs MA20 172.70 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-21",
+      "price": "137.57",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 146.63 vs MA20 171.08 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-22",
+      "price": "125.35",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 140.16 vs MA20 168.19 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-23",
+      "price": "123.15",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 134.75 vs MA20 165.20 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-27",
+      "price": "109.10",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 126.59 vs MA20 161.51 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-28",
+      "price": "112.71",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 121.58 vs MA20 158.10 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-29",
+      "price": "121.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 118.43 vs MA20 154.46 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2022-12-30",
+      "price": "123.18",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 117.99 vs MA20 150.88 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-03",
+      "price": "108.10",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 114.98 vs MA20 146.55 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-04",
+      "price": "113.64",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 115.89 vs MA20 143.11 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-05",
+      "price": "110.34",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 115.42 vs MA20 139.63 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-06",
+      "price": "113.06",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 113.66 vs MA20 136.58 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-09",
+      "price": "119.77",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 112.98 vs MA20 133.90 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-10",
+      "price": "118.85",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 115.13 vs MA20 130.89 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-11",
+      "price": "123.22",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 117.05 vs MA20 128.66 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-12",
+      "price": "123.56",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 119.69 vs MA20 126.79 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-13",
+      "price": "122.40",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 121.56 vs MA20 125.07 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-01-17",
+      "price": "131.49",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 123.90 vs MA20 123.76"
+    },
+    {
+      "date": "2023-01-18",
+      "price": "128.78",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 125.89 vs MA20 122.69 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-19",
+      "price": "127.17",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 126.68 vs MA20 121.55 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-20",
+      "price": "133.42",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 128.65 vs MA20 121.33 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-23",
+      "price": "143.75",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 132.92 vs MA20 121.64 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-24",
+      "price": "143.89",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 135.40 vs MA20 122.57 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-25",
+      "price": "144.43",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 138.53 vs MA20 123.63 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-26",
+      "price": "160.27",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 145.15 vs MA20 126.19 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-27",
+      "price": "177.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 154.05 vs MA20 129.45 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-30",
+      "price": "166.66",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 158.63 vs MA20 131.69 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-01-31",
+      "price": "173.22",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 164.50 vs MA20 134.20 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-01",
+      "price": "181.41",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 171.89 vs MA20 137.86 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-02",
+      "price": "188.27",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 177.49 vs MA20 141.59 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-03",
+      "price": "189.98",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 179.91 vs MA20 145.58 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-06",
+      "price": "194.76",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 185.53 vs MA20 149.66 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-07",
+      "price": "196.81",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 190.25 vs MA20 153.51 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-08",
+      "price": "201.29",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 194.22 vs MA20 157.63 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-09",
+      "price": "207.32",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 198.03 vs MA20 161.84 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-10",
+      "price": "196.89",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 199.41 vs MA20 165.51 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-13",
+      "price": "194.64",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 199.39 vs MA20 169.12 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-14",
+      "price": "209.25",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 201.88 vs MA20 173.01 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-15",
+      "price": "214.24",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 204.47 vs MA20 177.28 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-16",
+      "price": "202.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 203.41 vs MA20 181.02 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-17",
+      "price": "208.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 205.70 vs MA20 184.77 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-21",
+      "price": "197.37",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 206.24 vs MA20 187.45 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-22",
+      "price": "200.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 204.56 vs MA20 190.30 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-23",
+      "price": "202.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 202.13 vs MA20 193.18 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-24",
+      "price": "196.88",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 201.10 vs MA20 195.01 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-27",
+      "price": "207.63",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 200.96 vs MA20 196.50 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-02-28",
+      "price": "205.71",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 202.63 vs MA20 198.45 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-01",
+      "price": "202.77",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 203.01 vs MA20 199.92 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-02",
+      "price": "190.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 200.78 vs MA20 200.40 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-03",
+      "price": "197.79",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 200.96 vs MA20 200.88 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-06",
+      "price": "193.81",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 198.20 vs MA20 201.07"
+    },
+    {
+      "date": "2023-03-07",
+      "price": "187.71",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 194.60 vs MA20 200.71 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-08",
+      "price": "182.00",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 190.44 vs MA20 199.97 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-09",
+      "price": "172.92",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 186.85 vs MA20 198.56 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-10",
+      "price": "173.44",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 181.98 vs MA20 196.86 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-13",
+      "price": "174.48",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 178.11 vs MA20 195.74 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-14",
+      "price": "183.26",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 177.22 vs MA20 195.17 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-15",
+      "price": "180.45",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 176.91 vs MA20 193.73 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-16",
+      "price": "184.13",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 179.15 vs MA20 192.23 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-17",
+      "price": "180.13",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 180.49 vs MA20 191.13 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-20",
+      "price": "183.25",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 182.24 vs MA20 189.88 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-21",
+      "price": "197.58",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 185.11 vs MA20 189.89 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-22",
+      "price": "191.15",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 187.25 vs MA20 189.40 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-23",
+      "price": "192.22",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 188.87 vs MA20 188.91 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-03-24",
+      "price": "190.41",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 190.92 vs MA20 188.59"
+    },
+    {
+      "date": "2023-03-27",
+      "price": "191.81",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 192.63 vs MA20 187.80 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-28",
+      "price": "189.19",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 190.96 vs MA20 186.97 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-29",
+      "price": "193.88",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 191.50 vs MA20 186.53 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-30",
+      "price": "195.28",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 192.11 vs MA20 186.74 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-03-31",
+      "price": "207.46",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 195.52 vs MA20 187.23 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-04-03",
+      "price": "194.77",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 196.12 vs MA20 187.28 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-04-04",
+      "price": "192.58",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 196.79 vs MA20 187.52 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-04-05",
+      "price": "185.52",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 195.12 vs MA20 187.70 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-04-06",
+      "price": "185.06",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 193.08 vs MA20 188.30 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-04-10",
+      "price": "184.51",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 188.49 vs MA20 188.86"
+    },
+    {
+      "date": "2023-04-11",
+      "price": "186.79",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 186.89 vs MA20 189.47 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-12",
+      "price": "180.54",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 184.48 vs MA20 189.34 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-13",
+      "price": "185.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 184.56 vs MA20 189.61 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-14",
+      "price": "185.00",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 184.55 vs MA20 189.65 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-17",
+      "price": "187.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 185.05 vs MA20 190.00 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-18",
+      "price": "184.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 184.56 vs MA20 190.05 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-19",
+      "price": "180.59",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 184.57 vs MA20 189.20 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-20",
+      "price": "162.99",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 179.99 vs MA20 187.79 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-21",
+      "price": "165.08",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 176.00 vs MA20 186.44 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-24",
+      "price": "162.55",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 171.10 vs MA20 185.04 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-25",
+      "price": "160.67",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 166.38 vs MA20 183.49 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-26",
+      "price": "153.75",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 161.01 vs MA20 181.71 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-27",
+      "price": "160.19",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 160.45 vs MA20 180.03 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-04-28",
+      "price": "164.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 160.29 vs MA20 178.48 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-01",
+      "price": "161.83",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 160.15 vs MA20 176.20 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-02",
+      "price": "160.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 160.08 vs MA20 174.48 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-03",
+      "price": "160.61",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 161.45 vs MA20 172.88 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-04",
+      "price": "161.20",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 161.65 vs MA20 171.66 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-05",
+      "price": "170.06",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 162.80 vs MA20 170.91 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-08",
+      "price": "171.79",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 164.79 vs MA20 170.28 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-09",
+      "price": "169.15",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 166.56 vs MA20 169.39 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-10",
+      "price": "168.54",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 168.15 vs MA20 168.79 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-05-11",
+      "price": "172.08",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 170.32 vs MA20 168.10"
+    },
+    {
+      "date": "2023-05-12",
+      "price": "167.98",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 169.91 vs MA20 167.25 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-15",
+      "price": "166.35",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 168.82 vs MA20 166.22 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-16",
+      "price": "166.52",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 168.29 vs MA20 165.33 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-17",
+      "price": "173.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 169.36 vs MA20 164.99 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-18",
+      "price": "176.89",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 170.32 vs MA20 165.69 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-19",
+      "price": "180.14",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 172.75 vs MA20 166.44 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-22",
+      "price": "188.87",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 177.26 vs MA20 167.76 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-23",
+      "price": "185.77",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 181.11 vs MA20 169.01 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-24",
+      "price": "182.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 182.91 vs MA20 170.47 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-25",
+      "price": "184.47",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 184.43 vs MA20 171.68 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-26",
+      "price": "193.17",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 187.04 vs MA20 173.12 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-30",
+      "price": "201.16",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 189.49 vs MA20 175.09 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-05-31",
+      "price": "203.93",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 193.13 vs MA20 177.27 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-01",
+      "price": "207.52",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 198.05 vs MA20 179.62 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-02",
+      "price": "213.97",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 203.95 vs MA20 182.26 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-05",
+      "price": "217.61",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 208.84 vs MA20 184.63 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-06",
+      "price": "221.31",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 212.87 vs MA20 187.11 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-07",
+      "price": "224.57",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 217.00 vs MA20 189.88 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-08",
+      "price": "234.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 222.46 vs MA20 193.20 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-09",
+      "price": "244.40",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 228.55 vs MA20 196.81 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-12",
+      "price": "249.83",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 234.99 vs MA20 200.90 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-13",
+      "price": "258.71",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 242.47 vs MA20 205.52 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-14",
+      "price": "256.79",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 248.92 vs MA20 210.04 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-15",
+      "price": "255.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 253.13 vs MA20 214.14 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-16",
+      "price": "260.54",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 256.35 vs MA20 218.32 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-20",
+      "price": "274.45",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 261.28 vs MA20 223.04 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-21",
+      "price": "259.46",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 261.43 vs MA20 226.57 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-22",
+      "price": "264.61",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 262.99 vs MA20 230.51 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-23",
+      "price": "256.60",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 263.13 vs MA20 234.19 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-26",
+      "price": "241.05",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 259.23 vs MA20 237.02 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-27",
+      "price": "250.21",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 254.39 vs MA20 239.87 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-28",
+      "price": "256.24",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 253.74 vs MA20 242.63 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-29",
+      "price": "257.50",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 252.32 vs MA20 245.31 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-06-30",
+      "price": "261.77",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 253.35 vs MA20 248.02 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-03",
+      "price": "279.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 261.11 vs MA20 251.31 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-05",
+      "price": "282.48",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 267.56 vs MA20 254.56 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-06",
+      "price": "276.54",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 271.62 vs MA20 257.32 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-07",
+      "price": "274.43",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 275.01 vs MA20 259.81 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-10",
+      "price": "269.61",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 276.58 vs MA20 261.55 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-11",
+      "price": "269.79",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 274.57 vs MA20 262.82 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-12",
+      "price": "271.99",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 272.47 vs MA20 263.92 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-13",
+      "price": "277.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 272.74 vs MA20 264.88 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-14",
+      "price": "281.38",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 274.13 vs MA20 266.11 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-17",
+      "price": "290.38",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 278.29 vs MA20 267.84 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-18",
+      "price": "293.34",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 283.00 vs MA20 269.48 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-19",
+      "price": "291.26",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 286.85 vs MA20 270.32 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-20",
+      "price": "262.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 283.85 vs MA20 270.49 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-21",
+      "price": "260.02",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 279.58 vs MA20 270.26 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-24",
+      "price": "269.06",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 275.32 vs MA20 270.88 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-07-25",
+      "price": "265.28",
+      "action": "sell",
+      "source": "rule",
+      "reason": "하락세 이탈(전량 매도, 자본 보존) — 데드크로스(MA5<MA20) · MA5 269.70 vs MA20 272.10"
+    },
+    {
+      "date": "2023-07-26",
+      "price": "264.35",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 264.32 vs MA20 272.80 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-07-27",
+      "price": "255.71",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 262.88 vs MA20 272.78 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-07-28",
+      "price": "266.44",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 264.17 vs MA20 273.22 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-07-31",
+      "price": "267.43",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 263.84 vs MA20 273.51 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-01",
+      "price": "261.07",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 263.00 vs MA20 272.57 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-02",
+      "price": "254.11",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 260.95 vs MA20 271.15 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-03",
+      "price": "259.32",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 261.67 vs MA20 270.29 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-04",
+      "price": "253.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 259.16 vs MA20 269.26 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-07",
+      "price": "251.45",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 255.96 vs MA20 268.35 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-08",
+      "price": "249.70",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 253.69 vs MA20 267.35 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-09",
+      "price": "242.19",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 251.30 vs MA20 265.86 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-10",
+      "price": "245.34",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 248.51 vs MA20 264.23 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-11",
+      "price": "242.65",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 246.27 vs MA20 262.29 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-14",
+      "price": "239.76",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 243.93 vs MA20 259.76 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-15",
+      "price": "232.96",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 240.58 vs MA20 256.74 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-16",
+      "price": "225.60",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 237.26 vs MA20 253.46 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-17",
+      "price": "219.22",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 232.04 vs MA20 251.28 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-18",
+      "price": "215.49",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 226.61 vs MA20 249.05 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-21",
+      "price": "231.28",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 224.91 vs MA20 247.16 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-22",
+      "price": "233.19",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 224.96 vs MA20 245.56 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-23",
+      "price": "236.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 227.21 vs MA20 244.18 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-24",
+      "price": "230.04",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 229.37 vs MA20 242.90 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-25",
+      "price": "238.59",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 233.99 vs MA20 241.51 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-28",
+      "price": "238.82",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 235.50 vs MA20 240.08 · 하락세 관망(현금 보유)"
+    },
+    {
+      "date": "2023-08-29",
+      "price": "257.18",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 골든크로스(MA5≥MA20) · MA5 240.30 vs MA20 239.88"
+    },
+    {
+      "date": "2023-08-30",
+      "price": "256.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 244.31 vs MA20 240.02 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-08-31",
+      "price": "258.08",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 249.91 vs MA20 239.96 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-09-01",
+      "price": "245.01",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 251.20 vs MA20 239.52 · 상승세 보유 중"
+    },
+    {
+      "date": "2023-09-05",
+      "price": "256.49",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — MA5 254.73 vs MA20 239.77 · 상승세 보유 중"
+    }
+  ]
+}

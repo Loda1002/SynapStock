@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-07-25T16:10:17",
+  "config": {
+    "symbols": [
+      "AAPL",
+      "TSLA",
+      "NVDA"
+    ],
+    "suffix": "_bear",
+    "from": "2022-02-01",
+    "to": "2023-12-29",
+    "bars_played": 481,
+    "strategy": "condition-portfolio",
+    "rules": {
+      "buy_dip_pct": "3",
+      "take_profit_pct": "5",
+      "spend_per_trade_total": "30",
+      "spend_per_symbol": "10.00"
+    },
+    "budget_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "fee_bps": 30,
+    "shared_budget": true
+  },
+  "metrics": {
+    "realized_pnl_usdc": "-22.59",
+    "unrealized_pnl_usdc": "0.00",
+    "total_pnl_usdc": "-22.59",
+    "return_on_budget_pct": "-22.59",
+    "benchmark_equalweight_pct": "30.14",
+    "excess_return_pct": "-52.73",
+    "max_drawdown_pct": "43.36",
+    "cum_buy_usdc": "1844.60",
+    "fees_usdc": "10.99",
+    "ap2_rejects": 0,
+    "final_remaining_usdc": "66.64"
+  },
+  "by_symbol": [
+    {
+      "symbol": "AAPL",
+      "buys": 23,
+      "sells": 12,
+      "realized_pnl_usdc": "1.84",
+      "unrealized_pnl_usdc": "0.00",
+      "left_qty": "0",
+      "last_price": "190.38"
+    },
+    {
+      "symbol": "TSLA",
+      "buys": 95,
+      "sells": 29,
+      "realized_pnl_usdc": "-15.58",
+      "unrealized_pnl_usdc": "0.00",
+      "left_qty": "0",
+      "last_price": "248.48"
+    },
+    {
+      "symbol": "NVDA",
+      "buys": 82,
+      "sells": 28,
+      "realized_pnl_usdc": "-8.85",
+      "unrealized_pnl_usdc": "0.00",
+      "left_qty": "0",
+      "last_price": "49.43"
+    }
+  ]
+}

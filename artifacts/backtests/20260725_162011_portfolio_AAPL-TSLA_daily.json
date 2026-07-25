@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-07-25T16:20:11",
+  "config": {
+    "symbols": [
+      "AAPL",
+      "TSLA"
+    ],
+    "suffix": "_daily",
+    "from": "2026-03-27",
+    "to": "2026-07-22",
+    "bars_played": 80,
+    "strategy": "condition-portfolio",
+    "rules": {
+      "buy_dip_pct": "3",
+      "take_profit_pct": "5",
+      "spend_per_trade_total": "30",
+      "spend_per_symbol": "15.00"
+    },
+    "budget_usdc": "100",
+    "per_trade_max_usdc": "50",
+    "fee_bps": 30,
+    "shared_budget": true
+  },
+  "metrics": {
+    "realized_pnl_usdc": "17.38",
+    "unrealized_pnl_usdc": "0.00",
+    "total_pnl_usdc": "17.38",
+    "return_on_budget_pct": "17.38",
+    "benchmark_equalweight_pct": "16.43",
+    "excess_return_pct": "0.95",
+    "max_drawdown_pct": "6.72",
+    "cum_buy_usdc": "299.49",
+    "fees_usdc": "1.77",
+    "ap2_rejects": 0,
+    "final_remaining_usdc": "99.25"
+  },
+  "by_symbol": [
+    {
+      "symbol": "AAPL",
+      "buys": 2,
+      "sells": 2,
+      "realized_pnl_usdc": "0.99",
+      "unrealized_pnl_usdc": "0.00",
+      "left_qty": "0",
+      "last_price": "325.89"
+    },
+    {
+      "symbol": "TSLA",
+      "buys": 18,
+      "sells": 8,
+      "realized_pnl_usdc": "16.39",
+      "unrealized_pnl_usdc": "0.00",
+      "left_qty": "0",
+      "last_price": "374.01"
+    }
+  ]
+}
