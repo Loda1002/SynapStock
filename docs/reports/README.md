@@ -111,11 +111,57 @@ PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe -m scripts.collect_bugscan
 
 ---
 
-## 부서 3 (예정) — 같은 패턴으로 추가
+## 부서 3 — 데이터 수집 부서 (`data-dept`) ✅ 가동
 
-- **데이터 수집 부서** (`data-dept`, 예정) — 시세/데이터 수집·품질 점검(`scripts/fetch_market_data.py`
-  확장 · CSV 검증 등).
+시세 입력 CSV(`data/market/*.csv`)가 **ReplayPriceFeed·백테스트·데모의 뿌리**이므로, 이
+데이터가 **실제 소비 코드 경로(`market.price_feed.load_bars`)로 로드**되고 OHLC 정합·연속성·
+이상치·워밍업 충분성 면에서 건전한지 **읽기 전용**으로 점검해 심사 재현성을 지킨다. 수집·수정
+없음 — 관찰·권고만 낸다(자동 수집은 `--fetch` 미래 여지로만 남김).
 
-새 부서 추가 절차: 필요한 결정론적 수집기(`scripts/collect_*.py`)를 만들고 → 워크플로우
-(`.claude/workflows/<dept>.js`)를 `judge-dept.js`·`bug-dept.js` 구조(Evidence/Scan→Hunt/Review→
-Verify→Synthesize+자기검토)로 얹고 → 이 README 에 한 줄 추가한다.
+### 재실행 (온디맨드 — 서브에이전트처럼 경로로 호출)
+
+```
+Workflow({ scriptPath: ".claude/workflows/data-dept.js" })
+```
+
+미래 세션에서 사용자가 **"데이터 부서 돌려줘"** 라고 하면 이 워크플로우를 실행한다.
+
+### 파이프라인 (다중 에이전트 — 무해/결함 오판을 남기지 않기 위해 적대 검증 결합)
+
+1. **Scan** — `scripts/collect_dataquality.py`(결정론적)를 실행해 품질표면을
+   `docs/reports/_dataquality_<TS>.json` 스냅샷으로 덤프.
+2. **Inspect** (팬아웃, 심볼별) — 각 인스펙터가 담당 CSV 를 **품질 7차원 전부 + 증거 JSON +
+   실제 행(파일:행번호)** 으로 점검하고, 갭/이상치를 공휴일·실적변동(무해)과 진짜 결함으로 가른다.
+3. **Verify** (건별) — 적대적 검증관이 각 후보를 회의적으로 재확인(좌표·수치 실재·무해/결함 판별).
+   객관적 결함(로드실패·OHLC 위반·스키마·중복)만 이슈로 확정, 공휴일갭·실적변동은 무해로 반려.
+4. **Report** — 종합 작성관이 리포트 초안 작성 → **최종 자기검토관**이 사실 자기검토 5항목 +
+   **5축 자기평가(agent-self-evaluation)** 를 붙여 기록한다.
+
+### 산출물
+
+| 파일 | 내용 | 커밋 |
+|---|---|---|
+| `data_<TS>.md` | 실행 시각별 데이터 품질 리포트(이력 추적) | O |
+| `data_latest.md` | 최신 리포트 포인터(내용 동일) | O |
+| `_dataquality_<TS>.json` | 결정론적 품질표면 스냅샷(재생성 가능) | X (.gitignore) |
+
+### 품질표면 수집기가 모으는 것 (`scripts/collect_dataquality.py`)
+
+CSV별로 **소비 호환**(실제 `load_bars()` 로드 성공·bar수 일치) · **스키마·파싱**(헤더·날짜형식·
+숫자변환) · **OHLC 정합**(high≥low 등·중복 날짜·정렬) · **연속성**(달력 갭>4일·주말 봉) ·
+**이상치**(전일 대비 |변동|>20%·거래량0) · **충분성**(MA20/MA200 워밍업) · **신선도**(마지막 봉)를
+모은다. 판정 로직은 **순수 함수**로 분리해 `scripts/test_dataquality.py`(28건)가 직접 검증한다.
+**마커는 '점검 좌표'이지 결함 확정이 아니다** — 공휴일 갭·실적 실변동은 인스펙터가 무해로 가른다.
+
+수동 실행(디버그용):
+```
+PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe -m scripts.collect_dataquality
+```
+
+---
+
+## 새 부서 추가 절차 (템플릿)
+
+필요한 결정론적 수집기(`scripts/collect_*.py`)를 만들고 → 워크플로우
+(`.claude/workflows/<dept>.js`)를 `judge-dept.js`·`bug-dept.js`·`data-dept.js` 구조
+(Evidence/Scan→Hunt/Review/Inspect→Verify→Synthesize+자기검토)로 얹고 → 이 README 에 한 절 추가한다.
