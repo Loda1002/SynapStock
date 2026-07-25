@@ -185,11 +185,36 @@ async def test_multi_guards() -> None:
         bad = True
     check("비정상 종목 코드는 거부됨(경로 주입 차단)", bad)
 
+    # 목 시세 + 멀티 → 거부 (전 종목 동일 가격 = 분산 무의미)
+    e4 = _engine()
+    mock_bad = False
+    try:
+        await e4.start("dry", {"type": "condition"},
+                       {"type": "mock", "symbols": ["AAPL", "TSLA"]}, autostart=False)
+    except EngineError:
+        mock_bad = True
+    check("목 시세 + 멀티 종목은 거부됨(실데이터 재생만)", mock_bad)
+
+
+# ---------- 한도 변경이 공유 가드까지 정합시키는가 ----------
+async def test_limit_change_syncs_guard() -> None:
+    print("\n[8] 한도 변경 → 공유 가드 정합")
+    engine = _engine()
+    await _start(engine, ["AAPL", "TSLA"])
+    engine.pause()   # 실행 중 한도 변경은 긴급정지 상태에서만 허용
+    engine.update_limits(Decimal("200"), Decimal("80"))
+    check("가드가 재서명된 활성 mandate 를 참조", engine._guard.mandate is engine._mandate)
+    check("가드 mandate 의 건별 한도가 새 값(80)으로 갱신",
+          engine._guard.mandate.per_trade_max_usdc == Decimal("80"))
+    check("전 종목 auth 가 새 공유 auth 로 교체",
+          engine.agents["AAPL"].auth is engine._auth and engine.agents["TSLA"].auth is engine._auth)
+
 
 async def _main() -> int:
     for t in (test_shared_budget_and_isolation, test_feed_exhaustion_isolation,
               test_all_exhausted_ends_session, test_guard_kpi_aggregation,
-              test_single_symbol_backcompat, test_multi_guards):
+              test_single_symbol_backcompat, test_multi_guards,
+              test_limit_change_syncs_guard):
         await t()
     bad = [n for n, ok, _ in _results if not ok]
     print("\n" + "=" * 60)

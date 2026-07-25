@@ -378,6 +378,11 @@ class TradingEngine:
             raise EngineError("추세추종(올인/올아웃)은 단일 종목에서만 지원됩니다 — 여러 종목이 하나의 "
                               "예산을 전량 매수로 경쟁하면 먼저 진입한 종목이 예산을 독식합니다. "
                               "종목을 하나만 선택하세요.")
+        # 목 시세는 종목별 기준가가 없어 전 종목이 동일 가격 경로가 된다(완전 상관 → 분산 무의미).
+        # 멀티는 실데이터 재생만 지원한다(live/trend 멀티 거부와 같은 관례).
+        if len(symbols) > 1 and ((feed_cfg or {}).get("type") or CFG.price_feed) == "mock":
+            raise EngineError("목 시세는 멀티 종목을 지원하지 않습니다 — 멀티 종목은 실데이터 재생(replay)만 "
+                              "지원합니다. 종목을 하나만 고르거나 시세를 실데이터 재생으로 바꾸세요.")
 
         # 시세 피드 — 레거시 단일은 기존 _build_feed(tAAPL 유도·bear 기본·feed.symbol 처리 포함),
         # 멀티는 종목별로 _build_symbol_feed 로 조립한다(아래 종목 루프에서).
@@ -553,7 +558,8 @@ class TradingEngine:
             "type": strat_type,
             "symbols": list(symbols),         # 세션 종목 목록 (멀티=N개)
             "multi": multi,                   # 멀티 종목 세션 여부
-            "spend_per_symbol_usdc": str(spend_per_symbol),  # 종목별 1회 매수(총 spend/N)
+            "spend_per_symbol_usdc": str(spend_per_symbol),  # 조건형 종목별 1회 매수(총 spend/N)
+            "dca_amount_per_symbol_usdc": str(per_symbol_dca),  # 적립형 종목별 회당(총 amount/N)
             "decision_mode": decision_mode,   # strict(엄격) / trend(추세 재량) — 조건형 전용
             "trend_signal": trend_signal,     # 추세추종 신호 (pxma20 / cross_5_20)
             "trend_signal_label": signal_label,  # 사람이 읽는 신호 문구
@@ -680,6 +686,9 @@ class TradingEngine:
             new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
             new_auth.spent_usdc = spent  # 사용액 이월 (공유 예산이라 전 종목 합산치)
             self._mandate, self._auth = new_mandate, new_auth
+            # 공유 가드도 새 mandate 로 정합시킨다 — 안 하면 Guard 의 한도(per_trade)·허용종목
+            # 검사가 옛 mandate 를 계속 봐서 활성 서명 mandate 와 어긋난다(헤드라인 가드 정합).
+            self._guard.mandate = new_mandate
             for a in self.agents.values():   # 모든 종목 에이전트가 새 공유 auth 를 쓴다
                 a.auth = new_auth
             self._session_per_trade = eff_per_trade
