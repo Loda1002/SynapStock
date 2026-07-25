@@ -14,6 +14,14 @@ test-ledger/
 __pycache__/
 *.pyc
 
+# Node/JS 산출물 — 이 프로젝트는 순수 Python(requirements.txt·venv)이고 프론트는
+# 빌드리스 vanilla JS/CSS 라 npm 이 필요 없다. 루트의 package.json(omniroute 등)·
+# node_modules 는 외부 도구가 만든 stray 파일이라 커밋하지 않는다.
+# (프론트가 나중에 빌드 스텝을 도입하면 이 세 줄을 지우고 자신들의 package.json 을 커밋)
+node_modules/
+package.json
+package-lock.json
+
 # Claude Code 로컬 설정 (머신 전용)
 .claude/settings.local.json
 
