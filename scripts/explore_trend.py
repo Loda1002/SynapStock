@@ -55,6 +55,10 @@ def desired_long(variant: str, price: Decimal, ma5, ma10, ma20, prev_ma20, cur_l
         return ma5 is not None and ma5 >= ma20
     if variant == "cross_10_20":       # 골든/데드크로스 (MA10 vs MA20) — 더 느리고 덜 휩쏨
         return ma10 is not None and ma10 >= ma20
+    if variant == "cross_1_5":         # 1/5 골든크로스 (가격=MA1 vs 단기 MA5) — 빠른 반응
+        return ma5 is not None and price >= ma5
+    if variant == "cross_5_20_1_5":    # 결합: 5/20(큰 추세) '그리고' 1/5(가격>MA5) 둘 다 상승
+        return ma5 is not None and ma5 >= ma20 and price >= ma5
     if variant == "slope20":           # MA20 기울기 상승 = 상승추세
         return prev_ma20 is not None and ma20 > prev_ma20
     return False

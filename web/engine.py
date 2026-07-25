@@ -333,8 +333,9 @@ class TradingEngine:
             raise EngineError("strategy.type 은 'condition' / 'dca' / 'trend' 중 하나여야 합니다.")
         # 추세추종 판단 방식 — pxma20(가격≥MA20) / cross_5_20(골든크로스5/20). trend 에서만 의미.
         trend_signal = scfg.get("trend_signal") or "pxma20"
-        if trend_signal not in ("pxma20", "cross_5_20"):
-            raise EngineError("추세 신호는 'pxma20' 또는 'cross_5_20' 여야 합니다.")
+        if trend_signal not in ("pxma20", "cross_5_20", "cross_1_5", "cross_5_20_1_5"):
+            raise EngineError("추세 신호는 'pxma20' / 'cross_5_20' / 'cross_1_5' / "
+                              "'cross_5_20_1_5' 중 하나여야 합니다.")
         # Gemini 재량 모드 — strict(규칙 그대로) / trend(보류 재량). 조건형에서만 의미 있음.
         decision_mode = scfg.get("decision_mode") or "strict"
         if decision_mode not in ("strict", "trend"):
@@ -414,7 +415,9 @@ class TradingEngine:
         schedule_label = ({"minutes": f"{dca_minutes}분마다",
                            "daily": f"매일 {dca_at_time}"}
                           .get(dca_unit, f"{dca_every}틱마다"))
-        signal_label = {"pxma20": "가격>MA20", "cross_5_20": "골든크로스5/20"}[trend_signal]
+        signal_label = {"pxma20": "가격>MA20", "cross_5_20": "골든크로스5/20",
+                        "cross_1_5": "1/5크로스(가격>MA5)",
+                        "cross_5_20_1_5": "5/20+1/5 결합"}[trend_signal]
         brain = None
         if strat_type == "dca":
             brain_label = f"적립식 스케줄 ({schedule_label} {dca_amount} USDC, Gemini 미사용)"

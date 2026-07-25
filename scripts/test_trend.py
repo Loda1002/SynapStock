@@ -32,7 +32,7 @@ from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateE
 from scripts.explore_trend import simulate, desired_long, ma  # noqa: E402
 
 SYMBOLS = ["AAPL", "TSLA", "NVDA"]
-VARIANTS = ["pxma20", "cross_5_20"]
+VARIANTS = ["pxma20", "cross_5_20", "cross_1_5", "cross_5_20_1_5"]
 WARMUP = 20
 # 검증 예산 = 100(데모·앱 기본값). 이 예산에서 6개 조합 모두 AP2 거부 0(actual_run 이 MandateError 를
 # AssertionError 로 승격해 강제)이라 진입/청산 시퀀스가 그대로 재현된다. 참고: 브로커 quote 가 소계·수수료를

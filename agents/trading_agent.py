@@ -315,24 +315,46 @@ class TradingAgent:
         """올인/올아웃 추세추종. 상승세면 예산 전액 진입해 태우고, 하락세로 꺾이면 전량 청산.
 
         판단은 결정론적 규칙 신호(Gemini 미사용)라 검증(explore_trend)이 그대로 재현된다.
-        - pxma20    : 가격 ≥ MA20 = 상승세(보유), 미만 = 하락세(청산)
-        - cross_5_20: MA5 ≥ MA20(골든크로스) = 상승세, 데드크로스 = 청산
+        - pxma20         : 가격 ≥ MA20 = 상승세(보유), 미만 = 하락세(청산)
+        - cross_5_20     : MA5 ≥ MA20(골든크로스) = 상승세, 데드크로스 = 청산
+        - cross_1_5      : 가격 ≥ MA5(1/5 골든크로스) = 상승세 — 아주 짧은 변동에 빠르게 반응
+        - cross_5_20_1_5 : 5/20(큰 추세)'과' 1/5(가격≥MA5) 둘 다 상승일 때만 보유. 하나라도
+                           꺾이면 청산 — 5/20 은 방향, 1/5 는 빠른 손절(작은 손실도 조기 차단).
         시간청산(max_hold_bars)은 적용하지 않는다 — 추세가 살아 있는 한 오래 태우는 게 핵심."""
-        ma20 = self._trend_ma(20)
-        if ma20 is None:
-            return Decision(
-                "hold", f"추세 워밍업 — MA20 계산까지 {20 - len(self._history)}봉 더 필요",
-                source="rule")
-        if self.strategy.trend_signal == "cross_5_20":
-            ma5 = self._trend_ma(5)
+        def q(v):
+            return v.quantize(Decimal("0.01"))
+        sig = self.strategy.trend_signal
+        ma5, ma20 = self._trend_ma(5), self._trend_ma(20)
+        if sig == "cross_1_5":
             if ma5 is None:
-                return Decision("hold", "추세 워밍업 — MA5 계산 대기", source="rule")
-            want_long = ma5 >= ma20
-            basis = f"MA5 {ma5.quantize(Decimal('0.01'))} vs MA20 {ma20.quantize(Decimal('0.01'))}"
-            up, down = "골든크로스(MA5≥MA20)", "데드크로스(MA5<MA20)"
+                return Decision(
+                    "hold", f"추세 워밍업 — MA5 계산까지 {5 - len(self._history)}봉 더 필요",
+                    source="rule")
+            want_long = price >= ma5
+            basis = f"가격 {price} vs MA5 {q(ma5)}"
+            up, down = "가격≥MA5(1/5 골든)", "가격<MA5(1/5 데드)"
+        elif sig in ("cross_5_20", "cross_5_20_1_5"):
+            if ma20 is None:
+                return Decision(
+                    "hold", f"추세 워밍업 — MA20 계산까지 {20 - len(self._history)}봉 더 필요",
+                    source="rule")
+            big_up = ma5 >= ma20
+            if sig == "cross_5_20_1_5":
+                want_long = big_up and price >= ma5
+                basis = f"5/20: MA5 {q(ma5)} vs MA20 {q(ma20)} · 1/5: 가격 {price} vs MA5 {q(ma5)}"
+                up = "5/20↑ & 1/5↑(둘 다 상승)"
+                down = "데드크로스(MA5<MA20)" if not big_up else "1/5 이탈(가격<MA5)"
+            else:
+                want_long = big_up
+                basis = f"MA5 {q(ma5)} vs MA20 {q(ma20)}"
+                up, down = "골든크로스(MA5≥MA20)", "데드크로스(MA5<MA20)"
         else:  # pxma20 (기본)
+            if ma20 is None:
+                return Decision(
+                    "hold", f"추세 워밍업 — MA20 계산까지 {20 - len(self._history)}봉 더 필요",
+                    source="rule")
             want_long = price >= ma20
-            basis = f"가격 {price} vs MA20 {ma20.quantize(Decimal('0.01'))}"
+            basis = f"가격 {price} vs MA20 {q(ma20)}"
             up, down = "가격≥MA20", "가격<MA20"
         holding = self.position.quantity > 0
 

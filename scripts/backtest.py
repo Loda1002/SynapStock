@@ -52,7 +52,7 @@ def build_args() -> argparse.Namespace:
     ap.add_argument("--strategy", choices=["condition", "trend"], default="condition",
                     help="condition(조건형 눌림목) / trend(추세추종 올인·올아웃)")
     ap.add_argument("--trend-signal", dest="trend_signal",
-                    choices=["pxma20", "cross_5_20"], default="pxma20",
+                    choices=["pxma20", "cross_5_20", "cross_1_5", "cross_5_20_1_5"], default="pxma20",
                     help="추세 신호 (--strategy trend 에서만): 가격>MA20 / 골든크로스5/20")
     ap.add_argument("--brain", choices=["rule", "gemini"], default="rule",
                     help="판단 두뇌 (--strategy trend 이면 규칙 신호로 강제)")
@@ -277,7 +277,9 @@ def main() -> int:
     brain_desc = f"rule{ta_tag}"
     if is_trend:
         # 추세추종은 결정론적 규칙 신호(Gemini 미사용) — 검증(explore_trend)이 그대로 재현
-        sig_label = {"pxma20": "가격>MA20", "cross_5_20": "골든크로스5/20"}[args.trend_signal]
+        sig_label = {"pxma20": "가격>MA20", "cross_5_20": "골든크로스5/20",
+                     "cross_1_5": "1/5크로스(가격>MA5)",
+                     "cross_5_20_1_5": "5/20+1/5 결합"}[args.trend_signal]
         brain_desc = f"추세추종/{sig_label} (올인·올아웃)"
     elif args.brain == "gemini":
         if not CFG.gemini_api_key:
