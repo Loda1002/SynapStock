@@ -47,6 +47,10 @@ class Config:
     stock_symbol: str = _get("STOCK_SYMBOL", "tAAPL")
     stock_mint: str = _get("STOCK_MINT", "")
     stock_decimals: int = int(_get("STOCK_DECIMALS", "6"))
+    # 멀티 종목(동시 매수) — 콤마 구분 티커 목록(예: "AAPL,TSLA,NVDA"). 빈값이면 단일 폴백.
+    # 범위(사용자 확정): 드라이 + 대시보드 + 백테스트. 라이브 온체인 멀티는 제외(종목별 민트 필요).
+    # 웹 세션은 UI/API 가 넘긴 symbols 가 우선하고, 이 값은 .env 기본 목록이다.
+    stock_symbols_env: str = _get("STOCK_SYMBOLS", "")
 
     budget_usdc: Decimal = Decimal(_get("BUDGET_USDC", "100"))
     per_trade_max_usdc: Decimal = Decimal(_get("PER_TRADE_MAX_USDC", "50"))
@@ -110,6 +114,12 @@ class Config:
     web_tick_interval_sec: float = float(_get("WEB_TICK_INTERVAL_SEC", "8"))
     # B2 데일리 브리핑 자동 생성 시각(HH:MM, 서버 로컬) — 장 마감 시각, 하루 1회
     daily_briefing_time: str = _get("DAILY_BRIEFING_TIME", "16:00")
+
+    @property
+    def stock_symbols(self) -> list:
+        """멀티 종목 티커 목록. STOCK_SYMBOLS(콤마 구분)가 있으면 그 목록, 없으면 [stock_symbol]."""
+        syms = [s.strip() for s in self.stock_symbols_env.split(",") if s.strip()]
+        return syms or [self.stock_symbol]
 
 
 CFG = Config()
