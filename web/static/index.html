@@ -38,7 +38,9 @@
   <section class="card card-full" data-card="price">
     <div class="price-head">
       <div>
-        <h2>시세 <span class="sub" data-symbol></span></h2>
+        <h2>시세 <span class="sub" data-symbol></span>
+          <span class="sub hidden" data-focus-wrap>· 보기
+            <select data-focus-select aria-label="차트에 표시할 종목"></select></span></h2>
         <p class="huge" data-price>—</p>
         <p class="sub"><span data-price-change>—</span> <span class="unit" data-change-basis>세션 시작가 대비</span></p>
       </div>
@@ -51,6 +53,19 @@
     </div>
     <svg class="chart" data-chart viewBox="0 0 640 260" role="img"
          aria-label="캔들차트 — 시가·고가·저가·종가와 이동평균선"></svg>
+  </section>
+
+  <section class="card card-wide hidden" data-card="symbols">
+    <h2>종목별 요약 <span class="sub">멀티 종목 · 하나의 예산·가드 아래 각자 독립 포지션</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>종목</th><th>현재가</th><th>보유 수량</th><th>평균단가</th>
+            <th>평가액(수령예상)</th><th>평가손익</th></tr>
+        </thead>
+        <tbody data-sym-summary></tbody>
+      </table>
+    </div>
   </section>
 
   <section class="card" data-card="session">
@@ -69,6 +84,13 @@
         <option value="daily">상승장 일봉</option>
         <option value="bear">하락장 (2022 폭락→회복)</option>
       </select>
+      <div class="sym-picker hidden" data-sym-picker
+           title="여러 종목을 고르면 하나의 예산·하나의 402 Guard 아래 각 종목을 독립 포지션으로 동시에 매수합니다(드라이 전용). 아무것도 안 고르면 기본 단일 종목입니다.">
+        <span class="sub" data-sym-picker-label>동시 매수 종목 (여러 개 = 멀티 · 비우면 기본 단일):</span>
+        <label class="sym-opt"><input type="checkbox" data-sym-check value="AAPL"> AAPL</label>
+        <label class="sym-opt"><input type="checkbox" data-sym-check value="TSLA"> TSLA</label>
+        <label class="sym-opt"><input type="checkbox" data-sym-check value="NVDA"> NVDA</label>
+      </div>
       <select data-strategy-select aria-label="매매 전략">
         <option value="condition">조건형 (AI 판단 매수·매도)</option>
         <option value="trend">추세추종 (상승세 보유·하락세 매도)</option>
@@ -132,7 +154,7 @@
       <label class="field">건별 최대 (USDC)
         <input data-mandate-per-trade type="number" min="0" step="any" required>
       </label>
-      <p class="sub">허용 종목: <span data-mandate-symbols>—</span> (단일 종목 데모 · 멀티 종목은 P3)</p>
+      <p class="sub">허용 종목: <span data-mandate-symbols>—</span> <span class="unit">(멀티 종목이면 공유 예산·한도)</span></p>
       <button class="btn" type="submit" data-btn-mandate>재서명·적용</button>
       <p class="sub" data-mandate-hint>—</p>
     </form>
