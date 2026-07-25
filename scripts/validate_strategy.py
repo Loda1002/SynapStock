@@ -257,6 +257,7 @@ def summarize(rows: List[dict]) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description="전략 수익 신뢰도 검증 (롤링 윈도우)")
     ap.add_argument("--symbols", default="AAPL,TSLA,NVDA")
+    ap.add_argument("--suffix", default="_daily", help="CSV 접미사 (예: _bear 로 하락장 데이터)")
     ap.add_argument("--windows", default="8,12,20,30", help="세션 길이(봉) 목록")
     ap.add_argument("--warmup", type=int, default=20)
     ap.add_argument("--budget", default="100")
@@ -300,7 +301,7 @@ def main() -> int:
 
     bars_by_symbol = {}
     for sym in symbols:
-        csv = os.path.join(ROOT, "data", "market", f"{sym}_daily.csv")
+        csv = os.path.join(ROOT, "data", "market", f"{sym}{args.suffix}.csv")
         try:
             bars_by_symbol[sym] = load_bars(csv)
         except (FileNotFoundError, ValueError) as e:
