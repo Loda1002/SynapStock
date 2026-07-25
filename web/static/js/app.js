@@ -248,7 +248,10 @@
     const multiTag = multi ? ` · ${sessionSymbols.length}종목 동시(각자 독립 포지션, 예산·가드 공유)` : "";
     let ruleText;
     if (strat.type === "dca") {
-      ruleText = `적립형: ${dcaSchedule(strat)} ${multi ? spendText + " USDC(종목별)" : strat.dca_amount_usdc + " USDC"} 정액 매수 (매도 없음)`;
+      // 적립형 종목별 금액은 회당 amount/N (조건형 spend/N 과 다르다)
+      const dcaAmt = multi ? (strat.dca_amount_per_symbol_usdc || strat.dca_amount_usdc) + " USDC(종목별)"
+                           : strat.dca_amount_usdc + " USDC";
+      ruleText = `적립형: ${dcaSchedule(strat)} ${dcaAmt} 정액 매수 (매도 없음)`;
     } else if (strat.type === "trend") {
       const sig = strat.trend_signal_label
         || (strat.trend_signal === "cross_5_20" ? "골든크로스5/20" : "가격>MA20");
@@ -337,9 +340,10 @@
     el.modeSelect.disabled = running;
     el.feedSelect.disabled = running;
     el.feedDataset.disabled = running;
-    // 세션 종목은 실행 중 변경 불가(추세추종이면 대기 상태에서도 잠김) · 포커스 전환은 항상 허용
+    // 세션 종목은 실행 중 변경 불가 · 추세추종·라이브는 대기 상태에서도 단일 잠금 · 포커스 전환은 항상 허용
+    // (대기 상태 판정은 사용자가 고른 드롭다운 값을 쓴다 — 스냅샷 strategy 는 직전 세션 값일 수 있음)
     for (const c of document.querySelectorAll("[data-sym-check]"))
-      c.disabled = running || (s.strategy && s.strategy.type === "trend");
+      c.disabled = running || el.strategySelect.value === "trend" || el.modeSelect.value === "live";
     el.strategySelect.disabled = running;
     el.trendSignal.disabled = running;
     el.decisionMode.disabled = running;
@@ -509,6 +513,7 @@
   function addDecision(d) {
     const li = make("li");
     li.appendChild(make("time", null, timeOf(d.ts)));
+    if (sessionSymbols.length > 1 && d.symbol) li.appendChild(make("span", "sym", d.symbol));
     li.appendChild(make("span", "src src-" + (d.source || "rule"), d.source));
     li.appendChild(make("span", "act act-" + d.action, d.action.toUpperCase()));
     li.appendChild(make("span", null, `@ ${d.price} — ${d.reason}`));
@@ -551,6 +556,7 @@
     if (empty) empty.remove();
     const tr = make("tr");
     tr.appendChild(make("td", null, timeOf(t.ts)));
+    tr.appendChild(make("td", "sym", t.symbol || "—"));   // 멀티: 어느 종목 체결인지
     tr.appendChild(make("td", "side-" + t.side, t.side === "buy" ? "매수" : "매도"));
     tr.appendChild(make("td", null, t.quantity));
     tr.appendChild(make("td", null, t.price_usdc));
@@ -703,6 +709,13 @@
           if (d.prev_close != null) prevClose = num(d.prev_close);
           if (d.bar) pushBarCandle(d.bar);        // 실데이터: 1틱 = 1봉 (실제 OHLC)
           else pushTickToCandle(num(d.price));    // 목 시세: N틱 집계
+          // 포커스 종목의 누적 캔들을 캐시에 되써서, 포커스 전환 재구성이 최신 봉을 읽게 한다
+          // (안 하면 마지막 fetchState 시점 캔들로 되감김). 키는 서버 캔들 형태로 맞춘다.
+          if (perSymbol[focusSymbol] && perSymbol[focusSymbol].price) {
+            perSymbol[focusSymbol].price.candles = candles.map((c) => ({
+              open: c.o, high: c.h, low: c.l, close: c.c, count: c.n, ts: c.t, warmup: c.w,
+            }));
+          }
           drawChart();
           renderPriceChange(d.price);
           // 평가손익 즉시 갱신은 단일 종목만 (멀티 합산은 체결 시 fetchState 로 갱신)
@@ -858,16 +871,20 @@
     // 데이터셋(일봉/하락장)은 실데이터 재생일 때만 의미
     const replay = el.feedSelect.value === "replay";
     el.feedDataset.classList.toggle("hidden", !replay);
-    // 멀티 종목 선택은 실데이터 재생에서만. 추세추종(올인)은 단일만이라 잠근다.
+    // 멀티 종목 선택은 실데이터 재생에서만. 추세추종(올인)·라이브(온체인)는 단일만이라 잠근다.
     const isTrend = strat === "trend";
+    const isLive = el.modeSelect.value === "live";
+    const singleOnly = isTrend || isLive;
     el.symPicker.classList.toggle("hidden", !replay);
     for (const c of document.querySelectorAll("[data-sym-check]")) {
-      c.disabled = isTrend;
-      if (isTrend) c.checked = false;
+      c.disabled = singleOnly;
+      if (singleOnly) c.checked = false;
     }
-    el.symPickerLabel.textContent = isTrend
-      ? "추세추종은 단일 종목만 지원합니다 (여러 종목이 예산을 독식)"
-      : "동시 매수 종목 (여러 개 = 멀티 · 비우면 기본 단일):";
+    el.symPickerLabel.textContent = isLive
+      ? "라이브(온체인)는 단일 종목만 지원합니다 — 멀티 종목은 드라이 전용"
+      : isTrend
+        ? "추세추종은 단일 종목만 지원합니다 (여러 종목이 예산을 독식)"
+        : "동시 매수 종목 (여러 개 = 멀티 · 비우면 기본 단일):";
     const unit = el.dcaUnit.value;
     el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
     el.dcaMinutesWrap.classList.toggle("hidden", unit !== "minutes");
@@ -875,6 +892,7 @@
   }
   el.strategySelect.addEventListener("change", syncDcaInputs);
   el.feedSelect.addEventListener("change", syncDcaInputs);
+  el.modeSelect.addEventListener("change", syncDcaInputs);   // 라이브 전환 시 종목 단일 잠금
   el.dcaUnit.addEventListener("change", syncDcaInputs);
   el.focusSelect.addEventListener("change", () => setFocus(el.focusSelect.value));
   syncDcaInputs();   // 초기 1회 — 기본 전략/피드에 맞춰 표시 정리

@@ -258,3 +258,5 @@ td a { color: var(--accent); }
 tr.focus-row { font-weight: 600; }
 tr.focus-row .linklike { text-decoration: none; }
 [data-focus-select] { font: inherit; }
+.feed .sym { font-weight: 600; color: var(--accent); }
+td.sym { font-weight: 600; }
