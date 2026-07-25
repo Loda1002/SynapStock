@@ -45,6 +45,7 @@ USER = Keypair()
 BROKER = Keypair()
 EVIL = Keypair()
 USDC = str(Keypair().pubkey())
+STOCK = str(Keypair().pubkey())
 OTHER_MINT = str(Keypair().pubkey())
 SYMBOL = "tAAPL"
 DECIMALS = 6
@@ -73,6 +74,21 @@ def make_required(order_id="ord_00aabb1122", amount_base=32_100_000,
 QUOTE = Quote(symbol=SYMBOL, price_usdc=Decimal("178.00"), quantity=Decimal("0.18"),
               total_usdc=Decimal("32.10"), subtotal_usdc=Decimal("32.01"),
               fee_usdc=Decimal("0.09"), fee_bps=30)
+
+# 매도(주식 전송) 청구서 픽스처 — 합의 매도 수량 0.18 주 (= 180,000 base units)
+STOCK_QTY = Decimal("0.18")
+STOCK_QTY_BASE = 180_000  # to_base_units(0.18, 6)
+
+
+def make_stock_required(order_id="ord_00aabb1122", amount_base=STOCK_QTY_BASE,
+                        pay_to=None, asset=STOCK, symbol=SYMBOL) -> PaymentRequired:
+    reqs = PaymentRequirements(
+        scheme="exact", network="solana-localnet", asset=asset, amount=amount_base,
+        pay_to=pay_to if pay_to is not None else str(BROKER.pubkey()),
+        resource=f"USDC-BUYBACK:{symbol} x{STOCK_QTY}", decimals=DECIMALS,
+    )
+    return PaymentRequired(order_id=order_id, symbol=symbol, quantity=str(STOCK_QTY),
+                           price_usdc="178.00", requirements=reqs)
 
 
 def test_demand() -> None:
@@ -156,6 +172,36 @@ def test_intent_ceiling() -> None:
     check("고수수료 정직 견적 오탐 없음(2센트 허용)", r_hi.ok, f"{r_hi.code} total={hq.total_usdc}")
 
 
+def test_stock_transfer() -> None:
+    print("\n== check_stock_transfer — 매도 청구서 대조 (자산·수취인·수량, 매수 대칭) ==")
+    kw = dict(expected_stock_mint=STOCK, expected_quantity=STOCK_QTY, stock_decimals=DECIMALS)
+    r_ok = GUARD.check_stock_transfer(make_stock_required(), **kw)
+    check("정상 매도 청구서 통과", r_ok.ok, r_ok.detail)
+    check("통과 결과에 방어 위치 기록", r_ok.where.startswith("guard.py:L"), r_ok.where)
+
+    # 핵심 방어 — 지불 자산을 주식→USDC(=예산 밖 유휴자금)로 바꿔 빼가는 counterparty 공격 차단
+    r_asset = GUARD.check_stock_transfer(make_stock_required(asset=USDC), **kw)
+    check("매도 자산 스왑 차단(GUARD_ASSET_MISMATCH — USDC 유출)",
+          (not r_asset.ok) and r_asset.code == GUARD_ASSET_MISMATCH,
+          f"{r_asset.code} @ {r_asset.where}")
+
+    # 자산·수량 정상이나 수취인만 악성 지갑으로 스왑 → 차단
+    r_payee = GUARD.check_stock_transfer(make_stock_required(pay_to=str(EVIL.pubkey())), **kw)
+    check("매도 수취인 스왑 차단(GUARD_PAYEE_UNKNOWN)",
+          (not r_payee.ok) and r_payee.code == GUARD_PAYEE_UNKNOWN, r_payee.where)
+
+    # 브로커가 amount 를 보유·합의 수량(0.18)보다 크게(0.9) 요구 → 독립 기준(보유 수량)으로 차단
+    r_amt = GUARD.check_stock_transfer(make_stock_required(amount_base=900_000), **kw)
+    check("매도 수량 부풀리기 차단(GUARD_AMOUNT_MISMATCH)",
+          (not r_amt.ok) and r_amt.code == GUARD_AMOUNT_MISMATCH,
+          f"{r_amt.code} {r_amt.expected}!={r_amt.actual} @ {r_amt.where}")
+
+    # 주문번호 형식 오류(대사 키 부재)
+    r_ord = GUARD.check_stock_transfer(make_stock_required(order_id="not-an-order"), **kw)
+    check("매도 주문번호 형식 오류 차단(GUARD_ORDER_INVALID)",
+          (not r_ord.ok) and r_ord.code == GUARD_ORDER_INVALID, r_ord.where)
+
+
 def test_no_false_positive() -> None:
     print("\n== check_demand — 정상 거래 14건 오탐 0 ==")
     fp = 0
@@ -209,6 +255,7 @@ async def _delivery_cases() -> None:
 def main() -> int:
     test_demand()
     test_intent_ceiling()
+    test_stock_transfer()
     test_no_false_positive()
     asyncio.run(_delivery_cases())
     print("\n결과: " + ("모든 테스트 통과" if _fail == 0 else f"{_fail}건 실패"))

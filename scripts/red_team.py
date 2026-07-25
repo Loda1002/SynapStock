@@ -35,6 +35,7 @@ from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer
 from payments.guard import (
     Guard, GuardError,
     GUARD_PAYEE_UNKNOWN, GUARD_INTENT_EXCEEDED, GUARD_DELIVERY_UNCONFIRMED,
+    GUARD_ASSET_MISMATCH,
 )
 from payments import x402_solana as x
 from agents.broker_agent import BrokerAgent
@@ -155,6 +156,86 @@ def _guarded(ta, required, quote, max_spend_usdc=None):
         return e.result.code, e.result.where
 
 
+# ---------- 공격 ①' 매도 청구 위조 (check_stock_transfer — 매수 위조의 매도 대칭) ----------
+# 합의된 매도 수량 0.18 주 / 예산 밖 유휴 USDC 400 (mandate < 지갑잔액인 self-custody 정상 상태).
+AGREED_QTY = Decimal("0.18")
+AGREED_QTY_BASE = to_base_units(AGREED_QTY, DEC)       # 180,000 (stock base units)
+IDLE_USDC = Decimal("400")
+IDLE_USDC_BASE = to_base_units(IDLE_USDC, DEC)         # 400,000,000
+
+
+def _stock_required(env, order_id, amount_base, asset=None, pay_to=None, symbol="tAAPL"):
+    reqs = PaymentRequirements(
+        scheme="exact", network="solana-localnet",
+        asset=asset or str(env["stock"]), amount=amount_base,
+        pay_to=pay_to or str(env["broker"].pubkey()),
+        resource=f"USDC-BUYBACK:{symbol} x{AGREED_QTY}", decimals=DEC)
+    return PaymentRequired(order_id=order_id, symbol=symbol, quantity=str(AGREED_QTY),
+                           price_usdc="178.00", requirements=reqs)
+
+
+def _guarded_sell(env, required):
+    """가드가 켜진 상태로 build_stock_transfer 시도 → (차단코드, 위치). 통과하면 ('통과','')."""
+    try:
+        env["ta"].build_stock_transfer(
+            required, Hash.default(),
+            expected_stock_mint=env["stock"], expected_quantity=AGREED_QTY, stock_decimals=DEC)
+        return "통과(유출!)", ""
+    except GuardError as e:
+        return e.result.code, e.result.where
+
+
+def attack_stock_asset_swap(attacker: str):
+    """매도 레그 — 수취인은 정상 브로커(신뢰)지만 지불 자산을 주식→USDC 로, 수량을 유휴 USDC
+    전액으로 바꿔 구매자의 예산 밖 유휴 자금을 빼간다. 자산 검증이 비면 그대로 서명된다."""
+    env = _env(attacker)
+    required = _stock_required(env, "ord_5e11a50001", IDLE_USDC_BASE, asset=str(env["usdc"]))
+
+    # [가드 없음 = 업계 기본값] 구매 에이전트가 그대로 서명 → 브로커에게 유휴 USDC 400 전송
+    env["ta"].guard = None
+    submitted = env["ta"].build_stock_transfer(required, Hash.default())
+    tx = x.decode_payload(submitted.payment.serialized_transaction)
+    leaked_ok, _, _ = x.verify_payment(
+        tx, expected_mint=env["usdc"], expected_dest_owner=env["broker"].pubkey(),
+        expected_amount=IDLE_USDC_BASE, expected_order_id="ord_5e11a50001")
+    without = leaked_ok  # 서명된 tx 가 실제로 유휴 USDC 를 내보내는가
+
+    # [402 Guard] 서명 직전 차단
+    env2 = _env(attacker)
+    required2 = _stock_required(env2, "ord_5e11a50001", IDLE_USDC_BASE, asset=str(env2["usdc"]))
+    code, where = _guarded_sell(env2, required2)
+    return {
+        "name": "매도 자산 스왑 - 주식→USDC 유출", "layer": "check_stock_transfer (서명 게이트)",
+        "without": f"예산 밖 유휴 {IDLE_USDC} USDC 를 서명·전송" if without else "재현 실패",
+        "code": code, "where": where, "blocked": code == GUARD_ASSET_MISMATCH,
+        "leak": IDLE_USDC if without else Decimal(0),
+    }
+
+
+def attack_stock_payee_swap(attacker: str):
+    """매도 레그 — 자산·수량은 정상(주식 0.18)이지만 수취인을 악성 지갑으로 스왑해 주식을 탈취."""
+    env = _env(attacker)
+    required = _stock_required(env, "ord_5e11a50002", AGREED_QTY_BASE, pay_to=str(env["evil"]))
+
+    env["ta"].guard = None
+    submitted = env["ta"].build_stock_transfer(required, Hash.default())
+    tx = x.decode_payload(submitted.payment.serialized_transaction)
+    leaked_ok, _, _ = x.verify_payment(
+        tx, expected_mint=env["stock"], expected_dest_owner=env["evil"],
+        expected_amount=AGREED_QTY_BASE, expected_order_id="ord_5e11a50002")
+    without = leaked_ok
+
+    env2 = _env(attacker)
+    required2 = _stock_required(env2, "ord_5e11a50002", AGREED_QTY_BASE, pay_to=str(env2["evil"]))
+    code, where = _guarded_sell(env2, required2)
+    return {
+        "name": "매도 수취인 스왑 - 주식 탈취", "layer": "check_stock_transfer (서명 게이트)",
+        "without": f"주식 {AGREED_QTY} 주를 악성 지갑에 서명·전송" if without else "재현 실패",
+        "code": code, "where": where, "blocked": code == GUARD_PAYEE_UNKNOWN,
+        "leak": Decimal(0),   # 유출은 '주식'(USDC 환산 아님) — 표에는 자산 탈취로 표기, USDC 합계엔 미포함
+    }
+
+
 # ---------- 공격 ② 이중청구 (Memo + 서명 dedup) ----------
 
 async def attack_double_bill(attacker: str):
@@ -271,12 +352,15 @@ async def main(attacker: str) -> int:
         attack_amount_forge(attacker),
         await attack_double_bill(attacker),
         await attack_non_delivery(attacker),
+        attack_stock_asset_swap(attacker),
+        attack_stock_payee_swap(attacker),
     ]
     normal = await normal_trades(14)
 
-    # 공격 3종(계층) — ①청구 위조는 수취인/금액 두 변형으로 시연
-    labels = ["① 청구 위조 (a) 수취인 스왑", "① 청구 위조 (b) 금액 부풀리기",
-              "② 이중청구", "③ 정산 미이행"]
+    # 공격 계층 — ①청구 위조(매수)는 수취인/금액 두 변형, ①'는 그 매도 대칭(자산/수취인)
+    labels = ["① 매수 청구 위조 (a) 수취인 스왑", "① 매수 청구 위조 (b) 금액 부풀리기",
+              "② 이중청구", "③ 정산 미이행",
+              "①' 매도 청구 위조 (a) 자산 스왑", "①' 매도 청구 위조 (b) 수취인 스왑"]
     line = "─" * 78
     print("\n" + line)
     print("  402 Guard 레드팀 — 공격/차단 매트릭스 (실제 결제 경로를 그대로 태움)")

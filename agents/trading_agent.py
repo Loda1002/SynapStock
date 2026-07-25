@@ -451,8 +451,22 @@ class TradingAgent:
         self,
         required: PaymentRequired,
         blockhash: Hash,
+        expected_stock_mint: Optional[Pubkey] = None,
+        expected_quantity: Optional[Decimal] = None,
+        stock_decimals: Optional[int] = None,
     ) -> PaymentSubmitted:
         reqs = required.requirements
+
+        # 402 Guard — 매도 레그도 서명 직전 청구서를 검증한다(매수 build_payment 의 assert_demand 대칭).
+        # 자산(합의된 주식 민트)·수취인(신뢰 브로커)·수량을 엔진의 독립 기준과 대조 — 악성 브로커가
+        # asset 을 USDC 로 바꿔 유휴 자금을 빼가는 counterparty 공격을 서명 전에 차단한다(유출 0).
+        # expected_stock_mint 가 주어질 때만 검사한다(엔진/run_demo 는 전달, 저수준 테스트는 생략).
+        if self.guard is not None and expected_stock_mint is not None:
+            self.guard.assert_stock_transfer(
+                required, expected_stock_mint=expected_stock_mint,
+                expected_quantity=expected_quantity, stock_decimals=stock_decimals,
+                expected_order_id=required.order_id)
+
         memo = f"{x.MEMO_PREFIX}:{required.order_id}:{(self.auth.open.signature or '')[:8]}"
         tx = x.build_transfer_transaction(
             payer=self.kp,

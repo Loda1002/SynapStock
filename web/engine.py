@@ -913,8 +913,21 @@ class TradingEngine:
             "resource": required.requirements.resource,
         })
 
+        # 402 Guard(매도 청구서 검증) — 자산(합의 주식 민트)·수취인(브로커)·수량을 엔진의 독립
+        # 기준(self._stock_mint·보유 수량 qty)과 대조한다. 위반이면 서명 자체가 일어나지 않는다(유출 0).
         blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
-        submitted = self._trading.build_stock_transfer(required, blockhash)
+        try:
+            submitted = self._trading.build_stock_transfer(
+                required, blockhash,
+                expected_stock_mint=self._stock_mint,
+                expected_quantity=qty,
+                stock_decimals=CFG.stock_decimals)
+        except GuardError as e:
+            self.guard_block_count += 1
+            self.bus.emit(ev.GUARD_BLOCKED, {
+                "side": "sell", "order_id": required.order_id, **e.result.as_event(),
+            })
+            return
         self.bus.emit(ev.X402_SUBMITTED, {
             "side": "sell", "order_id": required.order_id,
             "payload_b64_len": len(submitted.payment.serialized_transaction),

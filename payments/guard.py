@@ -5,13 +5,17 @@ x402 exact 스킴은 '파는 쪽(resource server)'을 보호하도록 설계돼 
 이 모듈이 그 비어 있던 절반이다 — 구매 에이전트가 브로커의 청구서(payment-required)에
 서명하기 직전, 반드시 통과해야 하는 마지막 게이트.
 
-  check_demand()   : 청구서를 사용자 mandate · 합의 견적 · 신뢰 수취인 목록과 대조한다.
+  check_demand()   : (매수) 청구서를 사용자 mandate · 합의 견적 · 신뢰 수취인 목록과 대조한다.
                      하나라도 어긋나면 '서명 거부'(유출 0). 차단 코드 6종.
                        - 금액(base units 정수, 오차 0)
                        - 수취인(allowlist — 결함 B: AP2 가 미검사하던 counterparty)
                        - 자산(mandate allowed_asset — 결함 C: 죽어 있던 필드)
                        - 주문번호(온체인 Memo 대사 키가 될 값)
                        - 종목 / 건별 한도 (AP2 이전 방어선)
+  check_stock_transfer() : (매도) 위 방어의 매도 대칭 — 매도는 '주식'을 내보내고 브로커가
+                     USDC 로 되사준다. 서명 직전 자산(합의된 주식 민트인가)·수취인(신뢰
+                     목록)·수량(보유·합의 수량)을 엔진의 독립 기준과 대조한다. 이 절반이
+                     비어 있으면 악성 브로커가 asset 을 USDC 로 바꿔 유휴 자금을 빼갈 수 있다.
   check_delivery() : 정산 후 온체인 잔액을 재조회(재시도 2회)해 청구서대로 자산이 실제
                      도착했는지 확인한다. 미확인은 '차단'이 아니라 pending_delivery 보류
                      + 세션 정지 신호다(결함 I: 배송 실패해도 settled 되던 문제).
@@ -174,6 +178,73 @@ class Guard:
                       max_spend_usdc: Optional[Decimal] = None) -> GuardResult:
         """check_demand 후 위반이면 GuardError 를 던진다 (결제 경로 결선용)."""
         res = self.check_demand(required, quote, expected_order_id, max_spend_usdc)
+        if not res.ok:
+            raise GuardError(res)
+        return res
+
+    # ---- 서명 직전(매도): 주식 전송 청구서 3항목 대조 ----
+
+    def check_stock_transfer(self, required, *, expected_stock_mint,
+                             expected_quantity: Decimal, stock_decimals: int,
+                             expected_order_id: Optional[str] = None) -> GuardResult:
+        """매도 레그(주식 전송) 청구서를 대조한다 — 매수 레그 check_demand 의 매도 대칭.
+
+        매수는 USDC 를 내보내므로 mandate(allowed_asset·건별 한도·의도 상한)로 검증하지만,
+        매도는 '주식'을 내보내고 브로커가 USDC 로 되사준다. 이 절반에 검증이 비어 있으면 악성
+        브로커가 청구서의 asset 을 USDC 로, amount 를 유휴 잔액 전액으로, pay_to 를 자기 지갑으로
+        바꿔 구매자의 유휴 USDC 를 빼갈 수 있다(mandate < 지갑잔액인 self-custody 정상 상태에서
+        유휴 자금이 노출). 서명 직전 다음 3항목을 '브로커 응답이 아니라 엔진의 독립 기준'(세션
+        설정 stock_mint·구매자 보유 수량·신뢰 수취인 목록)과 대조해, 하나라도 어긋나면 서명을
+        거부한다(온체인 유출 0):
+          - 자산  : 지불 자산이 합의된 '주식 민트'인가 (USDC 등 다른 자산이면 유출 — 핵심 방어)
+          - 수취인: 신뢰 목록(브로커)인가 (counterparty — check_demand 의 pay_to 검사와 동일)
+          - 수량  : 구매자가 보유·합의한 매도 수량과 base units 정합(오차 0)인가
+
+        expected_quantity: 엔진이 아는 매도 수량(구매자 보유 포지션). 브로커의 청구 amount 와
+                           독립적인 기준이다 — 브로커가 amount 를 부풀려도 여기서 걸린다.
+        """
+        reqs = required.requirements
+        order_id = required.order_id
+
+        # 1) 주문번호 — 온체인 Memo 대사 키가 될 값. 형식·존재·(있으면) 기대치 대조.
+        if not order_id or not _ORDER_RE.match(str(order_id)):
+            return self._block(GUARD_ORDER_INVALID, f"주문번호 형식 오류: {order_id!r}",
+                               "ord_<10 hex>", str(order_id))
+        if expected_order_id is not None and order_id != expected_order_id:
+            return self._block(GUARD_ORDER_INVALID, "청구서 주문번호가 처리 중인 주문과 다릅니다",
+                               str(expected_order_id), str(order_id))
+
+        # 2) 자산 — 지불 자산이 합의된 주식 민트인가 (핵심: USDC 로 바꿔 유휴 자금을 빼가는 공격 차단)
+        if str(reqs.asset) != str(expected_stock_mint):
+            return self._block(GUARD_ASSET_MISMATCH,
+                               "매도 지불 자산이 합의된 주식 민트가 아닙니다 (USDC 등 유출 위험)",
+                               str(expected_stock_mint), str(reqs.asset))
+
+        # 3) 수취인 — 신뢰 목록(counterparty)인가 (매수 leg 의 pay_to 검사와 동일한 방어선)
+        if str(reqs.pay_to) not in self.payees:
+            return self._block(GUARD_PAYEE_UNKNOWN,
+                               "수취인이 신뢰 목록에 없습니다 (counterparty 미검증 — 자산 유출 위험)",
+                               "|".join(sorted(self.payees)), str(reqs.pay_to))
+
+        # 4) 수량 — 보유·합의한 매도 수량과 base units 정합 (오차 0). 브로커가 더 많은 주식을
+        #    요구하도록 amount 를 부풀리는 것을 엔진의 독립 기준(보유 수량)으로 차단한다.
+        expected_amount = to_base_units(expected_quantity, stock_decimals)
+        if int(reqs.amount) != expected_amount:
+            return self._block(GUARD_AMOUNT_MISMATCH, "매도 수량이 합의 견적과 다릅니다",
+                               f"{expected_amount} base units", f"{int(reqs.amount)} base units")
+
+        where = f"guard.py:L{sys._getframe(0).f_lineno}"
+        return GuardResult(True, "OK", "매도 청구서 3항목 대조 통과 (자산·수취인·수량)",
+                           where, str(expected_amount), str(int(reqs.amount)))
+
+    def assert_stock_transfer(self, required, *, expected_stock_mint,
+                              expected_quantity: Decimal, stock_decimals: int,
+                              expected_order_id: Optional[str] = None) -> GuardResult:
+        """check_stock_transfer 후 위반이면 GuardError 를 던진다 (매도 결제 경로 결선용)."""
+        res = self.check_stock_transfer(
+            required, expected_stock_mint=expected_stock_mint,
+            expected_quantity=expected_quantity, stock_decimals=stock_decimals,
+            expected_order_id=expected_order_id)
         if not res.ok:
             raise GuardError(res)
         return res
