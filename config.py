@@ -51,6 +51,10 @@ class Config:
     budget_usdc: Decimal = Decimal(_get("BUDGET_USDC", "100"))
     per_trade_max_usdc: Decimal = Decimal(_get("PER_TRADE_MAX_USDC", "50"))
 
+    # 시간 기반 청산(안전레일) — 조건형 세션에서 포지션을 이 봉 수 이상 보유하면 자동 청산.
+    # 검증 실측(scripts/explore_strategy.py)에서 꼬리 위험을 크게 줄여 채택. 0=비활성.
+    max_hold_bars: int = int(_get("MAX_HOLD_BARS", "10"))
+
     # A8 브로커 수수료 (bps, 30 = 0.3%) — 소개서 수익모델 수치와 일치시킬 것
     # ※ 0.1%(10) 인하안은 제출 전 재검토 (docs/feature_spec.md 미결정 메모)
     broker_fee_bps: int = int(_get("BROKER_FEE_BPS", "30"))

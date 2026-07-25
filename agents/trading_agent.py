@@ -63,6 +63,10 @@ class Strategy:
     dca_every_minutes: int = 60                # minutes: N분마다
     dca_at_time: str = "09:00"                 # daily: 매일 HH:MM (서버 로컬 시각)
     dca_amount_usdc: Decimal = Decimal("10")   # 적립형: 회당 정액
+    # 시간 기반 청산(안전레일) — 조건형에서 포지션을 max_hold_bars 봉 이상 보유하면
+    # 규칙/Gemini 판단보다 우선해 전량 자동 청산한다(0=비활성). 미실현 손실에 무한정
+    # 갇히는 것을 막아 꼬리 위험을 줄인다(검증 실측: AAPL 최악 -6.5%→-0.2%, MDD 7.3→1.3%).
+    max_hold_bars: int = 0
 
 
 class TradingAgent:
@@ -94,6 +98,7 @@ class TradingAgent:
         self._dca_round = 0                # B7 적립형: 누적 회차
         self._dca_next_at: Optional[datetime] = None  # 적립형(minutes): 다음 집행 시각
         self._dca_last_date = ""           # 적립형(daily): 마지막 집행 날짜
+        self._bars_held = 0                # 조건형 시간청산용 — 현재 포지션 연속 보유 봉 수
         self._now = datetime.now           # 테스트에서 가짜 시계로 교체 가능
 
     @property
@@ -187,6 +192,19 @@ class TradingAgent:
         if ind["buy_threshold"] is None:
             # MA5 미성립 — 지표 워밍업 (재생 피드는 워밍업 주입으로 첫 틱부터 성립)
             return Decision("hold", f"지표 워밍업 — MA5 계산까지 {5 - len(self._history)}봉 더 필요")
+
+        # 시간 기반 청산(안전레일) — 규칙/Gemini 판단보다 우선하는 백스톱.
+        # 포지션을 max_hold_bars 봉 이상 보유하면 전량 자동 청산해, 미실현 손실에
+        # 무한정 갇히는 것을 막는다(꼬리 위험 축소). max_hold_bars=0 이면 비활성.
+        if self.position.quantity > 0:
+            self._bars_held += 1
+        else:
+            self._bars_held = 0
+        if (self.strategy.max_hold_bars > 0 and self.position.quantity > 0
+                and self._bars_held >= self.strategy.max_hold_bars):
+            self._last_action = {"action": "sell", "price": price, "bars_ago": 0}
+            return Decision(
+                "sell", f"시간청산(안전레일) — {self._bars_held}봉 보유 후 자동 청산", source="rule")
 
         retro = self._retrospective(price)
         if self.brain is not None:

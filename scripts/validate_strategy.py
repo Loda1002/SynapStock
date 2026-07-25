@@ -58,6 +58,7 @@ def simulate_window(
     profit: Decimal,
     fee_bps: int,
     stop_loss_pct: Optional[Decimal] = None,
+    max_hold: int = 0,
 ) -> dict:
     """한 구간(warmup+play)을 규칙 전략으로 시뮬레이션 → 성과 지표 dict.
 
@@ -69,6 +70,7 @@ def simulate_window(
     strategy = Strategy(
         buy_dip_pct=dip, take_profit_pct=profit,
         spend_per_trade_usdc=spend, decision_mode="strict",
+        max_hold_bars=max_hold,   # 시간청산(안전레일) — 실제 decide() 경로로 검증
     )
     mandate = OpenPaymentMandate(
         user_pubkey=str(kp.pubkey()), allowed_asset=CFG.usdc_mint,
@@ -263,6 +265,8 @@ def main() -> int:
     ap.add_argument("--dip", default="2")
     ap.add_argument("--profit", default="3")
     ap.add_argument("--stop-loss", default="", help="평단 대비 -N%% 손절 (빈값=손절 없음, 현행)")
+    ap.add_argument("--max-hold", type=int, default=0,
+                    help="시간청산 — N봉 이상 보유 시 자동 청산(안전레일, 0=비활성)")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
 
@@ -272,11 +276,12 @@ def main() -> int:
     params = dict(
         budget=Decimal(args.budget), per_trade=Decimal(args.per_trade),
         spend=Decimal(args.spend), dip=Decimal(args.dip), profit=Decimal(args.profit),
-        fee_bps=CFG.broker_fee_bps, stop_loss_pct=stop_loss,
+        fee_bps=CFG.broker_fee_bps, stop_loss_pct=stop_loss, max_hold=args.max_hold,
     )
 
-    sl_label = f"손절 -{stop_loss}%" if stop_loss is not None else "손절 없음(현행)"
-    print(f"전략 검증 — 규칙 MA5 -{args.dip}% 매수 / 평단 +{args.profit}% 익절 · {sl_label}")
+    sl_label = f"손절 -{stop_loss}%" if stop_loss is not None else "손절 없음"
+    mh_label = f"시간청산 {args.max_hold}봉" if args.max_hold > 0 else "시간청산 없음"
+    print(f"전략 검증 — 규칙 MA5 -{args.dip}% 매수 / 평단 +{args.profit}% 익절 · {sl_label} · {mh_label}")
     print(f"  예산 {args.budget} · 건별한도 {args.per_trade} · 1회매수 {args.spend} · "
           f"수수료 {CFG.broker_fee_bps}bps · 워밍업 {args.warmup}봉")
     print(f"  심볼 {symbols} · 세션 길이 {wins}봉\n")
@@ -285,7 +290,7 @@ def main() -> int:
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "params": {"budget": args.budget, "per_trade": args.per_trade,
                    "spend": args.spend, "dip": args.dip, "profit": args.profit,
-                   "stop_loss_pct": args.stop_loss or None,
+                   "stop_loss_pct": args.stop_loss or None, "max_hold_bars": args.max_hold,
                    "fee_bps": CFG.broker_fee_bps, "warmup": args.warmup,
                    "brain": "rule", "symbols": symbols, "windows": wins},
         "by_symbol_window": {}, "by_window": {}, "overall": {},

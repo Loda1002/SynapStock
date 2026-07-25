@@ -54,8 +54,10 @@ def build_args() -> argparse.Namespace:
     ap.add_argument("--budget", default="100", help="AP2 총예산 USDC")
     ap.add_argument("--per-trade", default="50", help="AP2 건별 한도 USDC")
     ap.add_argument("--spend", default="30", help="1회 매수 금액 USDC")
-    ap.add_argument("--dip", default="2", help="매수: MA5 대비 -%%")
-    ap.add_argument("--profit", default="3", help="매도: 평단 대비 +%%")
+    ap.add_argument("--dip", default="3", help="매수: MA5 대비 -%% (앱 기본 3)")
+    ap.add_argument("--profit", default="5", help="매도: 평단 대비 +%% (앱 기본 5)")
+    ap.add_argument("--max-hold", type=int, default=10,
+                    help="시간청산 — N봉 이상 보유 시 자동 청산(안전레일, 0=비활성)")
     ap.add_argument("--pace", type=float, default=4.0, help="gemini 호출 간 최소 간격(초)")
     ap.add_argument("--quiet", action="store_true", help="봉별 로그 생략(요약만)")
     return ap.parse_args()
@@ -77,7 +79,7 @@ def main() -> int:
     strategy = Strategy(
         buy_dip_pct=Decimal(args.dip), take_profit_pct=Decimal(args.profit),
         spend_per_trade_usdc=Decimal(args.spend), decision_mode=args.mode,
-        ta_mode=args.ta,
+        ta_mode=args.ta, max_hold_bars=args.max_hold,
     )
     kp = Keypair()
     mandate = OpenPaymentMandate(

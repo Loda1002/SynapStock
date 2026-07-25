@@ -37,8 +37,10 @@ from web.briefing import generate_briefing_text
 from web.events import EventBus
 from web.store import BaseStore, jsonable
 
-# 데모 규칙 기본값 — 지표 기준 (매수: MA5 −%, 매도: 평단 +%). run_demo.py 와 동일.
-DEFAULT_RULES = {"buy_dip_pct": "2", "take_profit_pct": "3", "spend_per_trade": "30"}
+# 데모 규칙 기본값 — 지표 기준 (매수: MA5 −%, 매도: 평단 +%).
+# 2026-07-25 전략 고도화: 검증(scripts/explore_strategy.py) 최고 수익·최저 꼬리위험 조합으로
+# dip3/profit5 채택(분산 포트폴리오 흑자율 85.8%·평균 2.11%). 시간청산은 CFG.max_hold_bars.
+DEFAULT_RULES = {"buy_dip_pct": "3", "take_profit_pct": "5", "spend_per_trade": "30"}
 
 MAX_DECISIONS = 500   # A6 타임라인 메모리 상한
 MAX_PRICE_POINTS = 120
@@ -136,7 +138,7 @@ class TradingEngine:
         if ftype not in ("mock", "replay"):
             raise EngineError("feed.type 은 'mock' 또는 'replay' 여야 합니다.")
         if ftype == "mock":
-            return MockPriceFeed(), {"type": "mock", "label": "목 시세 (8스텝 데모 패턴)"}
+            return MockPriceFeed(), {"type": "mock", "label": "목 시세 (10스텝 데모 패턴)"}
         # 경로 주입 차단: API 로는 심볼만 받고(정규식 검증) 경로는 서버가 조립한다.
         # 임의 CSV 경로를 받으면 컨테이너의 아무 파일이나 열게 되고, 파싱 오류 메시지에
         # 파일 내용이 실려 400 응답으로 새어나간다. 테스트용 직접 지정은 .env REPLAY_FILE 만.
@@ -333,6 +335,7 @@ class TradingEngine:
             dca_every_minutes=dca_minutes,
             dca_at_time=dca_at_time,
             dca_amount_usdc=dca_amount,
+            max_hold_bars=CFG.max_hold_bars,   # 시간청산(안전레일) — 조건형에만 적용
         )
         trading = TradingAgent(
             trading_kp, auth, strategy, CFG.usdc_decimals, CFG.network, brain=brain,
@@ -393,6 +396,7 @@ class TradingEngine:
             "type": strat_type,
             "decision_mode": decision_mode,   # strict(엄격) / trend(추세 재량)
             "ta_mode": ta_mode,               # TA 보강(이동평균 배열·패턴 근거 판단)
+            "max_hold_bars": CFG.max_hold_bars,  # 시간청산(안전레일) — 0=비활성
             "dca_unit": dca_unit,
             "dca_every_ticks": dca_every,
             "dca_every_minutes": dca_minutes,

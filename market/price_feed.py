@@ -1,6 +1,6 @@
 """시세 피드 (읽기전용).
 
-- MockPriceFeed   : 결정적 목 시세 (8스텝 반복) — 규칙 트리거 데모·오프라인 폴백용
+- MockPriceFeed   : 결정적 목 시세 (10스텝 반복) — 규칙 트리거 데모·오프라인 폴백용
 - ReplayPriceFeed : 실데이터 CSV(일봉)를 순서대로 재생 — 기본 피드
   · 입력: scripts/fetch_market_data.py 가 저장한 data/market/{SYMBOL}_daily.csv
   · 1틱 = 1봉 (시가·고가·저가·종가 그대로 캔들이 됨)
@@ -30,12 +30,15 @@ class MockPriceFeed(PriceFeed):
     def __init__(self, base: Dict[str, Decimal] | None = None):
         self.base = base or {"tAAPL": Decimal("180"), "tTSLA": Decimal("250")}
         self._tick = 0
-        # 데모용 가격 경로: 하락(매수 구간) → 반등·급등(매도 구간) → 안정
-        # 틱 7 = 기준가×1.04 (tAAPL 187.20) 가 매도기준(185)을 넘도록 설계
+        # 데모용 가격 경로(지표 규칙 dip3/profit5 기준 재설계, 2026-07-25).
+        # 목 피드는 워밍업 주입이 없어 첫 4틱은 MA5 미성립(보류)이므로, 앞을 평탄하게 두어
+        # 워밍업을 마친 뒤(인덱스 5~6) MA5 대비 -3% 이상 깊은 눌림목이 오게 하고
+        # (매수 트리거), 이어 인덱스 8~9 에서 평단 +5% 를 넘는 반등이 오게 한다(익절 트리거).
+        # 더 느슨한 dip2/profit3(run_demo)도 자동으로 트리거된다.
         self._path: List[Decimal] = [
-            Decimal("1.00"), Decimal("0.985"), Decimal("0.97"),
-            Decimal("0.96"), Decimal("0.975"), Decimal("1.01"),
-            Decimal("1.04"), Decimal("0.995"),
+            Decimal("1.00"), Decimal("1.00"), Decimal("1.00"), Decimal("0.99"),
+            Decimal("0.98"), Decimal("0.95"), Decimal("0.93"), Decimal("0.97"),
+            Decimal("1.02"), Decimal("1.04"),
         ]
 
     def get_price(self, symbol: str) -> Decimal:

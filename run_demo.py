@@ -165,7 +165,7 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
         print(f"시세 피드   : {feed.source_label} (실데이터 재생 — MA5/지표 규칙)")
     else:
         feed = MockPriceFeed()
-        print("시세 피드   : 목 시세 (8스텝 데모 패턴)")
+        print("시세 피드   : 목 시세 (10스텝 데모 패턴 — 매수·매도 1사이클엔 최소 9틱 필요)")
 
     # --- 라이브면 클라이언트 준비 + 실행 전 잔액 스냅샷 ---
     client = None
