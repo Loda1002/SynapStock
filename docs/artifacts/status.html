@@ -399,19 +399,24 @@
   <div class="topbar-inner">
     <div>
       <h1 class="brand-name">402 Guard 관제탑</h1>
-      <p class="brand-sub">에이전트 지출 승인 게이트 · 해커톤 제출 현황 · 2026-07-26 기준</p>
+      <p class="brand-sub">에이전트 지출 승인 게이트 · 해커톤 제출 현황 · 2026-07-27 기준</p>
     </div>
 
     <div class="topbar-spacer"></div>
 
     <div class="topbar-metric">
-      <span class="eyebrow">최종 제출까지</span>
-      <span class="value" id="dday">D-8</span>
+      <span class="eyebrow">제출까지</span>
+      <span class="value" id="dday">D-7</span>
     </div>
 
     <div class="topbar-metric">
       <span class="eyebrow">남은 시간</span>
       <span class="value mono" id="clock">—</span>
+    </div>
+
+    <div class="topbar-metric">
+      <span class="eyebrow">데모데이 08-21</span>
+      <span class="value mono" id="demoday">—</span>
     </div>
 
     <div class="topbar-metric">
@@ -435,7 +440,7 @@
   <section>
     <div class="sec-head">
       <h2>심사 4축 자가평가</h2>
-      <span class="sec-note">심사 부서 2026-07-25 22:24 실행 · 적대 검증 근거 32건 중 반려 0 · 이후 3건 보완 완료</span>
+      <span class="sec-note">심사 부서 2026-07-25 실행 + 07-27 경쟁 조사 반영 · 각 축의 남은 위험을 함께 표기</span>
     </div>
     <div class="hair-grid axes">
       <div class="cell">
@@ -443,28 +448,28 @@
           <span class="axis-name">① 혁신성·UX·상업성</span>
           <span class="stamp warn">중</span>
         </div>
-        <p class="axis-why">포지셔닝과 차단 KPI는 실물인데, 가드 서사가 첫 화면에 없다. 백엔드는 <span class="mono">state.guard</span>를 이미 방출하고 프론트만 미배선.</p>
+        <p class="axis-why">가드 서사가 아직 첫 화면에 없다(백엔드는 <span class="mono">state.guard</span> 방출 중, 프론트 미배선). 경쟁 조사 추가 위험 2건: <strong>순수 방어 프레이밍의 실측 천장이 2위</strong>(1위는 안전을 '자율성의 조건'으로 서술) · 엔진이 전역 싱글턴이라 <strong>다중 사용자 확장 답이 없다.</strong></p>
       </div>
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">② AI 활용도</span>
-          <span class="stamp warn">중</span>
+          <span class="stamp crit">중·위험</span>
         </div>
-        <p class="axis-why">Gemini 통합·폴백은 견고하나 대표 성능 서사가 전부 규칙 판단. 07-26에 규칙 게이트 코드 강제(<span class="mono">94fe605</span>)와 판단 출처 계측(<span class="mono">3602015</span>)으로 보완. 남은 것은 온체인 세션의 Gemini 관여 증빙.</p>
+        <p class="axis-why">규칙 게이트(<span class="mono">94fe605</span>)·판단 출처 계측(<span class="mono">3602015</span>)·481봉 실측(<span class="mono">e81a9ce</span>)으로 정량 근거 확보. <strong>단 배포본에 <span class="mono">GEMINI_MODE</span>가 누락돼 라이브 URL에서 Gemini가 미작동할 수 있다 — 이 상태로 심사자가 접속하면 축② 증빙이 0.</strong></p>
       </div>
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">③ 기술·인프라</span>
-          <span class="stamp good">강</span>
+          <span class="stamp warn">강·재검토</span>
         </div>
-        <p class="axis-why">x402 온체인 정산·exact 금액검증·Memo 바인딩·AP2 서명·A2A 3단계·Guard 결선이 전부 실물 코드. 유일한 갭이던 HTTP 402 응답도 07-26에 구현(<span class="mono">70bed10</span>) — 축③ 갭 없음.</p>
+        <p class="axis-why">x402 온체인 정산·exact·Memo·AP2·A2A·Guard 결선·HTTP 402(<span class="mono">70bed10</span>)가 전부 실물. <strong>새 위험: 대회 정식 주제가 '에이전트가 클라우드 API를 결제'이고 결제 스택으로 pay.sh가 거론된다</strong>(2차 매체, 공식 확인 필요). 우리 유스케이스는 토큰화 주식 매매.</p>
       </div>
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">④ 실제 구동</span>
           <span class="stamp good">강</span>
         </div>
-        <p class="axis-why">devnet·localnet 라이브 모두 실 트랜잭션과 잔액 교차검증 통과. 배포 URL 재현과 devnet 반복 실증만 남았다.</p>
+        <p class="axis-why">devnet·localnet 라이브 모두 실 트랜잭션·잔액 교차검증 통과. Cloud Run 배포 완료로 라이브 URL 확보. <strong>미해소 반문: "실제로 무엇을 산 건가요?"</strong> — 사고파는 자산이 자체 발행 토큰이고 브로커도 자기 프로세스.</p>
       </div>
     </div>
   </section>
@@ -472,7 +477,7 @@
   <section>
     <div class="sec-head">
       <h2>실증 KPI</h2>
-      <span class="sec-note">수익률이 아니라 지출 통제 지표 — 첫 화면에 올라갈 숫자</span>
+      <span class="sec-note">수익률이 아니라 지출 통제 지표 — 첫 화면에 올라갈 숫자 · 참고로 하락장 실증은 TSLA 추세추종 +67.8%(보유 −20.5%)</span>
     </div>
     <div class="hair-grid kpis">
       <div class="cell">
@@ -497,13 +502,13 @@
       </div>
       <div class="cell">
         <span class="kpi-label">테스트</span>
-        <span class="kpi-value good">14</span>
-        <span class="kpi-foot">종 전부 통과 (07-26)</span>
+        <span class="kpi-value good">16</span>
+        <span class="kpi-foot">종 · 각 커밋 시점 통과</span>
       </div>
       <div class="cell">
-        <span class="kpi-label">하락장 실증</span>
-        <span class="kpi-value">+67.8%</span>
-        <span class="kpi-foot">TSLA 추세추종 · 보유 −20.5%</span>
+        <span class="kpi-label">라이브 URL</span>
+        <span class="kpi-value good">배포</span>
+        <span class="kpi-foot">synapstock · asia-northeast3</span>
       </div>
     </div>
   </section>
@@ -521,16 +526,34 @@
           <div class="group">
             <div class="group-head">
               <div>
+                <div class="group-title">오늘 (07-27) — 사용자 지정 순서</div>
+                <div class="group-owner">1 → 2 → 3 → 4 순으로</div>
+              </div>
+              <span class="group-count" data-count="today">0/4</span>
+            </div>
+            <ul class="items">
+              <li class="item"><input type="checkbox" id="t1" data-group="today"><label for="t1">① 디자이너에게 컨셉 재브리핑 (회의) <span class="why">디자이너는 아직 'Auto Trader'로 알고 있다. 브리프 완성 — docs/design/concept_brief_402guard.md · 회의는 §9 순서(비유 → 근거 → 시안 90% 유지 → 신규 요청 6건)</span></label></li>
+              <li class="item"><input type="checkbox" id="t2" data-group="today"><label for="t2">② 프론트 시안 병합 <span class="why">⚠ 07-27 현재 origin에 작업물 없음(main 외 내용 있는 브랜치 0, web/static 최근 커밋 07-25). 작업자 푸시·전달 대기 상태</span></label></li>
+              <li class="item"><input type="checkbox" id="t3" data-group="today"><label for="t3">③ 로그인 + 회원가입(지갑 연결) <span class="why">지갑 연결 = 로그인. 참고 amikomarkets.com은 Privy(지갑 인증 서비스) 사용 흔적 — 로그인 흐름 자체는 미확인. 개인키 서버 보관은 하지 않음</span></label></li>
+              <li class="item"><input type="checkbox" id="t4" data-group="today"><label for="t4">④ 기능 정체성·경계 구체화 <span class="why">서비스와 기능의 경계가 모호하다는 사용자 지적. 전략 옵션 과다(조건형·DCA·추세·멀티·인트라바·1/5·brain·TA)가 초점을 흐리는 문제와 같은 뿌리</span></label></li>
+            </ul>
+          </div>
+
+          <div class="group">
+            <div class="group-head">
+              <div>
                 <div class="group-title">프론트 — 402 Guard 서사를 첫 화면에</div>
                 <div class="group-owner">담당: 프론트 작업자 · 범위 web/static/**</div>
               </div>
-              <span class="group-count" data-count="front">0/4</span>
+              <span class="group-count" data-count="front">0/6</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="f1" data-group="front"><label for="f1">가드 KPI 카드 추가 <span class="why">index.html에 data-card="guard" + app.js에서 state.guard(attempts·blocked·leak_usdc) 렌더</span></label></li>
-              <li class="item"><input type="checkbox" id="f2" data-group="front"><label for="f2">헤더 브랜딩 교체 <span class="why">'AutoTrader Agent' → '402 Guard — 에이전트 지출 승인 게이트' (login.html 문구 재사용)</span></label></li>
-              <li class="item"><input type="checkbox" id="f3" data-group="front"><label for="f3">DEFAULT_LAYOUT 재배치 <span class="why">pnl·valuation·position을 아래로, 가드·mandate·판단을 위로</span></label></li>
-              <li class="item"><input type="checkbox" id="f4" data-group="front"><label for="f4">시안 반영 <span class="why">docs/design/dashboard_mockup.png 배치·컴포넌트 채택, 카피는 402 Guard로 치환</span></label></li>
+              <li class="item"><input type="checkbox" id="f1" data-group="front"><label for="f1">가드 KPI 카드 추가 <span class="why">index.html에 data-card="guard" + app.js에서 state.guard(attempts·blocked·leak_usdc) 렌더. 백엔드 데이터는 이미 준비됨 — 배선만</span></label></li>
+              <li class="item"><input type="checkbox" id="f2" data-group="front"><label for="f2">헤더 브랜딩 교체 <span class="why">'AutoTrader Agent' → '402 Guard — 에이전트 지출 승인 게이트'</span></label></li>
+              <li class="item"><input type="checkbox" id="f3" data-group="front"><label for="f3">DEFAULT_LAYOUT 재배치 <span class="why">guard를 맨 앞으로, pnl·valuation·position은 아래로. 저장 키 버전 올릴 것(_v2)</span></label></li>
+              <li class="item"><input type="checkbox" id="f4" data-group="front"><label for="f4">시안 스킨 적용 <span class="why">dashboard_mockup.png 배치·색·컴포넌트 채택, 카피는 402 Guard로 치환. 멀티종목·세션 컨트롤 기능 보존</span></label></li>
+              <li class="item"><input type="checkbox" id="f5" data-group="front"><label for="f5">랜딩 + 로그인 화면 <span class="why">landing.html 신설 · login.html에 지갑 연결 단계. '매 거래 승인' 버튼은 넣지 않는다(무인 자율 결제 전제)</span></label></li>
+              <li class="item"><input type="checkbox" id="f6" data-group="front"><label for="f6">전략 옵션 '고급 설정'으로 접기 <span class="why">첫 화면 요소 수 축소 — 용어 과적재로 무수상한 사례(GuardianOS)의 교훈</span></label></li>
             </ul>
           </div>
 
@@ -540,14 +563,16 @@
                 <div class="group-title">백엔드 — 심사 축② 보완</div>
                 <div class="group-owner">담당: 나 · 범위 web/static 제외 전부</div>
               </div>
-              <span class="group-count" data-count="back">0/5</span>
+              <span class="group-count" data-count="back">0/7</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="b1" data-group="back" checked><label for="b1">규칙 게이트 코드 강제 <span class="why">커밋 94fe605 — 규칙 신호 없는 개시를 코드가 차단</span></label></li>
-              <li class="item"><input type="checkbox" id="b2" data-group="back" checked><label for="b2">판단 출처 계측 <span class="why">커밋 3602015 — AI 관여를 tx 아티팩트·세션 요약에 기록</span></label></li>
-              <li class="item"><input type="checkbox" id="b3" data-group="back"><label for="b3">대규모 하락장 Gemini 백테스트 <span class="why">481·1600봉을 brain=gemini로 실행해 규칙 대비 수익·MDD 확보</span></label></li>
-              <li class="item"><input type="checkbox" id="b4" data-group="back"><label for="b4">Gemini 온체인 세션 1회 아카이빙 <span class="why">조건형+Gemini로 devnet 실행 — 축②의 실구동 증빙</span></label></li>
+              <li class="item"><input type="checkbox" id="b1" data-group="back" checked><label for="b1">규칙 게이트 코드 강제 <span class="why">커밋 94fe605 — 규칙 신호 없는 개시를 코드가 차단. 실제로 Gemini의 잘못된 매수 개시 2건 차단됨</span></label></li>
+              <li class="item"><input type="checkbox" id="b2" data-group="back" checked><label for="b2">판단 출처 계측 <span class="why">커밋 3602015 — AI 관여를 tx 아티팩트·세션 요약·/api/state.ai에 기록</span></label></li>
+              <li class="item"><input type="checkbox" id="b3" data-group="back" checked><label for="b3">대규모 하락장 Gemini 백테스트 <span class="why">커밋 e81a9ce — TSLA 481봉 실측. rule −37.56% vs gemini −39.57%(AI 기여 중립~열위, 정직하게 공개)</span></label></li>
+              <li class="item"><input type="checkbox" id="b4" data-group="back"><label for="b4">Gemini 온체인 세션 1회 아카이빙 <span class="why">조건형+Gemini로 devnet 실행 — 축②의 실구동 증빙. 아카이브에 ai 블록이 자동으로 남는다</span></label></li>
               <li class="item"><input type="checkbox" id="b5" data-group="back" checked><label for="b5">브로커 HTTP 402 레그(G5) <span class="why">커밋 70bed10 — 402 + accepts[] 반환, 테스트 53건, 매수 레그만(매도는 방향이 반대라 A2A 유지)</span></label></li>
+              <li class="item"><input type="checkbox" id="b6" data-group="back" checked><label for="b6">판단 두뇌 선택 strategy.brain <span class="why">커밋 8440a1b — auto / rule / gemini. UI 드롭다운은 프론트 병합 때 함께</span></label></li>
+              <li class="item"><input type="checkbox" id="b7" data-group="back" checked><label for="b7">드라이런 매도 레그 복구 <span class="why">커밋 7d6a178 — 배포본에서만 드러난 결함. 매수만 되고 익절이 전무해 수익률 시연이 불가했다</span></label></li>
             </ul>
           </div>
 
@@ -557,13 +582,34 @@
                 <div class="group-title">배포·실증</div>
                 <div class="group-owner">담당: 나 · gcloud는 직접 실행</div>
               </div>
-              <span class="group-count" data-count="ops">0/4</span>
+              <span class="group-count" data-count="ops">0/5</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="o1" data-group="ops"><label for="o1">Cloud Run 배포 <span class="why">docs/deploy_cloud_run.md 순서대로 · max-instances 1 + no-cpu-throttling 필수</span></label></li>
-              <li class="item"><input type="checkbox" id="o2" data-group="ops"><label for="o2">배포 URL에서 매수·매도 재현 <span class="why">verification_checklist 3단계 통과 처리 + 로그 아카이빙</span></label></li>
-              <li class="item"><input type="checkbox" id="o3" data-group="ops"><label for="o3">devnet 라이브 2~3회 추가 <span class="why">정상 매수·정상 매도·한도초과 거부 각 1회 이상 (현재 devnet 세션 1건뿐)</span></label></li>
-              <li class="item"><input type="checkbox" id="o4" data-group="ops"><label for="o4">explorer 링크 생존 확인 <span class="why">제출 직전 devnet 트랜잭션 1건 실제 조회 스크린샷</span></label></li>
+              <li class="item"><input type="checkbox" id="o1" data-group="ops" checked><label for="o1">Cloud Run 배포 <span class="why">완료 — synapstock / asia-northeast3. 검증 1~5 + 402 확인 통과, 리비전 교체 후 세션 7건 생존</span></label></li>
+              <li class="item"><input type="checkbox" id="o2" data-group="ops"><label for="o2">⚠ GEMINI_MODE=developer 재배포 <span class="why">배포 env에 누락 — 키가 AIza로 시작하지 않아 vertex로 자동 선택되면 Gemini 미작동. 이 상태로 심사자가 라이브 URL을 열면 축② 증빙이 0. 가장 값싼 리스크 해소</span></label></li>
+              <li class="item"><input type="checkbox" id="o3" data-group="ops"><label for="o3">배포 URL에서 온체인 매수·매도 재현 <span class="why">현재 통과한 건 드라이런까지. verification_checklist 3단계 + 로그 아카이빙</span></label></li>
+              <li class="item"><input type="checkbox" id="o4" data-group="ops"><label for="o4">devnet 라이브 2~3회 추가 <span class="why">정상 매수·정상 매도·한도초과 거부 각 1회 이상 (현재 devnet 세션 1건뿐) · SOL 필요</span></label></li>
+              <li class="item"><input type="checkbox" id="o5" data-group="ops"><label for="o5">explorer 링크 생존 확인 <span class="why">제출 직전 devnet 트랜잭션 1건 실제 조회 스크린샷</span></label></li>
+            </ul>
+          </div>
+
+          <div class="group">
+            <div class="group-head">
+              <div>
+                <div class="group-title">경쟁 조사 후속 (07-27 신설)</div>
+                <div class="group-owner">근거: docs/reports/competition_research.md · 채택 여부는 사용자 판단</div>
+              </div>
+              <span class="group-count" data-count="race">0/8</span>
+            </div>
+            <ul class="items">
+              <li class="item"><input type="checkbox" id="c1" data-group="race"><label for="c1">pay.sh 필수 여부 공식 확인 <span class="why">2차 매체는 "must"로 서술. 공식 심사 기준은 병렬 예시. 이 답 하나로 여러 리스크 강도가 결정된다 — 가장 값싼 확인</span></label></li>
+              <li class="item"><input type="checkbox" id="c2" data-group="race"><label for="c2">카피 3건 정정 <span class="why">x402 스펙에 maxAmountRequired가 이미 있고, AP2 스펙에 allowed payees가 이미 있다. "우리가 메운 프로토콜 공백"이 아니라 "집행 지점을 못 박은 참조 구현"으로. AP2는 '준수' 아닌 '개념 기반'으로 표기 하향</span></label></li>
+              <li class="item"><input type="checkbox" id="c3" data-group="race"><label for="c3">API 결제 레그 1개 추가 <span class="why">에이전트가 유료 API를 x402로 결제하고 그 청구서를 가드가 검증. 대회 정식 주제 정합(축③) + "진짜 뭘 샀나" 반문 해소(축④)를 동시에. 402 왕복이 이미 구현돼 자원 서버 추가 수준</span></label></li>
+              <li class="item"><input type="checkbox" id="c4" data-group="race"><label for="c4">아키텍처 다이어그램 1장 <span class="why">사용자 → 에이전트 → 402 Guard → 솔라나 4계층. 유사 대회에서 명시적 필수 제출물이었다</span></label></li>
+              <li class="item"><input type="checkbox" id="c5" data-group="race"><label for="c5">브랜드 정렬 <span class="why">화면 title·README 제목·소개서 표지를 전부 '402 Guard'로. synapstock URL은 '접속 주소'로만 표기(URL 변경은 안 함), 저장소명 SolanaAgent도 그대로</span></label></li>
+              <li class="item"><input type="checkbox" id="c6" data-group="race"><label for="c6">심사 Q&A 카드 10문항 + 규제 2문항 <span class="why">코드를 안 보고 답할 수 있을 때까지. 필수: 가드 4항목 순서 / authorize 앞에 두는 이유 / rule-gate가 Gemini를 강등한 실제 2건 / "무등록 투자일임 아닙니까" / "이용자 자금 분리 보관"</span></label></li>
+              <li class="item"><input type="checkbox" id="c7" data-group="race"><label for="c7">데모 대본을 '공격 차단' 중심으로 <span class="why">유출 0.00은 화면상 비사건(non-event)이라 그대로 두면 볼 것이 없다. 60~90초 안에 전 루프가 돈다는 시간 약속을 대본에 명시</span></label></li>
+              <li class="item"><input type="checkbox" id="c8" data-group="race"><label for="c8">라이브 데모 폴백 2중 <span class="why">devnet 공용 RPC 429 · Gemini 무료 티어 쿨다운 · Cloud Run 콜드스타트 = 실제 발생 이력이 있는 3중 외부 의존. 녹화 영상 + 로컬넷 전환 경로</span></label></li>
             </ul>
           </div>
 
@@ -576,12 +622,12 @@
               <span class="group-count" data-count="sub">0/6</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="s1" data-group="sub"><label for="s1">소개서 PDF 장표 <span class="why">문제→402 Guard→아키텍처→KPI→수익모델→로드맵</span></label></li>
-              <li class="item"><input type="checkbox" id="s2" data-group="sub"><label for="s2">데모 영상 3분 이내 <span class="why">유튜브 공개/일부공개 링크 · 폴백으로 localnet 재시연 경로 준비</span></label></li>
-              <li class="item"><input type="checkbox" id="s3" data-group="sub"><label for="s3">README 402 Guard 재작성 <span class="why">첫 3줄 + 재현 명령 3개(curl 402 · red_team · explorer)</span></label></li>
+              <li class="item"><input type="checkbox" id="s1" data-group="sub"><label for="s1">소개서 PDF 장표 <span class="why">문제→402 Guard→아키텍처→KPI→수익모델→로드맵. 경쟁 대비 1장·타겟 한 줄·수익모델 2안(거래 수수료 / 검증 건당 과금) 추가</span></label></li>
+              <li class="item"><input type="checkbox" id="s2" data-group="sub"><label for="s2">데모 영상 3분 이내 <span class="why">유튜브 공개/일부공개 링크 · 첫 5초에 2단 구조 태그라인 동일 문장</span></label></li>
+              <li class="item"><input type="checkbox" id="s3" data-group="sub"><label for="s3">README 402 Guard 재작성 <span class="why">첫 3줄 + 재현 명령 3개(curl 402 · red_team · explorer) + 최상단에 devnet 트랜잭션 해시 직링크</span></label></li>
               <li class="item"><input type="checkbox" id="s4" data-group="sub"><label for="s4">저장소 public 전환 <span class="why">제출 직전 필수 · 지금 private</span></label></li>
               <li class="item"><input type="checkbox" id="s5" data-group="sub"><label for="s5">구글폼 7항목 작성 <span class="why">docs/submission.md 초안을 확정본으로 교체</span></label></li>
-              <li class="item"><input type="checkbox" id="s6" data-group="sub"><label for="s6">트랙 명칭·규격 재확인 <span class="why">A~D 공식 명칭, 영상 길이 상한, 마감 시각을 디스코드 공지로 대조</span></label></li>
+              <li class="item"><input type="checkbox" id="s6" data-group="sub"><label for="s6">트랙 명칭·규격·일정 재확인 <span class="why">트랙 공식 명칭, 영상 길이 상한, 마감 시각, 그리고 "8/3이 스크리닝인지 최종인지"를 디스코드 공지로 대조</span></label></li>
             </ul>
           </div>
         </div>
@@ -596,6 +642,16 @@
         </div>
 
         <div class="panel">
+          <div class="report">
+            <div class="report-top">
+              <span class="report-name">경쟁 조사</span>
+              <span class="stamp warn">2026-07-27</span>
+            </div>
+            <p class="report-line">유사 해커톤 12개 조사(이 대회는 1회차라 수상작이 없음). 유지: 통제 KPI 우선 · <strong>정정: 매매를 숨길 필요는 없다</strong> · 신규 위험: 방어 프레이밍 천장 2위, 용어 과적재 무수상 사례, 카피 3건 반박 가능.</p>
+            <span class="report-path">docs/reports/competition_research.md</span>
+            <code class="cmd">⚠ 심사평 대부분 비공개 — 소개서·발표에 사실 인용 금지</code>
+          </div>
+
           <div class="report">
             <div class="report-top">
               <span class="report-name">심사 부서</span>
@@ -640,13 +696,13 @@
                 <tr><th>항목</th><th>상태</th><th>남은 일</th></tr>
               </thead>
               <tbody>
-                <tr><td>1. 트랙</td><td class="st"><span class="stamp warn">확인</span></td><td>Track C 유력 · A~D 공식 명칭 대조 필요</td></tr>
-                <tr><td>2. 프로젝트 소개</td><td class="st"><span class="stamp info">초안</span></td><td>문제정의·솔루션 요약 확정본으로</td></tr>
-                <tr><td>3. 소개서 PDF</td><td class="st"><span class="stamp crit">미착수</span></td><td>장표 제작 (아티팩트로 진행 예정)</td></tr>
+                <tr><td>1. 트랙</td><td class="st"><span class="stamp warn">확인</span></td><td>Track C 유력 · 공식 명칭 대조 필요</td></tr>
+                <tr><td>2. 프로젝트 소개</td><td class="st"><span class="stamp info">초안</span></td><td>2단 구조 태그라인으로 첫 문장 교체</td></tr>
+                <tr><td>3. 소개서 PDF</td><td class="st"><span class="stamp crit">미착수</span></td><td>장표 제작 + 아키텍처 다이어그램 1장</td></tr>
                 <tr><td>4. GitHub</td><td class="st"><span class="stamp warn">private</span></td><td>README 재작성 + public 전환</td></tr>
-                <tr><td>5. 기술 스택</td><td class="st"><span class="stamp info">초안</span></td><td>최종본 확정</td></tr>
+                <tr><td>5. 기술 스택</td><td class="st"><span class="stamp info">초안</span></td><td>AP2 표기를 '준수'→'개념 기반'으로 하향</td></tr>
                 <tr><td>6. 데모 영상</td><td class="st"><span class="stamp crit">미착수</span></td><td>대본·촬영·업로드 (3분 이내)</td></tr>
-                <tr><td>7. 라이브 URL</td><td class="st"><span class="stamp crit">미배포</span></td><td>Cloud Run 배포 후 확보 (가산점)</td></tr>
+                <tr><td>7. 라이브 URL</td><td class="st"><span class="stamp good">배포됨</span></td><td>GEMINI_MODE 누락 재배포 후 최종 확인</td></tr>
               </tbody>
             </table>
           </div>
@@ -683,22 +739,26 @@
   </div>
 
   <section style="margin-top:34px">
+    <div class="notice" style="margin-bottom:12px">
+      <p><strong>일정이 3단계일 수 있습니다 — 확인 필요.</strong> 2차 매체(케이에스넷 기관 파트너 기사) 기준으로 <strong>08-03은 최종 마감이 아니라 본선 진출 스크리닝</strong>이고, 08-10~20 집중 멘토링 뒤 <strong>08-21 데모데이가 본선</strong>입니다. 사실이면 08-03까지는 "스크리닝 통과 최소 완성"에 자원을 몰고 프론트 시안 같은 큰 작업을 멘토링 기간으로 옮기는 게 합리적입니다. <strong>공식 채널 확인 전까지는 08-03을 최종 마감으로 간주하고 준비합니다.</strong></p>
+    </div>
     <div class="notice">
-      <p><strong>병렬 작업 경계.</strong> 프론트 작업자가 <span class="mono">web/static/**</span>에서 UI를 진행 중입니다. 백엔드 대화에서는 이 경로를 편집하지 않습니다 — 파일 집합을 분리해 병합 충돌을 0으로 유지하는 계약입니다(<span class="mono">docs/frontend_backend_split.md</span>). <span class="mono">GET /api/state</span> 스키마는 동결.</p>
+      <p><strong>병렬 작업 경계.</strong> 프론트 작업자가 <span class="mono">web/static/**</span>에서 UI를 진행합니다. 백엔드 대화에서는 이 경로를 편집하지 않습니다 — 파일 집합을 분리해 병합 충돌을 0으로 유지하는 계약입니다(<span class="mono">docs/frontend_backend_split.md</span>). <span class="mono">GET /api/state</span> 스키마는 동결. <strong>07-27 현재 원격에 프론트 작업물이 아직 올라오지 않았습니다</strong>(<span class="mono">origin</span>에 <span class="mono">main</span> 외 내용 있는 브랜치 0).</p>
     </div>
   </section>
 
   <footer>
-    <div>근거: <span class="mono">docs/reports/judging_latest.md</span> · <span class="mono">docs/reports/bug_latest.md</span> · <span class="mono">docs/reports/data_latest.md</span> · <span class="mono">docs/submission.md</span> · <span class="mono">docs/frontend_backend_split.md</span> · 커밋 <span class="mono">94fe605</span>·<span class="mono">3602015</span></div>
-    <div>체크 상태는 이 브라우저에만 저장됩니다. 수치는 각 리포트 실행 시점의 스냅샷이며, 부서를 다시 돌리면 갱신됩니다.</div>
+    <div>근거: <span class="mono">docs/reports/competition_research.md</span> · <span class="mono">docs/reports/judging_latest.md</span> · <span class="mono">docs/reports/bug_latest.md</span> · <span class="mono">docs/reports/data_latest.md</span> · <span class="mono">docs/design/concept_brief_402guard.md</span> · <span class="mono">docs/submission.md</span> · 커밋 <span class="mono">94fe605</span>·<span class="mono">3602015</span>·<span class="mono">70bed10</span>·<span class="mono">7d6a178</span>·<span class="mono">8440a1b</span></div>
+    <div>체크 상태는 이 브라우저에만 저장됩니다(항목이 바뀌어 07-27에 저장 키를 v2로 올렸습니다 — 이전 체크는 초기화됩니다). 수치는 각 리포트 실행 시점의 스냅샷이며, 부서를 다시 돌리면 갱신됩니다.</div>
   </footer>
 </main>
 
 <script>
   (function () {
-    var STORE_KEY = "guard402.status.v1";
+    var STORE_KEY = "guard402.status.v2";
     var DEADLINE = new Date("2026-08-03T23:59:00+09:00").getTime();
     var KICKOFF = new Date("2026-07-21T00:00:00+09:00").getTime();
+    var DEMODAY = new Date("2026-08-21T00:00:00+09:00").getTime();
 
     var boxes = Array.prototype.slice.call(document.querySelectorAll('.item input[type="checkbox"]'));
 
@@ -778,6 +838,12 @@
           String(days * 24 + hours).padStart(2, "0") + ":" +
           String(mins).padStart(2, "0") + ":" +
           String(secs).padStart(2, "0");
+      }
+
+      var demoLeft = DEMODAY - now;
+      var demoEl = document.getElementById("demoday");
+      if (demoEl) {
+        demoEl.textContent = demoLeft <= 0 ? "당일" : "D-" + Math.floor(demoLeft / 86400000);
       }
 
       var span = DEADLINE - KICKOFF;
