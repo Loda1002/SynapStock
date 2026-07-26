@@ -359,6 +359,13 @@ class TradingEngine:
         decision_mode = scfg.get("decision_mode") or "strict"
         if decision_mode not in ("strict", "trend"):
             raise EngineError("판단 모드는 'strict' 또는 'trend' 여야 합니다.")
+        # 판단 두뇌 선택 — auto(키 있으면 Gemini) / rule(규칙만) / gemini(강제).
+        # 조건형에서만 의미가 있다(적립형·추세추종은 결정론적 규칙이라 두뇌를 안 쓴다).
+        # rule 을 명시하면 키가 있어도 Gemini 를 호출하지 않는다 — 같은 데이터에서 규칙 vs AI 를
+        # 나란히 돌려 비교하기 위한 스위치다(심사 축② 판단 출처 대조).
+        brain_pref = scfg.get("brain") or "auto"
+        if brain_pref not in ("auto", "rule", "gemini"):
+            raise EngineError("판단 두뇌는 'auto' / 'rule' / 'gemini' 중 하나여야 합니다.")
         # TA 보강(매매 기준 개선) — MA 배열·크로스·지지/저항·패턴을 판단 근거로 주입.
         # 백테스트 검증 전 기본 OFF, 실데이터 재생에서 의미 있음(목 시세는 퇴화 봉).
         ta_mode = bool(scfg.get("ta_mode", False))
@@ -447,15 +454,24 @@ class TradingEngine:
         elif strat_type == "trend":
             # 추세추종은 결정론적 규칙 신호(검증이 그대로 재현되도록) — Gemini 를 쓰지 않는다
             brain_label = f"추세추종 규칙 ({signal_label} 신호 · 올인/올아웃 · Gemini 미사용)"
-        elif CFG.gemini_api_key:
+        elif brain_pref == "rule":
+            # 사용자가 규칙 모드를 명시 — 키가 있어도 Gemini 를 호출하지 않는다.
+            brain_label = "규칙 기반 (사용자 지정 — Gemini 미사용)"
+        elif not CFG.gemini_api_key:
+            # 명시적으로 gemini 를 골랐는데 키가 없으면 조용히 규칙으로 떨어뜨리지 않는다
+            # (설정했는데 반영이 안 되는 부류의 버그를 만들지 않기 위해).
+            if brain_pref == "gemini":
+                raise EngineError("Gemini 두뇌를 선택했지만 GEMINI_API_KEY 가 설정돼 있지 않습니다.")
+            brain_label = "규칙 기반 (GEMINI_API_KEY 미설정)"
+        else:
             try:
                 from agents.gemini_decider import GeminiDecider
                 brain = GeminiDecider(CFG.gemini_api_key, CFG.gemini_model, CFG.gemini_mode)
                 brain_label = f"Gemini ({CFG.gemini_model}, {brain.mode} 모드, 실패 시 규칙 폴백)"
             except Exception as e:
+                if brain_pref == "gemini":
+                    raise EngineError(f"Gemini 두뇌 초기화 실패: {type(e).__name__}: {e}")
                 brain_label = f"규칙 기반 (Gemini 초기화 실패: {type(e).__name__})"
-        else:
-            brain_label = "규칙 기반 (GEMINI_API_KEY 미설정)"
 
         # 세션 건별 한도 — 추세추종은 '가진 현금 전량 매수'(올인)라 건별 한도가 총자산까지
         # 열려야 한다(복리로 예산 초과 매수 가능). 이때 실질 방어선은 '수취인 allowlist +

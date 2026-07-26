@@ -161,8 +161,11 @@ class StrategyBody(StrictBody):
 
     적립 주기 기준(dca_unit): ticks(N틱마다) / minutes(N분마다) / daily(매일 HH:MM).
     decision_mode: 조건형의 Gemini 재량 — strict(규칙 그대로) / trend(보류 재량).
-    trend_signal: 추세추종 판단 방식 — pxma20(가격≥MA20) / cross_5_20(골든크로스5/20)."""
+    trend_signal: 추세추종 판단 방식 — pxma20(가격≥MA20) / cross_5_20(골든크로스5/20).
+    brain: 판단 두뇌 — auto(키 있으면 Gemini) / rule(규칙만) / gemini(강제, 키 없으면 400).
+           조건형에서만 의미가 있고, 같은 데이터로 규칙 vs AI 를 비교 실행하기 위한 스위치다."""
     type: str = "condition"
+    brain: str = "auto"
     decision_mode: str = "strict"
     trend_signal: str = "pxma20"   # 추세추종 신호 (type=trend 에서만 의미)
     ta_mode: bool = False  # TA 보강 — MA 배열·크로스·지지/저항·패턴 근거 판단
