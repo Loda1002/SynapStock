@@ -12,6 +12,10 @@
     brain: $("[data-brain]"),
     pausedBadge: $("[data-paused-badge]"),
     feedBadge: $("[data-feed-badge]"),
+    guardAttempts: $("[data-guard-attempts]"),
+    guardBlocked: $("[data-guard-blocked]"),
+    guardAp2: $("[data-guard-ap2]"),
+    guardLeak: $("[data-guard-leak]"),
     modeSelect: $("[data-mode-select]"),
     feedSelect: $("[data-feed-select]"),
     feedDataset: $("[data-feed-dataset]"),
@@ -318,6 +322,16 @@
       el.cumFee.textContent = s.fees.cum_fee_usdc;
     }
     renderValuation(s.valuation);
+
+    // 402 Guard KPI — leak_usdc 는 "0"(정수문자열)로 올 수 있어 0.00 으로 포맷한다.
+    if (s.guard) {
+      el.guardAttempts.textContent = s.guard.attempts;
+      el.guardBlocked.textContent = s.guard.blocked;
+      el.guardAp2.textContent = s.guard.ap2_rejected;
+      const leak = num(s.guard.leak_usdc);
+      el.guardLeak.textContent = leak.toFixed(2);
+      el.guardLeak.classList.toggle("neg", leak > 0);  // 유출 발생 시에만 빨강(기본 녹색)
+    }
 
     if (s.wallets.trading) el.walletTrading.textContent = shortKey(s.wallets.trading);
     if (s.wallets.broker) el.walletBroker.textContent = shortKey(s.wallets.broker);
@@ -963,9 +977,12 @@
      디자인 시안의 배치가 어떻게 오든 이 배열만 바꾸면 기본 배치가 바뀐다.
      사용자는 카드 제목(h2)을 끌어 재배치할 수 있고 localStorage 에 저장된다.
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
-  const LAYOUT_KEY = "autotrader_layout_v1";
-  const DEFAULT_LAYOUT = ["price", "symbols", "session", "position", "budget", "pnl", "valuation",
-                          "mandate", "decisions", "log", "briefing", "trades"];
+  const LAYOUT_KEY = "autotrader_layout_v3";  // v3: 시안 그룹 순서로 재배열 — 기존 저장 배치 리셋
+  // 시안(dashboard_mockup.png) 섹션 흐름: 가드 KPI → (컨트롤) → 오늘의 결과 →
+  // AI 판단 근거 → 거래 내역 → 한도/브리핑. 세션·멀티종목 컨트롤은 시안에 없지만
+  // 데모에 필수라 가드 바로 뒤에 유지(symbols 는 멀티일 때만 표시).
+  const DEFAULT_LAYOUT = ["guard", "session", "symbols", "pnl", "valuation", "position",
+                          "price", "decisions", "trades", "log", "budget", "mandate", "briefing"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 

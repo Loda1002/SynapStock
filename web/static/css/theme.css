@@ -4,33 +4,37 @@
 
    color-scheme 선언이 없으면 브라우저/앱의 다크 모드가 페이지를 강제로
    어둡게 뒤집어(auto-dark) 버튼만 색이 남는 깨진 화면이 된다 — 라이트·다크
-   팔레트를 모두 선언해 어느 테마에서도 의도된 색으로 보이게 한다. */
+   팔레트를 모두 선언해 어느 테마에서도 의도된 색으로 보이게 한다.
+
+   Phase 3(시안 스킨): 값을 dashboard_mockup.png 기준으로 교체.
+   시안 룩 = 연한 청회색 바탕 위에 흰 카드가 부드러운 그림자로 떠 있는 형태,
+   로열블루 강조 + 초록 상승 + 큰 굵은 숫자 + 넉넉한 여백. */
 :root {
   color-scheme: light dark;
 }
 
 :root {
-  /* 바탕 */
-  --bg: #f4f5f7;
+  /* 바탕 — 연한 청회색 위에 흰 카드가 뜨는 시안 룩 */
+  --bg: #edf0f7;
   --card-bg: #ffffff;
-  --text: #1c2330;
-  --muted: #6b7480;
-  --border: #dfe3e8;
+  --text: #16203a;
+  --muted: #6b7688;
+  --border: #e6eaf1;
 
-  /* 포인트 */
-  --accent: #4f6ef7;
-  --danger: #e5484d;
-  --ok: #2f9e68;
-  --warn: #c97e0a;
+  /* 포인트 — 로열블루 강조 */
+  --accent: #2f56f0;
+  --danger: #ef4444;
+  --ok: #16a34a;
+  --warn: #d97706;
 
   /* 매매 방향 */
-  --buy: #2f9e68;
-  --sell: #e5484d;
+  --buy: #16a34a;
+  --sell: #ef4444;
 
   /* 판단 주체 배지 */
   --badge-gemini: #7c5cff;
-  --badge-rule: #6b7480;
-  --badge-fallback: #c97e0a;
+  --badge-rule: #6b7688;
+  --badge-fallback: #d97706;
   --badge-dca: #0f7ea8;
 
   /* 차트 이동평균선 (1/5/10/20/50 표시 — 100/200일선은 판단용으로만 계산) */
@@ -40,27 +44,30 @@
   --ma20: var(--muted);
   --ma50: var(--warn);
 
-  /* 타이포·형태 */
-  --font: system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  /* 타이포·형태 — 시안의 넉넉한 여백·큰 숫자·둥근 카드 */
+  --font: "Pretendard", system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   --mono: Consolas, "D2Coding", monospace;
-  --radius: 10px;
-  --gap: 12px;
-  --pad: 14px;
+  --radius: 16px;
+  --gap: 16px;
+  --pad: 20px;
   --fs-base: 14px;
-  --fs-big: 28px;
+  --fs-big: 34px;
   --fs-small: 12px;
+
+  /* 카드 그림자 — 시안의 "떠 있는 흰 카드" 핵심 (skeleton .card/.topbar 가 참조) */
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
 }
 
 /* 다크 팔레트 — OS/브라우저가 다크 모드일 때 자동 적용 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14161a;
-    --card-bg: #1e2126;
+    --bg: #12151c;
+    --card-bg: #1b1f27;
     --text: #e6e9ee;
     --muted: #9aa3ad;
-    --border: #343a42;
+    --border: #2a3039;
 
-    --accent: #7c93ff;
+    --accent: #6f8bff;
     --danger: #ff6b6e;
     --ok: #3ecf8e;
     --warn: #f0b429;
@@ -75,5 +82,7 @@
 
     --ma1: #43c6d1;
     --ma10: #b98af0;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .45);
   }
 }

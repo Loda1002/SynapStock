@@ -18,6 +18,7 @@ code { font-family: var(--mono); font-size: var(--fs-small); }
 .topbar {
   background: var(--card-bg); border: 1px solid var(--border);
   border-radius: var(--radius); padding: var(--pad); margin-bottom: var(--gap);
+  box-shadow: var(--shadow);
   display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center;
 }
 .brand h1 { margin: 0; font-size: 18px; }
@@ -70,6 +71,7 @@ input[type="number"], input[type="text"], input[type="time"] {
 .card {
   background: var(--card-bg); border: 1px solid var(--border);
   border-radius: var(--radius); padding: var(--pad); min-width: 0;
+  box-shadow: var(--shadow);
 }
 .card h2 { margin: 0 0 8px; font-size: var(--fs-base); }
 .card-wide { grid-column: span 2; }
@@ -94,6 +96,14 @@ input[type="number"], input[type="text"], input[type="time"] {
 .sub { color: var(--muted); font-size: var(--fs-small); margin: 2px 0; }
 .pos { color: var(--ok); }
 .neg { color: var(--danger); }
+
+/* 402 Guard KPI 타일 — 넓은 화면 4열, 좁으면 자동 줄바꿈(미디어쿼리 불필요) */
+.kpi-row { display: flex; flex-wrap: wrap; gap: var(--gap); }
+.kpi { flex: 1 1 120px; }
+.kpi-num { font-size: var(--fs-big); font-weight: 700; margin: 0 0 2px; }
+.kpi-num .unit { font-size: var(--fs-base); font-weight: 400; color: var(--muted); }
+.kpi-hero .kpi-num { color: var(--ok); }          /* 유출 0.00 = 정상(녹색) */
+.kpi-hero .kpi-num.neg { color: var(--danger); }  /* 유출 발생 시 경고(빨강) */
 
 /* ---- 시세 카드 (메인) + SVG 캔들차트 ----
    외부 차트 라이브러리 없이 직접 그린다(데모데이 오프라인 폴백 원칙). */

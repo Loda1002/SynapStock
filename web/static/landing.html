@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>402 Guard — 사는 쪽 에이전트의 지출을 지키는 승인 게이트</title>
+<!-- Phase 3 스킨(theme.css 변수·--shadow) + 골격(skeleton.css)을 그대로 상속.
+     랜딩 전용 구조(스티키 바·히어로·블러 미리보기)만 아래 <style> 에 둔다 —
+     공유되는 skeleton.css 를 건드리지 않기 위해 이 페이지 안에 격리.
+     라우트(/→landing)는 백엔드가 나중에 전환. 그 전엔 /static/landing.html 로 개발. -->
+<link rel="stylesheet" href="/static/css/theme.css">
+<link rel="stylesheet" href="/static/css/skeleton.css">
+<style>
+  html { scroll-behavior: smooth; }
+
+  /* 섹션 공통 폭 — 상단바·히어로·ABOUT·푸터의 좌우 끝을 맞춘다.
+     섹션마다 폭이 달라 가장자리가 들쭉날쭉하던 것이 산만해 보이는 주 원인이었다. */
+  .landing-topbar, .hero, .landing-about, .landing-foot {
+    max-width: 1160px; margin-left: auto; margin-right: auto;
+  }
+
+  /* 바탕 깊이 — 한 톤 평면이라 허전하던 배경에 미리보기 쪽으로 옅은 강조색 워시.
+     var(--accent) 파생이라 라이트·다크 자동 대응(color-mix 미지원 시 단색 --bg 로 폴백). */
+  body {
+    background-image: radial-gradient(900px 520px at 78% 6%,
+      color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* 상단 스티키 바 — .topbar 골격 상속 + 스크롤 고정 */
+  .landing-topbar { position: sticky; top: var(--gap); z-index: 50; margin-bottom: 0; }
+  .landing-nav { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin: 0 auto; }
+  .nav-link { color: var(--text); text-decoration: none; font-size: var(--fs-base); }
+  .nav-link:hover { color: var(--accent); }
+  .nav-soon { color: var(--muted); cursor: default; display: inline-flex; align-items: center; gap: 4px; }
+  .nav-soon em { font-style: normal; font-size: 10px; padding: 1px 6px; border-radius: 999px;
+                 border: 1px solid var(--border); background: var(--bg); color: var(--muted); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+
+  /* 히어로 — 카피(좌) + 흐릿한 대시보드 미리보기(우).
+     타입 스케일은 대시보드용(--fs-big=34)보다 크게 잡는다 — 랜딩 헤드라인이 약해 보이던 문제.
+     좌우 높이차로 왼쪽 아래에 빈 공간이 크게 남던 것은 .hero-proof 로 무게를 맞춘다. */
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: calc(var(--gap) * 2.5);
+          align-items: center; padding: calc(var(--gap) * 3) 0 calc(var(--gap) * 4); }
+  /* word-break: keep-all — 한국어는 기본값이면 어절 중간에서 끊긴다("지출을," → "지출"+"을,").
+     랜딩 카피 전체에 걸어 줄바꿈이 어절 경계에서만 일어나게 한다. */
+  .hero-copy, .about-card { word-break: keep-all; }
+  .hero-title { font-size: clamp(28px, 3.2vw, 42px); line-height: 1.25; letter-spacing: -.02em;
+                font-weight: 800; margin: 0 0 16px; text-wrap: balance; }
+  .hero-sub { color: var(--muted); font-size: clamp(14px, 1.15vw, 17px);
+              line-height: 1.65; margin: 0 0 26px; max-width: 44ch; }
+  .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .hero-cta .btn { padding: 12px 24px; font-weight: 600; }
+  .hero-note { margin: 16px 0 0; color: var(--muted); font-size: var(--fs-small); }
+  /* 증명 3줄 — 왼쪽 열 하단의 빈 공간을 채우고 오른쪽 카드와 시각적 무게를 맞춘다 */
+  .hero-proof { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 2); list-style: none;
+                margin: 28px 0 0; padding: 20px 0 0; border-top: 1px solid var(--border); }
+  .hero-proof strong { display: block; font-size: 17px; letter-spacing: -.01em; }
+  .hero-proof .sub { margin: 2px 0 0; }
+
+  /* 흐릿한 대시보드 미리보기 = "데모처럼".
+     지금은 실제 카드 클래스로 만든 목업에 filter: blur() 를 건다(스킨·다크모드 자동 상속).
+     ▶ 실제 대시보드 스크린샷이 준비되면 .preview-inner 안을 아래 한 줄로 교체:
+       <img src="/static/img/dashboard-demo.png" alt="" style="width:100%;display:block;">
+     (blur·overlay 는 그대로 두면 됨) */
+  .hero-preview { position: relative; border-radius: var(--radius); overflow: hidden;
+                  border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--bg); }
+  .preview-inner { pointer-events: none; user-select: none;
+                   padding: var(--pad); display: flex; flex-direction: column; gap: 12px; }
+  .preview-inner .card { box-shadow: none; }
+  /* 숫자만 가린다 — 전체 블러는 뭐가 뭔지 안 보여서 기능 전달이 안 된다.
+     라벨·카드 구조·차트는 선명하게 두고 수치만 흐린다.
+     em 단위라 글자 크기에 비례해 흐려진다(큰 숫자=크게, 작은 숫자=적게). */
+  .blur-num { filter: blur(.17em); }
+  .preview-bar { display: flex; align-items: center; gap: 8px; }
+  .preview-bar .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--accent); }
+  .preview-bar strong { font-size: 14px; }
+  .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .preview-chart { height: 90px; display: block; width: 100%; }
+  .preview-tag { position: absolute; left: 14px; bottom: 14px; z-index: 2;
+                 background: var(--card-bg); border: 1px solid var(--border);
+                 border-radius: 999px; padding: 4px 12px; font-size: var(--fs-small);
+                 color: var(--muted); box-shadow: var(--shadow); }
+
+  /* ABOUT — 카드(떠 있는 블록)가 아니라 가로줄로 구분되는 "섹션".
+     대시보드는 카드가 데이터 단위지만, 랜딩의 소개글은 정보 블록이 아니라 문서의 한 절이다.
+     scroll-margin-top: 스티키 바가 앵커 이동 시 제목을 가리던 문제를 막는다. */
+  .landing-about { margin: 0 auto calc(var(--gap) * 4); padding: calc(var(--gap) * 3) 0 0;
+                   border-top: 1px solid var(--border); scroll-margin-top: 108px; }
+  /* 줄이 1160px 폭으로 길어지지 않게 본문만 제한. ch 단위는 글자 크기마다 폭이 달라져
+     작은 설명글만 일찍 줄바꿈되므로 px 로 고정해 좌우 끝을 맞춘다. */
+  .landing-about > * { max-width: 780px; }
+  .about-card h2 { font-size: clamp(22px, 2.2vw, 30px); line-height: 1.3; letter-spacing: -.01em; }
+  .about-steps { margin: 16px 0 0; padding-left: 22px; }
+  .about-steps li { margin: 12px 0; line-height: 1.7; }
+
+  .landing-foot { padding-top: var(--gap); border-top: 1px solid var(--border); }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; gap: var(--gap); padding: var(--gap) 0 calc(var(--gap) * 2); }
+    .hero-preview { order: -1; }
+    .hero-proof { gap: var(--gap); margin-top: 20px; }
+    .landing-nav { margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar landing-topbar">
+  <div class="brand">
+    <h1>402 Guard</h1>
+    <p class="tagline">사는 쪽 에이전트를 지키는 지출 승인 게이트</p>
+  </div>
+  <nav class="landing-nav" aria-label="주요 메뉴">
+    <a class="nav-link" href="#about">소개</a>
+    <!-- 포트폴리오·인사이트·리포트는 별도 페이지를 만들지 않는다(새 페이지=랜딩·로그인·대시보드 3개까지).
+         지금은 "출시 예정" 표시만. -->
+    <span class="nav-soon" title="출시 예정 — 곧 제공됩니다">포트폴리오 <em>곧</em></span>
+    <span class="nav-soon" title="출시 예정 — 곧 제공됩니다">인사이트 <em>곧</em></span>
+    <span class="nav-soon" title="출시 예정 — 곧 제공됩니다">리포트 <em>곧</em></span>
+  </nav>
+  <div class="controls">
+    <a class="btn btn-primary" href="/login">시작하기</a>
+  </div>
+</header>
+
+<main>
+  <!-- 히어로 -->
+  <section class="hero">
+    <div class="hero-copy">
+      <h2 class="hero-title">사는 쪽 에이전트의 지출을,<br>서명 직전에 지킵니다.</h2>
+      <p class="hero-sub">
+        402 Guard 는 사람 없이 결제하는 AI 에이전트가 한도를 넘거나 엉뚱한 곳으로
+        돈을 보내지 못하게 막는 <strong>승인 게이트</strong>입니다.
+        수취인·금액·자산을 서명 직전에 대조해, 유출은 <strong>0.00 USDC</strong> 로 증명합니다.
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="/login">시작하기</a>
+        <a class="btn" href="/static/index.html">데모 대시보드 보기</a>
+      </div>
+      <p class="hero-note">A2A · AP2 · x402 on Solana · 데모는 로그인 없이 바로 둘러볼 수 있습니다.</p>
+
+      <!-- 증명 3줄 — 좌측 열의 시각적 무게를 오른쪽 미리보기 카드와 맞춘다(빈 공간 해소). -->
+      <ul class="hero-proof">
+        <li><strong>0.00 USDC</strong><p class="sub">누적 유출</p></li>
+        <li><strong>서명 직전 검증</strong><p class="sub">수취인 · 금액 · 자산 대조</p></li>
+        <li><strong>한도 초과 불가</strong><p class="sub">AP2 mandate 로 기계적 차단</p></li>
+      </ul>
+    </div>
+
+    <!-- 흐릿한 대시보드 미리보기 (데모처럼). 실제 카드 클래스로 만든 목업 + filter: blur() -->
+    <div class="hero-preview" aria-hidden="true">
+      <div class="preview-inner">
+        <div class="preview-bar"><span class="dot"></span><strong>402 Guard</strong>
+          <span class="badge badge-ok">유출 <span class="blur-num">0.00</span></span>
+          <span class="badge">devnet · dry</span></div>
+
+        <section class="card guard-card">
+          <h2>402 Guard <span class="sub">에이전트 지출 승인 게이트</span></h2>
+          <div class="kpi-row">
+            <div class="kpi"><p class="kpi-num blur-num">12</p><p class="sub">지출 시도</p></div>
+            <div class="kpi"><p class="kpi-num blur-num">3</p><p class="sub">가드 차단</p></div>
+            <div class="kpi"><p class="kpi-num blur-num">1</p><p class="sub">한도 거부</p></div>
+            <div class="kpi kpi-hero"><p class="kpi-num"><span class="blur-num">0.00</span> <span class="unit">USDC</span></p>
+              <p class="sub">유출 (목표 0.00)</p></div>
+          </div>
+        </section>
+
+        <div class="preview-row">
+          <section class="card">
+            <h2>시세 <span class="sub">TSLA / USDC</span></h2>
+            <svg class="preview-chart" viewBox="0 0 240 90" preserveAspectRatio="none" role="presentation">
+              <polyline fill="none" stroke="var(--accent)" stroke-width="2"
+                points="0,70 30,60 60,64 90,44 120,50 150,30 180,36 210,18 240,24"></polyline>
+              <polyline fill="none" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="4 3"
+                points="0,74 30,68 60,66 90,58 120,54 150,46 180,42 210,34 240,30"></polyline>
+            </svg>
+          </section>
+          <section class="card">
+            <h2>손익 (실현)</h2>
+            <p class="big"><span class="pos blur-num">+4.90</span> <span class="unit">USDC</span></p>
+            <p class="sub">수익률 <span class="pos blur-num">+4.9%</span> · 한도 안에서 정산</p>
+            <p class="big" style="font-size:var(--fs-base)">보유 <span class="blur-num">3</span>주 ·
+              평단 <span class="blur-num">96.2</span> USDC</p>
+          </section>
+        </div>
+      </div>
+      <span class="preview-tag">실시간 데모 미리보기</span>
+    </div>
+  </section>
+
+  <!-- ABOUT — index.html .about-card 카피 재사용 (킥오프 §3 402 Guard 카피) -->
+  <section class="about-card landing-about" id="about">
+    <h2>한도를 정하면, 에이전트는 그 안에서만 씁니다</h2>
+    <p class="sub">사람 없이 결제하는 AI 에이전트의 지출을, 서명 직전에 검증하는 승인 게이트입니다.</p>
+    <ol class="about-steps">
+      <li><strong>한도를 정합니다.</strong> 총예산·건별 최대·허용 종목을 AP2 mandate 로 서명합니다.</li>
+      <li><strong>에이전트가 그 한도 안에서만 지출합니다.</strong> 초과 청구는 서명되지 않습니다.</li>
+      <li><strong>악성 청구는 차단하고, 유출은 0으로 증명합니다.</strong> 수취인·금액·자산을 대조해 엉뚱한 곳으로 새는 돈을 0.00 USDC 로 지킵니다.</li>
+    </ol>
+    <p class="sub" style="margin-top:18px">
+      <a class="nav-link" href="/login" style="color:var(--accent)">시작하기 →</a>
+    </p>
+  </section>
+</main>
+
+<footer class="foot landing-foot">
+  <span>402 Guard · A2A · AP2 · x402 on Solana</span>
+  <span>데모는 로그인 없이 이용 가능 · <a class="nav-link" href="/static/index.html" style="color:var(--accent)">대시보드</a></span>
+</footer>
+
+</body>
+</html>
