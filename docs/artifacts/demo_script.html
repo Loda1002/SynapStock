@@ -373,11 +373,12 @@
           <div class="scene-body">
             <div class="block">
               <h4>말할 것</h4>
-              <p class="say">정상 거래는 막히지 않습니다. 두 에이전트가 A2A로 견적을 합의하고, 게이트를 통과한 뒤 Solana에서 USDC가 실제로 이동합니다. <em>트랜잭션 메모에 주문번호를 심어 어느 주문인지 체인에서 대조할 수 있고</em>, 정산 뒤에는 잔액을 다시 조회해 청구서대로 도착했는지 확인합니다.</p>
+              <p class="say">정상 거래는 막히지 않습니다. 브로커는 진짜 원격 서비스라 결제 없이 주문하면 <em>402 Payment Required</em>를 그대로 돌려줍니다. 결제를 붙이면 Solana에서 USDC가 실제로 이동합니다. <em>트랜잭션 메모에 주문번호를 심어 어느 주문인지 체인에서 대조할 수 있고</em>, 정산 뒤에는 잔액을 다시 조회해 청구서대로 도착했는지 확인합니다.</p>
             </div>
             <div class="block">
               <h4>보여줄 것</h4>
               <ul class="do">
+                <li>터미널: <code>curl -i http://localhost:8402/broker/orders</code> → 402 응답 헤더·결제 조건 확대</li>
                 <li>정상 매수 1건 — 판단 → 견적 → 게이트 통과 → 결제 완료</li>
                 <li>explorer에서 <code>?cluster=devnet</code> 트랜잭션 실제 조회</li>
                 <li>메모 필드 <code>AT1:{order_id}</code> 확대</li>

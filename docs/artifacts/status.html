@@ -435,7 +435,7 @@
   <section>
     <div class="sec-head">
       <h2>심사 4축 자가평가</h2>
-      <span class="sec-note">심사 부서 2026-07-25 22:24 실행 · 적대 검증 근거 32건 중 반려 0</span>
+      <span class="sec-note">심사 부서 2026-07-25 22:24 실행 · 적대 검증 근거 32건 중 반려 0 · 이후 3건 보완 완료</span>
     </div>
     <div class="hair-grid axes">
       <div class="cell">
@@ -450,14 +450,14 @@
           <span class="axis-name">② AI 활용도</span>
           <span class="stamp warn">중</span>
         </div>
-        <p class="axis-why">Gemini 통합·폴백은 견고하나 대표 성능 서사가 전부 규칙 판단이고, 온체인 세션에 Gemini 관여 증빙이 없다. 최근 커밋 2건으로 보완 착수.</p>
+        <p class="axis-why">Gemini 통합·폴백은 견고하나 대표 성능 서사가 전부 규칙 판단. 07-26에 규칙 게이트 코드 강제(<span class="mono">94fe605</span>)와 판단 출처 계측(<span class="mono">3602015</span>)으로 보완. 남은 것은 온체인 세션의 Gemini 관여 증빙.</p>
       </div>
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">③ 기술·인프라</span>
           <span class="stamp good">강</span>
         </div>
-        <p class="axis-why">x402 온체인 정산·exact 금액검증·Memo 바인딩·AP2 서명·A2A 3단계·Guard 결선이 전부 실물 코드. HTTP 402 상태코드 응답만 미구현.</p>
+        <p class="axis-why">x402 온체인 정산·exact 금액검증·Memo 바인딩·AP2 서명·A2A 3단계·Guard 결선이 전부 실물 코드. 유일한 갭이던 HTTP 402 응답도 07-26에 구현(<span class="mono">70bed10</span>) — 축③ 갭 없음.</p>
       </div>
       <div class="cell">
         <div class="axis-top">
@@ -497,8 +497,8 @@
       </div>
       <div class="cell">
         <span class="kpi-label">테스트</span>
-        <span class="kpi-value good">11</span>
-        <span class="kpi-foot">종 전부 통과</span>
+        <span class="kpi-value good">14</span>
+        <span class="kpi-foot">종 전부 통과 (07-26)</span>
       </div>
       <div class="cell">
         <span class="kpi-label">하락장 실증</span>
@@ -547,7 +547,7 @@
               <li class="item"><input type="checkbox" id="b2" data-group="back" checked><label for="b2">판단 출처 계측 <span class="why">커밋 3602015 — AI 관여를 tx 아티팩트·세션 요약에 기록</span></label></li>
               <li class="item"><input type="checkbox" id="b3" data-group="back"><label for="b3">대규모 하락장 Gemini 백테스트 <span class="why">481·1600봉을 brain=gemini로 실행해 규칙 대비 수익·MDD 확보</span></label></li>
               <li class="item"><input type="checkbox" id="b4" data-group="back"><label for="b4">Gemini 온체인 세션 1회 아카이빙 <span class="why">조건형+Gemini로 devnet 실행 — 축②의 실구동 증빙</span></label></li>
-              <li class="item"><input type="checkbox" id="b5" data-group="back"><label for="b5">브로커 HTTP 402 레그(G5) <span class="why">여유 시. 축③의 유일한 갭 — status_code=402 + accepts[] 반환</span></label></li>
+              <li class="item"><input type="checkbox" id="b5" data-group="back" checked><label for="b5">브로커 HTTP 402 레그(G5) <span class="why">커밋 70bed10 — 402 + accepts[] 반환, 테스트 53건, 매수 레그만(매도는 방향이 반대라 A2A 유지)</span></label></li>
             </ul>
           </div>
 

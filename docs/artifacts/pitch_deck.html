@@ -1,0 +1,715 @@
+<title>402 Guard — 프로젝트 소개서</title>
+
+<style>
+  :root {
+    --paper: #ffffff;
+    --ground: #eef1f4;
+    --ink: #101922;
+    --ink-2: #3f4d5b;
+    --ink-3: #7a8894;
+    --rule: #d8dfe6;
+    --rule-strong: #b9c4ce;
+    --accent: #1d5b8f;
+    --accent-soft: #e9f0f7;
+    --good: #17724b;
+    --good-soft: #e6f2ec;
+    --warn: #9a6410;
+    --warn-soft: #f8f0e0;
+    --crit: #a93226;
+    --crit-soft: #f8eae8;
+    --on-accent: #ffffff;
+    --font-sans: "Pretendard Variable", Pretendard, "Malgun Gothic", "맑은 고딕", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+    --k: 1;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root { --ground: #0d1319; }
+  }
+  :root[data-theme="dark"] { --ground: #0d1319; }
+  :root[data-theme="light"] { --ground: #eef1f4; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- toolbar (screen only) ---------- */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 10px 20px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  .toolbar .title { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .toolbar .note { font-size: 11.5px; color: var(--ink-3); flex: 1 1 240px; }
+  .print-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    padding: 7px 13px;
+    cursor: pointer;
+  }
+  .print-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .deck { padding: 22px 20px 60px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+  .frame {
+    width: calc(297mm * var(--k));
+    height: calc(210mm * var(--k));
+    overflow: hidden;
+  }
+
+  .slide {
+    width: 297mm;
+    height: 210mm;
+    transform: scale(var(--k));
+    transform-origin: top left;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--rule-strong);
+    padding: 16mm 18mm;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide-num {
+    position: absolute;
+    right: 12mm;
+    bottom: 9mm;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.08em;
+  }
+  .slide-brand {
+    position: absolute;
+    left: 18mm;
+    bottom: 9mm;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.08em;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  h2.headline {
+    margin: 7px 0 0;
+    font-size: 33px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  p.deck-lead {
+    margin: 10px 0 0;
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    max-width: 78ch;
+  }
+
+  .body { margin-top: 14px; flex: 1 1 auto; min-height: 0; }
+
+  /* ---------- cover ---------- */
+  .cover { justify-content: center; }
+  .cover .rule { width: 64mm; height: 3px; background: var(--accent); margin-bottom: 12mm; }
+  .cover h1 { margin: 0; font-size: 62px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.08; }
+  .cover .sub { margin: 8px 0 0; font-size: 21px; color: var(--ink-2); font-weight: 500; letter-spacing: -0.01em; }
+  .cover .claim {
+    margin: 14mm 0 0;
+    font-size: 17px;
+    line-height: 1.65;
+    max-width: 72ch;
+    border-left: 3px solid var(--accent);
+    padding-left: 14px;
+    color: var(--ink);
+  }
+  .cover .meta { margin-top: 14mm; display: flex; gap: 30px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+  .cover .meta b { color: var(--ink-3); font-weight: 600; display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+
+  /* ---------- generic blocks ---------- */
+  .cols { display: grid; gap: 8mm; height: 100%; }
+  .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .box { border: 1px solid var(--rule); padding: 6mm 6mm 6.5mm; display: flex; flex-direction: column; gap: 6px; }
+  .box.tint { background: var(--accent-soft); border-color: var(--accent); }
+  .box.bad { background: var(--crit-soft); border-color: var(--crit); }
+  .box.ok { background: var(--good-soft); border-color: var(--good); }
+  .box h3 { margin: 0; font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; }
+  .box p { margin: 0; font-size: 13.5px; line-height: 1.62; color: var(--ink-2); }
+  .box .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 700;
+  }
+  .box.bad .tag { color: var(--crit); }
+  .box.ok .tag { color: var(--good); }
+
+  ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  ul.plain li { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); padding-left: 15px; position: relative; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+  ul.plain li b { color: var(--ink); font-weight: 700; }
+
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- attack flow ---------- */
+  .flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 5mm; margin-top: 4mm; }
+  .node { border: 1px solid var(--rule-strong); padding: 5mm; text-align: center; }
+  .node .who { font-size: 14px; font-weight: 700; }
+  .node .what { font-size: 12px; color: var(--ink-2); margin-top: 3px; line-height: 1.5; }
+  .node.gate { border-color: var(--accent); background: var(--accent-soft); border-width: 2px; }
+  .node.evil { border-color: var(--crit); background: var(--crit-soft); }
+  .arrow { font-family: var(--font-mono); font-size: 18px; color: var(--ink-3); }
+
+  .invoice { border: 1px solid var(--rule-strong); font-family: var(--font-mono); font-size: 13px; }
+  .invoice .row { display: flex; justify-content: space-between; gap: 12px; padding: 4.5mm 6mm; border-top: 1px solid var(--rule); }
+  .invoice .row:first-child { border-top: 0; background: var(--paper); }
+  .invoice .row.flag { background: var(--crit-soft); color: var(--crit); font-weight: 700; }
+  .invoice .row .k { color: var(--ink-3); }
+  .invoice .row.flag .k { color: var(--crit); }
+
+  /* ---------- checks ---------- */
+  .checks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .check { background: var(--paper); padding: 4.5mm 4mm; }
+  .check .n { font-family: var(--font-mono); font-size: 10px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; }
+  .check .t { font-size: 13px; font-weight: 700; margin-top: 3px; }
+  .check .d { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.5; }
+
+  /* ---------- architecture ---------- */
+  .arch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6mm; margin-top: 2mm; }
+  .lane { border: 1px solid var(--rule); display: flex; flex-direction: column; }
+  .lane-head { padding: 3.5mm 5mm; border-bottom: 1px solid var(--rule); background: var(--accent-soft); font-size: 12.5px; font-weight: 700; }
+  .lane-body { padding: 4.5mm 5mm; display: flex; flex-direction: column; gap: 7px; }
+  .unit { font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+  .unit b { display: block; color: var(--ink); font-size: 13px; }
+  .unit .path { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+
+  .seq { margin-top: 5mm; border: 1px solid var(--rule-strong); padding: 5mm 6mm; display: flex; align-items: center; gap: 4mm; flex-wrap: wrap; }
+  .seq .step { font-size: 12.5px; color: var(--ink-2); }
+  .seq .step b { color: var(--ink); }
+  .seq .sep { font-family: var(--font-mono); color: var(--accent); font-weight: 700; }
+
+  /* ---------- KPI ---------- */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .kpi { background: var(--paper); padding: 6mm 5mm; }
+  .kpi .l { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .kpi .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-top: 4px; }
+  .kpi .v.good { color: var(--good); }
+  .kpi .f { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data th, table.data td { text-align: left; padding: 4mm 4mm; border-top: 1px solid var(--rule); vertical-align: top; }
+  table.data thead th { border-top: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.data td.win { color: var(--good); font-weight: 700; }
+  table.data td.lose { color: var(--crit); font-weight: 700; }
+
+  .shot {
+    border: 1px dashed var(--rule-strong);
+    background: repeating-linear-gradient(135deg, transparent, transparent 7px, var(--ground) 7px, var(--ground) 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8mm;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    line-height: 1.6;
+    flex: 1 1 auto;
+  }
+
+  .footnote { margin-top: 5mm; font-size: 11px; color: var(--ink-3); line-height: 1.6; }
+  .footnote b { color: var(--ink-2); }
+
+  /* ---------- print ---------- */
+  @page { size: A4 landscape; margin: 0; }
+
+  @media print {
+    :root { --k: 1; --ground: #ffffff; }
+    body { background: #ffffff; }
+    .toolbar { display: none; }
+    .deck { padding: 0; gap: 0; display: block; }
+    .frame { width: auto; height: auto; overflow: visible; }
+    .slide {
+      transform: none;
+      border: 0;
+      page-break-after: always;
+      break-after: page;
+    }
+    .slide:last-child { page-break-after: auto; break-after: auto; }
+    .shot { background: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="toolbar">
+  <span class="title">402 Guard — 프로젝트 소개서</span>
+  <span class="note">A4 가로 13장. 인쇄 창에서 <b>대상을 PDF로 저장</b>, 배율 100%, 배경 그래픽 켜기로 저장하면 제출용 PDF가 됩니다.</span>
+  <button class="print-btn" id="printBtn" type="button">PDF로 저장</button>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1. cover -->
+  <div class="frame"><section class="slide cover">
+    <div class="rule"></div>
+    <h1>402 Guard</h1>
+    <p class="sub">에이전트 지출 승인 게이트 — 사람 없이 결제하는 AI를 지키는 마지막 검증</p>
+    <p class="claim">x402 결제 규격은 <b>파는 쪽</b>을 보호합니다. 402 Guard는 <b>사는 쪽</b> — 사람 없이 서명하는 구매 에이전트 — 를 보호합니다. 돈이 나가기 직전에 청구서를 사용자의 위임장과 대조하는 계층입니다.</p>
+    <div class="meta">
+      <div><b>트랙</b>Track C · Multi-Agent Commerce</div>
+      <div><b>레퍼런스 시나리오</b>토큰화 주식 자동매매</div>
+      <div><b>네트워크</b>Solana devnet · localnet</div>
+      <div><b>제출</b>2026-08</div>
+    </div>
+    <span class="slide-num mono">01 / 13</span>
+  </section></div>
+
+  <!-- 2. problem -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">문제</span>
+    <h2 class="headline">사람이 매 건 승인하지 않는 결제가 시작됐는데,<br>사는 쪽을 지키는 계층이 없습니다.</h2>
+    <p class="deck-lead">에이전트는 은행 계좌를 개설할 수 없지만 지갑은 코드 한 줄로 만듭니다. 그래서 자율 결제는 블록체인 위에서 먼저 열립니다. 문제는 그 결제 규격이 판매자 보호를 전제로 설계됐다는 점입니다.</p>
+    <div class="body cols cols-3">
+      <div class="box">
+        <span class="tag">규격의 공백</span>
+        <h3>거래 상대 검증이 없다</h3>
+        <p>x402 exact 스킴은 "얼마를 받았는가"는 검증하지만 "누구에게 보내는가"를 구매자 관점에서 검증하는 항목이 없습니다. 판매자 보호에 최적화된 설계입니다.</p>
+      </div>
+      <div class="box">
+        <span class="tag">위임의 공백</span>
+        <h3>한도만으로는 못 막는다</h3>
+        <p>결제 위임(AP2 mandate)은 종목·건별 한도·잔여 예산을 검사합니다. 수취인 지갑은 검사하지 않습니다. 한도 안쪽이면 어디로 나가든 통과합니다.</p>
+      </div>
+      <div class="box">
+        <span class="tag">결과</span>
+        <h3>한 번의 서명 = 즉시 손실</h3>
+        <p>사람이 빠진 결제에서 잘못된 서명은 되돌릴 수 없습니다. 반복·고빈도 결제일수록 손실이 누적됩니다.</p>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">02 / 13</span>
+  </section></div>
+
+  <!-- 3. attack -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">위협 시나리오</span>
+    <h2 class="headline">한도는 지켜졌습니다. 그리고 전액을 잃습니다.</h2>
+    <p class="deck-lead">악성 판매 에이전트는 한도를 넘지 않습니다. 넘을 이유가 없습니다. 금액을 한도 바로 아래로 맞추고 수취인 주소만 바꾸면 됩니다.</p>
+    <div class="body cols cols-2" style="align-items:start">
+      <div>
+        <div class="invoice">
+          <div class="row"><span class="k">건별 한도</span><span>45.00 USDC</span></div>
+          <div class="row"><span class="k">청구 금액</span><span>44.94 USDC &nbsp;— 한도 내</span></div>
+          <div class="row"><span class="k">종목</span><span>허용 목록 안</span></div>
+          <div class="row flag"><span class="k">수취인 지갑</span><span>판매자 → 공격자 주소</span></div>
+        </div>
+        <div class="footnote"><b>가드 없는 에이전트의 판정:</b> 44.94 ≤ 45 → 통과 → 서명. 돈은 나가고 주식은 오지 않습니다. 지금 업계의 기본 동작입니다.</div>
+      </div>
+      <div>
+        <div class="flow" style="grid-template-columns:1fr auto 1fr; margin-top:0">
+          <div class="node"><div class="who">구매 에이전트</div><div class="what">사람 없이 서명</div></div>
+          <div class="arrow">→</div>
+          <div class="node evil"><div class="who">악성 판매 에이전트</div><div class="what">한도 안쪽 청구서<br>수취인만 교체</div></div>
+        </div>
+        <div class="box bad" style="margin-top:6mm">
+          <span class="tag">우리가 이 위협을 아는 이유</span>
+          <p>이 결함들을 저희 저장소에서 직접 재현했습니다. 청구서 무검증 서명, 수취인 미검사, 죽어 있던 자산 필드, exact인데 부등호 비교, 주문 식별자 부재. 자기 고백이 아니라 <b>규격의 공백</b>이고, 그래서 남의 문제이기도 합니다.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">03 / 13</span>
+  </section></div>
+
+  <!-- 4. why -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">당위성</span>
+    <h2 class="headline">왜 카드망이 아니라 블록체인이고,<br>왜 사람을 부르지 않는가</h2>
+    <div class="body cols cols-2">
+      <div class="box">
+        <span class="tag">왜 온체인인가</span>
+        <h3>인증 없는 결제 · 저수수료 · 24/7 · 국경 무관</h3>
+        <p>에이전트는 신분증도 계좌도 없습니다. 카드망은 사람의 인증을 전제로 설계돼 있고, 에이전트는 그 전제를 만족시킬 수 없습니다. 지갑은 코드로 생성되고 서명은 프로그램이 합니다. 마이크로페이먼트는 근거가 약합니다 — 진짜 해자는 <b>인증 없이도 성립하는 결제</b>입니다.</p>
+      </div>
+      <div class="box tint">
+        <span class="tag">왜 사람을 안 부르는가</span>
+        <h3>매 건 승인은 자율이 아닙니다</h3>
+        <p>사람이 매 결제를 확인하면 버튼을 대신 눌러주는 도구일 뿐입니다. 저희는 <b>사람이 미리 서명한 정책을 코드가 매 건 강제</b>하는 쪽을 택했습니다. 사람은 정책을 정할 때 한 번만 개입하고, 실행 시점에는 게이트가 대신 검사합니다.</p>
+      </div>
+      <div class="box">
+        <span class="tag">그래서 필요한 것</span>
+        <h3>사람 대신 청구서를 읽는 계층</h3>
+        <p>인증 없는 자율 결제를 안전하게 만들려면, 사람이 하던 "이거 진짜 맞아?"를 코드가 해야 합니다. 그 자리가 비어 있었습니다.</p>
+      </div>
+      <div class="box">
+        <span class="tag">규제 정합</span>
+        <h3>자산은 사용자 지갑에 남습니다</h3>
+        <p>사용자 키와 에이전트 키를 분리했습니다. 사용자가 한도를 서명하고, 에이전트는 그 한도 안에서만 실행합니다. 자금을 대신 운용하는 구조가 아니라 <b>사용자가 소유·통제하는 자동화 도구</b>입니다.</p>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">04 / 13</span>
+  </section></div>
+
+  <!-- 5. solution -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">솔루션</span>
+    <h2 class="headline">서명 직전에 반드시 통과해야 하는 게이트</h2>
+    <p class="deck-lead">구매 에이전트가 어떤 결제를 하든, 서명 직전에 청구서를 사용자가 서명한 위임장과 항목별로 대조합니다. 하나라도 어긋나면 서명하지 않습니다.</p>
+    <div class="body">
+      <div class="flow">
+        <div class="node"><div class="who">판단</div><div class="what">Gemini 또는 규칙</div></div>
+        <div class="arrow">→</div>
+        <div class="node gate"><div class="who">402 Guard</div><div class="what">청구서 대조 → 통과 또는 차단</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="who">온체인 정산</div><div class="what">Solana · USDC</div></div>
+      </div>
+
+      <div class="checks" style="margin-top:6mm">
+        <div class="check"><div class="n">검사 01</div><div class="t">수취인</div><div class="d">허용 목록에 없는 지갑이면 차단</div></div>
+        <div class="check"><div class="n">검사 02</div><div class="t">금액 정합</div><div class="d">최소 단위 정수까지 정확히 일치</div></div>
+        <div class="check"><div class="n">검사 03</div><div class="t">의도 상한</div><div class="d">사용자가 의도한 지출을 넘는 청구 차단</div></div>
+        <div class="check"><div class="n">검사 04</div><div class="t">건별 한도</div><div class="d">위임장의 1회 상한 강제</div></div>
+        <div class="check"><div class="n">검사 05</div><div class="t">자산</div><div class="d">허용된 결제 자산인지 확인</div></div>
+        <div class="check"><div class="n">검사 06</div><div class="t">종목</div><div class="d">위임장이 허용한 종목인지 확인</div></div>
+        <div class="check"><div class="n">검사 07</div><div class="t">주문번호</div><div class="d">형식·바인딩 확인, 재사용 차단</div></div>
+        <div class="check"><div class="n">정산 후</div><div class="t">배송 검증</div><div class="d">온체인 잔액을 다시 조회해 실제 도착 확인</div></div>
+      </div>
+
+      <div class="footnote"><b>결제가 끝나도 끝이 아닙니다.</b> 지불은 됐는데 자산이 오지 않으면 완료로 기록하지 않습니다 — 미확인은 보류 처리하고 세션을 정지합니다. 정산 실패 시 위임 한도는 원복됩니다.</div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">05 / 13</span>
+  </section></div>
+
+  <!-- 6. architecture -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">아키텍처</span>
+    <h2 class="headline">두 에이전트가 협의하고, 게이트가 검사하고,<br>체인이 정산합니다</h2>
+    <div class="body">
+      <div class="arch">
+        <div class="lane">
+          <div class="lane-head">에이전트 계층 (A2A)</div>
+          <div class="lane-body">
+            <div class="unit"><b>Trading Agent</b>시세·지표를 보고 매수/매도/보류를 판단. 판단은 Gemini, 실패 시 규칙 폴백<span class="path">agents/trading_agent.py</span></div>
+            <div class="unit"><b>Broker Agent</b>견적 제시 → 결제 확인 → 자산 전달<span class="path">agents/broker_agent.py</span></div>
+            <div class="unit"><b>A2A 메시지</b>payment-required → submitted → completed 3단계<span class="path">shared/a2a_messages.py</span></div>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lane-head">통제 계층 (AP2 + Guard)</div>
+          <div class="lane-body">
+            <div class="unit"><b>AP2 mandate</b>사용자 키로 서명한 위임장 — 총예산(순투입 상한)·건별 한도·허용 종목·허용 자산<span class="path">payments/ap2_mandate.py</span></div>
+            <div class="unit"><b>402 Guard</b>서명 직전 청구서 대조 7종 + 정산 후 온체인 배송 검증<span class="path">payments/guard.py</span></div>
+            <div class="unit"><b>키 분리</b>위임 서명자는 사용자 키, 실행자는 에이전트 키</div>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lane-head">정산 계층 (x402 · Solana)</div>
+          <div class="lane-body">
+            <div class="unit"><b>표준 402 왕복</b>브로커는 별도 HTTP 서비스. 결제 없이 주문하면 402 Payment Required + 결제 조건, 결제 헤더를 붙이면 200<span class="path">POST /broker/orders</span></div>
+            <div class="unit"><b>USDC ⇄ 토큰화 주식</b>SPL 전송을 직접 생성·서명·브로드캐스트 후 확정 대기<span class="path">payments/x402_solana.py</span></div>
+            <div class="unit"><b>주문 바인딩</b>트랜잭션 메모에 주문번호를 심어 체인에서 대사<span class="path">AT1:{order_id}</span></div>
+            <div class="unit"><b>증빙 아카이빙</b>전후 잔액·교차검증·해시를 파일로 저장<span class="path">artifacts/tx/</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="seq">
+        <span class="step"><b>1</b> 판단</span><span class="sep">›</span>
+        <span class="step"><b>2</b> 견적 요청·합의</span><span class="sep">›</span>
+        <span class="step"><b>3</b> 청구서 수신</span><span class="sep">›</span>
+        <span class="step"><b>4</b> <b style="color:var(--accent)">Guard 대조</b></span><span class="sep">›</span>
+        <span class="step"><b>5</b> 위임 한도 예약</span><span class="sep">›</span>
+        <span class="step"><b>6</b> 서명·전송</span><span class="sep">›</span>
+        <span class="step"><b>7</b> 온체인 확정</span><span class="sep">›</span>
+        <span class="step"><b>8</b> 배송 검증</span><span class="sep">›</span>
+        <span class="step"><b>9</b> 완료 또는 보류·정지</span>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">06 / 13</span>
+  </section></div>
+
+  <!-- 7. customer -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">타겟 고객</span>
+    <h2 class="headline">에이전트에 지갑을 붙이려는 순간,<br>모두가 같은 문제를 만납니다</h2>
+    <div class="body cols cols-3">
+      <div class="box">
+        <span class="tag">1차 고객</span>
+        <h3>에이전트에 결제를 붙이는 개발사</h3>
+        <p>구매·구독·API 과금을 자동화하려는 팀. 결제 자체는 x402로 쉽게 붙지만, "이 청구서를 믿어도 되는가"는 각자 알아서 짜야 합니다. 그 계층을 표준화해 제공합니다.</p>
+      </div>
+      <div class="box">
+        <span class="tag">2차 고객</span>
+        <h3>에이전틱 커머스 플랫폼</h3>
+        <p>다수의 구매 에이전트가 낯선 판매자와 거래하는 마켓. 플랫폼이 구매자 보호를 제공하지 못하면 신뢰가 성립하지 않습니다.</p>
+      </div>
+      <div class="box">
+        <span class="tag">레퍼런스</span>
+        <h3>자율 매매 도구 사용자</h3>
+        <p>고빈도·반복 결제라 위험이 누적되는 최악의 조건. 여기서 성립하면 다른 곳에서도 성립합니다. 그래서 토큰화 주식 자동매매를 첫 시나리오로 골랐습니다.</p>
+      </div>
+      <div class="box tint" style="grid-column: span 3">
+        <span class="tag">우리가 파는 것</span>
+        <h3>수익률이 아니라 지출 통제입니다</h3>
+        <p>알파를 팔면 성과로 평가받고, 성과는 시장이 정합니다. 저희가 파는 것은 <b>정해진 한도 밖으로는 1센트도 나가지 않는다는 보증</b>입니다. 그래서 첫 화면의 숫자도 수익률이 아니라 시도·차단·유출·오탐입니다.</p>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">07 / 13</span>
+  </section></div>
+
+  <!-- 8. evidence -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">실증</span>
+    <h2 class="headline">목업이 아닙니다. 숫자는 전부 재현 가능합니다.</h2>
+    <div class="body">
+      <div class="kpi-row">
+        <div class="kpi"><div class="l">유출</div><div class="v good">0.00</div><div class="f">USDC · 공격 전 라운드</div></div>
+        <div class="kpi"><div class="l">차단 / 시도</div><div class="v">6 / 20</div><div class="f">공격 3종 매트릭스</div></div>
+        <div class="kpi"><div class="l">오탐</div><div class="v good">0</div><div class="f">정상 14건 전부 통과</div></div>
+        <div class="kpi"><div class="l">온체인 증빙</div><div class="v">9</div><div class="f">devnet · localnet 세션 아카이브</div></div>
+      </div>
+
+      <div class="cols cols-2" style="margin-top:6mm; height:auto">
+        <div class="box ok">
+          <span class="tag">Solana devnet 라이브</span>
+          <h3>5거래 전부 확정 · 잔액 교차검증 일치</h3>
+          <p>매수 4건·매도 1건이 실제 트랜잭션으로 확정됐고, USDC 순변화 −4.9가 기대치와 정확히 일치했습니다. 각 거래의 결제·전달 서명과 explorer 링크를 파일로 보관합니다.</p>
+        </div>
+        <div class="box">
+          <span class="tag">검증 자동화</span>
+          <h3>테스트 11종 통과 · 공격 스크립트 상시 재현</h3>
+          <p>공격과 정상 거래를 같은 실행에서 돌려 <b>차단률과 오탐을 동시에</b> 산출합니다. 심사위원이 공격자 지갑 주소를 직접 넣어 실행할 수 있습니다.</p>
+        </div>
+      </div>
+
+      <div class="footnote"><b>재현 명령</b> &nbsp;<span class="mono">curl -i &lt;url&gt;/broker/orders</span> → 402 &nbsp;·&nbsp; <span class="mono">python -m scripts.red_team --report</span> &nbsp;·&nbsp; 온체인 확인 <span class="mono">explorer.solana.com/tx/&lt;sig&gt;?cluster=devnet</span></div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">08 / 13</span>
+  </section></div>
+
+  <!-- 9. demo -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">데모</span>
+    <h2 class="headline">같은 공격을, 게이트를 끄고 한 번 · 켜고 한 번</h2>
+    <p class="deck-lead">가드를 끈 상태는 "지금 업계 기본값"입니다. 켠 상태와 나란히 보여드립니다.</p>
+    <div class="body cols cols-2">
+      <div class="box bad">
+        <span class="tag">가드 없는 일반 에이전트</span>
+        <h3>서명 → 유출</h3>
+        <p>한도 검사만 통과하면 그대로 서명합니다. 자금은 공격자 지갑으로, 자산은 오지 않습니다.</p>
+        <div class="shot">여기에 대시보드·터미널 스크린샷<br>(촬영 후 삽입)</div>
+      </div>
+      <div class="box ok">
+        <span class="tag">402 Guard 적용</span>
+        <h3>차단 → 유출 0.00</h3>
+        <p>수취인 불일치로 서명 자체가 일어나지 않습니다. 정상 거래 14건은 그대로 통과합니다.</p>
+        <div class="shot">여기에 차단 매트릭스·KPI 스크린샷<br>(촬영 후 삽입)</div>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">09 / 13</span>
+  </section></div>
+
+  <!-- 10. AI -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">AI 활용</span>
+    <h2 class="headline">AI가 무엇을 판단하든, 게이트는 상수입니다</h2>
+    <p class="deck-lead">Gemini가 시세·이동평균·변동성·평단 손익률과 직전 판단 회고를 보고 스스로 결정합니다. 그리고 그 결정이 무엇이든 한도를 넘을 수는 없습니다.</p>
+    <div class="body cols cols-2">
+      <div>
+        <ul class="plain">
+          <li><b>판단</b> Gemini 무료 티어 호출로 매수·매도·보류와 한국어 사유를 생성합니다.</li>
+          <li><b>리포트</b> 세션 종료 시 데일리 브리핑을 별도 호출로 생성합니다.</li>
+          <li><b>견고성</b> 응답 파싱을 3단계로 복구하고, 형식 위반은 1회 재요청하며, 실패하면 규칙 판단으로 대체합니다. 규칙 신호가 없으면 AI 판단이어도 개시하지 못하도록 코드가 강제합니다.</li>
+          <li><b>계측</b> 판단 출처(AI / 규칙 / 대체 동작)를 거래 증빙과 세션 요약에 기록합니다.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <span class="tag">정직한 수치</span>
+        <h3>AI는 수익을 늘리기보다 낙폭을 줄였습니다</h3>
+        <table class="data" style="margin-top:2mm">
+          <thead><tr><th>동일 구간 비교</th><th>수익률</th><th>최대 낙폭</th></tr></thead>
+          <tbody>
+            <tr><td>규칙 판단</td><td class="num">+4.90%</td><td class="num">7.31</td></tr>
+            <tr><td>Gemini 엄격</td><td class="num">+4.29%</td><td class="num">—</td></tr>
+            <tr><td>Gemini + 지표 보강</td><td class="num">+4.95%</td><td class="num">7.24</td></tr>
+            <tr><td>Gemini 추세 재량</td><td class="num">+2.90%</td><td class="num win">5.00</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:3mm">수익 기여는 사실상 중립입니다. 유의미한 차이는 <b>재량으로 보류할 때 낙폭이 줄어든다</b>는 것입니다. 과장하지 않고 그대로 싣습니다.</p>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">10 / 13</span>
+  </section></div>
+
+  <!-- 11. business -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">수익모델</span>
+    <h2 class="headline">지금 도는 것과, 팔릴 것</h2>
+    <div class="body cols cols-3">
+      <div class="box">
+        <span class="tag">현재 구현</span>
+        <h3>거래 수수료 0.3%</h3>
+        <p>브로커 에이전트가 견적에 수수료를 분리 표기하고, 누적 수수료를 화면에 표시합니다. 요율은 설정값이며 최종 수치는 재검토 중입니다.</p>
+      </div>
+      <div class="box tint">
+        <span class="tag">제품화 1</span>
+        <h3>게이트 SDK · 건당 과금</h3>
+        <p>에이전트에 결제를 붙이는 개발사가 게이트를 라이브러리로 가져다 씁니다. 검사 건수 기준 과금이 자연스럽습니다 — 결제가 늘수록 검사도 늘기 때문입니다.</p>
+      </div>
+      <div class="box">
+        <span class="tag">제품화 2</span>
+        <h3>정책 관리 · 감사 로그</h3>
+        <p>여러 에이전트의 위임 한도를 한 곳에서 관리하고, 차단·유출·오탐 이력을 감사 가능한 형태로 남기는 관리 도구. 팀·기업 단위 구독.</p>
+      </div>
+      <div class="box" style="grid-column: span 3">
+        <span class="tag">시장이 열리는 조건</span>
+        <p>에이전트 결제가 늘어날수록 "청구서를 믿어도 되는가"는 각 팀이 중복해서 푸는 문제가 됩니다. 결제 레일(x402)은 표준화됐지만 <b>구매자 보호는 아직 표준이 없습니다</b>. 저희는 그 자리를 먼저 채우려 합니다. 가정이며, 첫 검증은 이 레퍼런스 구현입니다.</p>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">11 / 13</span>
+  </section></div>
+
+  <!-- 12. honest limits + roadmap -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">한계와 로드맵</span>
+    <h2 class="headline">숨기지 않고 적습니다</h2>
+    <div class="body cols cols-2">
+      <div>
+        <div class="box bad">
+          <span class="tag">지금의 한계</span>
+          <h3>네 가지를 그대로 밝힙니다</h3>
+          <ul class="plain" style="margin-top:2mm">
+            <li><b>수익률</b> 강한 상승장에서는 매수후보유를 이기지 못합니다(+4.90% 대 +30.19%). 저희는 알파를 팔지 않습니다.</li>
+            <li><b>자산</b> devnet에는 토큰화 주식이 존재하지 않아 자체 발행 토큰으로 시연합니다.</li>
+            <li><b>규격</b> 표준 402 응답은 <b>매수 레그만</b>입니다. 매도(환매)는 자산이 반대로 흐르는 구조라 A2A 메시지로 남겨 뒀고, 이 사실을 규격 문서에 미구현으로 명시해 공개합니다.</li>
+            <li><b>AI 기여</b> 수익 기여는 중립이며, 낙폭 축소에서만 유의미합니다.</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="box ok">
+          <span class="tag">다음</span>
+          <h3>실물로 가는 경로는 짧습니다</h3>
+          <ul class="plain" style="margin-top:2mm">
+            <li><b>실물 토큰화 주식</b> 메인넷에는 이미 존재합니다. 민트 상수와 스왑 경로 두 곳을 교체하면 같은 게이트가 실물 위에서 돕니다.</li>
+            <li><b>매도 레그 표준화</b> 매수는 이미 표준 402로 왕복합니다. 자산이 반대로 흐르는 환매도 같은 규격 위에 올리는 것이 다음 과제입니다.</li>
+            <li><b>상시 접근</b> Cloud Run 배포로 심사 기간 내내 열려 있는 데모 URL을 제공합니다.</li>
+            <li><b>규제</b> 자산을 대신 보관하지 않는 자기수탁 도구 구조를 유지합니다. 토큰화 주식은 증권으로 취급되며 국내 제도는 2027년 시행 예정입니다.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">12 / 13</span>
+  </section></div>
+
+  <!-- 13. appendix -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">부록</span>
+    <h2 class="headline">직접 재현해 보십시오</h2>
+    <div class="body cols cols-2">
+      <div class="box">
+        <span class="tag">기술 스택</span>
+        <h3>구성</h3>
+        <ul class="plain" style="margin-top:2mm">
+          <li><b>언어·런타임</b> Python 3.10 / 3.11</li>
+          <li><b>AI</b> Google Gemini API (무료 티어) — 판단·브리핑, 실패 시 규칙 대체</li>
+          <li><b>블록체인</b> Solana devnet · localnet, USDC(SPL), 자체 발행 토큰화 주식</li>
+          <li><b>프로토콜</b> 자체 x402 정산 + AP2 위임 + A2A 협의 + <b>402 Guard</b></li>
+          <li><b>웹</b> FastAPI + SSE, 외부 라이브러리 없는 정적 대시보드</li>
+          <li><b>인프라</b> Google Cloud Run, Firestore, Secret Manager</li>
+        </ul>
+      </div>
+      <div class="box">
+        <span class="tag">재현 절차</span>
+        <h3>세 줄이면 확인됩니다</h3>
+        <ul class="plain" style="margin-top:2mm">
+          <li><b>표준 402 응답</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">curl -i http://&lt;url&gt;/broker/orders</span></li>
+          <li><b>공격·차단 매트릭스</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.red_team --report</span></li>
+          <li><b>거부 4종 데모</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.demo_rejections</span></li>
+          <li><b>온체인 증빙</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">artifacts/tx/*.json → explorer ?cluster=devnet</span></li>
+        </ul>
+        <p style="margin-top:3mm">모든 결제 실행은 트랜잭션 해시와 전후 잔액을 파일로 남깁니다. 화면의 숫자와 체인의 숫자가 일치하는지 직접 대조하실 수 있습니다.</p>
+      </div>
+    </div>
+    <div class="footnote" style="margin-top:auto"><b>402 Guard</b> — x402 규격은 파는 쪽을 보호합니다. 저희는 사는 쪽을 보호합니다.</div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">13 / 13</span>
+  </section></div>
+
+</div>
+
+<script>
+  (function () {
+    var MM_TO_PX = 96 / 25.4;
+    var SLIDE_W = 297 * MM_TO_PX;
+    var deck = document.getElementById("deck");
+
+    function fit() {
+      var width = Math.max(
+        deck.clientWidth || 0,
+        document.documentElement.clientWidth || 0,
+        window.innerWidth || 0
+      );
+      if (width < 320) return; // 아직 레이아웃 전이면 다음 호출을 기다린다
+      var k = Math.min(1, (width - 40) / SLIDE_W);
+      document.documentElement.style.setProperty("--k", String(Math.max(0.2, k)));
+    }
+
+    window.addEventListener("resize", fit);
+    window.addEventListener("load", fit);
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(fit).observe(document.documentElement);
+    }
+    document.getElementById("printBtn").addEventListener("click", function () {
+      window.print();
+    });
+
+    fit();
+  })();
+</script>
