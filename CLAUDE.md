@@ -31,9 +31,18 @@
 - 참고 프로토콜 계층: A2A(에이전트 간 통신)/MCP(에이전트-툴)/AP2(mandate 기반 결제 위임)/UCP(A2A+AP2 통합)/x402·MPP(정산 레일). AP2 안에서 x402를 결제 레일로 사용할 수 있다.
 - 데모데이(8/21 금, Google Startup Campus) 라이브 시연을 전제로, 데모는 네트워크 불안정 대비 폴백(로컬넷 재시연 경로)을 준비한다.
 
-## 현재 상태 (2026-07-26 갱신)
+## 현재 상태 (2026-07-27 갱신)
 
-> **2026-07-26 최신 — ✅ 백엔드 심사 축②③ 보완 완료(커밋 8개 전부 푸시: `94fe605`·`3602015`·`70bed10`·`aaaa4d5`·`a953153`·`b1e7620`·`e81a9ce`).** 프론트는 별도 대화에서 병렬 작업 중이라 **`web/static/**` 은 한 줄도 건드리지 않았다.**
+> **2026-07-27 최신 — ✅ Cloud Run 첫 배포 성공 + 배포에서만 드러난 버그 2건 수정(커밋 `7d6a178`·`8440a1b`·문서, 전부 푸시).**
+> - **라이브 URL** `https://synapstock-766888967498.asia-northeast3.run.app` (프로젝트 `synapstock`, 리전 `asia-northeast3`, 서비스명 `synapstock`). **§5 검증 1~5 + §5-1 전부 통과** — `persistence.enabled=true`(firestore) · 드라이런 체결 · Firestore 문서 · **리비전 교체 후 세션 7건 생존**(tmpfs 이므로 곧 영속 증명) · `POST /broker/orders` → **402**+`payTo` · `/.well-known/x402` 200. 시크릿 5개(지갑 **3개** — `user.json` = AP2 위임장 서명자 추가 — + control-token + gemini-key).
+> - **서비스명 `synapstock` 결정(사용자)**: 심사 기준에 이름·URL 항목이 없고, URL 만 되돌리기 비용이 크다(제품명은 마감 직전에도 바꿀 수 있다). **제품명 `402 Guard` 는 화면·소개서·README 가 담당**한다.
+> - **[버그] 드라이런 매도 레그 복구** — `engine.start` 가 `live` 일 때만 `STOCK_MINT` 를 검사해 드라이런에서 `None` 이 브로커로 넘어갔고, 매 틱 `ValueError: stock_mint 미설정 — 매도 견적 불가`. **매수만 되고 익절 전무 = 수익률 시연 불가**였다. 로컬은 `.env` 에 값이 있어 안 드러나는 **배포본 전용 결함**. → `DRY_STOCK_MINT = Pubkey.default()` 자리표시(라이브는 fail-fast 유지 = 체인에 닿는 경로 없음, **가드 자산 대조는 그대로 작동**). `scripts/test_dry_sell.py` 14건(결함 재현 음성 대조 포함).
+> - **[기능] 판단 두뇌 선택 `strategy.brain`** — "규칙이 AI밖에 없다"는 지적은 버그가 아니라 **기능 미노출**이었다(키가 있으면 무조건 Gemini 고정). `auto`/`rule`(키 있어도 미호출)/`gemini`(키 없거나 초기화 실패 시 **조용한 규칙 폴백 대신 즉시 오류**). `scripts/test_brain_select.py` 10건. **UI 드롭다운은 미포함** — 시안이 `index.html` 을 교체하므로 프론트 병합 대화에서 함께 붙인다(그때까지 API 로 검증 가능).
+> - **⚠ 잠복 결함 `GEMINI_MODE` 누락** — `.env` 엔 `developer` 가 있는데 배포엔 없었다. 키가 `AIza` 로 시작하지 않아 **vertex 자동 선택 → 개발자 키로 미작동**. 배포본 세션이 전부 추세추종(Gemini 미사용)이라 아직 안 터졌다. 재배포 env 에 `GEMINI_MODE=developer` 추가.
+> - **런북 정정 반영**(`docs/deploy_cloud_run.md`): §3 에 **`roles/cloudbuild.builds.builder`**(없으면 배포가 `could not resolve source: Error 403` 으로 빌드 전에 실패 — 실제 발생) · `cd` 는 **`-LiteralPath`**(경로의 대괄호를 PowerShell 이 와일드카드로 해석 — 실제 발생) · §4 는 검증된 **한 줄 명령** + 저장소 루트 확인 안전장치 · 낡은 "`/secrets` 파일 마운트" 서술을 환경변수 주입으로 정정 · §8 트러블슈팅 4행 추가.
+> - **다음 순서(사용자 합의)**: ①**프론트 시안 적용**(최우선 — 심사 최대 갭 해소 + 제출물 스크린샷·영상이 여기에 종속) → ②**로그인+사용자 지갑 통합**(지갑 연결 = 로그인) → ③**제출물 3종**(07-31 착수 마지노선). **⚠ "사용자 지갑으로 거래" 범위 확정: 개인키 서버 등록은 하지 않는다**(규칙 10 위반이자 제품 주장과 정면 충돌). 사용자 지갑은 **위임장에 1회 서명**하고 거래는 에이전트 지갑이 한도 안에서 수행한다(매 거래 사용자 서명 = 자율 결제 전제와 모순). 엔진이 **전역 싱글턴 + `max-instances 1`** 이라 다중 사용자는 리팩터가 필요 → 마감까지는 **"지갑 1개 연결"** 범위.
+>
+> **2026-07-26 — ✅ 백엔드 심사 축②③ 보완 완료(커밋 8개 전부 푸시: `94fe605`·`3602015`·`70bed10`·`aaaa4d5`·`a953153`·`b1e7620`·`e81a9ce`).** 프론트는 별도 대화에서 병렬 작업 중이라 **`web/static/**` 은 한 줄도 건드리지 않았다.**
 > - **[축② 규칙 게이트]** "규칙 신호 없는 개시 금지"를 프롬프트가 아니라 **코드로 강제**. `TradingAgent._rule_gate` 가 AI(`source=gemini`) 판단 중 매수기준(MA5 −N%) 미충족 매수·익절기준(평단 +N%) 미충족 매도를 `hold` 로 강등하고 출처를 **`rule-gate`** 로 남긴다(보류는 항상 통과 = AI 재량은 '멈추는 방향'만). `decide()` 는 `_sanitize`→`_rule_gate` 순서. **지출 3중 통제 완성: 개시=규칙 게이트 / 금액=AP2 mandate / 청구서=402 Guard.** `scripts/test_rule_gate.py` 28건.
 > - **[축② 판단 출처 계측]** `engine._ai_stats()`(brain·by_source·by_action·gemini_calls·gemini_decisions·**gemini_gated**·rule_fallbacks·gemini_share_pct·trades_by_decision_source)를 tx 아카이브·세션 요약(Firestore)·**`GET /api/state.ai`(신규 필드, 기존 무변경)**·브리핑에 배선. `run_demo.py` 도 동일. `scripts/test_ai_stats.py` 27건.
 > - **[축② 대규모 실측]** TSLA `_bear` **481봉**에서 rule −37.56% vs **gemini −39.57%**(벤치 −20.45%) → **AI 수익 기여는 대표본에서도 중립(약간 열위)**. **★ 규칙 게이트가 실제 2건 발동** — Gemini 가 "MA5 대비 3% 이상 낮아 조건 충족"이라고 **사실과 다르게 단언하며 매수 개시**를 시도(2022-10-24·2023-08-14)한 것을 코드가 차단. 폴백 29건(무료 티어 쿨다운)이라 **90.2%가 순수 Gemini 판단**. 상세 `docs/reports/strategy_validation.md` 말미.
