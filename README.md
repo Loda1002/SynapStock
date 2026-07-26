@@ -77,6 +77,35 @@ python -m web.server     # http://localhost:8000 (포트는 .env WEB_PORT)
 증빙 JSON 이 남는다. 새로고침해도 피드가 복원된다(SSE 재전송).
 디자인은 의도적으로 무디자인 — 시안 수령 시 `web/static/css/theme.css` 변수만 교체.
 
+## 브로커 HTTP 402 — x402 자원 서버 (G5)
+
+판매자(브로커)는 **진짜 HTTP 자원 서버**다. 결제 없이 주문하면 표준 `402 Payment Required`
+와 `accepts[]` 를 돌려주고, `X-PAYMENT` 헤더를 붙여 같은 요청을 재시도하면 200 으로 정산된다.
+
+```bash
+python -m web.broker_service --port 8402          # 별도 프로세스·별도 포트·별도 키페어
+
+curl -i -X POST http://127.0.0.1:8402/broker/orders \
+     -H "Content-Type: application/json" \
+     -d '{"symbol":"AAPL","spend_usdc":"10","price_usdc":"200"}'
+# → HTTP/1.1 402 Payment Required
+#    {"x402Version":1,"error":"payment required","accepts":[{"scheme":"exact","payTo":…}]}
+
+curl -s http://127.0.0.1:8402/.well-known/x402    # 디스커버리(미구현 항목까지 공개)
+
+python -m scripts.demo_http402                    # 전 과정 실왕복 + artifacts/x402_http/ 증빙
+python -m scripts.test_http402                    # 53건 검증
+```
+
+엔진의 매수 레그를 이 HTTP 경로로 보내려면 `.env` 에 `BROKER_HTTP_URL=http://127.0.0.1:8402`
+를 주면 된다(빈값이면 기존 인프로세스 A2A). 배포본은 컨테이너당 포트가 하나뿐이라 같은
+라우터가 메인 앱에도 마운트돼 있어 `curl -i https://<배포URL>/broker/orders` 로도 확인된다.
+
+> **정직한 범위**: HTTP 402 실왕복은 **매수(자산 구매) 레그**다. 매도(환매)는 브로커가
+> 구매자에게 돈을 보내는 방향이라 402 challenge 모델과 맞지 않아 A2A 인프로세스로 남긴다.
+> facilitator 없이 판매자가 직접 검증·정산한다. 두 가지 모두 디스커버리 응답의
+> `notImplemented` 에 그대로 적혀 있다.
+
 ## 실데이터 시세 (리플레이) · 백테스트
 
 시세는 **실제 미국 주식 일봉**을 내려받아 재생한다(결정적 재현 — 심사·데모에서 같은 구간이
