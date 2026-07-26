@@ -29,6 +29,7 @@ from market.price_feed import Bar, IntradayReplayFeed, MockPriceFeed, PriceFeed,
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from payments.guard import Guard, GuardError
+from payments.x402_http import optional_client
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy, Decision
 from run_demo import _load_or_new, _load_or_create_user_key, explorer_tx_url, snapshot_balances
@@ -117,6 +118,8 @@ class TradingEngine:
         self.feeds: Dict[str, PriceFeed] = {}
         self._feeds_info: Dict[str, Dict[str, Any]] = {}  # 종목별 피드 상세 (label·file·bars)
         self._broker: Optional[BrokerAgent] = None        # 공유 브로커 (드라이 1개로 충분)
+        # G5 브로커 HTTP 402 클라이언트 — BROKER_HTTP_URL 설정 시에만 생성(기본 None=인프로세스)
+        self._broker_http = None
         self._prev_close: Dict[str, Optional[Decimal]] = {}  # 종목별 직전 봉 종가 (등락 기준)
         self._change_ref: Dict[str, Optional[Decimal]] = {}  # 종목별 마지막 틱 등락 기준값
         self._auth: Optional[PaymentAuthorizer] = None
@@ -626,6 +629,9 @@ class TradingEngine:
         self._guard = guard
         self.agents, self.feeds, self._feeds_info = agents, feeds, feeds_info
         self._broker = broker
+        # G5 — BROKER_HTTP_URL 이 설정된 세션만 매수 레그를 실제 HTTP 402 왕복으로 보낸다.
+        # 미설정(기본)이면 None 이라 기존 인프로세스 A2A 경로가 바이트 그대로 유지된다.
+        self._broker_http = optional_client(CFG.broker_http_url)
         self._client = client
         self._snap_before = self._snap_last = snap_before
         self._stop_event = asyncio.Event()
@@ -1057,12 +1063,25 @@ class TradingEngine:
             "fee_bps": quote.fee_bps,
         })
 
-        required = self._broker.make_payment_required(quote)
+        # 청구서 수령 — 기본은 인프로세스 A2A, BROKER_HTTP_URL 이 설정되면 실제 HTTP 402 왕복.
+        # 어느 전송이든 아래 402 Guard 검증은 동일하게 지난다(전송이 바뀌어도 방어는 그대로).
+        http = self._broker_http
+        if http is not None:
+            try:
+                required = await http.request_order(
+                    symbol, decision.spend_usdc, price, mode="live" if live else "dry")
+            except Exception as e:
+                self.bus.emit(ev.ERROR, {
+                    "message": f"브로커 HTTP 402 청구서 요청 실패 — 매수 보류: {type(e).__name__}: {e}"})
+                return
+        else:
+            required = self._broker.make_payment_required(quote)
         self.bus.emit(ev.X402_REQUIRED, {
             "side": "buy", "order_id": required.order_id,
             "amount_base": required.requirements.amount,
             "pay_to": required.requirements.pay_to,
             "resource": required.requirements.resource,
+            "transport": "http-402" if http is not None else "a2a-inprocess",
         })
 
         # 402 Guard(청구서 검증) + AP2 한도 검사 — 위반이면 서명 자체가 일어나지 않는다(유출 0)
@@ -1111,8 +1130,13 @@ class TradingEngine:
         completed = None
         settled = False
         try:
-            completed = await self._broker.settle(
-                submitted, required.requirements, quote.quantity, live=live, client=self._client)
+            if http is not None:
+                completed = await http.submit_payment(
+                    required, submitted, decision.spend_usdc, mode="live" if live else "dry")
+            else:
+                completed = await self._broker.settle(
+                    submitted, required.requirements, quote.quantity,
+                    live=live, client=self._client)
 
             # 라이브 정산 성공이면 온체인 재조회로 실제 배송을 확인한다
             # (결함 I: 결제는 확정됐는데 주식 전달이 실패해도 settled 로 기록되던 문제).
@@ -1313,6 +1337,12 @@ class TradingEngine:
                 except Exception:
                     pass
                 self._client = None
+            if self._broker_http is not None:
+                try:
+                    await self._broker_http.aclose()   # G5 HTTP 연결 정리
+                except Exception:
+                    pass
+                self._broker_http = None
             self.status = "idle"
             self._task = None
             self.last_archive_path = archive_path

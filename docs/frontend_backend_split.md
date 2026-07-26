@@ -36,6 +36,12 @@
 | `GET /app` | — | 없음 | **`static/index.html`(대시보드)** 신설 예정 |
 | `GET /login` | `static/login.html` | 로그인 자리표시 | 로그인+**지갑 등록**으로 확장 |
 | `GET /static/*` | `static/**` 전부 | 정적 서빙 | 그대로 |
+| `POST /broker/orders` | — (JSON API) | **신설(2026-07-26, G5)** — 브로커 x402 자원 서버. 결제 없으면 **402 Payment Required**, `X-PAYMENT` 헤더가 있으면 200 | 그대로 |
+| `GET /.well-known/x402` | — (JSON API) | **신설(2026-07-26, G5)** — x402 디스커버리 | 그대로 |
+
+> `/broker/orders`·`/.well-known/x402` 는 **판매자 측 자원**이라 프론트가 호출할 일이 없다.
+> 심사위원이 `curl -i <배포URL>/broker/orders` 로 진짜 402 를 확인하는 용도다
+> (로컬 시연은 별도 프로세스: `python -m web.broker_service --port 8402`).
 
 - 라우트 변경(§5)은 **백엔드가 `server.py` 에서** 적용한다. 프론트는 그 전에도 파일을 **`/static/landing.html` 로 직접 열어** 개발할 수 있다(StaticFiles 가 모든 정적 파일을 서빙하므로).
 - 프론트가 새 페이지/라우트가 필요하면 이 표에 한 줄 추가를 백엔드에 요청한다.
@@ -78,12 +84,32 @@
                "ap2_rejected": 0,      // AP2 한도로 거부된 건수
                "leak_usdc": "0.00" },  // 엉뚱한 데로 샌 금액 = 항상 0.00 이 목표
 
+  // ★ 판단 출처 계측 (2026-07-26 추가) — 축② "AI 가 실제로 구동했는가"의 정량 증빙.
+  //   추가된 필드이고 기존 필드는 하나도 바뀌지 않았다. 렌더는 선택 사항.
+  "ai": { "brain": "Gemini (gemini-flash-lite-latest, …)",  // 두뇌 라벨
+          "decisions_total": 0,
+          "by_source": { "gemini": 0, "rule": 0 },   // 출처별 판단 수
+          "by_action": { "hold": 0, "buy": 0, "sell": 0 },
+          "gemini_calls": 0,        // 실제 Gemini 를 부른 틱 수
+          "gemini_decisions": 0,    // AI 판단이 그대로 집행된 건수
+          "gemini_gated": 0,        // 규칙 게이트가 되돌린 AI 의 규칙 밖 개시
+          "rule_fallbacks": 0,      // 호출 실패 → 규칙 폴백
+          "gemini_share_pct": "0",
+          "trades_by_decision_source": {} },   // 체결이 어느 판단에서 나왔는지
+
   "wallets": { "user": "...", "trading": "...", "broker": "..." },   // pubkey 문자열
   "balances": { /* 최근 온체인/장부 잔액 스냅샷 */ }
 }
 ```
 
 > 금액·수량은 **문자열**(Decimal 정밀 보존)로 온다. 프론트에서 표시할 때만 숫자로 파싱한다.
+
+> **판단 출처(`decisions[].source` · `trades[].decision_source`) 값 목록** — 2026-07-26 에
+> `rule-gate` 가 추가됐다. 현재 나올 수 있는 값은 다음 5종이다:
+> `rule`(지표 규칙·추세 신호) · `gemini`(AI 판단) · `rule-fallback`(AI 호출 실패 → 규칙) ·
+> `rule-gate`(**AI 가 규칙 밖 매매를 개시하려 해 코드가 보류로 강등**) · `dca`(적립 스케줄).
+> 프론트는 `src-<source>` 클래스를 쓰므로 `src-rule-gate` 스타일만 추가하면 된다
+> (없어도 텍스트로 그대로 보인다 — 깨지지 않음).
 
 ### 2.3 조회·컨트롤 API
 

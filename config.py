@@ -108,6 +108,11 @@ class Config:
     firestore_database: str = _get("FIRESTORE_DATABASE", "")    # 빈값 = (default)
     firestore_prefix: str = _get("FIRESTORE_PREFIX", "autotrader")  # 컬렉션 접두사
 
+    # 브로커 HTTP 402 서비스 (G5) — 값이 있으면 엔진의 매수 레그가 인프로세스 A2A 대신
+    # 실제 HTTP 402 왕복(POST /broker/orders → 402 → X-PAYMENT 재시도)으로 결제한다.
+    # 예: "http://127.0.0.1:8402". 빈값(기본)이면 기존 인프로세스 경로 그대로.
+    broker_http_url: str = _get("BROKER_HTTP_URL", "")
+
     # 웹 대시보드 (web/server.py)
     web_port: int = int(_get("WEB_PORT", "8000"))
     # 시세 틱 간격(초) — Gemini 무료 티어 분당 호출 제한을 고려한 기본값

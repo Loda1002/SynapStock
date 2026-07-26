@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import CFG
+from web.broker_service import router as broker_router
 from web.engine import TradingEngine, EngineError
 from web.events import EventBus
 from web.store import build_store
@@ -72,6 +73,12 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="AutoTrader Agent Dashboard", version="0.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+# 브로커 x402 자원 서버(G5) — POST /broker/orders · GET /.well-known/x402.
+# 로컬 시연은 별도 프로세스(python -m web.broker_service --port 8402)로 띄우지만,
+# Cloud Run 은 컨테이너당 포트를 하나만 노출하므로 배포 URL 에서도 같은 402 를 확인할 수
+# 있도록 여기에 함께 마운트한다. 조작 API 가 아니라 판매자 측 자원이라 토큰 게이트는 없다
+# (결제 없이는 402 로 막히고, 정산은 서명 검증을 통과해야 한다).
+app.include_router(broker_router)
 
 
 @app.get("/")

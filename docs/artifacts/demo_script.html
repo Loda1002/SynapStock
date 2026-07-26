@@ -1,0 +1,591 @@
+<title>402 Guard 데모 대본 — 3분</title>
+
+<style>
+  :root {
+    --ground: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #131c26;
+    --ink-2: #445261;
+    --ink-3: #7c8b9a;
+    --rule: #dce3ea;
+    --rule-strong: #c3cdd7;
+    --accent: #1d5b8f;
+    --accent-soft: #e9f0f7;
+    --good: #17724b;
+    --good-soft: #e6f2ec;
+    --warn: #9a6410;
+    --warn-soft: #f7efdf;
+    --crit: #a93226;
+    --crit-soft: #f8eae8;
+    --on-accent: #ffffff;
+    --font-sans: "Pretendard Variable", Pretendard, "Malgun Gothic", "맑은 고딕", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0e141a; --surface: #151d25; --surface-2: #1a232c;
+      --ink: #e4ebf2; --ink-2: #a0aebc; --ink-3: #6e7e8d;
+      --rule: #24303b; --rule-strong: #35434f;
+      --accent: #6baee0; --accent-soft: #16283a;
+      --good: #4fb183; --good-soft: #13291f;
+      --warn: #d9a441; --warn-soft: #2a2113;
+      --crit: #e0736a; --crit-soft: #2d1a18; --on-accent: #0e141a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0e141a; --surface: #151d25; --surface-2: #1a232c;
+    --ink: #e4ebf2; --ink-2: #a0aebc; --ink-3: #6e7e8d;
+    --rule: #24303b; --rule-strong: #35434f;
+    --accent: #6baee0; --accent-soft: #16283a;
+    --good: #4fb183; --good-soft: #13291f;
+    --warn: #d9a441; --warn-soft: #2a2113;
+    --crit: #e0736a; --crit-soft: #2d1a18; --on-accent: #0e141a;
+  }
+  :root[data-theme="light"] {
+    --ground: #f4f6f8; --surface: #ffffff; --surface-2: #fafbfc;
+    --ink: #131c26; --ink-2: #445261; --ink-3: #7c8b9a;
+    --rule: #dce3ea; --rule-strong: #c3cdd7;
+    --accent: #1d5b8f; --accent-soft: #e9f0f7;
+    --good: #17724b; --good-soft: #e6f2ec;
+    --warn: #9a6410; --warn-soft: #f7efdf;
+    --crit: #a93226; --crit-soft: #f8eae8; --on-accent: #ffffff;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 26px 24px 60px; }
+
+  .page-head { margin-bottom: 22px; }
+  .page-head h1 { margin: 4px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+  .page-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); max-width: 68ch; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 26px;
+    align-items: start;
+  }
+
+  /* ---------- timer rail ---------- */
+  .rail { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .timer {
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    padding: 18px 18px 16px;
+  }
+  .timer.over { border-color: var(--crit); }
+
+  .timer-total {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin: 6px 0 2px;
+  }
+  .timer.over .timer-total { color: var(--crit); }
+  .timer-sub { font-size: 12px; color: var(--ink-3); }
+
+  .bar { height: 6px; background: var(--rule); margin: 14px 0 4px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0%; background: var(--accent); }
+  .timer.over .bar-fill { background: var(--crit); }
+
+  .now {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+  }
+  .now-scene { font-size: 14px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; }
+  .now-left { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-2); margin-top: 3px; }
+
+  .controls { display: flex; gap: 8px; margin-top: 14px; }
+  .btn {
+    flex: 1 1 auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    border-radius: 2px;
+    border: 1px solid var(--rule-strong);
+    background: var(--surface-2);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .hint {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.7;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 12px 14px;
+  }
+  .hint b { color: var(--ink-2); font-weight: 700; }
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    border: 1px solid var(--rule-strong);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: 0 4px;
+    color: var(--ink-2);
+  }
+
+  /* ---------- scenes ---------- */
+  .scenes { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+
+  .scene { background: var(--surface); padding: 0; }
+  .scene.active { background: var(--accent-soft); }
+  .scene.past { opacity: 0.55; }
+
+  .scene-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 13px 18px 10px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+  }
+  .scene-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .scene-time {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .scene-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; flex: 1 1 auto; }
+  .scene-dur { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+  .scene-body { padding: 0 18px 16px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; }
+
+  .block { display: flex; flex-direction: column; gap: 5px; }
+  .block h4 {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  .say { margin: 0; font-size: 14.5px; line-height: 1.65; }
+  .say em { font-style: normal; background: var(--warn-soft); color: var(--ink); padding: 0 3px; box-decoration-break: clone; }
+
+  ul.do { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  ul.do li { font-size: 13px; color: var(--ink-2); padding-left: 14px; position: relative; line-height: 1.55; }
+  ul.do li::before { content: "→"; position: absolute; left: 0; color: var(--ink-3); font-family: var(--font-mono); font-size: 11px; }
+  ul.do code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    padding: 0 4px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+
+  .proof {
+    font-size: 12px;
+    color: var(--ink-2);
+    border-left: 2px solid var(--good);
+    padding: 2px 0 2px 10px;
+  }
+  .proof b { color: var(--good); font-weight: 700; }
+
+  /* ---------- prep ---------- */
+  .prep { margin-top: 30px; }
+  .prep-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .prep-cell { background: var(--surface); padding: 14px 18px 16px; }
+  .prep-cell h3 { margin: 0 0 8px; font-size: 13px; font-weight: 700; }
+  .prep-cell ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .prep-cell li { font-size: 13px; color: var(--ink-2); display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: start; }
+  .prep-cell input[type="checkbox"] { margin-top: 3px; width: 14px; height: 14px; accent-color: var(--accent); }
+  .prep-cell input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .prep-cell code { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink); }
+
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+  .sec-head h2 { margin: 0; font-size: 15px; font-weight: 700; }
+  .sec-note { font-size: 12px; color: var(--ink-3); }
+
+  footer { margin-top: 34px; border-top: 1px solid var(--rule); padding-top: 14px; font-size: 11.5px; color: var(--ink-3); line-height: 1.75; }
+
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .rail { position: static; }
+    .timer-total { font-size: 40px; }
+    .scene-body { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .prep-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 620px) {
+    .wrap { padding: 20px 16px 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow">제출물 · 데모 영상</span>
+    <h1>402 Guard 촬영 대본 — 3분</h1>
+    <p>장면 6개, 합계 180초. 왼쪽 타이머를 켜고 촬영하면 현재 장면이 자동으로 따라옵니다. 대사는 그대로 읽어도 되고, <em>강조된 문장</em>만 지켜도 논지는 유지됩니다.</p>
+  </div>
+
+  <div class="layout">
+    <div class="rail">
+      <div class="timer" id="timer">
+        <span class="eyebrow">남은 시간</span>
+        <div class="timer-total mono" id="total">3:00</div>
+        <div class="timer-sub" id="state">대기 중 · 스페이스바로 시작</div>
+
+        <div class="bar"><div class="bar-fill" id="fill"></div></div>
+
+        <div class="now">
+          <span class="eyebrow">현재 장면</span>
+          <div class="now-scene" id="nowScene">1. 문제 — 사람이 빠진 결제</div>
+          <div class="now-left mono" id="nowLeft">이 장면 20초</div>
+        </div>
+
+        <div class="controls">
+          <button class="btn primary" id="startBtn" type="button">시작</button>
+          <button class="btn" id="resetBtn" type="button">리셋</button>
+        </div>
+      </div>
+
+      <div class="hint">
+        <b>단축키</b> <kbd>Space</kbd> 시작·일시정지 · <kbd>R</kbd> 리셋<br>
+        장면 제목을 누르면 그 지점으로 건너뜁니다.<br>
+        <b>3분 초과 시</b> 타이머가 빨갛게 바뀌고 초과분을 음수로 셉니다.
+      </div>
+    </div>
+
+    <div>
+      <div class="scenes" id="scenes">
+
+        <section class="scene" data-start="0" data-dur="20">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">0:00</span>
+            <span class="scene-title">1. 문제 — 사람이 빠진 결제</span>
+            <span class="scene-dur">20초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">AI 에이전트가 사람 없이 지갑으로 결제하는 시대가 옵니다. 그런데 <em>x402 결제 규격은 파는 쪽을 보호하도록 설계돼 있고, 사는 쪽 — 사람 없이 서명하는 구매 에이전트 — 을 지키는 계층이 비어 있습니다.</em> 저희는 그 비어 있는 절반을 만들었습니다.</p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li>제목 화면: <code>402 Guard — 에이전트 지출 승인 게이트</code></li>
+                <li>한 줄 도식: 구매 에이전트 → [ 게이트 ] → 브로커</li>
+              </ul>
+              <div class="proof"><b>주의</b> 이 20초 안에 '트레이딩 봇'이라는 단어를 쓰지 않습니다.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" data-start="20" data-dur="30">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">0:20</span>
+            <span class="scene-title">2. 위협 — 한도는 지켜지는데 전액을 잃는다</span>
+            <span class="scene-dur">30초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">악성 브로커가 건별 한도 45달러 안쪽인 44.94달러를 청구합니다. 금액은 정상입니다. <em>수취인 지갑 주소만 자기 것으로 바꿉니다.</em> 지금 업계 기본값인 가드 없는 에이전트는 이걸 그대로 서명합니다. 돈은 나가고 주식은 오지 않습니다. 한도는 지켜졌는데 전액을 잃습니다.</p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li>가드를 끈 상태로 공격 실행 — 라벨은 <code>가드 없는 일반 에이전트</code></li>
+                <li>수취인 주소가 다른 지갑으로 바뀐 청구서를 화면에 확대</li>
+                <li>한도 검사만 통과하는 순간을 그대로 노출</li>
+              </ul>
+              <div class="proof"><b>근거</b> AP2 authorize는 종목·건별한도·잔여예산만 보고 수취인은 검사하지 않는다 — 이 결함이 게이트의 존재 이유입니다.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" data-start="50" data-dur="40">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">0:50</span>
+            <span class="scene-title">3. 차단 — 서명 직전의 마지막 검사</span>
+            <span class="scene-dur">40초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">같은 공격을 402 Guard를 켜고 다시 돌립니다. 게이트는 서명 직전에 청구서를 사용자가 서명한 위임장과 대조합니다. 주문번호, 자산, 종목, <em>수취인, 금액, 사용자가 의도한 지출 상한, 건별 한도</em> — 하나라도 어긋나면 서명하지 않습니다. 결과는 시도 20건 중 6건 차단, <em>유출 0.00 USDC</em>입니다.</p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li>터미널: <code>python -m scripts.red_team --report</code></li>
+                <li>공격·차단 매트릭스와 차단 코드를 정지 화면으로</li>
+                <li>대시보드 KPI 카드: 시도·차단·유출 0.00·오탐 0</li>
+              </ul>
+              <div class="proof"><b>실측</b> 시도 20 · 차단 6 · 유출 0.00 USDC · 오탐 0 (정상 14건 전부 통과)</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" data-start="90" data-dur="40">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">1:30</span>
+            <span class="scene-title">4. 온체인 — 목업이 아니라는 증거</span>
+            <span class="scene-dur">40초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">정상 거래는 막히지 않습니다. 두 에이전트가 A2A로 견적을 합의하고, 게이트를 통과한 뒤 Solana에서 USDC가 실제로 이동합니다. <em>트랜잭션 메모에 주문번호를 심어 어느 주문인지 체인에서 대조할 수 있고</em>, 정산 뒤에는 잔액을 다시 조회해 청구서대로 도착했는지 확인합니다.</p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li>정상 매수 1건 — 판단 → 견적 → 게이트 통과 → 결제 완료</li>
+                <li>explorer에서 <code>?cluster=devnet</code> 트랜잭션 실제 조회</li>
+                <li>메모 필드 <code>AT1:{order_id}</code> 확대</li>
+                <li>증빙 파일 <code>artifacts/tx/</code> 교차검증 수치</li>
+              </ul>
+              <div class="proof"><b>실측</b> devnet 라이브 5거래 전부 확정, USDC 순변화 −4.9가 기대치와 일치</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" data-start="130" data-dur="30">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">2:10</span>
+            <span class="scene-title">5. 자율성 — AI가 무엇을 판단하든 게이트는 상수</span>
+            <span class="scene-dur">30초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">판단은 Gemini가 합니다. 시세와 지표를 보고 사고팔지를 스스로 정합니다. 하지만 <em>AI가 무엇을 판단하든 한도를 넘길 수는 없습니다.</em> 사람이 미리 서명한 정책을 코드가 매 건 강제하기 때문입니다. 사람을 부르지 않고도 안전한 자율 결제 — 이게 저희가 만든 것입니다.</p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li>판단 타임라인에서 <code>[gemini]</code> 배지와 한국어 판단 이유</li>
+                <li>한도 초과 시도 → 기계적 거부 1건</li>
+                <li>여러 종목이 각자 예산 안에서 독립적으로 도는 화면</li>
+              </ul>
+              <div class="proof"><b>정직하게</b> 수익률은 팔지 않습니다. 벤치마크에 지는 구간도 소개서에 그대로 실었습니다.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" data-start="160" data-dur="20">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">2:40</span>
+            <span class="scene-title">6. 마무리 — 직접 재현해 보십시오</span>
+            <span class="scene-dur">20초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">저희가 파는 것은 수익률이 아니라 <em>지출 통제</em>입니다. 첫 화면의 숫자도 수익률이 아니라 시도·차단·유출 0.00·오탐 0입니다. 명령 한 줄이면 이 결과를 그대로 재현하실 수 있습니다.</p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li>KPI 화면 정지 + 재현 명령 <code>python -m scripts.red_team --report</code></li>
+                <li>저장소 주소와 (배포되면) 라이브 URL</li>
+              </ul>
+              <div class="proof"><b>끝맺음</b> 마지막 3초는 KPI 화면을 말없이 정지해 둡니다.</div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <section class="prep">
+        <div class="sec-head">
+          <h2>촬영 전 점검</h2>
+          <span class="sec-note">체크 상태는 이 브라우저에만 저장됩니다</span>
+        </div>
+        <div class="prep-grid">
+          <div class="prep-cell">
+            <h3>환경</h3>
+            <ul>
+              <li><input type="checkbox" id="p1"><label for="p1">devnet 세션 지갑 잔액 확인 (부족하면 미리 충당)</label></li>
+              <li><input type="checkbox" id="p2"><label for="p2">폴백 준비 — 네트워크 불안정 시 localnet 재시연 경로</label></li>
+              <li><input type="checkbox" id="p3"><label for="p3">라이브 세션 게이트 <code>ALLOW_LIVE_FROM_WEB=1</code> (시연 직전에만)</label></li>
+              <li><input type="checkbox" id="p4"><label for="p4">화면에 개인 키·시크릿 경로가 보이지 않는지 확인</label></li>
+            </ul>
+          </div>
+          <div class="prep-cell">
+            <h3>화면</h3>
+            <ul>
+              <li><input type="checkbox" id="p5"><label for="p5">브랜딩이 402 Guard로 바뀐 대시보드인지 (AutoTrader 표기 잔존 확인)</label></li>
+              <li><input type="checkbox" id="p6"><label for="p6">첫 화면에 가드 KPI 카드가 보이는지</label></li>
+              <li><input type="checkbox" id="p7"><label for="p7">터미널 글자 크기 키우기 — 영상에서 읽혀야 함</label></li>
+              <li><input type="checkbox" id="p8"><label for="p8">3분 이내인지 최종 확인 후 업로드 (유튜브 공개 또는 일부공개)</label></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        장면 배분 20 · 30 · 40 · 40 · 30 · 20 = 180초. 대사를 줄일 여지가 가장 큰 곳은 5번(자율성)이고, 절대 줄이면 안 되는 곳은 2번(위협)과 3번(차단)입니다 — 이 둘이 제품 정의 그 자체입니다.<br>
+        근거: docs/submission.md §6 · docs/differentiation.md §1·§3 · scripts/red_team.py 실측 · artifacts/tx/20260724_1643_solana-devnet_live_buy.json
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var TOTAL = 180;
+    var scenes = Array.prototype.slice.call(document.querySelectorAll(".scene"));
+    var timerEl = document.getElementById("timer");
+    var totalEl = document.getElementById("total");
+    var stateEl = document.getElementById("state");
+    var fillEl = document.getElementById("fill");
+    var nowSceneEl = document.getElementById("nowScene");
+    var nowLeftEl = document.getElementById("nowLeft");
+    var startBtn = document.getElementById("startBtn");
+    var resetBtn = document.getElementById("resetBtn");
+
+    var elapsed = 0;
+    var running = false;
+    var handle = null;
+
+    function fmt(sec) {
+      var neg = sec < 0;
+      var s = Math.abs(Math.round(sec));
+      var m = Math.floor(s / 60);
+      var r = s % 60;
+      return (neg ? "+" : "") + m + ":" + String(r).padStart(2, "0");
+    }
+
+    function currentIndex() {
+      var idx = 0;
+      for (var i = 0; i < scenes.length; i++) {
+        var start = parseInt(scenes[i].getAttribute("data-start"), 10);
+        if (elapsed >= start) idx = i;
+      }
+      return idx;
+    }
+
+    function paint() {
+      var left = TOTAL - elapsed;
+      totalEl.textContent = fmt(left);
+      timerEl.classList.toggle("over", left < 0);
+      fillEl.style.width = Math.min(100, (elapsed / TOTAL) * 100) + "%";
+
+      var idx = currentIndex();
+      scenes.forEach(function (scene, i) {
+        scene.classList.toggle("active", i === idx);
+        scene.classList.toggle("past", i < idx);
+      });
+
+      var active = scenes[idx];
+      var start = parseInt(active.getAttribute("data-start"), 10);
+      var dur = parseInt(active.getAttribute("data-dur"), 10);
+      var sceneLeft = start + dur - elapsed;
+      nowSceneEl.textContent = active.querySelector(".scene-title").textContent;
+      nowLeftEl.textContent = sceneLeft >= 0
+        ? "이 장면 " + Math.ceil(sceneLeft) + "초 남음"
+        : "이 장면 " + Math.abs(Math.floor(sceneLeft)) + "초 초과";
+    }
+
+    function tick() {
+      elapsed += 1;
+      paint();
+    }
+
+    function setRunning(next) {
+      running = next;
+      if (running) {
+        handle = setInterval(tick, 1000);
+        startBtn.textContent = "일시정지";
+        stateEl.textContent = "촬영 중";
+      } else {
+        if (handle) clearInterval(handle);
+        handle = null;
+        startBtn.textContent = elapsed > 0 ? "이어서" : "시작";
+        stateEl.textContent = elapsed > 0 ? "일시정지 · 스페이스바로 재개" : "대기 중 · 스페이스바로 시작";
+      }
+    }
+
+    function reset() {
+      setRunning(false);
+      elapsed = 0;
+      startBtn.textContent = "시작";
+      stateEl.textContent = "대기 중 · 스페이스바로 시작";
+      paint();
+    }
+
+    startBtn.addEventListener("click", function () { setRunning(!running); });
+    resetBtn.addEventListener("click", reset);
+
+    scenes.forEach(function (scene) {
+      scene.querySelector(".scene-head").addEventListener("click", function () {
+        elapsed = parseInt(scene.getAttribute("data-start"), 10);
+        paint();
+      });
+    });
+
+    document.addEventListener("keydown", function (e) {
+      var tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        setRunning(!running);
+      } else if (e.key === "r" || e.key === "R") {
+        reset();
+      }
+    });
+
+    var PREP_KEY = "guard402.demo.prep.v1";
+    var preps = Array.prototype.slice.call(document.querySelectorAll('.prep-cell input[type="checkbox"]'));
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(PREP_KEY) || "{}") || {}; } catch (err) { saved = {}; }
+    preps.forEach(function (box) {
+      if (Object.prototype.hasOwnProperty.call(saved, box.id)) box.checked = !!saved[box.id];
+      box.addEventListener("change", function () {
+        saved[box.id] = box.checked;
+        try { localStorage.setItem(PREP_KEY, JSON.stringify(saved)); } catch (err) {}
+      });
+    });
+
+    paint();
+  })();
+</script>

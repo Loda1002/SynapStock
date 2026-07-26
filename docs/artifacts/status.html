@@ -1,0 +1,794 @@
+<title>402 Guard 관제탑</title>
+
+<style>
+  :root {
+    --ground: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #131c26;
+    --ink-2: #445261;
+    --ink-3: #7c8b9a;
+    --rule: #dce3ea;
+    --rule-strong: #c3cdd7;
+    --accent: #1d5b8f;
+    --accent-soft: #e9f0f7;
+    --good: #17724b;
+    --good-soft: #e6f2ec;
+    --warn: #9a6410;
+    --warn-soft: #f7efdf;
+    --crit: #a93226;
+    --crit-soft: #f8eae8;
+    --font-sans: "Pretendard Variable", Pretendard, "Malgun Gothic", "맑은 고딕", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0e141a;
+      --surface: #151d25;
+      --surface-2: #1a232c;
+      --ink: #e4ebf2;
+      --ink-2: #a0aebc;
+      --ink-3: #6e7e8d;
+      --rule: #24303b;
+      --rule-strong: #35434f;
+      --accent: #6baee0;
+      --accent-soft: #16283a;
+      --good: #4fb183;
+      --good-soft: #13291f;
+      --warn: #d9a441;
+      --warn-soft: #2a2113;
+      --crit: #e0736a;
+      --crit-soft: #2d1a18;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0e141a;
+    --surface: #151d25;
+    --surface-2: #1a232c;
+    --ink: #e4ebf2;
+    --ink-2: #a0aebc;
+    --ink-3: #6e7e8d;
+    --rule: #24303b;
+    --rule-strong: #35434f;
+    --accent: #6baee0;
+    --accent-soft: #16283a;
+    --good: #4fb183;
+    --good-soft: #13291f;
+    --warn: #d9a441;
+    --warn-soft: #2a2113;
+    --crit: #e0736a;
+    --crit-soft: #2d1a18;
+  }
+
+  :root[data-theme="light"] {
+    --ground: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #131c26;
+    --ink-2: #445261;
+    --ink-3: #7c8b9a;
+    --rule: #dce3ea;
+    --rule-strong: #c3cdd7;
+    --accent: #1d5b8f;
+    --accent-soft: #e9f0f7;
+    --good: #17724b;
+    --good-soft: #e6f2ec;
+    --warn: #9a6410;
+    --warn-soft: #f7efdf;
+    --crit: #a93226;
+    --crit-soft: #f8eae8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule-strong);
+  }
+
+  .topbar-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 14px 24px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 20px 28px;
+  }
+
+  .brand-name {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-sub {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  .topbar-metric { display: flex; flex-direction: column; gap: 2px; }
+  .topbar-metric .value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .topbar-metric .value.urgent { color: var(--crit); }
+  .topbar-spacer { flex: 1 1 40px; }
+
+  .sprint {
+    flex: 1 1 220px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sprint-track {
+    position: relative;
+    height: 6px;
+    background: var(--rule);
+    overflow: hidden;
+  }
+  .sprint-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+  .sprint-legend {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 26px 24px 64px; }
+
+  section { margin-bottom: 34px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .sec-head h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sec-note { font-size: 12px; color: var(--ink-3); }
+
+  /* hairline grid: 1px gap on a rule-colored bed */
+  .hair-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .axes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+  .cell { background: var(--surface); padding: 14px 16px 16px; }
+
+  .axis-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .axis-name { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .axis-why { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.55; }
+
+  .kpi-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .kpi-value {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .kpi-value.good { color: var(--good); }
+  .kpi-foot { display: block; margin-top: 3px; font-size: 11.5px; color: var(--ink-3); }
+
+  /* ---------- stamp chips ---------- */
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .stamp.good { color: var(--good); background: var(--good-soft); }
+  .stamp.warn { color: var(--warn); background: var(--warn-soft); }
+  .stamp.crit { color: var(--crit); background: var(--crit-soft); }
+  .stamp.idle { color: var(--ink-3); background: var(--surface-2); }
+  .stamp.info { color: var(--accent); background: var(--accent-soft); }
+
+  /* ---------- two-column body ---------- */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+    gap: 30px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 0;
+  }
+  .panel + .panel { margin-top: 18px; }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-2);
+  }
+  .panel-head h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: -0.005em; }
+  .panel-body { padding: 4px 16px 14px; }
+
+  /* ---------- checklist ---------- */
+  .group { border-top: 1px solid var(--rule); }
+  .group:first-child { border-top: 0; }
+
+  .group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px 8px;
+  }
+  .group-title { font-size: 12.5px; font-weight: 700; }
+  .group-owner { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.05em; }
+  .group-count { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  ul.items { list-style: none; margin: 0; padding: 0 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+
+  .item { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: start; padding: 5px 0; }
+  .item input[type="checkbox"] {
+    margin: 3px 0 0;
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .item label { cursor: pointer; font-size: 13.5px; line-height: 1.5; }
+  .item .why { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+  .item.done label { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .item.done .why { text-decoration: none; }
+  .item input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    border-radius: 2px;
+    padding: 4px 9px;
+    cursor: pointer;
+  }
+  .btn:hover { color: var(--ink); border-color: var(--ink-3); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- tables ---------- */
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+  thead th {
+    border-top: 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  td.id { font-family: var(--font-mono); white-space: nowrap; color: var(--ink-2); }
+  td.st { white-space: nowrap; }
+
+  /* ---------- report cards ---------- */
+  .report { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-top: 1px solid var(--rule); }
+  .report:first-child { border-top: 0; }
+  .report-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .report-name { font-size: 13px; font-weight: 700; }
+  .report-line { font-size: 12.5px; color: var(--ink-2); margin: 0; }
+  .report-path { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); word-break: break-all; }
+  code.cmd {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    padding: 6px 8px;
+    color: var(--ink-2);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* ---------- notice ---------- */
+  .notice {
+    border: 1px solid var(--warn);
+    background: var(--warn-soft);
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .notice p { margin: 0; font-size: 12.5px; color: var(--ink); }
+  .notice strong { color: var(--warn); }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 14px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.75;
+  }
+  footer .mono { color: var(--ink-2); }
+
+  @media (max-width: 1000px) {
+    .split { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+    .axes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 620px) {
+    .wrap { padding: 20px 16px 48px; }
+    .topbar-inner { padding: 12px 16px; gap: 14px 20px; }
+    .axes { grid-template-columns: minmax(0, 1fr); }
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <h1 class="brand-name">402 Guard 관제탑</h1>
+      <p class="brand-sub">에이전트 지출 승인 게이트 · 해커톤 제출 현황 · 2026-07-26 기준</p>
+    </div>
+
+    <div class="topbar-spacer"></div>
+
+    <div class="topbar-metric">
+      <span class="eyebrow">최종 제출까지</span>
+      <span class="value" id="dday">D-8</span>
+    </div>
+
+    <div class="topbar-metric">
+      <span class="eyebrow">남은 시간</span>
+      <span class="value mono" id="clock">—</span>
+    </div>
+
+    <div class="topbar-metric">
+      <span class="eyebrow">체크리스트 완료</span>
+      <span class="value mono" id="ratio">0%</span>
+    </div>
+
+    <div class="sprint">
+      <div class="sprint-track"><div class="sprint-fill" id="sprintFill" style="width:0%"></div></div>
+      <div class="sprint-legend">
+        <span>07-21 킥오프</span>
+        <span id="sprintPct">—</span>
+        <span>08-03 23:59 마감</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="sec-head">
+      <h2>심사 4축 자가평가</h2>
+      <span class="sec-note">심사 부서 2026-07-25 22:24 실행 · 적대 검증 근거 32건 중 반려 0</span>
+    </div>
+    <div class="hair-grid axes">
+      <div class="cell">
+        <div class="axis-top">
+          <span class="axis-name">① 혁신성·UX·상업성</span>
+          <span class="stamp warn">중</span>
+        </div>
+        <p class="axis-why">포지셔닝과 차단 KPI는 실물인데, 가드 서사가 첫 화면에 없다. 백엔드는 <span class="mono">state.guard</span>를 이미 방출하고 프론트만 미배선.</p>
+      </div>
+      <div class="cell">
+        <div class="axis-top">
+          <span class="axis-name">② AI 활용도</span>
+          <span class="stamp warn">중</span>
+        </div>
+        <p class="axis-why">Gemini 통합·폴백은 견고하나 대표 성능 서사가 전부 규칙 판단이고, 온체인 세션에 Gemini 관여 증빙이 없다. 최근 커밋 2건으로 보완 착수.</p>
+      </div>
+      <div class="cell">
+        <div class="axis-top">
+          <span class="axis-name">③ 기술·인프라</span>
+          <span class="stamp good">강</span>
+        </div>
+        <p class="axis-why">x402 온체인 정산·exact 금액검증·Memo 바인딩·AP2 서명·A2A 3단계·Guard 결선이 전부 실물 코드. HTTP 402 상태코드 응답만 미구현.</p>
+      </div>
+      <div class="cell">
+        <div class="axis-top">
+          <span class="axis-name">④ 실제 구동</span>
+          <span class="stamp good">강</span>
+        </div>
+        <p class="axis-why">devnet·localnet 라이브 모두 실 트랜잭션과 잔액 교차검증 통과. 배포 URL 재현과 devnet 반복 실증만 남았다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>실증 KPI</h2>
+      <span class="sec-note">수익률이 아니라 지출 통제 지표 — 첫 화면에 올라갈 숫자</span>
+    </div>
+    <div class="hair-grid kpis">
+      <div class="cell">
+        <span class="kpi-label">유출</span>
+        <span class="kpi-value good">0.00</span>
+        <span class="kpi-foot">USDC · red_team</span>
+      </div>
+      <div class="cell">
+        <span class="kpi-label">차단 / 시도</span>
+        <span class="kpi-value">6 / 20</span>
+        <span class="kpi-foot">공격 3종 매트릭스</span>
+      </div>
+      <div class="cell">
+        <span class="kpi-label">오탐</span>
+        <span class="kpi-value good">0</span>
+        <span class="kpi-foot">정상 14건 전부 통과</span>
+      </div>
+      <div class="cell">
+        <span class="kpi-label">온체인 증빙</span>
+        <span class="kpi-value">9</span>
+        <span class="kpi-foot">devnet 1 · localnet 7 · 거부로그 1</span>
+      </div>
+      <div class="cell">
+        <span class="kpi-label">테스트</span>
+        <span class="kpi-value good">11</span>
+        <span class="kpi-foot">종 전부 통과</span>
+      </div>
+      <div class="cell">
+        <span class="kpi-label">하락장 실증</span>
+        <span class="kpi-value">+67.8%</span>
+        <span class="kpi-foot">TSLA 추세추종 · 보유 −20.5%</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="split">
+
+    <div>
+      <section style="margin-bottom:0">
+        <div class="sec-head">
+          <h2>남은 일</h2>
+          <button class="btn" id="resetBtn" type="button">체크 초기화</button>
+        </div>
+
+        <div class="panel">
+          <div class="group">
+            <div class="group-head">
+              <div>
+                <div class="group-title">프론트 — 402 Guard 서사를 첫 화면에</div>
+                <div class="group-owner">담당: 프론트 작업자 · 범위 web/static/**</div>
+              </div>
+              <span class="group-count" data-count="front">0/4</span>
+            </div>
+            <ul class="items">
+              <li class="item"><input type="checkbox" id="f1" data-group="front"><label for="f1">가드 KPI 카드 추가 <span class="why">index.html에 data-card="guard" + app.js에서 state.guard(attempts·blocked·leak_usdc) 렌더</span></label></li>
+              <li class="item"><input type="checkbox" id="f2" data-group="front"><label for="f2">헤더 브랜딩 교체 <span class="why">'AutoTrader Agent' → '402 Guard — 에이전트 지출 승인 게이트' (login.html 문구 재사용)</span></label></li>
+              <li class="item"><input type="checkbox" id="f3" data-group="front"><label for="f3">DEFAULT_LAYOUT 재배치 <span class="why">pnl·valuation·position을 아래로, 가드·mandate·판단을 위로</span></label></li>
+              <li class="item"><input type="checkbox" id="f4" data-group="front"><label for="f4">시안 반영 <span class="why">docs/design/dashboard_mockup.png 배치·컴포넌트 채택, 카피는 402 Guard로 치환</span></label></li>
+            </ul>
+          </div>
+
+          <div class="group">
+            <div class="group-head">
+              <div>
+                <div class="group-title">백엔드 — 심사 축② 보완</div>
+                <div class="group-owner">담당: 나 · 범위 web/static 제외 전부</div>
+              </div>
+              <span class="group-count" data-count="back">0/5</span>
+            </div>
+            <ul class="items">
+              <li class="item"><input type="checkbox" id="b1" data-group="back" checked><label for="b1">규칙 게이트 코드 강제 <span class="why">커밋 94fe605 — 규칙 신호 없는 개시를 코드가 차단</span></label></li>
+              <li class="item"><input type="checkbox" id="b2" data-group="back" checked><label for="b2">판단 출처 계측 <span class="why">커밋 3602015 — AI 관여를 tx 아티팩트·세션 요약에 기록</span></label></li>
+              <li class="item"><input type="checkbox" id="b3" data-group="back"><label for="b3">대규모 하락장 Gemini 백테스트 <span class="why">481·1600봉을 brain=gemini로 실행해 규칙 대비 수익·MDD 확보</span></label></li>
+              <li class="item"><input type="checkbox" id="b4" data-group="back"><label for="b4">Gemini 온체인 세션 1회 아카이빙 <span class="why">조건형+Gemini로 devnet 실행 — 축②의 실구동 증빙</span></label></li>
+              <li class="item"><input type="checkbox" id="b5" data-group="back"><label for="b5">브로커 HTTP 402 레그(G5) <span class="why">여유 시. 축③의 유일한 갭 — status_code=402 + accepts[] 반환</span></label></li>
+            </ul>
+          </div>
+
+          <div class="group">
+            <div class="group-head">
+              <div>
+                <div class="group-title">배포·실증</div>
+                <div class="group-owner">담당: 나 · gcloud는 직접 실행</div>
+              </div>
+              <span class="group-count" data-count="ops">0/4</span>
+            </div>
+            <ul class="items">
+              <li class="item"><input type="checkbox" id="o1" data-group="ops"><label for="o1">Cloud Run 배포 <span class="why">docs/deploy_cloud_run.md 순서대로 · max-instances 1 + no-cpu-throttling 필수</span></label></li>
+              <li class="item"><input type="checkbox" id="o2" data-group="ops"><label for="o2">배포 URL에서 매수·매도 재현 <span class="why">verification_checklist 3단계 통과 처리 + 로그 아카이빙</span></label></li>
+              <li class="item"><input type="checkbox" id="o3" data-group="ops"><label for="o3">devnet 라이브 2~3회 추가 <span class="why">정상 매수·정상 매도·한도초과 거부 각 1회 이상 (현재 devnet 세션 1건뿐)</span></label></li>
+              <li class="item"><input type="checkbox" id="o4" data-group="ops"><label for="o4">explorer 링크 생존 확인 <span class="why">제출 직전 devnet 트랜잭션 1건 실제 조회 스크린샷</span></label></li>
+            </ul>
+          </div>
+
+          <div class="group">
+            <div class="group-head">
+              <div>
+                <div class="group-title">제출물</div>
+                <div class="group-owner">담당: 나 · 마감 08-03 23:59</div>
+              </div>
+              <span class="group-count" data-count="sub">0/6</span>
+            </div>
+            <ul class="items">
+              <li class="item"><input type="checkbox" id="s1" data-group="sub"><label for="s1">소개서 PDF 장표 <span class="why">문제→402 Guard→아키텍처→KPI→수익모델→로드맵</span></label></li>
+              <li class="item"><input type="checkbox" id="s2" data-group="sub"><label for="s2">데모 영상 3분 이내 <span class="why">유튜브 공개/일부공개 링크 · 폴백으로 localnet 재시연 경로 준비</span></label></li>
+              <li class="item"><input type="checkbox" id="s3" data-group="sub"><label for="s3">README 402 Guard 재작성 <span class="why">첫 3줄 + 재현 명령 3개(curl 402 · red_team · explorer)</span></label></li>
+              <li class="item"><input type="checkbox" id="s4" data-group="sub"><label for="s4">저장소 public 전환 <span class="why">제출 직전 필수 · 지금 private</span></label></li>
+              <li class="item"><input type="checkbox" id="s5" data-group="sub"><label for="s5">구글폼 7항목 작성 <span class="why">docs/submission.md 초안을 확정본으로 교체</span></label></li>
+              <li class="item"><input type="checkbox" id="s6" data-group="sub"><label for="s6">트랙 명칭·규격 재확인 <span class="why">A~D 공식 명칭, 영상 길이 상한, 마감 시각을 디스코드 공지로 대조</span></label></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section style="margin-bottom:0">
+        <div class="sec-head">
+          <h2>부서 리포트</h2>
+          <span class="sec-note">읽기 전용 · 필요할 때만 실행</span>
+        </div>
+
+        <div class="panel">
+          <div class="report">
+            <div class="report-top">
+              <span class="report-name">심사 부서</span>
+              <span class="stamp info">2026-07-25</span>
+            </div>
+            <p class="report-line">축③④ 강 · 축①② 중. 최대 갭은 가드 서사가 첫 화면에 없다는 것.</p>
+            <span class="report-path">docs/reports/judging_latest.md</span>
+            <code class="cmd">Workflow({scriptPath:".claude/workflows/judge-dept.js"})</code>
+          </div>
+
+          <div class="report">
+            <div class="report-top">
+              <span class="report-name">버그 부서</span>
+              <span class="stamp info">2026-07-24</span>
+            </div>
+            <p class="report-line">확정 13건(높음2·중간2·낮음8·정보1). 402 Guard 본체 결함 4건은 수정·푸시 완료, 저심각 9건 잔여.</p>
+            <span class="report-path">docs/reports/bug_latest.md</span>
+            <code class="cmd">Workflow({scriptPath:".claude/workflows/bug-dept.js"})</code>
+          </div>
+
+          <div class="report">
+            <div class="report-top">
+              <span class="report-name">데이터 부서</span>
+              <span class="stamp info">2026-07-25</span>
+            </div>
+            <p class="report-line">시세 CSV 3종 이슈 0건. 관찰 20건은 MA200 여력·신선도 2거래일뿐. 자기평가 4.2/5.</p>
+            <span class="report-path">docs/reports/data_latest.md</span>
+            <code class="cmd">Workflow({scriptPath:".claude/workflows/data-dept.js"})</code>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-bottom:0; margin-top:18px">
+        <div class="sec-head">
+          <h2>제출 7항목</h2>
+          <span class="sec-note">구글폼 기준</span>
+        </div>
+        <div class="panel">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>항목</th><th>상태</th><th>남은 일</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>1. 트랙</td><td class="st"><span class="stamp warn">확인</span></td><td>Track C 유력 · A~D 공식 명칭 대조 필요</td></tr>
+                <tr><td>2. 프로젝트 소개</td><td class="st"><span class="stamp info">초안</span></td><td>문제정의·솔루션 요약 확정본으로</td></tr>
+                <tr><td>3. 소개서 PDF</td><td class="st"><span class="stamp crit">미착수</span></td><td>장표 제작 (아티팩트로 진행 예정)</td></tr>
+                <tr><td>4. GitHub</td><td class="st"><span class="stamp warn">private</span></td><td>README 재작성 + public 전환</td></tr>
+                <tr><td>5. 기술 스택</td><td class="st"><span class="stamp info">초안</span></td><td>최종본 확정</td></tr>
+                <tr><td>6. 데모 영상</td><td class="st"><span class="stamp crit">미착수</span></td><td>대본·촬영·업로드 (3분 이내)</td></tr>
+                <tr><td>7. 라이브 URL</td><td class="st"><span class="stamp crit">미배포</span></td><td>Cloud Run 배포 후 확보 (가산점)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-bottom:0; margin-top:18px">
+        <div class="sec-head">
+          <h2>잔여 버그 9건</h2>
+          <span class="sec-note">전부 낮음·정보 등급 · 수정 여부는 판단 대기</span>
+        </div>
+        <div class="panel">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>번호</th><th>등급</th><th>내용</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="id">BUG-05</td><td class="st"><span class="stamp idle">낮음</span></td><td>authorize 비멱등 — 같은 주문번호 재승인 시 예산 이중계상</td></tr>
+                <tr><td class="id">BUG-06</td><td class="st"><span class="stamp idle">낮음</span></td><td>주문번호 정규식이 끝 개행을 허용 — 대사 키에 개행 유입</td></tr>
+                <tr><td class="id">BUG-07</td><td class="st"><span class="stamp idle">낮음</span></td><td>Gemini가 낸 NaN 지출액이 '호출 실패'로 잘못 기록</td></tr>
+                <tr><td class="id">BUG-08</td><td class="st"><span class="stamp idle">낮음</span></td><td>잔돈 예산에서 0원·0수량 주문이 게이트를 통과</td></tr>
+                <tr><td class="id">BUG-09</td><td class="st"><span class="stamp idle">낮음</span></td><td>열 누락 CSV가 안내 없이 원시 오류로 크래시</td></tr>
+                <tr><td class="id">BUG-10</td><td class="st"><span class="stamp idle">낮음</span></td><td>첫 화면 KPI의 시도 수가 AP2 거부 건을 빠뜨림</td></tr>
+                <tr><td class="id">BUG-11</td><td class="st"><span class="stamp idle">낮음</span></td><td>매수 진행 중 한도 교체 시 실패분 예약 원복 누락</td></tr>
+                <tr><td class="id">BUG-12</td><td class="st"><span class="stamp idle">낮음</span></td><td>부팅 복원에서 Firestore 조회가 무제한 대기</td></tr>
+                <tr><td class="id">BUG-13</td><td class="st"><span class="stamp idle">정보</span></td><td>견적이 0·음수 종가를 방어하지 않음</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section style="margin-top:34px">
+    <div class="notice">
+      <p><strong>병렬 작업 경계.</strong> 프론트 작업자가 <span class="mono">web/static/**</span>에서 UI를 진행 중입니다. 백엔드 대화에서는 이 경로를 편집하지 않습니다 — 파일 집합을 분리해 병합 충돌을 0으로 유지하는 계약입니다(<span class="mono">docs/frontend_backend_split.md</span>). <span class="mono">GET /api/state</span> 스키마는 동결.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div>근거: <span class="mono">docs/reports/judging_latest.md</span> · <span class="mono">docs/reports/bug_latest.md</span> · <span class="mono">docs/reports/data_latest.md</span> · <span class="mono">docs/submission.md</span> · <span class="mono">docs/frontend_backend_split.md</span> · 커밋 <span class="mono">94fe605</span>·<span class="mono">3602015</span></div>
+    <div>체크 상태는 이 브라우저에만 저장됩니다. 수치는 각 리포트 실행 시점의 스냅샷이며, 부서를 다시 돌리면 갱신됩니다.</div>
+  </footer>
+</main>
+
+<script>
+  (function () {
+    var STORE_KEY = "guard402.status.v1";
+    var DEADLINE = new Date("2026-08-03T23:59:00+09:00").getTime();
+    var KICKOFF = new Date("2026-07-21T00:00:00+09:00").getTime();
+
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('.item input[type="checkbox"]'));
+
+    function load() {
+      try {
+        return JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function save(state) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch (e) { /* 저장 불가 환경이면 이번 세션에만 반영 */ }
+    }
+
+    function paint() {
+      var counts = {};
+      var done = 0;
+
+      boxes.forEach(function (box) {
+        var group = box.getAttribute("data-group");
+        if (!counts[group]) counts[group] = { done: 0, total: 0 };
+        counts[group].total += 1;
+        if (box.checked) {
+          counts[group].done += 1;
+          done += 1;
+        }
+        box.closest(".item").classList.toggle("done", box.checked);
+      });
+
+      Object.keys(counts).forEach(function (group) {
+        var el = document.querySelector('[data-count="' + group + '"]');
+        if (el) el.textContent = counts[group].done + "/" + counts[group].total;
+      });
+
+      var pct = boxes.length ? Math.round((done / boxes.length) * 100) : 0;
+      document.getElementById("ratio").textContent = pct + "%";
+    }
+
+    var state = load();
+    boxes.forEach(function (box) {
+      if (Object.prototype.hasOwnProperty.call(state, box.id)) box.checked = !!state[box.id];
+      box.addEventListener("change", function () {
+        var next = load();
+        next[box.id] = box.checked;
+        save(next);
+        paint();
+      });
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", function () {
+      try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+      boxes.forEach(function (box) { box.checked = box.defaultChecked; });
+      paint();
+    });
+
+    function tick() {
+      var now = Date.now();
+      var left = DEADLINE - now;
+      var ddayEl = document.getElementById("dday");
+      var clockEl = document.getElementById("clock");
+
+      if (left <= 0) {
+        ddayEl.textContent = "마감";
+        ddayEl.classList.add("urgent");
+        clockEl.textContent = "00:00:00";
+      } else {
+        var days = Math.floor(left / 86400000);
+        var hours = Math.floor((left % 86400000) / 3600000);
+        var mins = Math.floor((left % 3600000) / 60000);
+        var secs = Math.floor((left % 60000) / 1000);
+        ddayEl.textContent = "D-" + days;
+        if (days <= 2) ddayEl.classList.add("urgent");
+        clockEl.textContent =
+          String(days * 24 + hours).padStart(2, "0") + ":" +
+          String(mins).padStart(2, "0") + ":" +
+          String(secs).padStart(2, "0");
+      }
+
+      var span = DEADLINE - KICKOFF;
+      var elapsed = Math.min(Math.max(now - KICKOFF, 0), span);
+      var pct = Math.round((elapsed / span) * 100);
+      document.getElementById("sprintFill").style.width = pct + "%";
+      document.getElementById("sprintPct").textContent = "경과 " + pct + "%";
+    }
+
+    paint();
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>

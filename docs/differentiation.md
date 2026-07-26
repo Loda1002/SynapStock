@@ -93,10 +93,42 @@ x402 exact 스킴은 판매자를 보호하지 구매자를 보호하지 않습�
 
 | # | 작업 | 시간 | 왜 조건부인가 |
 |---|---|---|---|
-| **G5** | **브로커를 별도 프로세스 HTTP 402 서비스로 분리** (`broker_service.py`, 포트 8402). `POST /broker/orders` → 결제 없으면 **402 + `accepts[]`**(공식 필드명), `X-PAYMENT` 있으면 200. `GET /.well-known/x402` | **10~12h** | 기술 심사위원 kill shot 1순위이자 "자작극 아니냐" 방어의 핵심. 그러나 `engine.py`의 브로커 호출이 5곳이고, `snapshot_balances`가 브로커 pubkey를 요구하며, **매도는 402 모델과 구조가 안 맞는다**. → **매수 경로만 HTTP 402**로 하고 README에 *"402 실왕복은 매수(자산 구매). 매도(환매)는 A2A 인프로세스"*라고 **정직하게 명시**. 이러면 6~8h |
+| **G5** | ✅ **완료(2026-07-26)** — 브로커 HTTP 402 자원 서버 `web/broker_service.py`. `POST /broker/orders` → 결제 없으면 **402 + `accepts[]`**(공식 필드명), `X-PAYMENT` 헤더가 있으면 **200 + `X-PAYMENT-RESPONSE`**. `GET /.well-known/x402` 디스커버리 | 구현됨 | 기술 심사위원 kill shot 1순위이자 "자작극 아니냐" 방어의 핵심. **매수 경로만 HTTP 402**이고 매도(환매)는 방향이 반대라 A2A 인프로세스로 남는다 — 디스커버리 응답의 `notImplemented` 와 README 에 먼저 자백한다. 상세는 아래 §2-G5 |
 | **G6** | 유료 데이터 402 엔드포인트 `/mpp/ta/{symbol}` (0.02 USDC, 3틱 1회) | 1~2h | VC 심사위원의 "결제를 빼도 그대로 동작하지 않나"에 대한 유일한 답. **단 파는 필드는 에이전트가 구조적으로 계산할 수 없는 것**(MA50·MA200·52주 고저 — 워밍업이 20봉뿐)이어야 자기가 자기한테 파는 자작극이 안 된다 |
 | **G7** | Circle devnet USDC 전환 + devnet 실증 1회 | **5~6h + 파셋 대기** | 심사축 ③이 "이름만 USDC"에서 벗어난다. 단 파셋 한도(회당 ~10 USDC)와 **브로커 지갑에도 USDC가 필요**하므로 예산을 5/1로 낮춰야 하고 **7/25에 파셋 신청부터** 해야 한다 |
 | **G8** | 가드 UI 카드(`data-card="guard"`) + `DEFAULT_LAYOUT` 최상단 | 6.5h | 없어도 터미널 + 기존 대시보드로 촬영 가능. **P2로 내린다** |
+
+### §2-G5. 브로커 HTTP 402 레그 — 구현 실물 (2026-07-26)
+
+| 파일 | 역할 |
+|---|---|
+| `web/broker_service.py` | x402 자원 서버. `POST /broker/orders`(402 ↔ 200) · `GET /.well-known/x402`. 결제 로직은 기존 `BrokerAgent` 를 그대로 호출하고 이 파일은 **전송(상태코드·헤더)만** 담당한다 |
+| `payments/x402_http.py` | 와이어 포맷 + 클라이언트. 서버·클라이언트가 **같은 함수**로 바디를 만들고 읽어 포맷이 갈라질 수 없다 |
+| `web/engine.py` | `BROKER_HTTP_URL` 이 설정된 세션만 매수 레그를 HTTP 로 보낸다. 미설정(기본)이면 기존 인프로세스 경로 그대로 |
+| `scripts/test_http402.py` | 53건 — 402 상태코드·accepts[] 필드·X-PAYMENT 왕복·리플레이 차단·Guard 차단·엔진 경로·메인 앱 마운트 |
+| `scripts/demo_http402.py` | **실제 TCP 소켓**(uvicorn)에서 전 과정 실행 + 증빙 아카이빙(`artifacts/x402_http/`) |
+
+실행 두 가지 — **같은 코드, 같은 브로커 지갑(`secrets/broker.json`)**:
+
+```
+python -m web.broker_service --port 8402     # 별도 프로세스·별도 포트 (시연·심사)
+curl -i -X POST http://127.0.0.1:8402/broker/orders \
+     -H "Content-Type: application/json" \
+     -d '{"symbol":"AAPL","spend_usdc":"10","price_usdc":"200"}'
+```
+
+배포(Cloud Run)는 컨테이너당 포트를 하나만 노출하므로 **메인 앱에도 같은 router 를 마운트**했다
+(`web/server.py`). 즉 배포 URL 에서도 `curl -i https://<url>/broker/orders` 로 402 를 확인할 수 있다.
+
+**이 레그가 402 Guard 서사를 강화하는 이유**: 전송이 HTTP 가 되면 상대가 진짜 원격이 된다.
+구매 에이전트는 브로커가 보낸 `accepts[]` 를 그대로 믿지 않고 **자기가 계산한 견적**과 대조한
+뒤에야 서명한다. 데모 ⑥단계에서 원격 응답의 `payTo` 를 악성 지갑으로 바꿔도
+`GUARD_PAYEE_UNKNOWN` 으로 서명 전 차단되고 **유출 0.00 USDC** 다.
+
+**정직한 한계**(디스커버리 응답 `notImplemented` 에 그대로 노출): ①매도(환매) 레그는 브로커가
+구매자에게 돈을 보내는 방향이라 402 challenge 모델과 맞지 않아 A2A 인프로세스다. ②facilitator
+없이 판매자가 직접 검증·정산한다. ③서비스의 온체인 정산은 기본 잠김
+(`BROKER_SERVICE_ALLOW_LIVE=1` 로만 열린다).
 
 ### 반드시 함께 할 것 (0시간, 하지만 빠뜨리면 효과 반감)
 
@@ -112,7 +144,7 @@ x402 exact 스킴은 판매자를 보호하지 구매자를 보호하지 않습�
 
 | 질문 | 답변 | 증거 |
 |---|---|---|
-| x402라면서 HTTP 402는 어디 있나 | 브로커는 별도 프로세스의 HTTP 서비스. `curl -i`로 직접 확인하십시오. 402 바디는 공식 필드명으로 직렬화 | G5 (미구현 시: 스펙 대응표로 정직하게 자백) |
+| x402라면서 HTTP 402는 어디 있나 | 브로커는 별도 프로세스의 HTTP 서비스입니다. `curl -i`로 직접 확인하십시오 — 402 바디는 공식 필드명(`x402Version`·`accepts[]`·`payTo`·`maxAmountRequired`)으로 직렬화됩니다. 매도 레그가 A2A 인프로세스인 것은 디스커버리 응답에 먼저 적어 뒀습니다 | ✅ G5 구현 — `web/broker_service.py`, `scripts/demo_http402.py`, `artifacts/x402_http/` |
 | 자작극 아닌가, 악성 브로커도 당신들이 짰잖나 | 네, 저희가 짰습니다. 그래서 **다른 프로세스·다른 포트·다른 키페어**이고, 공격 배율과 수취인 주소를 **심사위원께서 직접 입력**하십니다 | `scripts/red_team.py`, UI 입력창 |
 | 한도만 지키면 안전한 것 아닌가 | 아닙니다. 한도 45에 44.94를 청구하고 수취인만 바꾸면 **한도는 지켜지고 전액을 잃습니다**. 지금 시연하겠습니다 | 결함 A+B+C, 데모 1:20 장면 |
 | 온체인 tx에서 어느 주문인지 어떻게 아나 | Memo에 `AT1:{order_id}:{mandate_sig8}`. explorer에서 육안 확인 가능 | G4 |
