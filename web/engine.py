@@ -51,6 +51,11 @@ MAX_PRICE_POINTS = 120
 TICKS_PER_CANDLE = 2
 MAX_CANDLES = 90
 
+# 드라이런 전용 자리표시 스톡 민트 — STOCK_MINT 미설정(devnet 셋업 전 = 배포 직후 상태)에도
+# 매도 레그가 동작해야 한다. 온체인 전송이 없는 드라이런에서만 쓰이고, 라이브는 세션 시작에서
+# fail-fast 하므로 이 값이 체인에 닿는 경로는 없다.
+DRY_STOCK_MINT = Pubkey.default()
+
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
@@ -408,7 +413,12 @@ class TradingEngine:
         usdc_mint = Pubkey.from_string(CFG.usdc_mint)
         if live and not CFG.stock_mint:
             raise EngineError("STOCK_MINT 미설정 — 먼저 scripts/setup_devnet.py 를 실행하세요.")
-        stock_mint = Pubkey.from_string(CFG.stock_mint) if CFG.stock_mint else None
+        # 드라이런은 실제 민트가 없어도 매도 견적이 만들어져야 한다. 예전에는 None 이 그대로
+        # 브로커로 넘어가 매 틱 "stock_mint 미설정 — 매도 견적 불가"(make_stock_required)로 터졌고,
+        # 매수만 되고 익절이 전혀 안 됐다(Cloud Run 첫 배포에서 발견 — 로컬은 .env 에 값이 있어
+        # 드러나지 않았다). 자리표시를 써도 가드의 자산 대조(check_stock_transfer)는 그대로 작동한다.
+        stock_mint = (Pubkey.from_string(CFG.stock_mint) if CFG.stock_mint
+                      else DRY_STOCK_MINT)
 
         # 라이브 세션은 키가 없으면 즉시 실패한다(무증상 랜덤 지갑 방지 — run_demo._load_or_new 주석)
         wd = CFG.wallet_dir
