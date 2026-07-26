@@ -176,6 +176,28 @@ gcloud run deploy autotrader `
 
    부팅 시 `[store] Firestore 영속화 활성`, `[store] 부팅 복원 완료` 라인이 보이면 정상.
 
+## 5-1. HTTP 402 레그 확인 (G5, 2026-07-26 추가)
+
+브로커 x402 자원 서버가 **메인 앱에 함께 마운트**돼 있다. Cloud Run 은 컨테이너당 포트를
+하나(`$PORT`)만 외부에 노출하므로, 별도 포트로 띄우면 배포 URL 에서 확인할 수 없기 때문이다.
+(로컬 시연은 여전히 별도 프로세스 `python -m web.broker_service --port 8402` 로 띄운다 —
+같은 코드·같은 브로커 지갑이다.)
+
+```powershell
+curl -i -X POST "https://<URL>/broker/orders" -H "Content-Type: application/json" -d '{\"symbol\":\"AAPL\",\"spend_usdc\":\"10\",\"price_usdc\":\"200\"}'
+curl -s "https://<URL>/.well-known/x402"
+```
+
+기대: 첫 명령이 `HTTP/1.1 402 Payment Required` + `accepts[0].payTo`. **이 화면이 심사에서
+"x402라면서 HTTP 402는 어디 있나"에 대한 답**이므로 스크린샷을 남겨 둔다.
+
+관련 환경변수(둘 다 기본 꺼짐 — 켤 필요 없으면 그대로 둔다):
+
+| 변수 | 기본 | 뜻 |
+|---|---|---|
+| `BROKER_SERVICE_ALLOW_LIVE` | `0` | 브로커 서비스가 **온체인 정산**까지 수행할지. 꺼져 있으면 청구서는 발행하되 정산은 403 |
+| `BROKER_HTTP_URL` | 빈값 | 엔진의 **매수 레그**를 HTTP 402 왕복으로 보낼지. 빈값이면 기존 인프로세스 A2A. 배포본에서 켜려면 자기 자신을 가리킨다(`http://127.0.0.1:8080`) — 데모용 옵션이고 기본은 끄는 쪽을 권한다 |
+
 ## 6. 운영 메모
 
 - **재배포(코드 수정 후)**: 4번의 `gcloud run deploy …` 를 그대로 다시 실행 (같은 URL 유지)
@@ -199,6 +221,21 @@ gcloud run deploy autotrader `
    ```
 
 3. 대시보드에서 라이브 모드 세션 → explorer 링크(devnet)로 트랜잭션 확인 → `artifacts/tx/` 증빙 아카이브
+
+## 7-1. 배포하면 백엔드 수정이 어려워지는가 (2026-07-26 확인)
+
+**코드 수정 자체는 전혀 어려워지지 않는다.** 개발·테스트는 계속 로컬에서 하고
+(`python -m web.server`, `python -m scripts.test_*`), 배포는 그 결과물을 올리는 별개 단계다.
+다만 아래 네 가지 제약이 새로 붙으므로 **기능 개발을 끝낸 뒤 마지막에 배포**하는 순서가 맞다.
+
+| 제약 | 내용 | 대응 |
+|---|---|---|
+| **재배포 지연** | 배포 URL 에 반영하려면 `gcloud run deploy` 재빌드 **5~10분/회** | 로컬에서 다 검증하고 배포는 마지막에 1~2회. 환경변수만 바꾸는 건 `--update-env-vars` 로 수십 초 |
+| **파일 산출물 비영속** | 컨테이너 파일시스템은 tmpfs — `artifacts/tx/*.json`·브리핑 파일이 **재시작하면 사라진다** | 증빙은 **로컬 실행분을 커밋**한다. 배포본의 영속 데이터는 Firestore(`/api/history`)로 남는다 |
+| **포트 1개·인스턴스 1개** | 컨테이너당 `$PORT` 하나만 외부 노출, 엔진이 전역 싱글턴이라 `max-instances 1` | 새 HTTP 서비스는 **별도 포트가 아니라 메인 앱에 router 로 마운트**한다(§5-1 의 브로커 402 가 그 예). 별도 프로세스가 꼭 필요하면 Cloud Run 서비스를 하나 더 만들어야 한다 |
+| **조작 API 토큰** | `CONTROL_TOKEN` 이 설정돼 있으면 POST `/api/*` 는 `X-Control-Token` 필요 | 새 조작 API 를 추가하면 `dependencies=[Depends(require_control)]` 를 반드시 붙인다. 조회(GET)·판매자 자원(`/broker/orders`)은 열어 둔다 |
+
+정리하면 **"배포 후에도 코드는 똑같이 고친다. 느려지는 건 배포 URL 검증 루프뿐"** 이다.
 
 ## 8. 문제가 나면
 

@@ -18,6 +18,24 @@
 - 한도 초과 시 결제 **거부** (AP2 mandate)
 - mandate 위변조 시 **거부**
 - 잔액 부족 시 **거부**
+- **HTTP 402 왕복 1회**(G5) → 402 청구서 → `X-PAYMENT` 재시도 → 200 정산 → 리플레이 402
+- **판단 출처 기록 확인** — tx 아카이브의 `ai.by_source`·거래 행 `decision_source` 가 그 세션의
+  두뇌(Gemini/규칙)와 일치하는가 (축② "온체인 세션이 AI 로 구동됐다"의 증빙)
+
+## HTTP 402 레그 검증 (G5, 2026-07-26 추가)
+
+```bash
+python -m scripts.test_http402      # 53건 — 상태코드·헤더·왕복·리플레이·Guard·엔진 경로
+python -m scripts.demo_http402      # 실제 TCP 왕복 + artifacts/x402_http/ 증빙
+```
+
+배포 URL 에서도 같은 402 가 나와야 한다(메인 앱에 마운트돼 있음):
+
+```bash
+curl -i -X POST https://<배포URL>/broker/orders -H "Content-Type: application/json" -d "{\"symbol\":\"AAPL\",\"spend_usdc\":\"10\",\"price_usdc\":\"200\"}"
+```
+
+기대: `HTTP/1.1 402 Payment Required` + 본문에 `x402Version`·`accepts[0].payTo`·`maxAmountRequired`.
 
 ## 데모데이(8/21) 폴백 준비
 
