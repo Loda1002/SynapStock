@@ -172,6 +172,9 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
     snap_before = None
     snap_after = None
     trades: list = []
+    # 판단 출처 누적 (축② 증빙) — 이 devnet/localnet 세션의 판단이 어디서 나왔는지.
+    # gemini / rule-gate(규칙 밖 개시 강등) / rule-fallback(호출 실패) / rule / dca
+    source_counts: dict = {}
     if live:
         if stock_mint is None:
             print("\n[중단] STOCK_MINT 미설정 — 먼저 scripts/setup_devnet.py 를 실행하세요.")
@@ -194,6 +197,7 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
     try:
         for t, (price, bar) in enumerate(_ticks()):
             decision = trading.decide(symbol, price, bar=bar)
+            source_counts[decision.source] = source_counts.get(decision.source, 0) + 1
             hr(f"틱 {t+1}  |  {symbol} = {price} USDC  →  판단: {decision.action.upper()}  [{decision.source}]")
             print(f"  이유: {decision.reason}")
 
@@ -368,6 +372,20 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
             "rpc_url": CFG.rpc_url,
             "wallets": {"user": str(user_kp.pubkey()), "trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
             "mints": {"usdc": str(usdc_mint), "stock": str(stock_mint), "stock_symbol": symbol},
+            "brain": brain_label,   # 판단 두뇌 (Gemini 모델명 / 규칙)
+            # 축② 증빙: 이 온체인 세션의 판단이 어디서 나왔는가. 거래 행에도 decision_source 가 있다.
+            "ai": {
+                "brain": brain_label,
+                "decisions_total": sum(source_counts.values()),
+                "by_source": source_counts,
+                "gemini_decisions": source_counts.get("gemini", 0),
+                "gemini_gated": source_counts.get("rule-gate", 0),
+                "rule_fallbacks": source_counts.get("rule-fallback", 0),
+                "trades_by_decision_source": {
+                    s: sum(1 for t in trades if t.get("decision_source") == s)
+                    for s in sorted({t.get("decision_source", "unknown") for t in trades})
+                },
+            },
             "mandate": {
                 "user_pubkey": open_mandate.user_pubkey,   # 위임자(서명자) — 에이전트와 분리 증빙
                 "budget_total_usdc": str(CFG.budget_usdc),

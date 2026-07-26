@@ -100,6 +100,10 @@ class TradingEngine:
         self.pause_count = 0                        # B2 브리핑용: 긴급정지 횟수
         self.guard_block_count = 0                  # 402 Guard check_demand 차단 횟수 (첫 화면 KPI)
         self.guard_leak_usdc = Decimal(0)           # 가드 통과 후 유출된 USDC (정상 0.00)
+        # 판단 출처·행동 누적 카운터 (축② AI 활용 증빙). self.decisions 는 메모리 상한(500)으로
+        # 앞부분이 잘리므로, 세션 전체 집계는 반드시 이 카운터를 쓴다.
+        self.source_counts: Dict[str, int] = {}
+        self.action_counts: Dict[str, int] = {}
         self.last_briefing: Optional[Dict[str, Any]] = None  # B2 최근 브리핑
         self._last_daily_briefing_date = ""         # B2 장 마감 자동 생성 중복 방지
 
@@ -581,6 +585,8 @@ class TradingEngine:
         self.pause_count = 0
         self.guard_block_count = 0
         self.guard_leak_usdc = Decimal(0)
+        self.source_counts = {}
+        self.action_counts = {}
         self.started_at = _now()
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_{mode}"
         self.brain_label = brain_label
@@ -775,6 +781,45 @@ class TradingEngine:
         }))
         return self.state_snapshot()
 
+    # ---------- 판단 출처 계측 (심사 축② AI 활용 증빙) ----------
+
+    def _ai_stats(self) -> Dict[str, Any]:
+        """세션 판단의 출처 집계 — "이 세션이 정말 AI 로 구동됐는가"의 정량 증빙.
+
+        tx 아티팩트·세션 요약(Firestore)·상태 스냅샷이 모두 이 함수 하나를 쓴다.
+        온체인 증빙만 있고 판단 출처가 없으면 "9건의 tx 중 Gemini 관여분이 몇 건인지"
+        확인할 수 없다는 심사 지적(judging_latest.md 축② 갭)을 닫는 계측이다.
+
+        출처별 의미:
+          gemini        — Gemini 응답이 그대로 집행된 판단
+          rule-gate     — Gemini 가 규칙 밖 개시를 시도해 규칙 게이트가 보류로 강등
+          rule-fallback — Gemini 호출 실패(쿼터·네트워크) → 규칙 판단으로 대체
+          rule / dca    — 애초에 AI 를 부르지 않는 결정론 경로(추세추종·적립·워밍업)
+        gemini_calls = 앞 세 개의 합 = 실제로 Gemini API 를 부른 틱 수."""
+        by_source = dict(self.source_counts)
+        used = by_source.get("gemini", 0)
+        gated = by_source.get("rule-gate", 0)
+        fallbacks = by_source.get("rule-fallback", 0)
+        total = sum(by_source.values())
+        share = (Decimal(used) / total * 100).quantize(Decimal("0.01")) if total else Decimal(0)
+        # 체결(온체인/드라이)이 어느 판단에서 나왔는지 — tx 단위 AI 관여 증빙
+        by_trade: Dict[str, int] = {}
+        for t in self.trades:
+            src = t.get("decision_source") or "unknown"
+            by_trade[src] = by_trade.get(src, 0) + 1
+        return {
+            "brain": self.brain_label,
+            "decisions_total": total,
+            "by_source": by_source,
+            "by_action": dict(self.action_counts),
+            "gemini_calls": used + gated + fallbacks,
+            "gemini_decisions": used,
+            "gemini_gated": gated,          # 규칙 게이트가 막은 AI 의 규칙 밖 개시
+            "rule_fallbacks": fallbacks,
+            "gemini_share_pct": str(share),
+            "trades_by_decision_source": by_trade,
+        }
+
     # ---------- B2 데일리 브리핑 ----------
 
     def _briefing_stats(self) -> Dict[str, Any]:
@@ -785,11 +830,7 @@ class TradingEngine:
         remaining = self._total_remaining()
         val = self._valuation(remaining)
         return_pct = self._display_return_pct(val)
-        by_action: Dict[str, int] = {}
-        by_source: Dict[str, int] = {}
-        for d in self.decisions:
-            by_action[d["action"]] = by_action.get(d["action"], 0) + 1
-            by_source[d["source"]] = by_source.get(d["source"], 0) + 1
+        ai = self._ai_stats()   # 세션 전체 누적 (타임라인 상한과 무관)
         # 종목별 보유 요약 + 합산 수량 (멀티는 종목이 섞여 단일 평단이 없어 리스트로 함께 준다)
         positions = [{"symbol": s, "quantity": str(self.agents[s].position.quantity),
                       "avg_price_usdc": str(self.agents[s].position.avg_price_usdc)}
@@ -823,8 +864,9 @@ class TradingEngine:
             "positions": positions,   # 종목별 보유 (멀티 브리핑 근거)
             "last_price_usdc": self._price_history.get(self._focus, [{}])[-1].get("price")
                                if self._price_history.get(self._focus) else None,
-            "decisions_by_action": by_action,
-            "decisions_by_source": by_source,
+            "decisions_by_action": ai["by_action"],
+            "decisions_by_source": ai["by_source"],
+            "ai": ai,   # 판단 출처 계측 (브리핑이 AI 관여도를 근거로 쓸 수 있게)
         }
 
     async def generate_briefing(self, trigger: str = "manual") -> Dict[str, Any]:
@@ -988,6 +1030,9 @@ class TradingEngine:
             "spend_usdc": str(decision.spend_usdc),
         }
         self.decisions.append(drec)
+        # 세션 전체 집계 — 타임라인은 500건에서 잘리므로 카운터를 따로 누적한다
+        self.source_counts[decision.source] = self.source_counts.get(decision.source, 0) + 1
+        self.action_counts[decision.action] = self.action_counts.get(decision.action, 0) + 1
         if len(self.decisions) > MAX_DECISIONS:
             self.decisions.pop(0)
         self.bus.emit(ev.DECISION, drec)
@@ -1327,6 +1372,10 @@ class TradingEngine:
             "mints": {"usdc": str(self._usdc_mint), "stock": str(self._stock_mint),
                       "stock_symbol": CFG.stock_symbol},
             "strategy": getattr(self, "strategy_info", None),
+            "brain": self.brain_label,   # 판단 두뇌 (Gemini 모델명 / 규칙)
+            # 축② 증빙: 이 세션의 온체인 거래가 어느 판단에서 나왔는가
+            # (gemini / rule-gate / rule-fallback / rule). 거래 행마다 decision_source 도 있다.
+            "ai": self._ai_stats(),
             "feed": self.feed_info,   # 시세 출처 (mock/replay·구간) — 재현 조건 증빙
             "mandate": {
                 "user_pubkey": self._mandate.user_pubkey,   # 위임자(서명자) — 에이전트와 분리 증빙
@@ -1376,6 +1425,7 @@ class TradingEngine:
             "fee_bps": CFG.broker_fee_bps,
             "reject_count": self.reject_count, "pause_count": self.pause_count,
             "guard_block_count": self.guard_block_count,   # 402 Guard check_demand 차단
+            "ai": self._ai_stats(),   # 판단 출처 계측 (축② AI 관여 증빙)
             "position_qty": str(total_qty),
             "position_avg_usdc": str(focus_pos.avg_price_usdc) if focus_pos else "0",
             "positions": positions,   # 종목별 최종 보유 (멀티)
@@ -1572,6 +1622,9 @@ class TradingEngine:
                 "ap2_rejected": self.reject_count,
                 "leak_usdc": str(self.guard_leak_usdc),
             },
+            # 축② 판단 출처 계측 — 이 세션에서 AI 가 실제로 몇 건을 판단했고
+            # 규칙 게이트가 몇 건을 되돌렸는지. (프론트 계약에 새로 추가되는 필드)
+            "ai": self._ai_stats(),
             "wallets": {
                 "user": str(self._user_kp.pubkey()) if self._user_kp else "",
                 "trading": str(self._trading_kp.pubkey()) if self._trading_kp else "",

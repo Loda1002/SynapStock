@@ -445,6 +445,8 @@ def main() -> int:
             "max_drawdown_pct": str(mdd.quantize(CENT)),
             "cum_buy_usdc": str(cum_buy), "fees_usdc": str(fees),
             "ap2_rejects": rejects, "gemini_fallbacks": fallbacks,
+            # 규칙 게이트가 AI 의 규칙 밖 개시를 되돌린 횟수 (0이면 모델이 규칙을 지켰다는 뜻)
+            "gemini_gated": by_source.get("rule-gate", 0),
             "decisions_by_action": by_action, "decisions_by_source": by_source,
             "position_left_qty": str(pos.quantity),
         },
