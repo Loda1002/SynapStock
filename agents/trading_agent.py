@@ -233,7 +233,10 @@ class TradingAgent:
             except Exception as e:
                 d = self._decide_by_rule(symbol, price, ind)
                 d.source = "rule-fallback"
-                detail = str(e).replace("\n", " ")[:100]  # 실제 원인 표면화 (예: 429 쿼터 초과)
+                # 실제 원인 표면화 (예: 429 쿼터 초과). 두뇌가 이미 한 줄로 요약해 올리므로
+                # 여기서 잘려도 사유가 남는다 — 예전엔 100자에서 잘려 quotaId 가 통째로
+                # 사라졌고, 분당 초과인지 일일 소진인지 화면에서 구분할 수 없었다.
+                detail = str(e).replace("\n", " ")[:200]
                 d.reason += f" — Gemini 호출 실패({type(e).__name__}: {detail}) → 규칙 폴백"
             else:
                 # 한도 클램프(_sanitize) → 규칙 게이트 순서.

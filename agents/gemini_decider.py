@@ -17,6 +17,11 @@ from agents.trading_agent import Decision, Strategy
 from market.indicators import format_ta_block
 from shared.models import Position
 
+# 일일(RPD) 한도 소진 시 쿨다운. 태평양 자정에 풀리므로 응답의 retryDelay(수십 초)는
+# 의미가 없다 — 그 값을 믿고 재시도하면 하루 종일 헛호출한다. 30분마다 한 번만
+# 두드려 보고, 초기화된 뒤에는 스스로 회복하게 한다.
+_DAILY_QUOTA_COOLDOWN_SEC = 1800.0
+
 PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 매수(buy)/매도(sell)/보류(hold)를
 판단한다. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
 
@@ -194,9 +199,19 @@ class GeminiDecider:
         # 무료 티어 429(쿼터 초과) 시 API 재호출을 잠시 멈추는 쿨다운 (틱마다 헛호출 방지)
         self._cooldown_until: float = 0.0
         self.format_retries = 0   # 형식 위반으로 재요청한 횟수 (운영 관찰용)
+        # 마지막 429 의 성격 — "daily"(일일 RPD) / "rate"(분당 RPM) / "" (아직 없음).
+        # 둘은 대응이 다르다: 분당은 수십 초 뒤 자동 회복, 일일은 태평양 자정까지 안 풀린다.
+        self.quota_scope: str = ""
+        self.quota_limit: str = ""     # 한도 값 (예: "500")
+        self.quota_id: str = ""        # 예: GenerateRequestsPerDayPerProjectPerModel-FreeTier
 
     def _call(self, prompt: str) -> str:
-        """Gemini 호출 → 응답 텍스트. 429 는 쿨다운을 걸고 그대로 올린다."""
+        """Gemini 호출 → 응답 텍스트. 429 는 쿨다운을 걸고 '요약된' 예외로 바꿔 올린다.
+
+        원본 ClientError 는 본문이 1,000자가 넘는 JSON 이라 호출부(TradingAgent)가
+        앞부분만 잘라 기록했고, 그 결과 **정작 필요한 quotaId·quotaValue 가 통째로
+        버려졌다**(분당 초과인지 일일 소진인지 화면에서 구분 불가). 여기서 한 줄로
+        요약해 올리면 잘려도 사유가 남는다."""
         from google.genai import types
         try:
             resp = self.client.models.generate_content(
@@ -211,15 +226,43 @@ class GeminiDecider:
             text = str(e)
             if "429" in text or "RESOURCE_EXHAUSTED" in text:
                 self._enter_cooldown(text)
+                raise RuntimeError(self.quota_message()) from e
             raise
         return resp.text or ""
 
     def _enter_cooldown(self, error_text: str) -> None:
-        """429 응답의 retryDelay 를 존중해 쿨다운 설정 (없으면 60초)."""
+        """429 를 성격별로 나눠 쿨다운을 건다.
+
+        일일(RPD) 한도는 태평양 자정에만 풀리는데, 구글은 그 경우에도 retryDelay 로
+        수십 초짜리 값을 돌려준다. 그 값을 그대로 믿으면 하루 종일 40초마다 헛호출하고
+        영영 회복하지 못한다 — 그래서 quotaId 에 'PerDay' 가 보이면 길게 재운다."""
+        qid = re.search(r"quotaId'?\s*:\s*'?([A-Za-z0-9_\-]+)", error_text)
+        qval = re.search(r"quotaValue'?\s*:\s*'?(\d+)", error_text)
+        if not qval:
+            qval = re.search(r"limit:\s*(\d+)", error_text)
+        self.quota_id = qid.group(1) if qid else ""
+        self.quota_limit = qval.group(1) if qval else ""
+
+        if "perday" in self.quota_id.lower() or "PerDay" in error_text:
+            self.quota_scope = "daily"
+            self._cooldown_until = time.time() + _DAILY_QUOTA_COOLDOWN_SEC
+            return
+
+        self.quota_scope = "rate"
         m = (re.search(r"retry in (\d+(?:\.\d+)?)s", error_text)
              or re.search(r"retryDelay'?: '?(\d+(?:\.\d+)?)s", error_text))
         delay = float(m.group(1)) if m else 60.0
         self._cooldown_until = time.time() + max(delay, 30.0)
+
+    def quota_message(self) -> str:
+        """마지막 429 를 사람이 읽을 한 문장으로. 잘려도 사유가 남게 앞쪽에 성격을 둔다."""
+        if self.quota_scope == "daily":
+            limit = f"{self.quota_limit}건/일" if self.quota_limit else "일일 한도"
+            return (f"무료 티어 일일 한도 소진({limit}, {self.model}) — 태평양 자정까지 "
+                    f"회복되지 않습니다. 이 세션은 규칙 판단으로 진행합니다.")
+        remaining = max(0, int(self._cooldown_until - time.time()))
+        limit = f", 한도 {self.quota_limit}" if self.quota_limit else ""
+        return f"무료 티어 분당 한도 초과{limit} — 쿨다운 {remaining}초 남음(자동 재시도)"
 
     def decide(
         self,
@@ -233,9 +276,8 @@ class GeminiDecider:
         indicators: dict | None = None,
         retrospective: str = "",
     ) -> Decision:
-        remaining = int(self._cooldown_until - time.time())
-        if remaining > 0:
-            raise RuntimeError(f"무료 티어 한도 초과 — 쿨다운 {remaining}초 남음(자동 재시도)")
+        if self._cooldown_until - time.time() > 0:
+            raise RuntimeError(self.quota_message())
 
         ind = indicators or {}
         tp = ind.get("take_profit")
