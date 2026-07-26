@@ -34,6 +34,7 @@
 | **A2A 에이전트 협상** | 구매 에이전트 ↔ 브로커 에이전트가 메시지로 견적 요청·응답 | `shared/a2a_messages.py`, `agents/` | ✅ localnet 검증 |
 | **AP2 mandate 한도** | 사용자가 서명한 한도(총예산=순투입 상한·건별 한도·허용 종목)를 초과하면 기계적 거부 | `payments/ap2_mandate.py` | ✅ 거부 4종 데모 |
 | **x402 3단계 정산** | payment-required → submitted → completed. 브로커가 온체인 검증 후 자산 전달 | `payments/x402_solana.py` | ✅ 매수·매도 양방향 |
+| **HTTP 402 레그 (G5)** | 브로커를 진짜 HTTP 자원 서버로 노출 — `POST /broker/orders` 가 결제 없으면 **402 Payment Required + accepts[]**, `X-PAYMENT` 헤더가 붙으면 200 + `X-PAYMENT-RESPONSE`. `GET /.well-known/x402` 디스커버리(미구현 항목 선공개). 1회용 청구서로 리플레이 차단, 온체인 정산 기본 잠김. 매수 레그 전용(매도는 방향이 반대라 A2A 인프로세스) | `web/broker_service.py`, `payments/x402_http.py` | ✅ test_http402 53건 · 실제 TCP 데모 `artifacts/x402_http/` |
 | **매수·매도 풀사이클** | USDC⇄주식토큰 양방향 온체인 정산, 전후 잔액 RPC 교차검증 | `agents/broker_agent.py` | ✅ 순변화 PASS |
 | **거부 4종 데모** | 건별한도 초과·mandate 위변조·금액 부족·미허용 종목 | `scripts/demo_rejections.py` | ✅ |
 | **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ 7건(전부 localnet) |
@@ -44,6 +45,8 @@
 |---|---|---|---|
 | **Gemini 매매 판단** | 무료 티어(`gemini-flash-lite-latest`). 시세·MA·변동성·평단 손익률·직전 회고를 보고 매수/매도/보류 + 한국어 이유 | `agents/gemini_decider.py` | ✅ 실패 시 규칙 폴백 |
 | **판단 모드 토글** | 엄격(규칙 그대로) / 추세(보류 재량) | 세션 설정 | ✅ 백테스트 실측 |
+| **규칙 게이트** | "규칙 신호 없는 개시 금지"를 프롬프트가 아니라 **코드로 강제** — AI 가 매수기준 미충족 매수·익절기준 미충족 매도를 내면 `hold` 로 강등하고 출처를 `rule-gate` 로 기록. 보류(멈추는 방향)는 항상 허용 | `agents/trading_agent.py` `_rule_gate` | ✅ test_rule_gate 28건 |
+| **판단 출처 계측** | 세션의 `gemini`/`rule`/`rule-fallback`/`rule-gate` 집계 + 체결별 판단 출처를 tx 아카이브·세션 요약(Firestore)·`/api/state.ai` 에 기록 — 온체인 증빙에서 AI 관여분을 확인 가능 | `web/engine.py` `_ai_stats` | ✅ test_ai_stats 27건 |
 | **TA 판단 보강** | MA 1~200일·크로스·기울기·지지/저항·차트/캔들 패턴을 판단 근거로 주입 | `market/indicators.py` | ✅ 기본 OFF, 단위테스트 44건 |
 | **JSON 파서 견고화** | 코드펜스·잘못된 이스케이프·제어문자 정화 후 재파싱, 실패 시 1회 재요청 | `parse_decision_json` | ✅ 테스트 11건 |
 
