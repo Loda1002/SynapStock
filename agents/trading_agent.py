@@ -32,7 +32,9 @@ class Decision:
     action: str          # "buy" / "sell" / "hold"
     reason: str
     spend_usdc: Decimal = Decimal(0)
-    source: str = "rule"  # "gemini" / "rule" / "rule-fallback"
+    # 판단 출처 — "rule"(지표 규칙·추세 신호) / "gemini"(AI) / "rule-fallback"(AI 호출 실패)
+    # / "rule-gate"(AI 가 규칙 밖 개시를 시도해 코드가 보류로 강등) / "dca"(적립 스케줄)
+    source: str = "rule"
 
 
 @dataclass
@@ -223,16 +225,20 @@ class TradingAgent:
         retro = self._retrospective(price)
         if self.brain is not None:
             try:
-                d = self._sanitize(self.brain.decide(
+                raw = self.brain.decide(
                     symbol, price, self._history[-9:-1], self.strategy,
                     self.auth.remaining_usdc, self.position,
                     fee_bps=self.fee_bps, indicators=ind, retrospective=retro,
-                ))
+                )
             except Exception as e:
                 d = self._decide_by_rule(symbol, price, ind)
                 d.source = "rule-fallback"
                 detail = str(e).replace("\n", " ")[:100]  # 실제 원인 표면화 (예: 429 쿼터 초과)
                 d.reason += f" — Gemini 호출 실패({type(e).__name__}: {detail}) → 규칙 폴백"
+            else:
+                # 한도 클램프(_sanitize) → 규칙 게이트 순서.
+                # 게이트는 "규칙 신호 없는 개시"를 코드로 막는다(프롬프트 의존 제거).
+                d = self._rule_gate(self._sanitize(raw), price, ind)
         else:
             d = self._decide_by_rule(symbol, price, ind)
         if d.action in ("buy", "sell"):
@@ -414,6 +420,41 @@ class TradingAgent:
         hold = f"조건 미충족 — 가격 {price} · 매수기준 {buy_th}(MA5−{s.buy_dip_pct}%)"
         hold += f" · 익절기준 {tp}" if tp is not None else " · 보유 없음(매도 조건 없음)"
         return Decision("hold", hold)
+
+    def _rule_gate(self, d: Decision, price: Decimal, ind: dict) -> Decision:
+        """규칙 게이트 — "규칙 신호 없는 개시 금지"를 프롬프트가 아니라 코드로 강제한다.
+
+        프롬프트(gemini_decider.MODE_RULES)가 이미 "규칙 조건이 충족되지 않았는데 새로
+        매수·매도를 시작하는 것은 금지"라고 지시하지만, 그건 모델의 순응에 기대는 규약일
+        뿐이다. 모델이 어기면 규칙 밖 매매가 그대로 집행된다. 이 게이트는 같은 제약을
+        코드에서 기계적으로 강제한다:
+
+          - 매수 통과 조건: 가격 ≤ 매수기준(MA5 −buy_dip_pct%)
+          - 매도 통과 조건: 가격 ≥ 익절기준(평단 +take_profit_pct%)
+          - 위반 시 hold 로 강등하고 출처를 "rule-gate" 로 바꿔 계측에 남긴다.
+
+        보류(hold)는 어느 모드에서도 항상 통과시킨다 — AI 재량은 '멈추는 방향'으로만
+        열려 있고(추세 모드의 보류 재량), 여는 방향은 규칙이 잠근다. 결과적으로 지출은
+        3중으로 통제된다: 개시=규칙 게이트 · 금액=AP2 mandate · 청구서=402 Guard.
+        규칙 판단(rule/rule-fallback)과 시간청산은 정의상 규칙 안이므로 대상이 아니다."""
+        if d.action == "hold" or d.source != "gemini":
+            return d
+        buy_th, tp = ind.get("buy_threshold"), ind.get("take_profit")
+        if d.action == "buy" and not (buy_th is not None and price <= buy_th):
+            return Decision(
+                "hold",
+                f"규칙 게이트 — 매수 신호 미충족(가격 {price} > 매수기준 "
+                f"{buy_th if buy_th is not None else '산출 전'})이라 AI 매수 판단을 보류로 강등 "
+                f"· AI 판단: {d.reason}",
+                source="rule-gate")
+        if d.action == "sell" and not (tp is not None and price >= tp):
+            return Decision(
+                "hold",
+                f"규칙 게이트 — 익절 신호 미충족(가격 {price} < 익절기준 "
+                f"{tp if tp is not None else '없음(보유 없음)'})이라 AI 매도 판단을 보류로 강등 "
+                f"· AI 판단: {d.reason}",
+                source="rule-gate")
+        return d
 
     def _sanitize(self, d: Decision) -> Decision:
         """Gemini 응답을 한도 안으로 강제 (AP2 mandate 가 최종 관문이지만 이중 방어)."""
