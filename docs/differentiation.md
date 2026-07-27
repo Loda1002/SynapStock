@@ -82,7 +82,7 @@ x402 exact 스킴은 판매자를 보호하지 구매자를 보호하지 않습�
 | # | 작업 | 내용 | 시간 | 심사축 |
 |---|---|---|---|---|
 | **G0** | **사용자 키 분리** | `secrets/user.json` 신설 → `user_pubkey=user_kp.pubkey()`, `.sign(user_kp)`, `agent_kp`는 `trading_kp` 유지. `update_limits()`도 동일. **결함 G 제거** | 1.5h | ①④ |
-| **G1** | `payments/guard.py` 신설 | `check_demand()`: 금액(base units 정수, 오차 0)·수취인(allowlist)·자산(mandate `allowed_asset`)·주문번호 4항목 대조 → 차단코드 6종. `check_delivery()`: 정산 후 잔액 RPC 재조회(Confirmed·재시도 2회), 미확인은 차단이 아니라 **`pending_delivery` 보류 + 세션 정지**. 방어 코드 위치는 `f_lineno`로 런타임 생성(리팩터링해도 로그가 거짓말 안 함) | 6h | ③④ |
+| **G1** | `payments/guard.py` 신설 | `check_demand()`: 하드 검사 8종 대조(주문번호·자산·종목·수취인·단위·금액·의도상한·건별한도) → 차단코드 8종. `check_delivery()`: 정산 후 잔액 RPC 재조회(Confirmed·재시도 2회), 미확인은 차단이 아니라 **`pending_delivery` 보류 + 세션 정지**. 방어 코드 위치는 `f_lineno`로 런타임 생성(리팩터링해도 로그가 거짓말 안 함) | 6h | ③④ |
 | **G2** | 결제 경로 결선 | `trading_agent.py:334` `authorize()` **앞에** `guard.check_demand()`. `ap2_mandate.py:114`가 `allowed_asset`을 실제로 읽게(**결함 C 제거**). `release(order_id)` 추가 → `_buy_cycle`/`_sell_cycle`의 `finally`에서 `settled` 아니면 한도 원복(**결함 H 제거**) | 3h | ①③ |
 | **G3** | `scripts/red_team.py` | 공격 **3종만**(계층이 서로 다른 것): ①청구 위조(Guard) ②이중청구(Memo+온체인) ③정산 미이행(delivery 재확인). `--report`로 공격/차단 매트릭스 + **온체인 재조회 PASS** + 같은 실행 안에서 **정상 거래 N건 오탐 0** 동시 출력 | 4h | ④ |
 | **G4** | Memo 바인딩 + exact 정합 | `build_transfer_transaction`에 Memo `AT1:{order_id}:{mandate_sig8}` 최앞단. `verify_payment(expected_order_id=)`. `x402_solana.py:180` `<` → `!=`(**결함 D·E 제거**). 브로커에 `used_signatures` + `expires_at`. **Memo 추가 후 localnet 풀사이클 재검증 필수** | 5h | ③④ |
@@ -225,7 +225,7 @@ curl -i -X POST http://127.0.0.1:8402/broker/orders \
 Google Cloud 데모조차 자기 결제를 두고 **"사람이 승인하면 버튼 클릭과 다를 게 없다"**고
 자평하며, 진짜 자율 결제 예시("재고 0 → 입고 시 자동 결제")를 숙제로 남겼다. 사람을 루프에서
 빼는 순간 생기는 공백 = **누가 청구서를 검증하나.** 402 Guard 가 그 공백을 채운다
-(check_demand 4항목 + check_delivery 온체인 재조회). "사람 승인 = 버튼 클릭"의 한계를,
+(check_demand 하드 검사 8종 + 의미 대조 + check_delivery 온체인 재조회). "사람 승인 = 버튼 클릭"의 한계를,
 우리는 **사람이 미리 서명한 정책을 코드가 매 건 강제**하는 방식으로 넘어선다.
 
 ### 7-4. 김채린 "해커톤에서 보고 싶은 것 4가지" 전건 충족

@@ -214,7 +214,7 @@
   .check .n { font-family: var(--font-mono); font-size: 10px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; }
   .check .t { font-size: 13px; font-weight: 700; margin-top: 3px; }
   .check .d { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.5; }
-  /* 유일하게 결정론이 아닌 검사 — 나머지 7종과 시각적으로 구분한다(설명 없이도 읽히게) */
+  /* 유일하게 결정론이 아닌 검사 — 나머지 8종과 시각적으로 구분한다(설명 없이도 읽히게) */
   .check.gate-ai { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
   .check.gate-ai .t .mono { font-size: 9.5px; color: var(--accent); vertical-align: 2px; }
 
@@ -419,12 +419,13 @@
         <div class="check"><div class="n">검사 04</div><div class="t">건별 한도</div><div class="d">위임장의 1회 상한 강제</div></div>
         <div class="check"><div class="n">검사 05</div><div class="t">자산</div><div class="d">허용된 결제 자산인지 확인</div></div>
         <div class="check"><div class="n">검사 06</div><div class="t">종목</div><div class="d">허용 목록 안이면서 <b>지금 주문한 그 종목</b>인지</div></div>
-        <div class="check"><div class="n">검사 07</div><div class="t">주문번호</div><div class="d">형식·바인딩 확인, 재사용 차단</div></div>
-        <div class="check gate-ai"><div class="n">검사 08</div><div class="t">의미 대조 <span class="mono">AI</span></div><div class="d">설명이 <b>우리가 주문한 그 물건</b>을 가리키는지</div></div>
+        <div class="check"><div class="n">검사 07</div><div class="t">주문번호</div><div class="d">형식·바인딩 확인 (재사용 차단은 온체인 Memo·판매자측)</div></div>
+        <div class="check"><div class="n">검사 08</div><div class="t">단위</div><div class="d">청구서가 말하는 <b>decimals</b> 가 결제 자산의 단위와 같은지</div></div>
+        <div class="check gate-ai"><div class="n">검사 09</div><div class="t">의미 대조 <span class="mono">AI</span></div><div class="d">설명이 <b>우리가 주문한 그 물건</b>을 가리키는지</div></div>
         <div class="check"><div class="n">정산 후</div><div class="t">배송 검증</div><div class="d">온체인 잔액을 다시 조회해 실제 도착 확인</div></div>
       </div>
 
-      <div class="footnote"><b>검사 08만 결정론이 아닙니다.</b> 앞의 7종이 전부 통과한 뒤에만 돌고, <b>차단만 할 수 있으며 통과시킬 권한은 없습니다.</b> &nbsp;·&nbsp; <b>결제가 끝나도 끝이 아닙니다.</b> 지불은 됐는데 자산이 오지 않으면 완료로 기록하지 않습니다 — 미확인은 보류 처리하고 세션을 정지합니다(회수는 못 합니다). 정산 실패 시 위임 한도는 원복됩니다.</div>
+      <div class="footnote"><b>검사 09만 결정론이 아닙니다.</b> 앞의 하드 검사 8종이 전부 통과한 뒤에만 돌고, <b>차단만 할 수 있으며 통과시킬 권한은 없습니다.</b> &nbsp;·&nbsp; <b>결제가 끝나도 끝이 아닙니다.</b> 지불은 됐는데 자산이 오지 않으면 완료로 기록하지 않습니다 — 미확인은 보류 처리하고 세션을 정지합니다(회수는 못 합니다). 정산 실패 시 위임 한도는 원복됩니다.</div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
     <span class="slide-num mono">05 / 13</span>
@@ -448,7 +449,7 @@
           <div class="lane-head">통제 계층 (AP2 + Guard)</div>
           <div class="lane-body">
             <div class="unit"><b>AP2 mandate</b>사용자 키로 서명한 위임장 — 총예산(순투입 상한)·건별 한도·허용 종목·허용 자산<span class="path">payments/ap2_mandate.py</span></div>
-            <div class="unit"><b>402 Guard</b>서명 직전 청구서 대조 7종 + 정산 후 온체인 배송 검증<span class="path">payments/guard.py</span></div>
+            <div class="unit"><b>402 Guard</b>서명 직전 하드 검사 8종 + 의미 대조(AI) + 정산 후 온체인 배송 검증<span class="path">payments/guard.py</span></div>
             <div class="unit"><b>키 분리</b>위임 서명자는 사용자 키, 실행자는 에이전트 키</div>
           </div>
         </div>
@@ -581,9 +582,9 @@
       <div class="box ok">
         <span class="tag">레이어 ② 청구서</span>
         <h3>규칙으로 표현할 수 없는 마지막 한 칸</h3>
-        <p>금액·수취인·자산·종목이 <b>전부 정상</b>인데 사람이 읽는 설명만 다른 물건을 가리키는 청구서 — "12개월 자동 결제 구독의 첫 회차" — 는 하드 검사 7종을 전부 통과합니다.</p>
+        <p>금액·수취인·자산·종목이 <b>전부 정상</b>인데 사람이 읽는 설명만 다른 물건을 가리키는 청구서 — "12개월 자동 결제 구독의 첫 회차" — 는 하드 검사 8종을 전부 통과합니다.</p>
         <p style="margin-top:3mm">이건 정규식으로 쓸 수 없습니다. <b>'구독'을 막으면 '멤버십'이 오고, 목록을 늘리면 '자동 갱신 서비스'가 옵니다.</b> 금지어 목록은 언어를 못 따라잡습니다. 그래서 이 한 칸만 언어 모델에게 맡겼습니다 — 차단 권한만 주고서.</p>
-        <p style="margin-top:3mm" class="mono" style="font-size:0.85em">위험 비대칭 · 오탐 → 거래 한 건 손실 &nbsp;|&nbsp; 미탐 → 하드 검사 7종 그대로</p>
+        <p style="margin-top:3mm" class="mono" style="font-size:0.85em">위험 비대칭 · 오탐 → 거래 한 건 손실 &nbsp;|&nbsp; 미탐 → 하드 검사 8종 그대로</p>
       </div>
     </div>
     <div class="footnote" style="margin-top:4mm"><b>정직하게</b> — AI가 수익을 올린다고 말하지 않습니다. 동일 구간 실측에서 규칙 −37.56% vs Gemini −39.57%로 <b>수익 기여는 중립(약간 열위)</b>이고, 그래서 판단 두뇌는 끌 수 있는 옵션입니다. 반면 청구서 레이어는 끄면 <b>막을 방법이 없는 공격 하나가 열립니다.</b> AI가 부속품인 자리와 대체 불가인 자리를 저희가 구분해 두었습니다.</div>

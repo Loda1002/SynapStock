@@ -196,12 +196,12 @@
 
     if (!sem.enabled) {
       el.aiSemNote.textContent =
-        "이 세션은 판단 두뇌가 없어 의미 대조 계층이 붙지 않았습니다 (하드 검사 6종만 작동).";
+        "이 세션은 판단 두뇌가 없어 의미 대조 계층이 붙지 않았습니다 (하드 검사 8종만 작동).";
     } else {
       el.aiSemNote.textContent =
         `실제 LLM 호출 ${sem.llm_calls || 0}회 · 서식 캐시 적중 ${sem.cache_hits || 0}회` +
         (sem.unverified_skipped ? ` · 매도 ${sem.unverified_skipped}건은 검증 불가라 하드 검사만으로 진행` : "") +
-        " — 하드 검사 6종을 전부 통과한 청구서만 이 검사를 받습니다.";
+        " — 하드 검사 8종을 전부 통과한 청구서만 이 검사를 받습니다.";
     }
   }
 

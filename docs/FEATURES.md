@@ -30,7 +30,7 @@
 
 | 기능 | 설명 | 위치 | 상태 |
 |---|---|---|---|
-| **402 Guard 지출 승인 게이트** | 구매 에이전트가 서명 직전 통과: check_demand(금액·수취인·자산·주문번호 4항목, 차단코드 6종) + check_delivery(정산 후 온체인 재조회) | `payments/guard.py` | ✅ 단위 13종·localnet |
+| **402 Guard 지출 승인 게이트** | 구매 에이전트가 서명 직전 통과: check_demand(하드 검사 8종 = 주문번호·자산·종목·수취인·단위·금액·의도상한·건별한도, 차단코드 8종) + check_semantics(의미 대조·AI) + check_delivery(정산 후 온체인 재조회) | `payments/guard.py` | ✅ 단위 13종·localnet |
 | **A2A 에이전트 협상** | 구매 에이전트 ↔ 브로커 에이전트가 메시지로 견적 요청·응답 | `shared/a2a_messages.py`, `agents/` | ✅ localnet 검증 |
 | **AP2 mandate 한도** | 사용자가 서명한 한도(총예산=순투입 상한·건별 한도·허용 종목)를 초과하면 기계적 거부 | `payments/ap2_mandate.py` | ✅ 거부 4종 데모 |
 | **x402 3단계 정산** | payment-required → submitted → completed. 브로커가 온체인 검증 후 자산 전달 | `payments/x402_solana.py` | ✅ 매수·매도 양방향 |
@@ -118,7 +118,7 @@
 | # | 변경 | 왜 | 현재 결함 |
 |---|---|---|---|
 | **G0** ✅ | 사용자 키 분리(`secrets/user.json`) — **완료 (커밋 329885f, 2026-07-24)** | 에이전트가 자기 허가서를 자기 키로 서명하던 문제 해결 — 위임 서사가 코드에서 사실이 됨 | 해결됨 (검증: 드라이런·엔진 스모크·테스트 4종) |
-| **G1** ✅ | `payments/guard.py` — check_demand 4항목 + check_delivery 온체인 재조회 (커밋 89cde31) | 결함 B·C 를 이 계층에서 닫음 | 해결 (단위 13종) |
+| **G1** ✅ | `payments/guard.py` — check_demand 하드 검사 8종 + check_delivery 온체인 재조회 (커밋 89cde31) | 결함 B·C 를 이 계층에서 닫음 | 해결 (단위 13종) |
 | **G2** ✅ | 결제 경로 결선 + `allowed_asset` 살리기 + release/settle 한도 원복 (커밋 9701d90) | authorize 앞 guard, 실패 시 예약 원복(H), partial 배송 처리(I) | 해결 (스모크 예약회계 일치) |
 | **G3** ✅ | `scripts/red_team.py --report` — 공격 3종 + 매트릭스 + 오탐 0 (커밋 7e2f3b8) | 실측 시도18·차단4·유출0.00·오탐0 | 해결 |
 | **G4** ✅ | Memo 바인딩(AT1) + `exact` 정합(`!=`) + 서명 dedup + expires_at (커밋 9523d19) | 대사 키·리플레이·초과지불 방어(D·E) | 해결 (localnet 풀사이클 PASS) |

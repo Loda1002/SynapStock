@@ -6,7 +6,7 @@ x402 exact 스킴은 '파는 쪽(resource server)'을 보호하도록 설계돼 
 서명하기 직전, 반드시 통과해야 하는 마지막 게이트.
 
   check_demand()   : (매수) 청구서를 사용자 mandate · 합의 견적 · 신뢰 수취인 목록과 대조한다.
-                     하나라도 어긋나면 '서명 거부'(유출 0). 차단 코드 6종.
+                     하나라도 어긋나면 '서명 거부'(유출 0). 하드 검사 8종 / 차단 코드 8종(+ 배송 검증 2종).
                        - 금액(base units 정수, 오차 0)
                        - 수취인(allowlist — 결함 B: AP2 가 미검사하던 counterparty)
                        - 자산(mandate allowed_asset — 결함 C: 죽어 있던 필드)
@@ -114,7 +114,10 @@ class Guard:
         self.semantic = semantic
         self.last_semantic: Optional[SemanticVerdict] = None
 
-    # ---- 서명 직전: 청구서 4항목 대조 ----
+    # ---- 서명 직전: 청구서 하드 검사 8종 ----
+    # 세는 기준: 서로 다른 이유로 서명을 거부시킬 수 있는 검사 1개 = 1종.
+    # 주문번호·자산·종목·수취인·단위(decimals)·금액·의도 지출 상한·건별 한도.
+    # (문서·리포트·발표 자료가 전부 이 숫자를 인용하므로 검사를 늘리면 여기부터 고친다.)
 
     def check_demand(self, required, quote, expected_order_id: Optional[str] = None,
                      max_spend_usdc: Optional[Decimal] = None,
@@ -219,7 +222,9 @@ class Guard:
                                f"{limit} base units", f"{int(reqs.amount)} base units")
 
         where = f"guard.py:L{sys._getframe(0).f_lineno}"
-        return GuardResult(True, "OK", "청구서 4항목 대조 통과 (금액·수취인·자산·주문번호)",
+        return GuardResult(True, "OK",
+                           "청구서 하드 검사 8종 통과 "
+                           "(주문번호·자산·종목·수취인·단위·금액·의도상한·건별한도)",
                            where, str(expected_amount), str(int(reqs.amount)))
 
     def assert_demand(self, required, quote, expected_order_id: Optional[str] = None,
@@ -238,7 +243,7 @@ class Guard:
                         price_usdc: Decimal, total_usdc: Decimal) -> GuardResult:
         """청구서의 사람이 읽는 설명이 우리 주문 의도와 같은 물건을 가리키는지 대조한다.
 
-        **하드 검사 6종이 전부 통과한 뒤에만 호출된다.** 이 검사는 차단만 할 수 있고
+        **하드 검사 8종이 전부 통과한 뒤에만 호출된다.** 이 검사는 차단만 할 수 있고
         통과시킬 수는 없다 — 하드 검사가 막은 것을 여기서 되살리는 경로는 없다.
         설계 근거·실패 정책의 전문은 payments/invoice_semantics.py 모듈 독스트링 참조.
 

@@ -7,7 +7,7 @@
                  청구서를 만들되 수취인을 자기 지갑으로 바꾸거나(counterparty),
                  합의 견적과 다른 금액을 청구한다(amount).
   ①'' 상품 바꿔치기 (계층: check_semantics 의미 대조) — 금액·수취인·자산·종목이 **전부 정상**인데
-                 사람이 읽는 설명만 다른 물건을 가리킨다. 하드 검사 6종을 전부 통과한다.
+                 사람이 읽는 설명만 다른 물건을 가리킨다. 하드 검사 8종을 전부 통과한다.
   ② 이중청구     (계층: Memo 바인딩 + 서명 dedup) — 같은 결제를 재정산해 이중으로 처리.
   ③ 정산 미이행  (계층: check_delivery 온체인 재조회) — 결제는 settled 인데 자산 미전달.
 
@@ -229,7 +229,7 @@ def attack_product_swap(attacker: str, judge):
     """금액·수취인·자산·종목·한도·주문번호가 **전부 정상**인데 설명만 다른 물건을 가리킨다.
 
     브로커가 청구서의 사람이 읽는 설명에 주문에 없던 조건(12개월 자동 결제 구독)을 끼워 넣는다.
-    숫자는 하나도 틀리지 않으므로 하드 검사 6종이 전부 통과한다 — 아래 '하드 검사 결과'가
+    숫자는 하나도 틀리지 않으므로 하드 검사 8종이 전부 통과한다 — 아래 '하드 검사 결과'가
     그 사실을 같은 실행 안에서 증명한다. 남는 방어선은 설명과 주문 의도의 의미 대조뿐이다.
 
     왜 규칙으로 못 막는가: '구독'을 금지어로 넣으면 '멤버십'이 오고, 목록을 늘리면 '자동 갱신
@@ -250,7 +250,7 @@ def attack_product_swap(attacker: str, judge):
         tx, expected_mint=env["usdc"], expected_dest_owner=env["broker"].pubkey(),
         expected_amount=AGREED_BASE, expected_order_id="ord_5eaa11c001")
 
-    # [하드 검사만] 6종 전부 통과한다 — 이 공격이 기존 게이트를 뚫는다는 증거.
+    # [하드 검사만] 8종 전부 통과한다 — 이 공격이 기존 게이트를 뚫는다는 증거.
     env_hard = _env(attacker)                      # judge 없음 = 의미 대조 계층 없음
     req_hard = _required(env_hard, "ord_5eaa11c002", AGREED_BASE)
     req_hard.requirements.resource = SEMANTIC_TRAP
@@ -274,7 +274,7 @@ def attack_product_swap(attacker: str, judge):
         "blocked": code in (GUARD_SEMANTIC_MISMATCH, GUARD_LLM_UNVERIFIED),
         "blocked_by_policy": code == GUARD_LLM_UNVERIFIED,
         "leak": AGREED_TOTAL if leaked_ok else Decimal(0),
-        "hard_checks_passed": hard.ok,          # 하드 검사 6종이 이 공격을 통과시켰는가
+        "hard_checks_passed": hard.ok,          # 하드 검사 8종이 이 공격을 통과시켰는가
         "judge": getattr(judge, "label", "판정자 없음"),
         "verdict_reason": (verdict.reason if verdict else ""),
         "description": SEMANTIC_TRAP,
@@ -537,8 +537,8 @@ async def main(attacker: str, live_llm: bool = False) -> int:
         print(f"\n  {lab}   [계층: {a['layer']}]")
         print(f"    가드 없음(업계 기본값) : {a['without']}")
         if "hard_checks_passed" in a:
-            # 이 공격의 핵심 — 기존 하드 검사 6종이 '전부 통과'시킨다는 사실을 같은 실행에서 보인다.
-            print(f"    하드 검사 6종         : "
+            # 이 공격의 핵심 — 기존 하드 검사 8종이 '전부 통과'시킨다는 사실을 같은 실행에서 보인다.
+            print(f"    하드 검사 8종         : "
                   f"{'전부 통과 (기존 게이트로는 못 막는다)' if a['hard_checks_passed'] else '차단'}")
         print(f"    402 Guard             : {a['code']} — {mark}"
               + (f"  @ {a['where']}" if a.get("where") else ""))

@@ -3,7 +3,7 @@
 실행: python -m scripts.test_invoice_semantics   (네트워크·Gemini 키 불필요)
 
 검증 축 4개:
-  1. 값은 다 맞는데 **물건만 다른** 청구서를 잡는다 (하드 검사 6종이 전부 통과한 뒤에).
+  1. 값은 다 맞는데 **물건만 다른** 청구서를 잡는다 (하드 검사 8종이 전부 통과한 뒤에).
   2. LLM 은 **차단만** 가능하다 — 하드 검사가 막은 것을 되살리는 경로가 없다.
   3. 검사 불가일 때 **매수는 차단, 매도는 진행** (노출을 늘리는 방향만 잠근다).
   4. 응답이 깨지면 **조용히 통과시키지 않는다**(항상 '검사 불가'로 떨어진다).
@@ -140,7 +140,7 @@ def test_catches_different_product() -> None:
     g2 = guard_with(FakeBrain(MISMATCH))
     hard = g2.check_demand(buy_required(SNEAKY_DESC), QUOTE, max_spend_usdc=Decimal("33"),
                            expected_symbol=SYMBOL)
-    check("[전제] 하드 검사 6종은 이 청구서를 전부 통과시킨다", hard.ok, hard.code)
+    check("[전제] 하드 검사 8종은 이 청구서를 전부 통과시킨다", hard.ok, hard.code)
 
     r2 = g2.check_semantics(buy_required(SNEAKY_DESC), **sem_kw())
     check("의미 대조가 차단한다(GUARD_SEMANTIC_MISMATCH)",

@@ -7,7 +7,7 @@
 ## 0. 최신 상태 (2026-07-24 저녁 — 다음 대화가 먼저 볼 것)
 
 - **402 Guard P0 전부 완료 — G0~G4, 전부 푸시됨.** 커밋: G0 `329885f` · G1 `89cde31` · G2 `9701d90` · G4 `9523d19` · G3 `7e2f3b8`. (의존성 때문에 **G4 를 G3 앞에** 구현 — 이중청구 방어=Memo+dedup, dedup 은 Memo 로 tx 가 유일해져야 드라이런에서 오탐이 안 난다.)
-  - **G1** `payments/guard.py`: check_demand(금액 base units 오차0·수취인 allowlist·자산·주문번호 + 종목·건별한도, 차단코드 6종) + check_delivery(정산 후 온체인 잔액 재조회, balance_reader 주입, 미확인=pending 보류). 방어 위치 런타임 생성(guard.py:L{n}).
+  - **G1** `payments/guard.py`: check_demand(하드 검사 8종: 주문번호·자산·종목·수취인·단위·금액·의도상한·건별한도, 차단코드 8종) + check_delivery(정산 후 온체인 잔액 재조회, balance_reader 주입, 미확인=pending 보류). 방어 위치 런타임 생성(guard.py:L{n}).
   - **G2** 결선: build_payment 가 authorize 앞에서 guard, AP2 authorize 가 asset 검증(결함 C), release/settle 예약추적으로 실패 시 한도 원복(결함 H), 엔진 GuardError→GUARD_BLOCKED + 라이브 배송 재조회 partial(결함 I).
   - **G4** Memo 바인딩(AT1:order_id:sig8) + verify_payment `<`→`!=`(exact, 결함 D) + expected_order_id Memo 대사(결함 E) + 브로커 used_signatures dedup + expires_at.
   - **G3** `scripts/red_team.py --report`: 공격 3종(청구위조 2변형/이중청구/정산미이행) 실제 경로 태움 + 매트릭스 + 정상 14건 오탐 0 동시 산출, `--attacker` 로 심사위원 악성주소 입력.
