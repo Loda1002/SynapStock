@@ -196,18 +196,10 @@ def collect_tests() -> dict:
 def collect_red_team() -> dict:
     r = _run([PYEXE, "-m", "scripts.red_team", "--report"], timeout=180)
     out = r.get("stdout") or ""
-    kpi = {}
-    m = re.search(
-        r"\[KPI\]\s*시도\s*(\d+)\s*·\s*차단\s*(\d+)\s*·\s*유출\s*([\d.]+)\s*USDC\s*·\s*오탐\s*(\d+)",
-        out,
-    )
-    if m:
-        kpi = {
-            "attempts": int(m.group(1)),
-            "blocked": int(m.group(2)),
-            "leak_usdc": m.group(3),
-            "false_positives": int(m.group(4)),
-        }
+    # 판독은 collect_evidence 의 단일 구현을 재사용한다 — 정규식이 두 벌이면
+    # 한쪽만 고쳐 두고 다른 쪽이 조용히 빈 객체를 돌려주는 사고가 또 난다(2026-07-27 실제 발생).
+    from scripts.collect_evidence import _parse_kpi
+    kpi = _parse_kpi(out)
     return {
         "rc": r.get("rc"),
         "ok": r.get("rc") == 0,

@@ -112,21 +112,33 @@ def collect_tests() -> dict:
 
 # ---------------------------------------------------------------- red_team KPI
 
-def collect_red_team() -> dict:
-    r = _run([PYEXE, "-m", "scripts.red_team", "--report"], timeout=180)
-    out = r.get("stdout") or ""
-    kpi = {}
-    m = re.search(
+def _parse_kpi(out: str) -> dict:
+    """red_team 출력에서 KPI 를 뽑는다. 기계 판독용 [KPI-JSON] 줄을 우선한다.
+
+    예전에는 사람이 읽는 '[KPI] 시도 N · 차단 N · 유출 …' 문구를 정규식으로 긁었는데,
+    2026-07-27 에 그 문구를 계층별로 나누자 정규식이 조용히 빈 객체를 돌려줬다
+    (rc==0 이라 ok 는 계속 true → 심사 부서가 근거 없이 도는 무증상 회귀).
+    이제 표시 문구와 판독 형식을 분리하고, 옛 형식도 폴백으로 남긴다."""
+    m = re.search(r"\[KPI-JSON\]\s*(\{.*\})", out)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except json.JSONDecodeError:
+            pass
+    m = re.search(   # 폴백: 옛 한 줄 형식
         r"\[KPI\]\s*시도\s*(\d+)\s*·\s*차단\s*(\d+)\s*·\s*유출\s*([\d.]+)\s*USDC\s*·\s*오탐\s*(\d+)",
         out,
     )
     if m:
-        kpi = {
-            "attempts": int(m.group(1)),
-            "blocked": int(m.group(2)),
-            "leak_usdc": m.group(3),
-            "false_positives": int(m.group(4)),
-        }
+        return {"attempts": int(m.group(1)), "blocked": int(m.group(2)),
+                "leak_usdc": m.group(3), "false_positives": int(m.group(4))}
+    return {}
+
+
+def collect_red_team() -> dict:
+    r = _run([PYEXE, "-m", "scripts.red_team", "--report"], timeout=180)
+    out = r.get("stdout") or ""
+    kpi = _parse_kpi(out)
     return {
         "rc": r.get("rc"),
         "ok": r.get("rc") == 0,

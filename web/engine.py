@@ -1179,10 +1179,13 @@ class TradingEngine:
                     before_units=before_stock, expected_increase_units=expected_inc,
                     retries=2, retry_delay_sec=1.0)
                 if not delivery.ok:
-                    # pending_delivery — 포지션 미반영·한도 원복·세션 정지·미결(partial) 기록
+                    # pending_delivery — 포지션 미반영·한도 원복·세션 정지·미결(partial) 기록.
+                    # USDC 는 이미 온체인에서 떠났고 회수 경로가 없다 → KPI '유출' 에 가산.
                     completed.status = "partial"
+                    self._record_leak(quote.total_usdc)
                     self.bus.emit(ev.GUARD_PENDING, {
-                        "side": "buy", "order_id": required.order_id, **delivery.as_event(),
+                        "side": "buy", "order_id": required.order_id,
+                        "leak_usdc": str(quote.total_usdc), **delivery.as_event(),
                     })
 
             settled = completed.status == "settled"
@@ -1266,16 +1269,24 @@ class TradingEngine:
 
         # 매도 대금(USDC) 온체인 도착 재조회 — 매수측 check_delivery 의 매도 대칭(BUG-02).
         # 주식은 넘어갔는데 대금이 안 들어오면 partial 로 강등(포지션·예산·실현손익 미반영) + 세션 정지.
-        if (completed.status == "settled" and live and self._client is not None
+        # 진입 조건에 partial 을 포함한다. 브로커는 '주식은 확정 수령했는데 USDC 지급 tx 가
+        # 실패' 하면 스스로 partial 을 돌려준다(broker_agent.py `elif confirmed and not paid`).
+        # 예전에는 settled 만 검사해서 **그 경우가 검증 블록에 아예 못 들어왔고**, 결과적으로
+        # 매도 손실의 가장 대표적인 경로(BUG-02 가 정의한 바로 그 상황)가 유출 계측에서 빠졌다.
+        if (completed.status in ("settled", "partial") and live and self._client is not None
                 and self._usdc_mint is not None):
             expected_inc = to_base_units(quote.total_usdc, CFG.usdc_decimals)
             if not baseline_ok:
+                # 주식은 이미 나갔는데 대금 도착을 '확인할 수 없다'. 안전 지표는 낙관적으로
+                # 세지 않는다 — 확인 못 한 것은 도착하지 않은 것으로 계상한다(보수적).
                 completed.status = "partial"
+                self._record_leak(quote.total_usdc)
                 self.bus.emit(ev.GUARD_PENDING, {
                     "side": "sell", "order_id": required.order_id, "ok": False,
                     "code": "GUARD_BASELINE_UNREAD",
                     "detail": "정산 전 USDC 잔액 기준선 조회 실패 — 대금 도착 검증 불가로 매도 보류",
                     "where": "engine.py:_sell_cycle", "expected": "", "actual": "",
+                    "leak_usdc": str(quote.total_usdc),
                 })
             else:
                 async def _reader():
@@ -1287,9 +1298,12 @@ class TradingEngine:
                     before_units=before_usdc, expected_increase_units=expected_inc,
                     retries=2, retry_delay_sec=1.0)
                 if not delivery.ok:
+                    # 주식은 나갔는데 대금이 안 왔다 — 회수 경로 없음 → KPI '유출' 에 가산.
                     completed.status = "partial"
+                    self._record_leak(quote.total_usdc)
                     self.bus.emit(ev.GUARD_PENDING, {
-                        "side": "sell", "order_id": required.order_id, **delivery.as_event(),
+                        "side": "sell", "order_id": required.order_id,
+                        "leak_usdc": str(quote.total_usdc), **delivery.as_event(),
                     })
 
         agent.on_sale_completed(completed, symbol, qty, price, quote.total_usdc)
@@ -1306,6 +1320,41 @@ class TradingEngine:
         # 대금 미확인(partial)이면 세션을 정지한다 — 반복 매도로 손실이 누적되지 않게(매수측 미러)
         if completed.status == "partial" and self.trading_enabled:
             self.pause(actor="guard")
+
+    def _record_leak(self, amount: Decimal) -> None:
+        """서명 후 온체인으로 나갔는데 대가 도착을 확인하지 못한 금액을 KPI 에 가산한다.
+
+        첫 화면 KPI 의 '유출'이 이 값이다. **예전에는 초기화·리셋·읽기 3곳만 있고 증가시키는
+        코드가 저장소에 한 줄도 없어서, 실제로 자산이 사라져도 화면은 계속 0.00 을 표시했다**
+        (측정치가 아니라 상수). 소스를 여는 사람에게는 그 자체가 주장을 무너뜨리는 지점이라
+        실제 가산으로 배선한다 — 못 막은 것도 숫자로 표시하는 것이 이 KPI 의 신뢰다.
+
+        여기에 오는 건 '막지 못한 것'뿐이다. 서명 전 차단(check_demand·check_stock_transfer)은
+        트랜잭션 자체가 만들어지지 않으므로 이 경로를 타지 않는다 — 그 계층의 유출이 0 인 것은
+        측정 결과가 아니라 구조적 사실이고, 둘을 같은 숫자로 합치면 안 된다.
+
+        회수 경로는 없다(환불·에스크로 미구현). 그래서 이 값이 오르면 호출측이 세션을 멈춘다.
+        드라이런은 check_delivery 자체가 라이브에서만 돌므로 이 경로에 오지 않는다.
+
+        ⚠ 알려진 한계 (2026-07-27 적대 검증에서 실증으로 적출 — 아직 안 닫힘).
+        "이 숫자가 곧 실제 유출"이라고 단정하지 말 것:
+          1) 전송 뒤 예외로 빠지면 계상되지 않는다. submit_and_confirm 은 트랜잭션을
+             제출한 뒤 confirm 단계에서 예외를 던질 수 있는데(rpc_retry 소진),
+             _buy_cycle 의 try 에는 except 가 없고 _sell_cycle 의 settle_sale 은 try 밖이다.
+             그 경우 유출도 안 세고 **세션 정지도 안 걸린다**(틱 루프는 계속 돈다).
+          2) HTTP 402 원격 경로는 상대가 보낸 status 문자열을 그대로 신뢰한다
+             (x402_http.parse_settlement). 원격이 "ok"·"pending" 처럼 우리가 안 보는 값을
+             돌려주면 검증도 정지도 건너뛴다 — 계측 스위치를 상대가 쥔다.
+          3) 매도 계상액이 quote.total_usdc(= subtotal − fee)라 나간 주식의 시가보다
+             수수료만큼 낮다(과소 계상).
+          4) '확인된 손실'과 '조회 실패로 확인 불가'를 한 숫자에 합친다. RPC 가 한 번
+             흔들리면 실제로는 도착한 건이 유출로 찍힐 수 있다(보수적이지만 부정확).
+          5) 이 값은 인메모리 전용이라 artifacts/tx 아카이브·세션 요약에 남지 않는다.
+          6) 유출 계상 경로에서도 finally 가 auth.release() 를 불러 AP2 잔여 한도가
+             유출액만큼 부풀려진다 — 정지를 해제하면 실제 온체인 지출이 한도를 넘을 수 있다.
+        """
+        if amount > 0:
+            self.guard_leak_usdc += amount
 
     def _complete_trade(self, side, symbol, qty, quote, completed, decision, realized=None) -> None:
         self.bus.emit(ev.X402_COMPLETED, {

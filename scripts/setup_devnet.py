@@ -3,20 +3,29 @@
 수행:
   1) user/trading/broker 지갑 생성·저장 (secrets/, WALLET_DIR)
   2) trading·broker 지갑에 devnet SOL 에어드랍 (수수료용)
-  3) 테스트 USDC 민트 생성 → trading 지갑에 1000 USDC 지급
+  3) 결제 통화(USDC) 준비 — 기본은 **Circle 공식 devnet USDC**(config 기본값)를 그대로 쓴다
   4) 테스트 주식 민트(tAAPL) 생성 → broker 지갑에 100 tAAPL 지급
-  5) 생성된 민트 주소를 .env 에 기록
+  5) 사용한 민트 주소를 .env 에 기록
 
-주의: 여기서 만드는 USDC 는 데모용 테스트 토큰입니다(Circle 실제 devnet USDC 아님).
-전 과정 통제 가능·재현 가능하게 하기 위함. 실제 devnet USDC 를 쓰려면 Circle 파우셋
-사용 후 .env 의 USDC_MINT 를 교체하세요.
+결제 통화에 대하여 (2026-07-27 정정):
+  예전에는 USDC 까지 자체 발행했다 — 그런데 민트 권한이 **구매자(trading) 지갑**이었다.
+  즉 "자기가 찍은 돈으로, 자기가 잔고를 채워준 상대에게" 지불한 증빙이 되어, 심사에서
+  explorer 로 민트 권한만 확인하면 무너진다. 그래서 기본을 Circle 공식 민트로 바꿨다.
+  파우셋: https://faucet.circle.com  (Solana Devnet 선택 → trading 지갑 주소 입력)
 
-실행:  python scripts/setup_devnet.py
+  주식 토큰은 그대로 자체 발행한다 — devnet 에 토큰화 주식이 실재하지 않기 때문이며,
+  이건 숨길 필요 없는 정당한 제약이다(민트 상수·스왑 경로 2곳 교체로 실물 전환).
+
+실행:
+  python scripts/setup_devnet.py                 # Circle 공식 devnet USDC 사용(권장)
+  python scripts/setup_devnet.py --self-mint-usdc  # 옛 동작(자체 발행) — 파우셋 없이 오프라인 실험용
 """
 from __future__ import annotations
+import argparse
 import asyncio
 import os
 import sys
+from decimal import Decimal, ROUND_DOWN
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -30,9 +39,9 @@ from spl.token.constants import TOKEN_PROGRAM_ID
 from spl.token._layouts import MINT_LAYOUT
 from spl.token.instructions import (
     initialize_mint2, mint_to, create_idempotent_associated_token_account,
-    get_associated_token_address,
+    get_associated_token_address, transfer_checked,
 )
-from spl.token.models import InitializeMint2Params, MintToParams
+from spl.token.models import InitializeMint2Params, MintToParams, TransferCheckedParams
 
 from solana.rpc.async_api import AsyncClient
 from solana.rpc.commitment import Confirmed
@@ -40,6 +49,10 @@ from solana.rpc.types import TxOpts
 
 from config import CFG
 from payments import x402_solana as x
+
+# Circle 공식 devnet USDC (developers.circle.com 의 USDC contract addresses 표).
+# config.py 기본값과 같은 값이며, 여기서는 '설정이 이걸 가리키고 있는가' 검사에만 쓴다.
+CIRCLE_DEVNET_USDC = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
 
 USDC_DECIMALS = 6
 STOCK_DECIMALS = 6
@@ -117,6 +130,36 @@ async def create_mint(client, payer: Keypair, authority: Pubkey, decimals: int) 
     return mint.pubkey()
 
 
+async def mint_authority(client, mint: Pubkey) -> str:
+    """민트의 발행 권한자 주소. 조회 실패·미파싱이면 빈 문자열.
+
+    '설정된 USDC 가 우리가 찍은 토큰인가'를 판별하는 데 쓴다 — 주소만 봐서는 알 수 없고,
+    심사위원이 explorer 에서 확인하는 것도 정확히 이 필드다."""
+    try:
+        resp = await _rpc_retry(lambda: client.get_account_info_json_parsed(mint), label="민트조회")
+        return str(resp.value.data.parsed["info"].get("mintAuthority") or "")
+    except Exception:
+        return ""
+
+
+async def transfer_tokens(client, owner: Keypair, mint: Pubkey, to: Pubkey,
+                          amount_ui: Decimal, decimals: int) -> str:
+    """owner → to SPL 토큰 이체 (수취인 ATA 없으면 생성).
+
+    Circle 공식 devnet USDC 처럼 **민트 권한이 없는 토큰**으로 브로커 운용자본을 채울 때
+    쓴다 — mint_tokens 는 민트 권한이 필요해 쓸 수 없다."""
+    src = get_associated_token_address(owner.pubkey(), mint)
+    dst = get_associated_token_address(to, mint)
+    ix_ata = create_idempotent_associated_token_account(
+        payer=owner.pubkey(), owner=to, mint=mint)
+    ix_send = transfer_checked(TransferCheckedParams(
+        program_id=TOKEN_PROGRAM_ID, source=src, mint=mint, dest=dst,
+        owner=owner.pubkey(), amount=int(amount_ui * (10 ** decimals)),
+        decimals=decimals, signers=[],
+    ))
+    return await send(client, owner, [ix_ata, ix_send], [owner])
+
+
 async def mint_tokens(client, payer_authority: Keypair, mint: Pubkey, owner: Pubkey,
                       amount_ui: int, decimals: int) -> None:
     ata = get_associated_token_address(owner, mint)
@@ -150,7 +193,7 @@ def write_env(usdc_mint: Pubkey, stock_mint: Pubkey) -> None:
     print(f"→ .env 업데이트: USDC_MINT / STOCK_MINT 기록 완료")
 
 
-async def main() -> None:
+async def main(self_mint_usdc: bool = False) -> None:
     wd = CFG.wallet_dir
     user = x.load_keypair(os.path.join(wd, "user.json")) if os.path.exists(
         os.path.join(wd, "user.json")) else x.new_keypair()
@@ -205,22 +248,88 @@ async def main() -> None:
             print("(지갑 키는 secrets/ 에 이미 저장됐으므로, 충전 후 재실행하면 같은 지갑을 그대로 씁니다.)")
             return
 
-        print("\n[2/4] 테스트 USDC 민트 생성…")
-        usdc_mint = await create_mint(client, trading, trading.pubkey(), USDC_DECIMALS)
-        print(f"  USDC_MINT = {usdc_mint}")
+        # ---- [2/4] 결제 통화(USDC) ----
+        if self_mint_usdc:
+            print("\n[2/4] 테스트 USDC 민트 생성 (--self-mint-usdc)…")
+            print("  ⚠ 자체 발행입니다 — 민트 권한이 구매자(trading) 지갑입니다. explorer 에서")
+            print("     민트 권한만 확인하면 '자기가 찍은 돈으로 지불'로 읽힙니다. 심사 증빙에는 쓰지 마세요.")
+            usdc_mint = await create_mint(client, trading, trading.pubkey(), USDC_DECIMALS)
+            print(f"  USDC_MINT = {usdc_mint}")
+        else:
+            usdc_mint = Pubkey.from_string(CFG.usdc_mint)
+            print(f"\n[2/4] 결제 통화 = 설정된 USDC 민트 (이번 실행에서 발행하지 않음)")
+            print(f"  USDC_MINT = {usdc_mint}")
 
+            # ★ 설정값이 '우리가 예전에 찍은 자체 토큰' 을 그대로 가리키고 있을 수 있다
+            #   (.env 는 예전 실행이 덮어써 둔 값이다). 그 상태로 진행하면 이번 수정이
+            #   무의미해지고 오히려 '자체 발행 안 함' 이라는 오독만 남는다 → 발행권한을 조회해 막는다.
+            authority = await mint_authority(client, usdc_mint)
+            ours = {str(trading.pubkey()), str(broker.pubkey()), str(user.pubkey())}
+            if authority and authority in ours:
+                print(f"\n[중단] 설정된 USDC_MINT 는 우리 지갑이 발행한 자체 토큰입니다.")
+                print(f"  발행 권한: {authority} (우리 지갑)")
+                print("  이 상태의 증빙은 '자기가 찍은 돈으로, 자기가 잔고를 채워준 상대에게 지불' 로 읽힙니다.")
+                print("  .env 의 USDC_MINT 를 Circle 공식 devnet USDC 로 바꾼 뒤 다시 실행하세요:")
+                print(f"    USDC_MINT={CIRCLE_DEVNET_USDC}")
+                print("  (자체 발행으로 계속하려면 --self-mint-usdc — 심사 증빙으로는 쓸 수 없습니다.)")
+                return
+            if str(usdc_mint) != CIRCLE_DEVNET_USDC:
+                print(f"  ⚠ Circle 공식 민트({CIRCLE_DEVNET_USDC})가 아닙니다."
+                      f" 발행 권한: {authority or '조회 실패'}")
+
+            have_base = await x.get_token_balance_base(client, trading.pubkey(), usdc_mint)
+            have = Decimal(have_base) / Decimal(10 ** USDC_DECIMALS)
+            print(f"  trading 지갑 USDC 잔액: {have}")
+            if have <= 0:
+                print("\n[중단] trading 지갑에 USDC 가 없습니다. 민트 권한이 없으므로 발행할 수 없습니다.")
+                print("  파우셋에서 충전한 뒤 이 스크립트를 다시 실행하세요:")
+                print("    https://faucet.circle.com  → Solana Devnet 선택 → 아래 주소 입력")
+                print(f"    {trading.pubkey()}")
+                print("  (파우셋 없이 진행하려면 --self-mint-usdc — 단 심사 증빙으로는 쓸 수 없습니다.)")
+                return
+
+        # ---- [3/4] 주식 토큰 (항상 자체 발행 — devnet 에 토큰화 주식이 실재하지 않는다) ----
         print("\n[3/4] 테스트 주식 민트 생성…")
         stock_mint = await create_mint(client, broker, broker.pubkey(), STOCK_DECIMALS)
         print(f"  STOCK_MINT = {stock_mint}  ({CFG.stock_symbol})")
 
+        # ---- [4/4] 초기 잔액 ----
         print("\n[4/4] 초기 잔액 지급…")
-        await mint_tokens(client, trading, usdc_mint, trading.pubkey(), USDC_SUPPLY, USDC_DECIMALS)
-        print(f"  trading 지갑에 {USDC_SUPPLY} USDC 지급")
         await mint_tokens(client, broker, stock_mint, broker.pubkey(), STOCK_SUPPLY, STOCK_DECIMALS)
         print(f"  broker 지갑에 {STOCK_SUPPLY} {CFG.stock_symbol} 지급")
-        # 브로커 USDC 운용자본 — 익절 매도(오른 뒤 되사기) 대금을 지급할 재원 (USDC 민트 권한=trading)
-        await mint_tokens(client, trading, usdc_mint, broker.pubkey(), BROKER_USDC_RESERVE, USDC_DECIMALS)
-        print(f"  broker 지갑에 {BROKER_USDC_RESERVE} USDC 운용자본 지급")
+
+        # 브로커 USDC 운용자본 — 익절 매도(오른 뒤 되사기) 대금을 지급할 재원. 없으면 매수로
+        # 받은 USDC 만으로는 평가이익만큼을 지급하지 못해 매도 정산이 실패한다.
+        if self_mint_usdc:
+            await mint_tokens(client, trading, usdc_mint, trading.pubkey(), USDC_SUPPLY, USDC_DECIMALS)
+            print(f"  trading 지갑에 {USDC_SUPPLY} USDC 지급")
+            await mint_tokens(client, trading, usdc_mint, broker.pubkey(), BROKER_USDC_RESERVE,
+                              USDC_DECIMALS)
+            print(f"  broker 지갑에 {BROKER_USDC_RESERVE} USDC 운용자본 지급")
+        else:
+            # 민트 권한이 없다 → 파우셋으로 받은 잔액을 나눈다. Circle 파우셋은 주소당
+            # 2시간마다 20 USDC 라 배분이 빡빡하다: 브로커에 너무 많이 묶으면 정작
+            # 구매자가 살 돈이 없다. 총액의 1/3 만(상한 BROKER_USDC_RESERVE) 넘긴다.
+            # '부족분만 top-up' 이라 재실행해도 매번 또 보내지 않는다(멱등).
+            broker_base = await x.get_token_balance_base(client, broker.pubkey(), usdc_mint)
+            broker_have = Decimal(broker_base) / Decimal(10 ** USDC_DECIMALS)
+            target = min((have + broker_have) / 3, Decimal(BROKER_USDC_RESERVE))
+            short = (target - broker_have).quantize(Decimal("0.000001"), rounding=ROUND_DOWN)
+            if short <= 0:
+                print(f"  broker 운용자본 {broker_have} USDC — 목표 {target} 충족, 이체 생략")
+            else:
+                sig = await transfer_tokens(client, trading, usdc_mint, broker.pubkey(),
+                                            short, USDC_DECIMALS)
+                print(f"  broker 지갑에 {short} USDC 운용자본 이체({sig[:16]}…)"
+                      f" → 브로커 보유 {broker_have + short}")
+            left = have - max(short, Decimal(0))
+            print(f"  trading 지갑 잔여: {left} USDC")
+            # 지출 한도를 잔여 이하로 맞추라는 안내. 세션 예산은 BUDGET_USDC 이고
+            # MAX_BUDGET_USDC 는 update_limits 의 상한 검사에만 쓰인다(세션 시작을 clamp 하지 않음).
+            print(f"  ⚠ 파우셋 한도가 낮습니다. 아래를 잔여({left}) 이하로 맞추세요:")
+            print(f"     .env  BUDGET_USDC · PER_TRADE_MAX_USDC")
+            print(f"     건별 지출은 코드 상수입니다 — run_demo.py spend_per_trade_usdc,"
+                  f" web/engine.py DEFAULT_RULES['spend_per_trade'] (기본 30)")
 
     write_env(usdc_mint, stock_mint)
     print("\n완료. 이제 `python run_demo.py --live` 로 실제 devnet 매수를 실행할 수 있습니다.")
@@ -228,4 +337,9 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    ap = argparse.ArgumentParser(description="devnet 지갑·민트 준비")
+    ap.add_argument("--self-mint-usdc", action="store_true",
+                    help="USDC 도 자체 발행한다(옛 동작). 파우셋 없이 실험할 때만 — "
+                         "민트 권한이 구매자 지갑이라 심사 증빙으로는 쓸 수 없다.")
+    args = ap.parse_args()
+    asyncio.run(main(self_mint_usdc=args.self_mint_usdc))
