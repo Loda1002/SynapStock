@@ -81,6 +81,27 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(broker_router)
 
 
+@app.middleware("http")
+async def _revalidate_ui(request: Request, call_next):
+    """UI 자산은 브라우저가 쓰기 전에 항상 서버에 확인하게 한다.
+
+    Cache-Control 이 없으면 브라우저가 **휴리스틱 캐시**를 적용한다(Last-Modified 기준으로
+    임의 기간 보관). 2026-07-27 에 실제로 터졌다 — `/` 를 대시보드에서 랜딩으로 바꿔
+    재배포했는데, 이전에 열어 본 브라우저가 옛 대시보드 HTML 을 계속 보여줬다.
+
+    심사에서 이건 두 가지로 위험하다: ①심사위원이 URL 을 한 번 열어 둔 뒤 우리가
+    재배포하면 옛 화면을 계속 본다 ②HTML 만 새것이고 `/static/js/app.js` 가 옛것이면
+    상태 스키마가 어긋나 화면이 깨진다.
+
+    `no-cache` 는 '저장하지 마라'가 아니라 '쓰기 전에 재검증하라'다 — ETag 가 그대로라면
+    304 로 응답하므로 대역폭 이점은 유지된다. API·SSE 는 건드리지 않는다."""
+    response = await call_next(request)
+    path = request.url.path
+    if path in ("/", "/app", "/login") or path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @app.get("/")
 async def landing() -> FileResponse:
     """첫 화면 = 소개(랜딩) 페이지.
