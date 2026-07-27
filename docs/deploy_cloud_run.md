@@ -231,6 +231,13 @@ curl -s "https://<URL>/.well-known/x402"
 ## 6. 운영 메모
 
 - **재배포(코드 수정 후)**: 4번의 `gcloud run deploy …` 를 그대로 다시 실행 (같은 URL 유지)
+- ⚠ **`GEMINI_MODEL` 도 env 에 넣는 것을 권장**(2026-07-27). 무료 티어 일일 한도는 **모델별로
+  따로** 계산된다(`quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier`). 기본 모델이
+  소진되면 배포본의 조건형(Gemini) 세션이 **매수를 전부 보류**한다 — 설계된 fail-closed 동작이라
+  엔진은 계속 돌지만 화면에는 체결이 안 나온다. 소진 시 재배포 없이 갈아타는 방법:
+  ```powershell
+  gcloud run services update synapstock --region $REGION --update-env-vars "GEMINI_MODEL=gemini-flash-latest"
+  ```
 - **환경변수만 수정**: `gcloud run services update synapstock --region $REGION --update-env-vars KEY=VALUE`
 - **비용**: 상시 1 인스턴스(CPU 상시 할당) ≈ **월 $50 안팎** → 심사 기간 2~3주면 $25~40,
   $300 크레딧으로 충분. 심사 끝나면 삭제: `gcloud run services delete synapstock --region $REGION`
