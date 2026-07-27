@@ -6,6 +6,8 @@
   ① 청구 위조   (계층: check_demand 서명 게이트) — 악성 브로커가 한도 안쪽 금액으로
                  청구서를 만들되 수취인을 자기 지갑으로 바꾸거나(counterparty),
                  합의 견적과 다른 금액을 청구한다(amount).
+  ①'' 상품 바꿔치기 (계층: check_semantics 의미 대조) — 금액·수취인·자산·종목이 **전부 정상**인데
+                 사람이 읽는 설명만 다른 물건을 가리킨다. 하드 검사 6종을 전부 통과한다.
   ② 이중청구     (계층: Memo 바인딩 + 서명 dedup) — 같은 결제를 재정산해 이중으로 처리.
   ③ 정산 미이행  (계층: check_delivery 온체인 재조회) — 결제는 settled 인데 자산 미전달.
 
@@ -14,6 +16,8 @@ N건 오탐 0 을 함께 산출한다(과거 아티팩트를 끌어오지 않는
 
 실행:  .venv/Scripts/python.exe -m scripts.red_team --report   (네트워크 불필요)
        옵션 --attacker <pubkey> 로 심사위원이 직접 악성 수취인 주소를 넣을 수 있다.
+       옵션 --live-llm 으로 ①'' 의 판정을 **실제 Gemini** 에게 받는다(키·쿼터 필요).
+       기본은 아래 _RecordedJudge — 실제 모델 응답을 녹화해 재생하므로 오프라인에서 돈다.
 """
 from __future__ import annotations
 import argparse
@@ -38,6 +42,9 @@ from payments.guard import (
     GUARD_PAYEE_UNKNOWN, GUARD_INTENT_EXCEEDED, GUARD_DELIVERY_UNCONFIRMED,
     GUARD_ASSET_MISMATCH,
 )
+from payments.invoice_semantics import (
+    GUARD_LLM_UNVERIFIED, GUARD_SEMANTIC_MISMATCH, InvoiceSemanticChecker,
+)
 from payments import x402_solana as x
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy
@@ -56,8 +63,66 @@ FORGED_TOTAL = Decimal("44.94")
 FORGED_BASE = to_base_units(FORGED_TOTAL, DEC)          # 44,940,000
 
 
-def _env(attacker_pubkey: str = ""):
-    """공격 1건마다 새 환경(사용자·에이전트·정상 브로커·악성 지갑)."""
+# ---------- 의미 대조 판정자 (①'' 공격 + 정상 거래 오탐 검사에 쓰인다) ----------
+
+# 청구서에 끼워 넣는 문구. 금액·수취인·자산·종목은 손대지 않고 '설명'만 바꾼다.
+SEMANTIC_TRAP = ("STOCK:tAAPL x0.18 (fee 0.09 USDC incl.) — 본 청구는 12개월 자동 결제 "
+                 "데이터 구독의 첫 회차이며 이후 매월 동일 금액이 자동 청구됩니다")
+
+
+class _RecordedJudge:
+    """실제 Gemini 응답을 **녹화해 재생**하는 판정자 (오프라인 실행용).
+
+    아래 두 응답은 2026-07-27 `gemini-flash-latest` 에 같은 프롬프트를 넣어 받은 원문이다.
+    지어낸 문장이 아니라 실제 모델 출력이다.
+
+    ⚠ 이 스텁으로 얻은 결과는 **"배선이 모델 판정을 그대로 집행하는가"의 증거**이지
+      "모델이 매번 옳게 판정하는가"의 증거가 아니다. 후자는 `--live-llm` 으로 확인한다
+      (실제 모델·실제 쿼터). 이 구분을 리포트에도 그대로 표시한다.
+    """
+
+    #: 녹화 원문 — 물건만 다른 청구서
+    RECORDED_MISMATCH = ('{"match": false, "reason": "주식 매수 주문과 달리 12개월 자동 결제 '
+                         '데이터 구독 및 정기 결제 조건이 청구서 설명에 포함되어 있습니다."}')
+    #: 녹화 원문 — 정직한 청구서
+    RECORDED_MATCH = ('{"match": true, "reason": "청구서의 설명 문구가 주문한 tAAPL 주식 '
+                      '0.18개 매수 거래와 일치합니다."}')
+
+    label = "녹화 재생(실제 Gemini 응답, gemini-flash-latest 2026-07-27)"
+
+    def __init__(self):
+        self.calls = 0
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    def _call(self, prompt: str) -> str:
+        self.calls += 1
+        # 프롬프트에 실린 '설명' 이 덫 문구 그대로인지로 어떤 녹화를 재생할지 고른다.
+        return self.RECORDED_MISMATCH if SEMANTIC_TRAP in prompt else self.RECORDED_MATCH
+
+
+def _live_judge():
+    """--live-llm — 실제 Gemini 로 판정한다. 키·쿼터가 없으면 사유와 함께 None."""
+    from config import CFG
+    if not CFG.gemini_api_key:
+        print("  [주의] GEMINI_API_KEY 가 없어 --live-llm 을 쓸 수 없습니다 — 녹화 재생으로 진행합니다.")
+        return None
+    try:
+        from agents.gemini_decider import GeminiDecider
+        brain = GeminiDecider(CFG.gemini_api_key, CFG.gemini_model, CFG.gemini_mode)
+        brain.label = f"실제 Gemini ({CFG.gemini_model})"
+        return brain
+    except Exception as e:
+        print(f"  [주의] Gemini 초기화 실패({type(e).__name__}) — 녹화 재생으로 진행합니다.")
+        return None
+
+
+def _env(attacker_pubkey: str = "", judge=None):
+    """공격 1건마다 새 환경(사용자·에이전트·정상 브로커·악성 지갑).
+
+    judge 를 주면 402 Guard 에 의미 대조 계층이 붙는다(하드 검사 통과 후에만 도는 계층)."""
     user, trading, broker = Keypair(), Keypair(), Keypair()
     usdc, stock = Keypair().pubkey(), Keypair().pubkey()
     evil = Pubkey.from_string(attacker_pubkey) if attacker_pubkey else Keypair().pubkey()
@@ -69,7 +134,8 @@ def _env(attacker_pubkey: str = ""):
     auth = PaymentAuthorizer(mandate, agent_kp=trading)
     ta = TradingAgent(trading, auth, Strategy(spend_per_trade_usdc=Decimal("30")),
                       DEC, "solana-localnet")
-    ta.guard = Guard(mandate, [str(broker.pubkey())], DEC)
+    semantic = InvoiceSemanticChecker(judge) if judge is not None else None
+    ta.guard = Guard(mandate, [str(broker.pubkey())], DEC, semantic=semantic)
     bk = BrokerAgent(broker, usdc, DEC, stock, DEC, "solana-localnet", fee_bps=0)
     return {"user": user, "trading": trading, "broker": broker, "evil": evil,
             "usdc": usdc, "stock": stock, "auth": auth, "ta": ta, "bk": bk}
@@ -155,6 +221,64 @@ def _guarded(ta, required, quote, max_spend_usdc=None):
         return "통과(유출!)", ""
     except GuardError as e:
         return e.result.code, e.result.where
+
+
+# ---------- 공격 ①'' 상품 바꿔치기 (check_semantics — 값은 전부 정상, 물건만 다름) ----------
+
+def attack_product_swap(attacker: str, judge):
+    """금액·수취인·자산·종목·한도·주문번호가 **전부 정상**인데 설명만 다른 물건을 가리킨다.
+
+    브로커가 청구서의 사람이 읽는 설명에 주문에 없던 조건(12개월 자동 결제 구독)을 끼워 넣는다.
+    숫자는 하나도 틀리지 않으므로 하드 검사 6종이 전부 통과한다 — 아래 '하드 검사 결과'가
+    그 사실을 같은 실행 안에서 증명한다. 남는 방어선은 설명과 주문 의도의 의미 대조뿐이다.
+
+    왜 규칙으로 못 막는가: '구독'을 금지어로 넣으면 '멤버십'이 오고, 목록을 늘리면 '자동 갱신
+    서비스'가 온다. 금지어 목록은 언어를 못 따라잡는다."""
+    quote = _agreed_quote()
+    # 의도 지출은 합의 총액과 같게 둔다 — 다른 공격들과 달리 이 공격은 **금액도 정확히 맞는다.**
+    # (30 으로 두면 의도 상한이 먼저 걸려 정작 의미 대조가 검증되지 않는다.)
+    intent = AGREED_TOTAL
+
+    # [가드 없음 = 업계 기본값] 설명이 무엇이든 구매 에이전트는 그대로 서명한다.
+    env = _env(attacker)
+    required = _required(env, "ord_5eaa11c001", AGREED_BASE)
+    required.requirements.resource = SEMANTIC_TRAP
+    env["ta"].guard = None
+    submitted = env["ta"].build_payment(required, Hash.default(), quote)
+    tx = x.decode_payload(submitted.payment.serialized_transaction)
+    leaked_ok, _, _ = x.verify_payment(
+        tx, expected_mint=env["usdc"], expected_dest_owner=env["broker"].pubkey(),
+        expected_amount=AGREED_BASE, expected_order_id="ord_5eaa11c001")
+
+    # [하드 검사만] 6종 전부 통과한다 — 이 공격이 기존 게이트를 뚫는다는 증거.
+    env_hard = _env(attacker)                      # judge 없음 = 의미 대조 계층 없음
+    req_hard = _required(env_hard, "ord_5eaa11c002", AGREED_BASE)
+    req_hard.requirements.resource = SEMANTIC_TRAP
+    hard = env_hard["ta"].guard.check_demand(req_hard, quote, max_spend_usdc=intent,
+                                             expected_symbol="tAAPL")
+
+    # [402 Guard + 의미 대조] 서명 직전 차단
+    env2 = _env(attacker, judge=judge)
+    required2 = _required(env2, "ord_5eaa11c003", AGREED_BASE)
+    required2.requirements.resource = SEMANTIC_TRAP
+    code, where = _guarded(env2["ta"], required2, _agreed_quote(), max_spend_usdc=intent)
+    verdict = env2["ta"].guard.last_semantic
+    return {
+        "name": "상품 바꿔치기 - 설명만 다른 청구서",
+        "layer": "check_semantics (의미 대조)",
+        "without": (f"주문하지 않은 상품에 {AGREED_TOTAL} USDC 서명·전송"
+                    if leaked_ok else "재현 실패"),
+        # 검사 불가(GUARD_LLM_UNVERIFIED)도 결제를 막은 것은 맞다 — 다만 '판정으로 막았다'가
+        # 아니라 '판정을 못 해서 막았다'이므로 리포트에서 문구를 구분해 표시한다.
+        "code": code, "where": where,
+        "blocked": code in (GUARD_SEMANTIC_MISMATCH, GUARD_LLM_UNVERIFIED),
+        "blocked_by_policy": code == GUARD_LLM_UNVERIFIED,
+        "leak": AGREED_TOTAL if leaked_ok else Decimal(0),
+        "hard_checks_passed": hard.ok,          # 하드 검사 6종이 이 공격을 통과시켰는가
+        "judge": getattr(judge, "label", "판정자 없음"),
+        "verdict_reason": (verdict.reason if verdict else ""),
+        "description": SEMANTIC_TRAP,
+    }
 
 
 # ---------- 공격 ①' 매도 청구 위조 (check_stock_transfer — 매수 위조의 매도 대칭) ----------
@@ -307,9 +431,12 @@ async def attack_non_delivery(attacker: str):
 
 # ---------- 정상 거래(오탐 0) — 같은 실행 안에서 함께 태운다 ----------
 
-async def normal_trades(n: int = 14):
-    env = _env()
+async def normal_trades(n: int = 14, judge=None):
+    """정상 거래 n건. judge 를 주면 **의미 대조 계층까지 켠 채로** 돌려 오탐을 센다 —
+    새 계층의 오탐률이 0 이 아니면 제품이 못 쓰게 되므로, 차단 실적보다 이쪽이 더 중요하다."""
+    env = _env(judge=judge)
     false_pos = 0
+    unverified_hold = 0     # 판정 불가로 보류된 건 (오탐 아님 — 설계된 정책)
     settled = 0
     recheck_pass = 0
     for i in range(n):
@@ -320,8 +447,13 @@ async def normal_trades(n: int = 14):
             # 정직한 견적 + 의도 상한(spend) 을 함께 넘겨도 통과해야 정상(의도검사 오탐 0)
             submitted = env["ta"].build_payment(required, Hash.default(), quote,
                                                 max_spend_usdc=spend)
-        except GuardError:
-            false_pos += 1
+        except GuardError as e:
+            # '판정을 못 해서 보류'(쿼터 소진 등)는 오탐이 아니라 설계된 정책이다 —
+            # 오탐으로 세면 Gemini 가 죽은 날 우리 오탐률이 100% 로 보인다. 따로 센다.
+            if e.result.code == GUARD_LLM_UNVERIFIED:
+                unverified_hold += 1
+            else:
+                false_pos += 1
             continue
         completed = await env["bk"].settle(submitted=submitted, requirements=required.requirements,
                                            quantity=quote.quantity, live=False)
@@ -340,23 +472,30 @@ async def normal_trades(n: int = 14):
             recheck_pass += 1
         else:
             false_pos += 1
-    return {"n": n, "false_pos": false_pos, "settled": settled, "recheck_pass": recheck_pass}
+    sem = getattr(env["ta"].guard, "semantic", None)
+    return {"n": n, "false_pos": false_pos, "unverified_hold": unverified_hold,
+            "settled": settled, "recheck_pass": recheck_pass,
+            "semantic": sem.stats.as_dict() if sem is not None else None}
 
 
 def _fmt(v: Decimal) -> str:
     return f"{v:.2f}"
 
 
-async def main(attacker: str) -> int:
+async def main(attacker: str, live_llm: bool = False) -> int:
+    judge = (_live_judge() if live_llm else None) or _RecordedJudge()
+    judge_label = getattr(judge, "label", "판정자 없음")
     attacks = [
         attack_payee_swap(attacker),
         attack_amount_forge(attacker),
+        attack_product_swap(attacker, judge),
         await attack_double_bill(attacker),
         await attack_non_delivery(attacker),
         attack_stock_asset_swap(attacker),
         attack_stock_payee_swap(attacker),
     ]
-    normal = await normal_trades(14)
+    # 정상 거래도 의미 대조 계층을 켠 채로 돌린다 — 새 계층의 오탐이 0 인지가 핵심이다.
+    normal = await normal_trades(14, judge=judge)
 
     # 공격 계층 — ①청구 위조(매수)는 수취인/금액 두 변형, ①'는 그 매도 대칭(자산/수취인)
     # (표시 라벨, 방어 계층 성격)
@@ -370,8 +509,12 @@ async def main(attacker: str) -> int:
     #                  구매자 측 방어 실적으로 세면 우리 방어력을 부풀리게 되므로 따로 센다.
     #                  게다가 이 공격은 build_payment 로 서명이 이미 만들어진 뒤라
     #                  '서명 전 차단·트랜잭션 미생성' 이라는 설명이 이 행에는 맞지 않는다.
+    #   ①'' 는 prevent 이되 판정 주체가 사람이 쓴 코드가 아니라 **언어 모델**이다.
+    #        차단 시점(서명 전·트랜잭션 미생성)은 다른 prevent 행과 같지만, 판정의 성격이
+    #        결정론이 아니므로 아래에서 판정자와 그 근거 문장을 따로 밝힌다.
     labels = [("① 매수 청구 위조 (a) 수취인 스왑", "prevent"),
               ("① 매수 청구 위조 (b) 금액 부풀리기", "prevent"),
+              ("①'' 상품 바꿔치기 (설명만 다름)", "prevent"),
               ("② 이중청구", "counterparty"),
               ("③ 정산 미이행", "detect"),
               ("①' 매도 청구 위조 (a) 자산 스왑", "prevent"),
@@ -387,12 +530,22 @@ async def main(attacker: str) -> int:
             mark = "탐지(사후 — 자금은 이미 나감)" if a["blocked"] else "!! 미탐지 !!"
         elif stage == "counterparty":
             mark = "차단(판매자측 방어 — 구매자 Guard 아님)" if a["blocked"] else "!! 통과(유출) !!"
+        elif a.get("blocked_by_policy"):
+            mark = "차단(서명 전 — 판정 불가 시 매수 보류 정책)"
         else:
             mark = "차단(서명 전)" if a["blocked"] else "!! 통과(유출) !!"
         print(f"\n  {lab}   [계층: {a['layer']}]")
         print(f"    가드 없음(업계 기본값) : {a['without']}")
+        if "hard_checks_passed" in a:
+            # 이 공격의 핵심 — 기존 하드 검사 6종이 '전부 통과'시킨다는 사실을 같은 실행에서 보인다.
+            print(f"    하드 검사 6종         : "
+                  f"{'전부 통과 (기존 게이트로는 못 막는다)' if a['hard_checks_passed'] else '차단'}")
         print(f"    402 Guard             : {a['code']} — {mark}"
               + (f"  @ {a['where']}" if a.get("where") else ""))
+        if a.get("judge"):
+            print(f"    판정 주체             : {a['judge']}")
+            if a.get("verdict_reason"):
+                print(f"    판정 근거             : \"{a['verdict_reason']}\"")
         total_leak += a["leak"]
         all_blocked = all_blocked and a["blocked"]
 
@@ -418,10 +571,20 @@ async def main(attacker: str) -> int:
     print(f"  정산 후 탐지 {len(detected)}건           : {_fmt(unrecoverable)} USDC 는 이미 나간 뒤 —"
           f" 탐지·세션 정지만 가능(회수 경로 없음)")
     print(f"     └ 이번 실행은 live=False 시뮬레이션이라 실제 온체인 이동은 없다")
-    print(f"  온체인 재조회(check_delivery) : 미도착 탐지 {'PASS' if attacks[3]['blocked'] else 'FAIL'}"
-          f" · 정상 도착 통과 {'PASS' if attacks[3].get('onchain_recheck_ok') else 'FAIL'}")
+    # 인덱스 대신 키로 찾는다 — 공격을 추가·재배열할 때 조용히 엉뚱한 행을 보던 버그를 막는다.
+    delivery = next(a for a in attacks if "onchain_recheck_ok" in a)
+    print(f"  온체인 재조회(check_delivery) : 미도착 탐지 {'PASS' if delivery['blocked'] else 'FAIL'}"
+          f" · 정상 도착 통과 {'PASS' if delivery.get('onchain_recheck_ok') else 'FAIL'}")
     print(f"  정상 거래 {normal['n']}건(같은 실행)    : 오탐 {normal['false_pos']}건 · "
           f"정산 {normal['settled']}건 · 온체인 재조회 통과 {normal['recheck_pass']}건")
+    if normal.get("semantic"):
+        s = normal["semantic"]
+        print(f"  의미 대조(정상 {normal['n']}건)     : 대조 {s['checked']}건 · 통과 {s['passed']}건 ·"
+              f" 오차단 {s['blocked']}건 · 실제 LLM 호출 {s['llm_calls']}회(서식 캐시 {s['cache_hits']})")
+        if normal["unverified_hold"]:
+            print(f"     └ 판정 불가로 보류 {normal['unverified_hold']}건 — 오탐이 아니라 설계된 정책"
+                  f"(매수만 보류, 매도는 하드 검사로 진행)")
+        print(f"     └ 판정자 {judge_label} — 새 계층의 오탐이 0 이 아니면 제품을 못 쓴다")
     print(line)
 
     # 첫 화면 KPI — 계층을 합치지 않는다. 합치면 사후 탐지·판매자측 방어가 구매자
@@ -447,9 +610,11 @@ async def main(attacker: str) -> int:
         "unrecoverable_usdc": _fmt(unrecoverable),
         "without_guard_usdc": _fmt(total_leak),
         "normal": normal["n"], "false_positives": normal["false_pos"],
+        "semantic_judge": judge_label,
+        "semantic_llm_calls": (normal.get("semantic") or {}).get("llm_calls", 0),
     }, ensure_ascii=False, sort_keys=True))
 
-    ok = all_blocked and normal["false_pos"] == 0 and attacks[3].get("onchain_recheck_ok")
+    ok = all_blocked and normal["false_pos"] == 0 and delivery.get("onchain_recheck_ok")
     print("\n  " + (f"구매자 서명 전 공격 {len(prevented)}종 전부 차단(유출 {_fmt(prevent_leak)} USDC) · "
                     f"판매자측 {len(counterparty)}종 · 사후 미이행 {len(detected)}종 탐지 · 정상 거래 오탐 0."
                     if ok else "경고: 일부 공격이 차단되지 않았거나 오탐이 발생했습니다!"))
@@ -460,5 +625,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", action="store_true", help="공격/차단 매트릭스 출력(기본 동작)")
     ap.add_argument("--attacker", default="", help="악성 수취인 pubkey (심사위원 직접 입력)")
+    ap.add_argument("--live-llm", action="store_true",
+                    help="①'' 의미 대조를 실제 Gemini 로 판정 (GEMINI_API_KEY·쿼터 필요). "
+                         "기본은 실제 응답을 녹화해 재생하므로 오프라인에서 돈다.")
     args = ap.parse_args()
-    raise SystemExit(asyncio.run(main(args.attacker)))
+    raise SystemExit(asyncio.run(main(args.attacker, live_llm=args.live_llm)))
