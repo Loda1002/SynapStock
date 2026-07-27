@@ -209,6 +209,8 @@
   .invoice .row.flag .k { color: var(--crit); }
 
   /* ---------- checks ---------- */
+  /* 4열 — 칸이 10개(하드 8 + 의미 대조 + 정산 후 배송 검증)라 4/4/2 로 떨어진다.
+     단위 검사를 추가하기 전에는 9개여서 마지막 줄에 한 칸만 남아 있었다. */
   .checks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
   .check { background: var(--paper); padding: 4.5mm 4mm; }
   .check .n { font-family: var(--font-mono); font-size: 10px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; }
@@ -270,6 +272,13 @@
   @media print {
     :root { --k: 1; --ground: #ffffff; }
     body { background: #ffffff; }
+    /* 배경색을 인쇄에 강제한다. 이게 없으면 브라우저가 기본적으로 배경을 버리고,
+       사용자가 인쇄 대화상자에서 '배경 그래픽'을 체크해야만 색이 나온다.
+       이 덱은 의미의 절반이 배경색에 있다 — 파란 강조(.box.tint·.node.gate),
+       빨간 위험(.box.bad·.invoice .row.flag), 초록 방어(.box.ok), AI 검사 구분
+       (.check.gate-ai). 체크박스를 안 누른 심사위원에게는 그 구분이 전부 사라진
+       흑백 문서가 간다. 제출물 PDF 는 한 번 내면 되돌릴 수 없다. */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .toolbar { display: none; }
     .deck { padding: 0; gap: 0; display: block; }
     .frame { width: auto; height: auto; overflow: visible; }
