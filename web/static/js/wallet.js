@@ -29,6 +29,61 @@
     return (k && k.length > 12) ? k.slice(0, 4) + "…" + k.slice(-4) : (k || "");
   }
 
+  var B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+  function base58ToBytes(str) {
+    var bytes = [0];
+    for (var i = 0; i < str.length; i++) {
+      var v = B58.indexOf(str[i]);
+      if (v < 0) return null;                       // base58 이 아니다
+      for (var j = 0; j < bytes.length; j++) bytes[j] *= 58;
+      bytes[0] += v;
+      var carry = 0;
+      for (var k = 0; k < bytes.length; k++) {
+        bytes[k] += carry; carry = bytes[k] >> 8; bytes[k] &= 0xff;
+      }
+      while (carry) { bytes.push(carry & 0xff); carry >>= 8; }
+    }
+    for (var z = 0; z < str.length && str[z] === "1"; z++) bytes.push(0);
+    return new Uint8Array(bytes.reverse());
+  }
+
+  // 지갑이 돌려주는 서명을 64바이트로 정규화한다.
+  //
+  // 왜 필요한가: `signMessage` 의 반환 형태가 지갑마다 다르다. Phantom 은
+  // `{signature: Uint8Array}` 를 주지만, 어떤 지갑은 Uint8Array 를 그대로 주고, 어떤 지갑은
+  // base58/base64 문자열을 주며, 브리지(모바일 인앱 브라우저 등)를 거치면 JSON 직렬화 때문에
+  // `{0:12, 1:87, ...}` 같은 평범한 객체로 도착한다. 예전 코드는 `new Uint8Array(값)` 한 줄이라
+  // 앞의 둘만 통과하고 나머지는 **길이 0짜리 서명**을 만들어 서버에 보냈다. 그러면 사용자는
+  // "서명이 올바르지 않습니다"라는, 원인을 알 수 없는 401 만 보게 된다.
+  // 여기서 형태를 흡수하고, 그래도 64바이트가 아니면 무엇을 받았는지 말해 주는 오류를 던진다.
+  function toSignatureBytes(signed) {
+    var raw = (signed && signed.signature !== undefined) ? signed.signature : signed;
+    var out = null;
+    if (raw instanceof Uint8Array) out = raw;
+    else if (raw instanceof ArrayBuffer) out = new Uint8Array(raw);
+    else if (Array.isArray(raw)) out = new Uint8Array(raw);
+    else if (typeof raw === "string") {
+      out = base58ToBytes(raw);
+      if (!out || out.length !== 64) {
+        try { out = Uint8Array.from(atob(raw), function (c) { return c.charCodeAt(0); }); }
+        catch (e) { /* base64 도 아니다 */ }
+      }
+    } else if (raw && typeof raw === "object") {
+      var keys = Object.keys(raw).filter(function (k) { return /^\d+$/.test(k); });
+      if (keys.length) {
+        out = new Uint8Array(keys.length);
+        keys.forEach(function (k) { out[Number(k)] = raw[k]; });
+      }
+    }
+    if (!out || out.length !== 64) {
+      var got = (out ? out.length + "바이트" : typeof raw);
+      throw new Error("지갑이 돌려준 서명 형식을 해석하지 못했습니다 (받은 값: " + got +
+                      ", ed25519 서명은 64바이트여야 합니다). 지갑 종류와 이 메시지를 알려주세요.");
+    }
+    return out;
+  }
+
   async function postJSON(url, body) {
     var res = await fetch(url, {
       method: "POST",
@@ -67,13 +122,13 @@
     // 3) 그 문자열을 그대로 서명한다. 사용자는 Phantom 팝업에서 원문을 읽고 승인한다.
     var encoded = new TextEncoder().encode(ch.message);
     var signed = await provider.signMessage(encoded, "utf8");
-    var sigBytes = signed.signature || signed;   // provider 별 반환 형태 차이 흡수
+    var sigBytes = toSignatureBytes(signed);   // provider 별 반환 형태 차이 흡수 (위 주석)
 
     // 4) 서버가 원문 일치 + ed25519 서명을 검증하고 세션 쿠키를 심는다.
     await postJSON("/api/auth/verify", {
       pubkey: pubkey,
       message: ch.message,
-      signature: bytesToBase64(new Uint8Array(sigBytes)),
+      signature: bytesToBase64(sigBytes),
     });
     return pubkey;
   }
