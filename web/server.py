@@ -10,13 +10,15 @@ from contextlib import asynccontextmanager
 from decimal import Decimal, InvalidOperation
 
 import secrets as _secrets
+from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import CFG
+from web.auth import SESSION_COOKIE, AuthError, WalletAuth
 from web.broker_service import router as broker_router
 from web.engine import TradingEngine, EngineError
 from web.events import EventBus
@@ -27,6 +29,8 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 bus = EventBus()
 store = build_store()          # Firestore(FIRESTORE_ENABLED=1) 또는 no-op
 engine = TradingEngine(bus, store)
+# 지갑 연결 = 로그인. 체인 표기는 세션 네트워크를 따른다(Phantom 팝업에 그대로 보인다).
+wallet_auth = WalletAuth(chain_id=CFG.network.replace("solana-", "") or "devnet")
 
 
 def require_control(request: Request) -> None:
@@ -71,6 +75,14 @@ async def lifespan(_app: FastAPI):
             pass
 
 
+class StrictBody(BaseModel):
+    """요청 본문 공통 규칙 — 선언되지 않은 필드는 422 로 거부한다.
+
+    기본값(무시)이면 오타난 필드가 조용히 먹혀 "설정했는데 반영이 안 되는" 버그가 되고,
+    제거된 필드(예: feed.file)를 그대로 보내도 성공처럼 보인다. 둘 다 겪은 문제라 막는다."""
+    model_config = {"extra": "forbid"}
+
+
 app = FastAPI(title="402 Guard — 에이전트 지출 승인 게이트", version="0.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # 브로커 x402 자원 서버(G5) — POST /broker/orders · GET /.well-known/x402.
@@ -97,7 +109,7 @@ async def _revalidate_ui(request: Request, call_next):
     304 로 응답하므로 대역폭 이점은 유지된다. API·SSE 는 건드리지 않는다."""
     response = await call_next(request)
     path = request.url.path
-    if path in ("/", "/app", "/login") or path.startswith("/static/"):
+    if path in ("/", "/app", "/login", "/connect") or path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
 
@@ -120,11 +132,80 @@ async def dashboard() -> FileResponse:
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
+@app.get("/connect")
+async def connect_page() -> FileResponse:
+    """지갑 연결 페이지 = 이 제품의 로그인."""
+    return FileResponse(os.path.join(STATIC_DIR, "connect.html"))
+
+
 @app.get("/login")
 async def login() -> FileResponse:
-    # 로그인/회원가입 자리표시 페이지 — 실제 인증은 제출 후 로드맵.
-    # 대시보드 접근을 막지 않으므로 인증 의존성 없이 정적 파일만 서빙한다.
-    return FileResponse(os.path.join(STATIC_DIR, "login.html"))
+    """`/login` 도 지갑 연결로 보낸다.
+
+    이메일·비밀번호 자리표시 페이지(`static/login.html`)를 서빙하던 자리다. self-custody 를
+    주장하는 제품이 비밀번호를 보관하는 계정 체계를 함께 파는 것은 앞뒤가 안 맞고, 로그인
+    한 번 + 지갑 연결 한 번은 사용자가 같은 일을 두 번 하는 것이다. 지갑 서명이 곧 소유
+    증명이므로 그 한 단계로 합친다. 옛 페이지 파일은 지우지 않았고 `/static/login.html`
+    로 계속 열린다(프론트 작업자의 Phase 5 대상 파일이라 건드리지 않는다)."""
+    return FileResponse(os.path.join(STATIC_DIR, "connect.html"))
+
+
+# ---------- 지갑 로그인 (Phantom 등 Solana 지갑) ----------
+
+class ChallengeBody(StrictBody):
+    pubkey: str
+
+
+class VerifyBody(StrictBody):
+    pubkey: str
+    message: str
+    signature: str          # base64(64바이트 ed25519 서명)
+
+
+def _session_of(request: Request) -> Optional[dict]:
+    return wallet_auth.session(request.cookies.get(SESSION_COOKIE))
+
+
+@app.post("/api/auth/challenge")
+async def auth_challenge(body: ChallengeBody, request: Request):
+    """서명할 로그인 메시지를 발급한다. 클라이언트는 이 문자열을 그대로 지갑에 넘긴다."""
+    origin = str(request.base_url).rstrip("/")
+    try:
+        return wallet_auth.challenge(body.pubkey, domain=request.url.hostname or "402guard",
+                                     uri=origin)
+    except AuthError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/auth/verify")
+async def auth_verify(body: VerifyBody, request: Request, response: Response):
+    """지갑 서명을 검증하고 세션 쿠키를 심는다."""
+    try:
+        token = wallet_auth.verify(body.pubkey, body.message, body.signature)
+    except AuthError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    response.set_cookie(
+        SESSION_COOKIE, token,
+        httponly=True,                              # JS 가 못 읽는다(XSS 로 탈취 불가)
+        samesite="lax",
+        secure=(request.url.scheme == "https"),     # 로컬 http 개발에서도 동작하게
+        max_age=12 * 3600, path="/",
+    )
+    return {"ok": True, "pubkey": body.pubkey}
+
+
+@app.get("/api/auth/me")
+async def auth_me(request: Request):
+    """현재 연결된 지갑. 미연결이면 connected=false (401 이 아니다 — 데모는 열려 있다)."""
+    s = _session_of(request)
+    return {"connected": bool(s), "pubkey": (s or {}).get("pubkey", "")}
+
+
+@app.post("/api/auth/logout")
+async def auth_logout(request: Request, response: Response):
+    wallet_auth.logout(request.cookies.get(SESSION_COOKIE))
+    response.delete_cookie(SESSION_COOKIE, path="/")
+    return {"ok": True}
 
 
 # ---------- 조회 API ----------
@@ -180,14 +261,6 @@ async def history_briefings(limit: int = 10):
 
 
 # ---------- 컨트롤 API ----------
-
-class StrictBody(BaseModel):
-    """요청 본문 공통 규칙 — 선언되지 않은 필드는 422 로 거부한다.
-
-    기본값(무시)이면 오타난 필드가 조용히 먹혀 "설정했는데 반영이 안 되는" 버그가 되고,
-    제거된 필드(예: feed.file)를 그대로 보내도 성공처럼 보인다. 둘 다 겪은 문제라 막는다."""
-    model_config = {"extra": "forbid"}
-
 
 class StrategyBody(StrictBody):
     """B7 전략 선택 — condition(조건형) / dca(적립형: 주기마다 정액 매수)

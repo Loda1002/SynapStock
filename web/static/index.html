@@ -27,7 +27,9 @@
     <button class="btn btn-emergency" data-btn-pause>🛑 긴급정지</button>
     <button class="btn btn-resume hidden" data-btn-resume>▶ 매매 재개</button>
     <button class="btn" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림: 꺼짐</button>
-    <a class="btn" href="/login" title="계정 로그인·회원가입 (정식 출시 예정 — 현재 데모는 로그인 없이 이용)">로그인</a>
+    <!-- 지갑 연결 = 로그인. 서명은 소유 증명일 뿐이고 자금은 움직이지 않는다(web/auth.py). -->
+    <span class="badge" data-wallet-status title="지갑 미연결">미연결</span>
+    <button class="btn" type="button" data-wallet-connect>지갑 연결</button>
   </div>
 </header>
 
@@ -283,6 +285,7 @@
 <!-- A4 거래 알림 — 인앱 토스트 스택 (우하단) -->
 <div class="toasts" data-toasts aria-live="polite"></div>
 
+<script src="/static/js/wallet.js"></script>
 <script src="/static/js/app.js"></script>
 </body>
 </html>

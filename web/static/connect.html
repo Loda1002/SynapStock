@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>지갑 연결 — 402 Guard</title>
+<!-- 지갑 연결이 곧 로그인이다. 이메일·비밀번호 계정을 만들지 않는다.
+     self-custody 를 주장하는 제품이 비밀번호를 보관하는 계정 체계를 함께 파는 것은
+     앞뒤가 맞지 않고, "로그인 후 지갑 연결"은 사용자가 같은 일(소유 증명)을 두 번 하는 것이다.
+     대시보드와 같은 스킨(theme.css) + 골격(skeleton.css)을 쓰므로 시안 교체 시 함께 바뀐다. -->
+<link rel="stylesheet" href="/static/css/theme.css">
+<link rel="stylesheet" href="/static/css/skeleton.css">
+</head>
+<body>
+
+<main class="auth">
+  <section class="card auth-card">
+    <div class="brand auth-brand">
+      <h1>402 Guard</h1>
+      <p class="tagline">지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다</p>
+    </div>
+
+    <!-- 연결 전 -->
+    <div data-connect-idle>
+      <p class="auth-notice">
+        서명은 <strong>지갑 소유 증명</strong>일 뿐입니다. 자금이 이동하지 않고, 트랜잭션도
+        아닙니다. 거래 권한은 이후 <strong>AP2 위임장</strong>이 정한 한도 안에서만 열립니다.
+      </p>
+      <button class="btn auth-submit" type="button" data-connect-btn>Phantom 으로 연결</button>
+      <p class="sub auth-result hidden" data-connect-msg aria-live="polite"></p>
+      <p class="sub" data-no-provider hidden>
+        지갑이 감지되지 않았습니다 —
+        <a href="https://phantom.com/download" target="_blank" rel="noopener">Phantom 설치</a>
+        후 이 페이지를 새로고침해 주세요.
+      </p>
+    </div>
+
+    <!-- 연결 후 -->
+    <div data-connect-done hidden>
+      <p class="auth-notice">
+        ✅ 연결됨 — 이 지갑이 이번 세션의 <strong>위임자</strong>로 기록됩니다.
+      </p>
+      <p class="big"><code data-connect-address>—</code></p>
+      <a class="btn auth-submit" href="/app">대시보드로 이동 →</a>
+      <button class="btn" type="button" data-disconnect-btn>연결 해제</button>
+    </div>
+
+    <p class="sub auth-back">
+      <a href="/app">← 연결 없이 데모 둘러보기</a> · <a href="/">소개 페이지</a>
+    </p>
+  </section>
+</main>
+
+<script src="/static/js/wallet.js"></script>
+<script>
+// 연결 페이지 전용 배선 — 공용 흐름은 wallet.js 의 Wallet402 가 담당한다.
+(function () {
+  var W = window.Wallet402;
+  var idle = document.querySelector("[data-connect-idle]");
+  var done = document.querySelector("[data-connect-done]");
+  var btn = document.querySelector("[data-connect-btn]");
+  var off = document.querySelector("[data-disconnect-btn]");
+  var msg = document.querySelector("[data-connect-msg]");
+  var addr = document.querySelector("[data-connect-address]");
+  var noProvider = document.querySelector("[data-no-provider]");
+
+  function show(pubkey) {
+    var on = !!pubkey;
+    idle.hidden = on;
+    done.hidden = !on;
+    if (on) addr.textContent = pubkey;
+  }
+
+  function say(text, bad) {
+    msg.textContent = text;
+    msg.classList.remove("hidden");
+    msg.classList.toggle("neg", !!bad);
+  }
+
+  if (!W.getProvider()) noProvider.hidden = false;
+
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    say("지갑에서 서명을 승인해 주세요…", false);
+    try {
+      show(await W.connect());
+    } catch (err) {
+      if (W.isUserRejection(err)) {
+        say("서명이 취소되었습니다. 다시 시도하실 수 있습니다.", false);
+      } else {
+        say(err.message, true);
+        if (err.code === "NO_PROVIDER") noProvider.hidden = false;
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  off.addEventListener("click", async function () {
+    off.disabled = true;
+    try { await W.logout(); show(""); msg.classList.add("hidden"); }
+    finally { off.disabled = false; }
+  });
+
+  // 이미 연결된 세션이면 곧바로 연결 후 화면으로.
+  W.me().then(function (s) { show(s.connected ? s.pubkey : ""); }).catch(function () { show(""); });
+})();
+</script>
+</body>
+</html>
