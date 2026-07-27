@@ -105,6 +105,18 @@ input[type="number"], input[type="text"], input[type="time"] {
 .kpi-hero .kpi-num { color: var(--ok); }          /* 유출 0.00 = 정상(녹색) */
 .kpi-hero .kpi-num.neg { color: var(--danger); }  /* 유출 발생 시 경고(빨강) */
 
+/* ---- AI 카드 — 두 레이어를 나란히 두어 '같은 원리가 두 곳에 적용됐다'를 배치로 보인다 ---- */
+.ai-brain { margin-bottom: 12px; }
+.ai-layers { display: flex; flex-wrap: wrap; gap: var(--gap); }
+.ai-layer {
+  flex: 1 1 300px; border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 6px); padding: 12px;
+}
+.ai-layer h3 { font-size: var(--fs-base); margin: 0 0 10px; }
+.ai-layer h3 .sub { display: inline; margin-left: 6px; font-weight: 400; }
+.ai-layer .kpi-num { font-size: calc(var(--fs-big) * 0.72); }
+.ai-sources { margin-top: 8px; }
+
 /* ---- 시세 카드 (메인) + SVG 캔들차트 ----
    외부 차트 라이브러리 없이 직접 그린다(데모데이 오프라인 폴백 원칙). */
 .price-head {
@@ -169,6 +181,10 @@ input[type="number"], input[type="text"], input[type="time"] {
 .src-gemini { background: var(--badge-gemini); }
 .src-rule { background: var(--badge-rule); }
 .src-rule-fallback { background: var(--badge-fallback); }
+/* rule-gate = AI 가 규칙 밖 개시를 시도해 코드가 보류로 강등한 판단.
+   백엔드 source 값과 클래스 접미사는 1:1 계약인데 이 하나만 CSS 가 없어
+   흰 글자에 배경 없이 렌더돼 화면에서 보이지 않았다(app.js 가 "src src-" + source 로 조립). */
+.src-rule-gate { background: var(--badge-gate, var(--warn)); }
 .src-dca { background: var(--badge-dca); }
 .feed .act { font-weight: 700; margin-right: 4px; }
 .act-buy { color: var(--buy); }

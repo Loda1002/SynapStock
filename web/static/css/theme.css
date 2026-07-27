@@ -36,6 +36,7 @@
   --badge-rule: #6b7688;
   --badge-fallback: #d97706;
   --badge-dca: #0f7ea8;
+  --badge-gate: #b4356b;   /* rule-gate — AI 개시를 코드가 되돌린 판단 */
 
   /* 차트 이동평균선 (1/5/10/20/50 표시 — 100/200일선은 판단용으로만 계산) */
   --ma1: #0e9aa7;
@@ -79,6 +80,7 @@
     --badge-rule: #7d8590;
     --badge-fallback: #f0b429;
     --badge-dca: #2fa8d5;
+    --badge-gate: #e0568f;
 
     --ma1: #43c6d1;
     --ma10: #b98af0;

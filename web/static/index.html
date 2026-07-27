@@ -60,6 +60,54 @@
       </div>
     </div>
   </section>
+  <!-- AI 두 레이어 — 데이터 출처: GET /api/state 의 state.ai.
+       이 제품에서 AI 재량은 '멈추는 방향으로만' 열려 있다. 그 원칙이 두 곳에 같은 모양으로
+       적용된다: 판단 레이어(규칙 게이트)와 청구서 레이어(의미 대조). 둘 다 AI 는 차단만 하고
+       통과시키지 못한다. 이 카드는 그 두 레이어가 이번 세션에서 실제로 몇 번 일했는지 보여준다. -->
+  <section class="card card-full" data-card="ai">
+    <h2>AI 판단 · 청구서 심사 <span class="sub">AI 재량은 멈추는 방향으로만 — 통과 권한은 없다</span></h2>
+    <p class="sub ai-brain">두뇌 <strong data-ai-brain>—</strong></p>
+
+    <div class="ai-layers">
+      <div class="ai-layer">
+        <h3>① 판단 레이어 <span class="sub">무엇을 살지</span></h3>
+        <div class="kpi-row">
+          <div class="kpi">
+            <p class="kpi-num"><span data-ai-share>0</span><span class="unit">%</span></p>
+            <p class="sub">Gemini 가 판단한 비율</p>
+          </div>
+          <div class="kpi">
+            <p class="kpi-num"><span data-ai-gated>0</span></p>
+            <p class="sub">규칙 게이트가 되돌린 AI 개시</p>
+          </div>
+          <div class="kpi">
+            <p class="kpi-num"><span data-ai-fallbacks>0</span></p>
+            <p class="sub">호출 실패 → 규칙 대체</p>
+          </div>
+        </div>
+        <p class="sub ai-sources" data-ai-sources>판단 출처: —</p>
+      </div>
+
+      <div class="ai-layer">
+        <h3>② 청구서 레이어 <span class="sub">받은 청구서가 그 물건인지</span></h3>
+        <div class="kpi-row">
+          <div class="kpi">
+            <p class="kpi-num"><span data-ai-sem-checked>0</span></p>
+            <p class="sub">의미 대조한 청구서</p>
+          </div>
+          <div class="kpi kpi-hero">
+            <p class="kpi-num"><span data-ai-sem-blocked>0</span></p>
+            <p class="sub">설명이 달라 차단</p>
+          </div>
+          <div class="kpi">
+            <p class="kpi-num"><span data-ai-sem-unverified>0</span></p>
+            <p class="sub">검증 불가로 매수 보류</p>
+          </div>
+        </div>
+        <p class="sub" data-ai-sem-note>—</p>
+      </div>
+    </div>
+  </section>
   <section class="card card-full" data-card="price">
     <div class="price-head">
       <div>
@@ -227,6 +275,7 @@
       <span class="sub">판단 출처: <span class="src src-gemini">gemini</span> AI 판단 ·
         <span class="src src-rule">rule</span> 규칙 ·
         <span class="src src-rule-fallback">rule-fallback</span> Gemini 실패 시 규칙 대체 ·
+        <span class="src src-rule-gate">rule-gate</span> 규칙 밖 개시를 코드가 되돌림 ·
         <span class="src src-dca">dca</span> 적립식 스케줄 매수</span></h2>
     <ol class="feed" data-decision-feed></ol>
   </section>

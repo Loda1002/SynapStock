@@ -16,6 +16,15 @@
     guardBlocked: $("[data-guard-blocked]"),
     guardAp2: $("[data-guard-ap2]"),
     guardLeak: $("[data-guard-leak]"),
+    aiBrain: $("[data-ai-brain]"),
+    aiShare: $("[data-ai-share]"),
+    aiGated: $("[data-ai-gated]"),
+    aiFallbacks: $("[data-ai-fallbacks]"),
+    aiSources: $("[data-ai-sources]"),
+    aiSemChecked: $("[data-ai-sem-checked]"),
+    aiSemBlocked: $("[data-ai-sem-blocked]"),
+    aiSemUnverified: $("[data-ai-sem-unverified]"),
+    aiSemNote: $("[data-ai-sem-note]"),
     modeSelect: $("[data-mode-select]"),
     feedSelect: $("[data-feed-select]"),
     feedDataset: $("[data-feed-dataset]"),
@@ -152,6 +161,47 @@
     el.cash.textContent = v.cash_usdc;
     el.onchainRow.classList.toggle("hidden", !v.onchain_usdc);
     if (v.onchain_usdc) el.onchainUsdc.textContent = v.onchain_usdc;
+  }
+
+  /* ---------- AI 두 레이어 (state.ai) ----------
+     이 카드가 말하는 것은 "AI 가 얼마나 똑똑한가"가 아니라 "AI 재량이 어디까지 열려 있는가"다.
+     ①판단 레이어의 rule-gate 와 ②청구서 레이어의 의미 대조는 같은 원리로 만들어졌다 —
+     둘 다 AI 는 **차단만** 할 수 있고 통과시킬 수는 없다. 숫자가 0 이어도 의미가 있다:
+     '이번 세션에는 되돌릴 일이 없었다'는 뜻이지 계층이 없다는 뜻이 아니다. */
+  const SOURCE_LABEL = {
+    gemini: "Gemini 판단", "rule-gate": "규칙 게이트가 되돌림",
+    "rule-fallback": "규칙 대체(호출 실패)", rule: "규칙", dca: "적립 스케줄",
+  };
+
+  function renderAi(ai) {
+    if (!ai || !el.aiBrain) return;
+    el.aiBrain.textContent = ai.brain || "—";
+    el.aiShare.textContent = Math.round(num(ai.gemini_share_pct));
+    el.aiGated.textContent = ai.gemini_gated;
+    el.aiFallbacks.textContent = ai.rule_fallbacks;
+
+    const parts = Object.entries(ai.by_source || {})
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${SOURCE_LABEL[k] || k} ${v}`);
+    el.aiSources.textContent = parts.length
+      ? `판단 ${ai.decisions_total}건 — ` + parts.join(" · ")
+      : "판단 출처: 아직 없음";
+
+    const sem = ai.invoice_semantics || {};
+    el.aiSemChecked.textContent = sem.checked || 0;
+    el.aiSemBlocked.textContent = sem.blocked || 0;
+    el.aiSemUnverified.textContent = sem.unverified_blocked || 0;
+    el.aiSemBlocked.classList.toggle("neg", (sem.blocked || 0) > 0);
+
+    if (!sem.enabled) {
+      el.aiSemNote.textContent =
+        "이 세션은 판단 두뇌가 없어 의미 대조 계층이 붙지 않았습니다 (하드 검사 6종만 작동).";
+    } else {
+      el.aiSemNote.textContent =
+        `실제 LLM 호출 ${sem.llm_calls || 0}회 · 서식 캐시 적중 ${sem.cache_hits || 0}회` +
+        (sem.unverified_skipped ? ` · 매도 ${sem.unverified_skipped}건은 검증 불가라 하드 검사만으로 진행` : "") +
+        " — 하드 검사 6종을 전부 통과한 청구서만 이 검사를 받습니다.";
+    }
   }
 
   function valuationAtPrice(price) {
@@ -332,6 +382,8 @@
       el.guardLeak.textContent = leak.toFixed(2);
       el.guardLeak.classList.toggle("neg", leak > 0);  // 유출 발생 시에만 빨강(기본 녹색)
     }
+
+    renderAi(s.ai);
 
     if (s.wallets.trading) el.walletTrading.textContent = shortKey(s.wallets.trading);
     if (s.wallets.broker) el.walletBroker.textContent = shortKey(s.wallets.broker);
@@ -776,6 +828,38 @@
         addLog(evt.ts, `[AP2 거부] ${d.order_id} — ${d.reason}`, "log-danger");
         notify(evt, "AP2 거부", d.reason, "danger");
         break;
+      // 402 Guard 계열 — 이 제품의 주인공이다. 예전에는 이 세 이벤트에 로그 처리가
+      // 아예 없어서, 가드가 실제로 차단해도 활동 로그에는 한 줄도 남지 않았다.
+      case "guard_blocked":
+        addLog(evt.ts,
+          `[402 Guard 차단] (${d.side === "sell" ? "매도" : "매수"}) ${d.order_id} — ` +
+          `${d.code}: ${d.detail}` +
+          (d.expected ? ` · 기대 ${d.expected} / 실제 ${d.actual}` : "") +
+          (d.where ? ` @ ${d.where}` : "") + " · 서명 미생성(유출 0)",
+          "log-danger");
+        notify(evt, "402 Guard 차단", `${d.code} — ${d.detail}`, "danger");
+        fetchState();
+        break;
+      case "guard_pending":
+        addLog(evt.ts,
+          `[402 Guard 보류] ${d.order_id || ""} — ${d.code || ""}: ${d.detail || ""}` +
+          " · 정산 후 확인 실패라 세션을 멈춥니다(회수 경로 없음)", "log-danger");
+        notify(evt, "402 Guard 보류", d.detail || "정산 후 확인 실패", "danger");
+        fetchState();
+        break;
+      case "guard_semantic":
+        // 차단 건은 바로 위 guard_blocked 가 이미 자세히 남기므로 여기서는 중복을 피한다.
+        // 통과·검증불가만 조용히 기록한다 — '이 계층이 평소에도 일하고 있다'가 보여야 한다.
+        if (d.ok) {
+          addLog(evt.ts,
+            d.verdict === "unverified"
+              ? `[의미 대조] ${d.order_id} — 검증 불가라 하드 검사만으로 진행(매도) · ${d.reason}`
+              : `[의미 대조] ${d.order_id} — 청구서가 주문과 같은 물건 확인` +
+                (d.verdict === "cached" ? "(같은 서식 재사용)" : "") +
+                (d.reason ? ` · "${d.reason}"` : ""),
+            "log-muted");
+        }
+        break;
       case "mandate_updated":
         addLog(evt.ts, `[AP2 한도 변경] 예산 ${d.old.budget_total_usdc}→${d.new.budget_total_usdc} · 건별 ${d.old.per_trade_max_usdc}→${d.new.per_trade_max_usdc} USDC (${d.applied === "immediate" ? "재서명·즉시 적용" : "다음 세션부터 적용"} · 주체: ${d.actor})`, "log-ok");
         fetchState();
@@ -977,11 +1061,12 @@
      디자인 시안의 배치가 어떻게 오든 이 배열만 바꾸면 기본 배치가 바뀐다.
      사용자는 카드 제목(h2)을 끌어 재배치할 수 있고 localStorage 에 저장된다.
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
-  const LAYOUT_KEY = "autotrader_layout_v3";  // v3: 시안 그룹 순서로 재배열 — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v4";  // v4: AI 카드 신설 — 기존 저장 배치 리셋
   // 시안(dashboard_mockup.png) 섹션 흐름: 가드 KPI → (컨트롤) → 오늘의 결과 →
   // AI 판단 근거 → 거래 내역 → 한도/브리핑. 세션·멀티종목 컨트롤은 시안에 없지만
   // 데모에 필수라 가드 바로 뒤에 유지(symbols 는 멀티일 때만 표시).
-  const DEFAULT_LAYOUT = ["guard", "session", "symbols", "pnl", "valuation", "position",
+  // ai 카드는 가드 바로 다음 — "돈이 새지 않았다" 다음에 "그걸 누가 어떻게 막았나"가 온다.
+  const DEFAULT_LAYOUT = ["guard", "ai", "session", "symbols", "pnl", "valuation", "position",
                           "price", "decisions", "trades", "log", "budget", "mandate", "briefing"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
