@@ -98,7 +98,9 @@ def print_snapshot(snap: dict, symbol: str) -> None:
 
 async def main(live: bool, ticks: int, use_gemini: bool = True,
                replay: str = "", date_from: str = "", date_to: str = "") -> None:
-    print(f"\n=== AutoTrader Agent 데모  (모드: {'LIVE ' + CFG.network if live else 'DRY-RUN'}) ===")
+    # 제품명은 402 Guard 다(2026-07-24 재포지셔닝). 심사위원이 README 대표 명령을 실행했을 때
+    # 터미널 첫 줄에 옛 이름이 뜨면 제출물과 실물이 다른 제품처럼 읽힌다.
+    print(f"\n=== 402 Guard 데모  (모드: {'LIVE ' + CFG.network if live else 'DRY-RUN'}) ===")
 
     # --- 지갑 (user=위임자 / trading=구매 에이전트 / broker=판매) ---
     wd = CFG.wallet_dir
@@ -125,7 +127,13 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
     print(f"판단 모듈   : {brain_label}")
 
     usdc_mint = Pubkey.from_string(CFG.usdc_mint)
-    stock_mint = Pubkey.from_string(CFG.stock_mint) if CFG.stock_mint else None
+    # 드라이런은 온체인 전송이 없으므로 STOCK_MINT 가 없어도 매도 레그가 동작해야 한다.
+    # 이게 없으면 저장소를 갓 clone 한 사람(=.env 없음, 심사위원의 기본 상태)이 README 의
+    # 대표 명령을 그대로 쳤을 때 매도 견적 단계에서 ValueError 트레이스백을 본다.
+    # 웹 엔진은 이미 같은 처리를 한다(web/engine.py DRY_STOCK_MINT). 라이브는 아래에서
+    # stock_mint is None 으로 fail-fast 하므로 이 자리표시 값이 체인에 닿는 경로는 없다.
+    stock_mint = (Pubkey.from_string(CFG.stock_mint) if CFG.stock_mint
+                  else (None if live else Pubkey.default()))
     symbol = CFG.stock_symbol
 
     # --- AP2 Open Payment Mandate (사용자가 한도 설정, 서명) ---
@@ -418,7 +426,9 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="클러스터에 실제 브로드캐스트")
-    ap.add_argument("--ticks", type=int, default=4, help="시세 틱 수")
+    # 기본 12틱 — 목 시세 패턴은 매수·매도 1사이클에 최소 9틱이 필요하다(위 안내 문구와 동일).
+    # 기본값이 4 였을 때 README 대표 명령은 "아무 거래도 일어나지 않고 끝나는" 데모였다.
+    ap.add_argument("--ticks", type=int, default=12, help="시세 틱 수 (목 시세는 1사이클에 최소 9)")
     ap.add_argument("--no-gemini", action="store_true", help="Gemini 없이 규칙 기반으로만 판단")
     ap.add_argument("--replay", default="", metavar="SYMBOL",
                     help="실데이터 재생 (예: AAPL) — data/market/{SYMBOL}_daily.csv, MA5/지표 규칙 매매")

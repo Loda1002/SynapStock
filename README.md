@@ -131,8 +131,10 @@ pip install -r requirements.txt
 python run_demo.py
 ```
 
-드라이런은 두 에이전트의 협의, AP2 한도 승인, 서명된 결제 트랜잭션 생성과 검증을 모두
-실제로 수행한다. 온체인 전송만 생략한다(`--ticks N` 으로 틱 수 조절).
+`.env` 도 지갑도 없는 상태에서 그대로 동작한다(방금 clone 한 상태 그대로). 기본 12틱 안에서
+**매수 2회 → 익절 매도 1회**가 일어나고, 두 에이전트의 협의(A2A), AP2 한도 승인, 402 Guard 의
+청구서 대조, 서명된 결제 트랜잭션 생성·검증까지 모두 실제로 수행한다. 온체인 전송만 생략한다
+(`--ticks N` 으로 틱 수 조절 — 목 시세는 매수·매도 1사이클에 최소 9틱이 필요하다).
 
 ### 30초 안에 방어를 직접 확인하기 — 레드팀
 
@@ -237,7 +239,7 @@ solana-test-validator --reset          # 터미널 1 (WSL)
 python scripts/setup_devnet.py         # 지갑(secrets/) + 민트 + 잔액 준비 + .env 기록
 python run_demo.py --live --replay AAPL --from 2026-06-01 --to 2026-07-22
        # 실데이터 재생으로 매수→매도 풀사이클 브로드캐스트 + 잔액 교차검증 + 아카이브
-python run_demo.py --live               # 목 시세(구조 데모) — 현 MA5 규칙에선 거래 미발생
+python run_demo.py --live               # 목 시세(구조 데모) — 기본 12틱에서 매수 2·매도 1
 python scripts/demo_rejections.py      # 거부 4종 데모 (네트워크 불필요)
 ```
 
