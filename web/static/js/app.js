@@ -661,7 +661,7 @@
     if (document.hidden) {
       // 백그라운드 탭 — 브라우저 알림 (켜져 있을 때)
       if (notifyEnabled()) {
-        const n = new Notification("AutoTrader — " + title, { body });
+        const n = new Notification("402 Guard — " + title, { body });
         n.onclick = () => { window.focus(); n.close(); };
       }
     } else {

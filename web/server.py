@@ -71,7 +71,7 @@ async def lifespan(_app: FastAPI):
             pass
 
 
-app = FastAPI(title="AutoTrader Agent Dashboard", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="402 Guard — 에이전트 지출 승인 게이트", version="0.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # 브로커 x402 자원 서버(G5) — POST /broker/orders · GET /.well-known/x402.
 # 로컬 시연은 별도 프로세스(python -m web.broker_service --port 8402)로 띄우지만,
@@ -82,7 +82,20 @@ app.include_router(broker_router)
 
 
 @app.get("/")
-async def index() -> FileResponse:
+async def landing() -> FileResponse:
+    """첫 화면 = 소개(랜딩) 페이지.
+
+    예전에는 여기서 곧바로 대시보드를 서빙했다. 처음 들어온 사람(심사위원 포함)이
+    제품 설명 없이 조작 화면부터 마주치면 "무엇을 하는 서비스인지"를 스스로 추론해야 한다.
+    랜딩을 앞에 두고 대시보드는 /app 으로 옮긴다(docs/frontend_backend_split.md §2.1 표).
+    """
+    return FileResponse(os.path.join(STATIC_DIR, "landing.html"))
+
+
+@app.get("/app")
+async def dashboard() -> FileResponse:
+    """대시보드(운영 화면). 예전 경로 `/static/index.html` 도 StaticFiles 로 계속 열린다 —
+    랜딩의 '데모 대시보드 보기' 링크가 그 경로를 쓰고 있어 깨지지 않는다."""
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
@@ -307,7 +320,7 @@ def main() -> None:
     import uvicorn
     # 포트 우선순위: --port 인자 > PORT 환경변수(Cloud Run 관례) > .env WEB_PORT
     default_port = int(os.environ.get("PORT", CFG.web_port))
-    ap = argparse.ArgumentParser(description="AutoTrader 대시보드 서버")
+    ap = argparse.ArgumentParser(description="402 Guard 대시보드 서버")
     ap.add_argument("--port", type=int, default=default_port,
                     help=f"포트 (기본 {default_port}) — 8000 점유 시 --port 8010 등")
     args = ap.parse_args()
