@@ -306,7 +306,7 @@ async def test_engine_over_http() -> None:
 
     _reset_service()
     engine = TradingEngine(EventBus(), BaseStore())
-    await engine.start("dry", {"type": "condition"},
+    await engine.start("dry", {"type": "condition", "brain": "rule"},
                        {"type": "replay", "dataset": "daily", "symbol": SYMBOL},
                        autostart=False)
     check("기본(미설정)에서는 인프로세스 경로", engine._broker_http is None)

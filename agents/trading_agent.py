@@ -492,6 +492,12 @@ class TradingAgent:
         if self.guard is not None and quote is not None:
             self.guard.assert_demand(required, quote, max_spend_usdc=max_spend_usdc,
                                      expected_symbol=expected_symbol)
+            # 하드 검사가 '전부 통과한 뒤에만' 의미 대조가 돈다 — 값은 다 맞는데 물건만 다른
+            # 청구서를 잡는 마지막 한 칸. LLM 은 차단만 가능하고 통과 권한이 없다
+            # (payments/invoice_semantics.py 모듈 독스트링). 검사 불가면 매수는 이 건을 보류한다.
+            self.guard.assert_semantics(
+                required, leg="buy", symbol=quote.symbol, quantity=quote.quantity,
+                price_usdc=quote.price_usdc, total_usdc=quote.total_usdc)
 
         # AP2 한도 검사 (초과·미허용 자산 시 MandateError → 결제 자체가 일어나지 않음).
         # asset 을 넘겨 allowed_asset 를 실제로 검증하게 한다(결함 C).
@@ -526,6 +532,7 @@ class TradingAgent:
         expected_quantity: Optional[Decimal] = None,
         stock_decimals: Optional[int] = None,
         expected_symbol: Optional[str] = None,
+        quote=None,
     ) -> PaymentSubmitted:
         reqs = required.requirements
 
@@ -539,6 +546,12 @@ class TradingAgent:
                 required, expected_stock_mint=expected_stock_mint,
                 expected_quantity=expected_quantity, stock_decimals=stock_decimals,
                 expected_symbol=expected_symbol)
+            # 의미 대조 — 매수와 같은 계층(하드 검사 통과 후에만). 다만 검사 불가일 때
+            # 매수는 차단하고 매도는 진행한다: 못 사는 것은 기회비용, 못 파는 것은 실손실이다.
+            if quote is not None:
+                self.guard.assert_semantics(
+                    required, leg="sell", symbol=quote.symbol, quantity=quote.quantity,
+                    price_usdc=quote.price_usdc, total_usdc=quote.total_usdc)
 
         memo = f"{x.MEMO_PREFIX}:{required.order_id}:{(self.auth.open.signature or '')[:8]}"
         tx = x.build_transfer_transaction(

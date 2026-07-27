@@ -26,6 +26,7 @@ X402_COMPLETED = "x402_completed"
 TRADE = "trade"                      # A5 체결 요약 (거래 테이블 행)
 MANDATE_REJECTED = "mandate_rejected"  # AP2 거부
 GUARD_BLOCKED = "guard_blocked"      # 402 Guard check_demand 차단 (서명 전 유출 0)
+GUARD_SEMANTIC = "guard_semantic"    # 청구서 의미 대조(LLM) 판정 — 통과·차단·검사불가 전부 기록
 GUARD_PENDING = "guard_pending"      # check_delivery 미확인 → pending_delivery 보류(세션 정지)
 MANDATE_UPDATED = "mandate_updated"  # A3 한도 변경 (재서명, 변경 이력)
 TRADING_PAUSED = "trading_paused"    # A2 긴급정지 (actor: human / risk-guard)

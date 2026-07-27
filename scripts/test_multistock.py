@@ -44,7 +44,7 @@ def _engine() -> TradingEngine:
 
 async def _start(engine: TradingEngine, symbols, dataset="daily", strategy=None, mode="dry"):
     feed = {"type": "replay", "dataset": dataset, "symbols": symbols}
-    await engine.start(mode, strategy or {"type": "condition"}, feed, autostart=False)
+    await engine.start(mode, strategy or {"type": "condition", "brain": "rule"}, feed, autostart=False)
 
 
 async def _step_until_done(engine: TradingEngine, cap: int = 400) -> int:
@@ -198,7 +198,7 @@ async def test_multi_guards() -> None:
     e3 = _engine()
     bad = False
     try:
-        await e3.start("dry", {"type": "condition"},
+        await e3.start("dry", {"type": "condition", "brain": "rule"},
                        {"type": "replay", "symbols": ["AAPL", "../etc"]}, autostart=False)
     except EngineError:
         bad = True
@@ -208,7 +208,7 @@ async def test_multi_guards() -> None:
     e4 = _engine()
     mock_bad = False
     try:
-        await e4.start("dry", {"type": "condition"},
+        await e4.start("dry", {"type": "condition", "brain": "rule"},
                        {"type": "mock", "symbols": ["AAPL", "TSLA"]}, autostart=False)
     except EngineError:
         mock_bad = True

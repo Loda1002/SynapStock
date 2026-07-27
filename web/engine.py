@@ -29,6 +29,7 @@ from market.price_feed import Bar, IntradayReplayFeed, MockPriceFeed, PriceFeed,
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from payments.guard import Guard, GuardError
+from payments.invoice_semantics import InvoiceSemanticChecker
 from payments.x402_http import optional_client
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy, Decision
@@ -497,7 +498,11 @@ class TradingEngine:
             broker_kp, usdc_mint, CFG.usdc_decimals, stock_mint, CFG.stock_decimals, CFG.network,
             fee_bps=CFG.broker_fee_bps)
         # 402 Guard — 신뢰 수취인은 A2A 협의를 마친 브로커뿐. 전 종목 에이전트가 공유한다.
-        guard = Guard(mandate, [str(broker_kp.pubkey())], CFG.usdc_decimals)
+        # 두뇌가 있으면 의미 대조 계층(두 번째 AI 레이어)을 함께 붙인다. 두뇌가 없으면
+        # (brain=rule·추세추종·적립식) 계층 자체가 없어 하드 검사만 돈다 — 그래야 AI 없는
+        # 세션에서 '검사 불가 = 매수 차단' 정책이 제품을 멈추는 일이 생기지 않는다.
+        semantic = InvoiceSemanticChecker(brain) if brain is not None else None
+        guard = Guard(mandate, [str(broker_kp.pubkey())], CFG.usdc_decimals, semantic=semantic)
 
         # 1회 매수 금액은 종목 수로 나눈다 — 한 종목이 예산을 독식하지 않게(검증 포트폴리오와 동형).
         # 단일(N=1)이면 나눗셈이 항등이라 기존 동작 그대로. 적립형 회당 금액도 동일하게 분할한다.
@@ -827,7 +832,11 @@ class TradingEngine:
           rule-gate     — Gemini 가 규칙 밖 개시를 시도해 규칙 게이트가 보류로 강등
           rule-fallback — Gemini 호출 실패(쿼터·네트워크) → 규칙 판단으로 대체
           rule / dca    — 애초에 AI 를 부르지 않는 결정론 경로(추세추종·적립·워밍업)
-        gemini_calls = 앞 세 개의 합 = 실제로 Gemini API 를 부른 틱 수."""
+        gemini_calls = 앞 세 개의 합 = 실제로 Gemini API 를 부른 틱 수.
+
+        invoice_semantics 블록은 **두 번째 AI 레이어**다(판단이 아니라 청구서 심사).
+        판단 레이어의 rule-gate 와 같은 원리로 LLM 에 거부권만 준다 —
+        상세는 payments/invoice_semantics.py 모듈 독스트링."""
         by_source = dict(self.source_counts)
         used = by_source.get("gemini", 0)
         gated = by_source.get("rule-gate", 0)
@@ -850,7 +859,41 @@ class TradingEngine:
             "rule_fallbacks": fallbacks,
             "gemini_share_pct": str(share),
             "trades_by_decision_source": by_trade,
+            "invoice_semantics": self._semantic_stats(),
         }
+
+    def replace_brain(self, brain) -> None:
+        """세션의 판단 두뇌를 통째로 교체한다 (테스트에서 가짜 두뇌를 꽂을 때).
+
+        같은 인스턴스가 **두 곳**에 물려 있다 — 종목별 TradingAgent(판단)와 Guard 의 의미
+        대조기(청구서 심사). 한쪽만 바꾸면 다른 쪽이 실제 Gemini API 를 계속 부른다.
+        테스트가 `engine.agents[s].brain = fake` 만 하던 시절에 그게 실제로 일어났고,
+        무료 티어 일일 500건이 조용히 소모됐다. 교체 지점을 여기 하나로 모은다."""
+        for agent in self.agents.values():
+            agent.brain = brain
+        if self._guard is not None and getattr(self._guard, "semantic", None) is not None:
+            self._guard.semantic.brain = brain
+
+    def _emit_semantic(self, side: str, order_id: str, symbol: str) -> None:
+        """직전 청구서 의미 대조 판정을 로그로 흘린다 (축④ 실행 이력).
+
+        통과·차단·검사불가를 모두 남긴다 — '검사가 돌았다'는 사실 자체가 증빙이고,
+        차단만 기록하면 평소에 이 계층이 일하고 있다는 게 화면에 안 보인다."""
+        v = getattr(self._guard, "last_semantic", None) if self._guard is not None else None
+        if v is None:
+            return
+        self.bus.emit(ev.GUARD_SEMANTIC, {
+            "side": side, "order_id": order_id, "symbol": symbol, **v.as_event(),
+        })
+
+    def _semantic_stats(self) -> Dict[str, Any]:
+        """청구서 의미 대조(두 번째 AI 레이어) 집계. 계층이 없으면 enabled=false."""
+        checker = getattr(self._guard, "semantic", None) if self._guard is not None else None
+        if checker is None:
+            return {"enabled": False, "checked": 0, "llm_calls": 0, "cache_hits": 0,
+                    "passed": 0, "blocked": 0,
+                    "unverified_blocked": 0, "unverified_skipped": 0}
+        return {"enabled": True, **checker.stats.as_dict()}
 
     # ---------- B2 데일리 브리핑 ----------
 
@@ -1118,6 +1161,7 @@ class TradingEngine:
                 expected_symbol=symbol)   # 엔진이 '지금 주문한' 종목 — 청구서 종목 바꿔치기 차단
         except GuardError as e:
             self.guard_block_count += 1
+            self._emit_semantic("buy", required.order_id, symbol)
             self.bus.emit(ev.GUARD_BLOCKED, {
                 "side": "buy", "order_id": required.order_id, **e.result.as_event(),
             })
@@ -1128,6 +1172,7 @@ class TradingEngine:
                 "side": "buy", "order_id": required.order_id, "reason": str(e),
             })
             return
+        self._emit_semantic("buy", required.order_id, symbol)
         self.bus.emit(ev.X402_SUBMITTED, {
             "side": "buy", "order_id": required.order_id,
             "remaining_usdc": str(agent.auth.remaining_usdc),
@@ -1243,13 +1288,16 @@ class TradingEngine:
                 expected_stock_mint=self._stock_mint,
                 expected_quantity=qty,
                 stock_decimals=CFG.stock_decimals,
-                expected_symbol=symbol)   # 매수 레그와 같은 종목 동일성 검사(대칭)
+                expected_symbol=symbol,   # 매수 레그와 같은 종목 동일성 검사(대칭)
+                quote=quote)              # 의미 대조 입력(매도는 검사 불가 시 진행)
         except GuardError as e:
             self.guard_block_count += 1
+            self._emit_semantic("sell", required.order_id, symbol)
             self.bus.emit(ev.GUARD_BLOCKED, {
                 "side": "sell", "order_id": required.order_id, **e.result.as_event(),
             })
             return
+        self._emit_semantic("sell", required.order_id, symbol)
         self.bus.emit(ev.X402_SUBMITTED, {
             "side": "sell", "order_id": required.order_id,
             "payload_b64_len": len(submitted.payment.serialized_transaction),

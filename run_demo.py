@@ -221,7 +221,7 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
                         expected_stock_mint=stock_mint,
                         expected_quantity=qty,
                         stock_decimals=CFG.stock_decimals,
-                        expected_symbol=symbol)
+                        expected_symbol=symbol, quote=quote)
                 except GuardError as e:
                     print(f"  [402 Guard 차단] {e} — 매도 서명 거부(유출 0)")
                     continue

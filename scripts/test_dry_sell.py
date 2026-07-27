@@ -58,7 +58,7 @@ def _engine(bus=None) -> TradingEngine:
 
 async def _start(engine: TradingEngine, mode="dry", symbols=("AAPL",)):
     feed = {"type": "replay", "dataset": "daily", "symbols": list(symbols)}
-    await engine.start(mode, {"type": "condition"}, feed, autostart=False)
+    await engine.start(mode, {"type": "condition", "brain": "rule"}, feed, autostart=False)
 
 
 # ---------- 1) 결함 재현 (음성 대조) — 자리표시가 없으면 매도 견적이 실제로 터진다 ----------

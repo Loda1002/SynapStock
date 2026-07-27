@@ -35,7 +35,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Awaitable, Callable, Iterable, Optional
 
-from config import to_base_units
+from config import from_base_units, to_base_units
+from payments.invoice_semantics import (
+    GUARD_LLM_UNVERIFIED, GUARD_SEMANTIC_MISMATCH, SemanticVerdict,
+)
 
 # ---- check_demand 차단 코드 (8종) ----
 GUARD_AMOUNT_MISMATCH = "GUARD_AMOUNT_MISMATCH"        # 청구 금액 != 합의 견적 (base units, 오차 0)
@@ -101,10 +104,15 @@ class Guard:
     상대만 담는다 — 악성 브로커가 수취인을 자기 다른 지갑으로 바꾸면 여기서 걸린다.
     """
 
-    def __init__(self, mandate, payee_allowlist: Iterable[str], usdc_decimals: int):
+    def __init__(self, mandate, payee_allowlist: Iterable[str], usdc_decimals: int,
+                 semantic=None):
         self.mandate = mandate
         self.payees = {str(p) for p in payee_allowlist}
         self.usdc_decimals = usdc_decimals
+        # 의미 대조기(payments.invoice_semantics.InvoiceSemanticChecker) — None 이면 이 계층 자체가
+        # 없다(하드 검사만). 붙어 있을 때만 매수의 '검사 불가 = 차단' 정책이 켜진다.
+        self.semantic = semantic
+        self.last_semantic: Optional[SemanticVerdict] = None
 
     # ---- 서명 직전: 청구서 4항목 대조 ----
 
@@ -208,6 +216,75 @@ class Guard:
         """check_demand 후 위반이면 GuardError 를 던진다 (결제 경로 결선용)."""
         res = self.check_demand(required, quote, expected_order_id, max_spend_usdc,
                                 expected_symbol)
+        if not res.ok:
+            raise GuardError(res)
+        return res
+
+    # ---- 하드 검사 통과 후: 청구서 설명 ↔ 주문 의도 의미 대조 (LLM) ----
+
+    def check_semantics(self, required, *, leg: str, symbol: str, quantity: Decimal,
+                        price_usdc: Decimal, total_usdc: Decimal) -> GuardResult:
+        """청구서의 사람이 읽는 설명이 우리 주문 의도와 같은 물건을 가리키는지 대조한다.
+
+        **하드 검사 6종이 전부 통과한 뒤에만 호출된다.** 이 검사는 차단만 할 수 있고
+        통과시킬 수는 없다 — 하드 검사가 막은 것을 여기서 되살리는 경로는 없다.
+        설계 근거·실패 정책의 전문은 payments/invoice_semantics.py 모듈 독스트링 참조.
+
+        leg: "buy"(USDC 를 내보낸다) / "sell"(주식을 내보낸다).
+             검사 불가(쿼터 소진·응답 실패) 시 **매수는 차단, 매도는 진행**한다 —
+             못 사는 것은 기회비용이고 못 파는 것은 실손실이라, 노출을 늘리는 방향만 잠근다.
+        """
+        self.last_semantic = None
+        if self.semantic is None:
+            return GuardResult(True, "OK", "의미 대조 계층 미적용",
+                               f"guard.py:L{sys._getframe(0).f_lineno}")
+
+        reqs = required.requirements
+        amount = from_base_units(reqs.amount, reqs.decimals)
+        if leg == "buy":
+            invoice_label = f"{amount} USDC 를 지불하라"
+            asset_label = f"USDC (민트 {str(reqs.asset)[:8]}…)"
+        else:
+            invoice_label = f"{amount} 주를 인도하면 {total_usdc} USDC 를 지급하겠다"
+            asset_label = f"주식 토큰 (민트 {str(reqs.asset)[:8]}…)"
+
+        v = self.semantic.check(
+            side=leg, symbol=symbol, quantity=quantity, price_usdc=price_usdc,
+            total_usdc=total_usdc, invoice_label=invoice_label,
+            description=getattr(reqs, "resource", ""), asset_label=asset_label,
+            pay_to=str(reqs.pay_to),
+        )
+        self.last_semantic = v
+
+        if v.code == GUARD_SEMANTIC_MISMATCH:
+            return self._block(GUARD_SEMANTIC_MISMATCH,
+                               f"청구서 설명이 우리 주문과 다른 물건을 가리킵니다 — {v.reason}",
+                               f"{leg} {quantity} {symbol} @ {price_usdc} (총 {total_usdc} USDC)",
+                               v.description)
+
+        if v.code == GUARD_LLM_UNVERIFIED:
+            if leg == "buy":
+                self.semantic.stats.unverified_blocked += 1
+                return self._block(GUARD_LLM_UNVERIFIED,
+                                   f"청구서 의미를 검증하지 못해 이 매수를 보류합니다 — {v.reason}",
+                                   "의미 대조 통과", "검사 불가")
+            # 매도: 하드 검사만으로 진행한다. 판정은 남기되 결제를 막지 않는다.
+            self.semantic.stats.unverified_skipped += 1
+            self.last_semantic = SemanticVerdict(
+                "OK", True, "unverified", f"{v.reason} · 매도라 하드 검사만으로 진행",
+                v.description)
+            return GuardResult(True, "OK", "의미 대조 불가 — 매도는 하드 검사만으로 진행",
+                               f"guard.py:L{sys._getframe(0).f_lineno}", "", v.reason)
+
+        where = f"guard.py:L{sys._getframe(0).f_lineno}"
+        return GuardResult(True, "OK", f"청구서 의미 대조 통과 — {v.reason}", where,
+                           str(symbol), v.description)
+
+    def assert_semantics(self, required, *, leg: str, symbol: str, quantity: Decimal,
+                         price_usdc: Decimal, total_usdc: Decimal) -> GuardResult:
+        """check_semantics 후 차단이면 GuardError 를 던진다 (결제 경로 결선용)."""
+        res = self.check_semantics(required, leg=leg, symbol=symbol, quantity=quantity,
+                                   price_usdc=price_usdc, total_usdc=total_usdc)
         if not res.ok:
             raise GuardError(res)
         return res

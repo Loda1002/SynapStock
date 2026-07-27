@@ -33,20 +33,40 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 
 
 class FakeBrain:
-    """지시한 판단만 돌려주는 가짜 Gemini (실제 API 호출 없음)."""
+    """지시한 판단만 돌려주는 가짜 Gemini (실제 API 호출 없음).
+
+    두뇌는 두 곳에서 쓰인다 — 판단(decide)과 청구서 의미 대조(_call). 가짜도 둘 다
+    구현해야 세션이 실제 API 를 부르지 않는다(engine.replace_brain 참조)."""
 
     def __init__(self, action: str, spend: str = "10"):
         self.action = action
         self.spend = Decimal(spend)
         self.calls = 0
+        self.semantic_calls = 0
+
+    @property
+    def available(self) -> bool:
+        return True
 
     def decide(self, *args, **kwargs) -> Decision:
         self.calls += 1
         return Decision(self.action, "가짜 AI 판단", self.spend, source="gemini")
 
+    def _call(self, prompt: str) -> str:
+        """의미 대조 — 이 테스트의 청구서는 정직하므로 항상 일치 판정."""
+        self.semantic_calls += 1
+        return '{"match": true, "reason": "주문 의도와 같은 청구서"}'
+
 
 class BoomBrain:
+    @property
+    def available(self) -> bool:
+        return True
+
     def decide(self, *args, **kwargs) -> Decision:
+        raise RuntimeError("무료 티어 한도 초과 — 쿨다운 30초 남음")
+
+    def _call(self, prompt: str) -> str:
         raise RuntimeError("무료 티어 한도 초과 — 쿨다운 30초 남음")
 
 
@@ -59,8 +79,8 @@ async def _start(engine: TradingEngine, symbols, brain=None):
                        {"type": "replay", "dataset": "daily", "symbols": symbols},
                        autostart=False)
     if brain is not None:
-        for s in symbols:
-            engine.agents[s].brain = brain   # 실제 GeminiDecider 를 가짜로 교체
+        # 판단·의미 대조 두 곳 모두 교체한다 — 한쪽만 바꾸면 나머지가 실제 API 를 부른다.
+        engine.replace_brain(brain)
     return engine
 
 

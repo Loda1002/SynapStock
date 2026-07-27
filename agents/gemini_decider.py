@@ -254,6 +254,15 @@ class GeminiDecider:
         delay = float(m.group(1)) if m else 60.0
         self._cooldown_until = time.time() + max(delay, 30.0)
 
+    @property
+    def available(self) -> bool:
+        """지금 이 두뇌를 호출할 수 있는가 (쿨다운 중이 아닌가).
+
+        `decide()` 는 내부에서 쿨다운을 선검사하지만 `_call` 은 하지 않는다. 다른 호출자
+        (청구서 의미 대조 등)가 "쓸 수 있나"를 묻는 공개 창구가 없어 `_cooldown_until`
+        비공개 속성을 직접 들여다보는 코드가 생겼다(scripts/backtest.py:341). 여기로 모은다."""
+        return time.time() >= self._cooldown_until
+
     def quota_message(self) -> str:
         """마지막 429 를 사람이 읽을 한 문장으로. 잘려도 사유가 남게 앞쪽에 성격을 둔다."""
         if self.quota_scope == "daily":

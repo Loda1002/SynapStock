@@ -152,7 +152,7 @@ def _restore_rpc(orig: dict) -> None:
 async def _new_session(bus=None) -> TradingEngine:
     """드라이로 세션을 구성한다(백그라운드 루프 없이)."""
     engine = TradingEngine(bus or _RecordingBus(), BaseStore())
-    await engine.start("dry", {"type": "condition"},
+    await engine.start("dry", {"type": "condition", "brain": "rule"},
                        {"type": "replay", "dataset": "daily", "symbols": [SYMBOL]},
                        autostart=False)
     # 매수 레그를 인프로세스 A2A 로 고정한다(.env 에 BROKER_HTTP_URL 이 있어도 결정론 유지).
@@ -341,7 +341,7 @@ async def test_accumulates_snapshot_and_reset() -> None:
     # 세션 재시작 — 실제로는 _finalize 가 status 를 idle 로 되돌린 뒤 다음 start 가 온다.
     # (_finalize 는 브리핑 백그라운드 태스크를 띄우므로 여기서는 그 결과 상태만 만든다.)
     engine.status, engine._task = "idle", None
-    await engine.start("dry", {"type": "condition"},
+    await engine.start("dry", {"type": "condition", "brain": "rule"},
                        {"type": "replay", "dataset": "daily", "symbols": [SYMBOL]},
                        autostart=False)
     check("새 세션 시작 시 유출이 0 으로 리셋", engine.guard_leak_usdc == 0,
