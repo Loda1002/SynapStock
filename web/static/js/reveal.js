@@ -1,73 +1,69 @@
-/* reveal.js — 스크롤 등장 모션 (스태거 페이드인).
-   화면에 들어오는 순간 아래에서 떠오르며 나타나고, 한 번 나타나면 그대로 고정된다
-   (스크롤을 위아래로 반복해도 재생되지 않는다).
-
-   역할 분담: 값(시간·거리·곡선)은 theme.css 의 --stagger-* 토큰, 상태별 모양은
-   skeleton.css 의 .is-visible / .is-done, 클래스 부착 타이밍만 여기서 정한다.
-
-   ⚠ TARGETS 는 skeleton.css 의 :where(.reveal-ready) ... 선택자와 **반드시 같게** 유지한다.
-      한쪽만 고치면 "숨겼는데 아무도 보여주지 않는" 요소가 생겨 화면이 빈다.
-
-   빈 화면 사고 방지가 이 파일의 설계 전제다 — 숨기는 CSS 는 <html> 에 .reveal-ready 가
-   붙어야만 작동하고, 그 클래스는 여기서만 붙인다. 스크립트가 404 이거나 실행에 실패하면
-   아무것도 숨지 않고 모션만 없는 평범한 화면이 된다.
-   외부 CDN 의존 없음(데모데이 오프라인 폴백 원칙). */
+/* reveal.js — 스크롤 등장 모션 (대시보드·랜딩 공용)
+ *
+ * 요소가 화면에 들어오는 순간 아래에서 떠오르며 나타나고, 한 번 나타난 뒤에는
+ * 그 상태로 고정된다. 스크롤을 위아래로 반복해도 다시 재생되지 않는다.
+ *
+ * 설계 메모
+ * - <head> 에서 로드한다. 스크립트가 실행되면 곧바로 <html> 에 reveal-ready 를 붙이고,
+ *   CSS 는 그 클래스가 있을 때만 대상을 숨긴다. 스크립트가 없거나 로드에 실패하면
+ *   아무것도 숨겨지지 않아 "모션 때문에 화면이 텅 비는" 사고가 나지 않는다.
+ * - 시차(stagger)는 CSS 의 nth-child 가 아니라 "같이 화면에 들어온 묶음 안에서의 순서"로
+ *   준다. nth-child 로 고정하면 뒤쪽 요소가 혼자 나타날 때 제 순번만큼 쓸데없이 기다린다.
+ * - 재생이 끝나면 is-done 을 붙여 애니메이션을 떼어낸다. 안 그러면 대시보드에서 카드를
+ *   드래그로 재배치할 때 DOM 이 이동하면서 페이드인이 처음부터 다시 재생된다.
+ */
 (function () {
   "use strict";
 
+  // 등장 대상 — css/skeleton.css 의 숨김 규칙과 반드시 같게 유지한다.
   var TARGETS = ".grid > .card, .hero-copy > *, .hero-preview, .landing-about > *";
-  var root = document.documentElement;
 
-  // 모션 최소화 설정이거나 IntersectionObserver 가 없으면 아예 개입하지 않는다.
-  // (.reveal-ready 를 붙이지 않으므로 요소가 숨겨지지도 않는다.)
-  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduce || !("IntersectionObserver" in window)) return;
+  // CSS 가 대상을 숨겨도 되는 시점 = 이 스크립트가 살아 있음이 확인된 지금부터.
+  document.documentElement.classList.add("reveal-ready");
 
-  // <head> 에서 실행된다 — 이 시점엔 <body> 가 아직 없지만 documentElement 는 있다.
-  // 여기서 바로 붙여야 카드가 잠깐 보였다 숨는 깜빡임이 없다.
-  root.classList.add("reveal-ready");
-
-  // theme.css 의 --stagger-step 을 초 단위로 읽는다(.05s / 50ms 둘 다 허용).
-  function seconds(name, fallback) {
-    var raw = getComputedStyle(root).getPropertyValue(name).trim();
-    var v = parseFloat(raw);
-    if (isNaN(v)) return fallback;
-    return /ms$/.test(raw) ? v / 1000 : v;
+  function reveal(el, delaySec) {
+    el.style.animationDelay = delaySec + "s";
+    el.classList.add("is-visible");
+    el.addEventListener("animationend", function () {
+      el.classList.add("is-done");
+    }, { once: true });
   }
 
-  function start() {
+  function init() {
     var items = document.querySelectorAll(TARGETS);
-    // 대상이 하나도 없는 페이지(로그인 등)에서는 숨김 규칙을 걷어내고 끝낸다.
-    if (!items.length) { root.classList.remove("reveal-ready"); return; }
+    if (!items.length) return;
 
-    var step = seconds("--stagger-step", 0.05);
+    // 모션 최소화 설정이거나 IntersectionObserver 미지원이면 애니메이션 없이 즉시 표시한다.
+    // (이 처리가 없으면 두 경우 모두 요소가 숨겨진 채로 영영 남는다.)
+    var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || !("IntersectionObserver" in window)) {
+      Array.prototype.forEach.call(items, function (el) { el.classList.add("is-done"); });
+      return;
+    }
 
     var io = new IntersectionObserver(function (entries) {
-      // 한 번의 콜백에 함께 들어온 것들이 "같이 나타나는 묶음"이다 —
-      // 그 안에서만 시차를 준다(따로 batch 를 계산할 필요가 없다).
-      var batch = entries.filter(function (e) { return e.isIntersecting; });
-      batch.forEach(function (entry, i) {
-        var node = entry.target;
-        io.unobserve(node);                       // 한 번 나타나면 다시 재생하지 않는다
-        node.style.animationDelay = (i * step).toFixed(3) + "s";
-        node.classList.add("is-visible");
-      });
-    }, { threshold: 0.08 });
+      entries
+        .filter(function (e) { return e.isIntersecting; })
+        // 콜백에 담기는 순서가 문서 순서라는 보장이 없어 직접 정렬한다(위→아래, 좌→우).
+        .sort(function (a, b) {
+          return (a.target.compareDocumentPosition(b.target) & Node.DOCUMENT_POSITION_FOLLOWING)
+            ? -1 : 1;
+        })
+        .forEach(function (e, i) {
+          // 시차 값은 theme.css 토큰(--stagger-step). 페이지·영역별로 덮어쓸 수 있다.
+          var step = parseFloat(
+            getComputedStyle(e.target).getPropertyValue("--stagger-step")) || 0.05;
+          reveal(e.target, i * step);
+          io.unobserve(e.target);   // 1회만 — 되감기 없음
+        });
+    }, { rootMargin: "0px 0px -8% 0px" });   // 살짝 올라온 뒤 시작
 
-    Array.prototype.forEach.call(items, function (node) {
-      // 재생이 끝나면 애니메이션을 떼어낸다 — 안 그러면 카드를 드래그로 재배치할 때
-      // DOM 이 이동하면서 페이드인이 처음부터 다시 재생된다(skeleton.css .is-done).
-      node.addEventListener("animationend", function () {
-        node.style.animationDelay = "";
-        node.classList.add("is-done");
-      }, { once: true });
-      io.observe(node);
-    });
+    Array.prototype.forEach.call(items, function (el) { io.observe(el); });
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
+    document.addEventListener("DOMContentLoaded", init);
   } else {
-    start();
+    init();
   }
 })();
