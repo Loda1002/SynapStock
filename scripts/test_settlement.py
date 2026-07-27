@@ -162,6 +162,58 @@ async def test_dedup_and_expiry():
     check("만료 청구서 정산 거부", c3.status == "failed" and "만료" in c3.reason, c3.reason)
 
 
+async def test_buy_delivery_failure():
+    """매수 레그: USDC 는 온체인 확정됐는데 주식 전달이 실패하면 partial (BUG-01).
+
+    매도 레그(settle_sale)에는 이미 있던 3분기가 매수 레그에만 빠져 있었다 — 구매자가
+    돈을 보냈는데 주식이 한 주도 안 온 거래가 settled 로 보고돼, 아카이브에 '성공'으로
+    남고 앱이 유령 포지션으로 계속 매매했다."""
+    print("\n== settle — 매수 주식 전달 실패 시 partial (BUG-01, 매도 대칭) ==")
+    ta, bk = _agents()
+    quote = bk.quote("tAAPL", Decimal("30"), Decimal("178.00"))
+
+    # USDC 확정 + 주식 전달 실패 → partial
+    required = bk.make_payment_required(quote)
+    submitted = ta.build_payment(required, Hash.default(), quote)
+    c_fail = await bk.settle(submitted, required.requirements, quote.quantity,
+                             live=True, client=FakeClient([True, False]))
+    check("USDC확정·주식전달실패 → partial (과거 settled 오정산)",
+          c_fail.status == "partial", f"status={c_fail.status}")
+    check("미배송이면 delivery_tx 비어있음", c_fail.delivery_tx_signature == "",
+          c_fail.delivery_tx_signature)
+    check("보내지도 않은 수량을 delivered_amount 에 싣지 않는다",
+          c_fail.delivered_amount == 0, str(c_fail.delivered_amount))
+    check("사유가 미배송임을 밝힌다", "미배송" in c_fail.reason, c_fail.reason)
+
+    # 다운스트림: partial 매수는 포지션을 반영하지 않는다(유령 포지션 방지)
+    before = ta.position.quantity
+    ta.on_completed(c_fail, "tAAPL", quote.quantity, quote.price_usdc, quote.total_usdc)
+    check("partial 매수는 포지션 미반영", ta.position.quantity == before,
+          f"{before} → {ta.position.quantity}")
+
+    # 둘 다 확정 → settled
+    required2 = bk.make_payment_required(quote)
+    submitted2 = ta.build_payment(required2, Hash.default(), quote)
+    c_ok = await bk.settle(submitted2, required2.requirements, quote.quantity,
+                           live=True, client=FakeClient([True, True]))
+    check("USDC확정·주식전달확정 → settled", c_ok.status == "settled", f"status={c_ok.status}")
+    check("정상 배송이면 수량이 실린다", c_ok.delivered_amount > 0, str(c_ok.delivered_amount))
+
+    # USDC 미확정 → failed (전달 시도 자체 없음)
+    required3 = bk.make_payment_required(quote)
+    submitted3 = ta.build_payment(required3, Hash.default(), quote)
+    c_no = await bk.settle(submitted3, required3.requirements, quote.quantity,
+                           live=True, client=FakeClient([False]))
+    check("USDC 미확정 → failed", c_no.status == "failed", f"status={c_no.status}")
+
+    # 드라이런은 종전대로 settled (오프라인 데모 경로 무변경)
+    required4 = bk.make_payment_required(quote)
+    submitted4 = ta.build_payment(required4, Hash.default(), quote)
+    c_dry = await bk.settle(submitted4, required4.requirements, quote.quantity, live=False)
+    check("드라이런은 그대로 settled", c_dry.status == "settled", f"status={c_dry.status}")
+    check("드라이런은 수량이 실린다", c_dry.delivered_amount > 0, str(c_dry.delivered_amount))
+
+
 async def test_sell_payout_failure():
     print("\n== settle_sale — 매도 대금(USDC) 지급 실패 시 partial (BUG-02) ==")
     ta, bk = _agents()
@@ -252,6 +304,7 @@ def main() -> int:
     test_memo()
     test_memo_present_in_build_payment()
     asyncio.run(test_dedup_and_expiry())
+    asyncio.run(test_buy_delivery_failure())
     asyncio.run(test_sell_payout_failure())
     test_baseline_read_classification()
     print("\n결과: " + ("모든 테스트 통과" if _fail == 0 else f"{_fail}건 실패"))

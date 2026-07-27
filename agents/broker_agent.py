@@ -246,6 +246,9 @@ class BrokerAgent:
         usdc_sig = sig
         confirmed = False
         delivery_sig = ""
+        # 드라이런은 배송 성공으로 간주. 라이브에서만 실제 확정 여부로 갱신한다
+        # (매도 레그 settle_sale 의 `paid` 와 같은 자리·같은 규칙 — BUG-01 대칭 수정).
+        delivered = True
 
         if live and client is not None:
             usdc_sig, confirmed = await x.submit_and_confirm(client, tx)
@@ -260,14 +263,33 @@ class BrokerAgent:
                 delivery_sig, delivered = await x.submit_and_confirm(client, deliver_tx)
                 if not delivered:
                     delivery_sig = ""
+            else:
+                delivered = False   # USDC 미확정이면 전달 시도 자체를 안 했다
+
+        # 라이브: USDC 수령이 확정되고 주식 전달까지 확정돼야 settled.
+        # 돈은 받았는데 주식을 못 보냈으면 partial(미배송) — 예전에는 confirmed 만 보고
+        # settled 로 보고해, 구매자가 USDC 를 보냈는데 주식이 한 주도 안 온 거래가
+        # 아카이브에 '성공'으로 남고 앱이 유령 포지션으로 계속 매매했다.
+        # 매도 레그(settle_sale:190-197)에는 이미 있던 3분기를 매수 레그에 맞춘 것이다.
+        if not live:
+            status = "settled"
+        elif confirmed and delivered:
+            status = "settled"
+        elif confirmed and not delivered:
+            status = "partial"
+        else:
+            status = "failed"
 
         return PaymentCompleted(
             order_id=submitted.order_id,
             tx_signature=usdc_sig,
             confirmed=confirmed,
             delivered_asset=str(self.stock_mint or ""),
-            delivered_amount=to_base_units(quantity, self.stock_decimals),
+            # 보내지도 않은 수량을 실어 보내지 않는다 — 미배송이면 0
+            delivered_amount=(to_base_units(quantity, self.stock_decimals)
+                              if status == "settled" else 0),
             delivery_tx_signature=delivery_sig,
-            # 라이브인데 온체인 확정 실패면 settled 로 치지 않는다 (포지션 미반영)
-            status="settled" if (not live or confirmed) else "failed",
+            status=status,
+            reason=("" if status != "partial"
+                    else "대금은 수령됐으나 주식 전달 tx 가 확정되지 않았습니다 (미배송)"),
         )

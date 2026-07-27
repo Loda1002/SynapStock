@@ -184,6 +184,18 @@ async def create_order(body: OrderBody, request: Request):
     _pending.pop(order_id, None)   # 성공·실패 모두 1회용 (이중 정산 차단 — 서명 dedup 과 이중 방어)
 
     payload = settlement_payload(completed)
+    if completed.status == "partial":
+        # 대금은 이미 온체인에서 떠났고 상품만 도착하지 않은 상태다. 여기서 402(Payment
+        # Required)를 돌려주면 "다시 결제하라"는 뜻이 되어 **이중지불을 유도**한다 —
+        # 402 는 '아직 결제가 없다'는 신호이지 '결제는 됐는데 배송이 안 됐다'가 아니다.
+        # 409(Conflict)로 분기해 미배송임을 명시하고, 구매자 측은 이 응답을 재결제가 아니라
+        # check_delivery 와 같은 보류·정지 신호로 다룬다.
+        return JSONResponse(status_code=409, content={
+            "x402Version": 1, "error": "delivery_unconfirmed",
+            "detail": completed.reason or "대금은 수령됐으나 상품 전달이 확정되지 않았습니다",
+            "retryPayment": False,   # 재결제하지 말 것 — 대금은 이미 지불됐다
+            "settlement": payload,
+        }, headers={PAYMENT_RESPONSE_HEADER: encode_settlement_header(completed)})
     if completed.status != "settled":
         # 결제가 성립하지 않았다 → 자원을 내주지 않고 402 를 유지한다
         return JSONResponse(status_code=402, content={
