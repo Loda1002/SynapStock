@@ -214,13 +214,14 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
                       f"주식 {required.requirements.amount}(base) → {required.requirements.pay_to[:8]}…")
 
                 blockhash = await x.get_latest_blockhash(client) if live else Hash.default()
-                # 402 Guard(매도 청구서 검증) — 자산·수취인·수량을 독립 기준과 대조(매수 대칭).
+                # 402 Guard(매도 청구서 검증) — 자산·수취인·수량·종목을 독립 기준과 대조(매수 대칭).
                 try:
                     submitted = trading.build_stock_transfer(
                         required, blockhash,
                         expected_stock_mint=stock_mint,
                         expected_quantity=qty,
-                        stock_decimals=CFG.stock_decimals)
+                        stock_decimals=CFG.stock_decimals,
+                        expected_symbol=symbol)
                 except GuardError as e:
                     print(f"  [402 Guard 차단] {e} — 매도 서명 거부(유출 0)")
                     continue
@@ -280,7 +281,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
             try:
                 blockhash = await x.get_latest_blockhash(client) if live else Hash.default()
                 submitted = trading.build_payment(
-                    required, blockhash, quote, max_spend_usdc=decision.spend_usdc)
+                    required, blockhash, quote, max_spend_usdc=decision.spend_usdc,
+                    expected_symbol=symbol)
             except GuardError as e:
                 print(f"  [402 Guard 차단] {e} — 서명 거부(유출 0)")
                 continue

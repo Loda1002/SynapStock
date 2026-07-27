@@ -477,16 +477,21 @@ class TradingAgent:
         blockhash: Hash,
         quote=None,
         max_spend_usdc: Optional[Decimal] = None,
+        expected_symbol: Optional[str] = None,
     ) -> PaymentSubmitted:
         reqs = required.requirements
         amount_usdc = from_base_units(reqs.amount, reqs.decimals)
 
-        # 402 Guard — AP2 한도 검사 '앞'에서 청구서를 검증한다(금액·수취인·자산·주문번호).
-        # max_spend_usdc(의도 지출)를 함께 넘겨 브로커 부풀리기(BUG-03)도 차단한다.
+        # 402 Guard — AP2 한도 검사 '앞'에서 청구서를 검증한다(금액·수취인·자산·종목·주문번호).
+        # max_spend_usdc(의도 지출)로 브로커 부풀리기(BUG-03)를, expected_symbol(엔진이 지금
+        # 주문한 종목)로 종목 바꿔치기를 차단한다.
+        # ⚠ expected_order_id 는 넘기지 않는다 — 최초 청구서의 주문번호는 브로커 응답에서
+        #    태어나므로 구매자에게 독립 기준이 없고, required.order_id 를 자기 자신과 비교하면
+        #    항상 참이라 검사가 아니었다. 실질 바인딩은 아래 Memo 와 정산 후 check_delivery 다.
         # 위반이면 GuardError 로 결제 서명 자체가 일어나지 않는다(온체인 유출 0).
         if self.guard is not None and quote is not None:
-            self.guard.assert_demand(required, quote, expected_order_id=required.order_id,
-                                     max_spend_usdc=max_spend_usdc)
+            self.guard.assert_demand(required, quote, max_spend_usdc=max_spend_usdc,
+                                     expected_symbol=expected_symbol)
 
         # AP2 한도 검사 (초과·미허용 자산 시 MandateError → 결제 자체가 일어나지 않음).
         # asset 을 넘겨 allowed_asset 를 실제로 검증하게 한다(결함 C).
@@ -520,18 +525,20 @@ class TradingAgent:
         expected_stock_mint: Optional[Pubkey] = None,
         expected_quantity: Optional[Decimal] = None,
         stock_decimals: Optional[int] = None,
+        expected_symbol: Optional[str] = None,
     ) -> PaymentSubmitted:
         reqs = required.requirements
 
         # 402 Guard — 매도 레그도 서명 직전 청구서를 검증한다(매수 build_payment 의 assert_demand 대칭).
-        # 자산(합의된 주식 민트)·수취인(신뢰 브로커)·수량을 엔진의 독립 기준과 대조 — 악성 브로커가
-        # asset 을 USDC 로 바꿔 유휴 자금을 빼가는 counterparty 공격을 서명 전에 차단한다(유출 0).
+        # 자산(합의된 주식 민트)·수취인(신뢰 브로커)·수량·종목을 엔진의 독립 기준과 대조 — 악성
+        # 브로커가 asset 을 USDC 로 바꿔 유휴 자금을 빼가는 counterparty 공격을 서명 전에 차단한다(유출 0).
         # expected_stock_mint 가 주어질 때만 검사한다(엔진/run_demo 는 전달, 저수준 테스트는 생략).
+        # expected_order_id 미전달 사유는 build_payment 주석과 동일(자기 자신과의 비교였다).
         if self.guard is not None and expected_stock_mint is not None:
             self.guard.assert_stock_transfer(
                 required, expected_stock_mint=expected_stock_mint,
                 expected_quantity=expected_quantity, stock_decimals=stock_decimals,
-                expected_order_id=required.order_id)
+                expected_symbol=expected_symbol)
 
         memo = f"{x.MEMO_PREFIX}:{required.order_id}:{(self.auth.open.signature or '')[:8]}"
         tx = x.build_transfer_transaction(

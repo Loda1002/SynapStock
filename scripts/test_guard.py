@@ -23,7 +23,7 @@ from payments.ap2_mandate import OpenPaymentMandate
 from payments.guard import (
     Guard,
     GUARD_AMOUNT_MISMATCH, GUARD_INTENT_EXCEEDED, GUARD_PAYEE_UNKNOWN, GUARD_ASSET_MISMATCH,
-    GUARD_SYMBOL_NOT_ALLOWED, GUARD_LIMIT_EXCEEDED, GUARD_ORDER_INVALID,
+    GUARD_SYMBOL_NOT_ALLOWED, GUARD_SYMBOL_MISMATCH, GUARD_LIMIT_EXCEEDED, GUARD_ORDER_INVALID,
     GUARD_DELIVERY_UNCONFIRMED, GUARD_ORDER_MISMATCH,
 )
 from shared.a2a_messages import PaymentRequired, PaymentRequirements, PaymentCompleted
@@ -172,6 +172,65 @@ def test_intent_ceiling() -> None:
     check("고수수료 정직 견적 오탐 없음(2센트 허용)", r_hi.ok, f"{r_hi.code} total={hq.total_usdc}")
 
 
+def test_symbol_identity() -> None:
+    """멀티 종목 세션에서 '허용 목록 안의 다른 종목' 청구서가 통과하던 구멍(GUARD_SYMBOL_MISMATCH).
+
+    mandate.allowed_symbols 는 **소속 여부**만 본다. 종목이 둘 이상 허용된 세션에서는
+    브로커가 tAAPL 을 주문받고 tTSLA 청구서를 돌려줘도 금액·수취인·자산·한도가 전부
+    정상이면 다른 5종 검사 어디에도 걸리지 않았다. 사는 물건만 바뀐다.
+    """
+    print("\n== check_demand — 종목 동일성 (멀티 종목 세션의 물건 바꿔치기) ==")
+    multi_mandate = OpenPaymentMandate(
+        user_pubkey=str(USER.pubkey()), allowed_asset=USDC,
+        budget_total_usdc=Decimal("100"), per_trade_max_usdc=Decimal("45"),
+        allowed_symbols=[SYMBOL, "tTSLA"],          # 둘 다 허용된 멀티 종목 세션
+    ).sign(USER)
+    mguard = Guard(multi_mandate, [str(BROKER.pubkey())], DECIMALS)
+
+    # 같은 총액(32.10)으로 tTSLA 견적·청구서를 만든다 — 금액·수취인·자산·한도 전부 정상.
+    tsla_quote = Quote(symbol="tTSLA", price_usdc=Decimal("178.00"), quantity=Decimal("0.18"),
+                       total_usdc=Decimal("32.10"), subtotal_usdc=Decimal("32.01"),
+                       fee_usdc=Decimal("0.09"), fee_bps=30)
+    swapped = make_required(symbol="tTSLA")
+
+    # (a) 결함 재현 — expected_symbol 이 없으면(옛 동작) 그대로 통과한다.
+    r_old = mguard.check_demand(swapped, tsla_quote, max_spend_usdc=Decimal("33"))
+    check("[재현] 종목 기준 없이는 다른 종목 청구서가 통과한다(구멍 확인)", r_old.ok, r_old.code)
+
+    # (b) 수정 — 엔진이 '지금 주문한' 종목을 넘기면 차단된다.
+    r_new = mguard.check_demand(swapped, tsla_quote, max_spend_usdc=Decimal("33"),
+                                expected_symbol=SYMBOL)
+    check("다른 종목 청구서 차단(GUARD_SYMBOL_MISMATCH)",
+          (not r_new.ok) and r_new.code == GUARD_SYMBOL_MISMATCH,
+          f"{r_new.code} {r_new.expected}!={r_new.actual} @ {r_new.where}")
+
+    # (c) 청구서 종목은 맞는데 '견적'만 다른 종목 — 금액 대조 기준이 오염된다.
+    r_q = mguard.check_demand(make_required(), tsla_quote, expected_symbol=SYMBOL)
+    check("견적 종목 오염 차단(GUARD_SYMBOL_MISMATCH)",
+          (not r_q.ok) and r_q.code == GUARD_SYMBOL_MISMATCH, f"{r_q.code} @ {r_q.where}")
+
+    # (d) 정상 — 주문한 종목과 청구서·견적이 모두 같으면 통과(오탐 없음)
+    r_ok = mguard.check_demand(make_required(), QUOTE, expected_symbol=SYMBOL)
+    check("주문 종목과 일치하면 통과(오탐 없음)", r_ok.ok, r_ok.code)
+
+    # (e) 허용 목록 밖 종목은 종목 기준을 줘도 기존 코드로 먼저 걸린다(우선순위 유지)
+    r_out = mguard.check_demand(make_required(symbol="tNVDA"), QUOTE, expected_symbol="tNVDA")
+    check("허용 목록 밖은 GUARD_SYMBOL_NOT_ALLOWED 가 먼저",
+          (not r_out.ok) and r_out.code == GUARD_SYMBOL_NOT_ALLOWED, r_out.code)
+
+    # (f) 매도 레그 대칭 — 세션 stock_mint 는 종목 공통이라 자산 검사로는 구분되지 않는다.
+    kw = dict(expected_stock_mint=STOCK, expected_quantity=STOCK_QTY, stock_decimals=DECIMALS)
+    r_sell_old = mguard.check_stock_transfer(make_stock_required(symbol="tTSLA"), **kw)
+    check("[재현] 매도도 종목 기준 없이는 다른 종목이 통과한다", r_sell_old.ok, r_sell_old.code)
+    r_sell = mguard.check_stock_transfer(make_stock_required(symbol="tTSLA"),
+                                         expected_symbol=SYMBOL, **kw)
+    check("매도 다른 종목 청구서 차단(GUARD_SYMBOL_MISMATCH)",
+          (not r_sell.ok) and r_sell.code == GUARD_SYMBOL_MISMATCH,
+          f"{r_sell.code} @ {r_sell.where}")
+    r_sell_ok = mguard.check_stock_transfer(make_stock_required(), expected_symbol=SYMBOL, **kw)
+    check("매도 종목 일치 시 통과(오탐 없음)", r_sell_ok.ok, r_sell_ok.code)
+
+
 def test_stock_transfer() -> None:
     print("\n== check_stock_transfer — 매도 청구서 대조 (자산·수취인·수량, 매수 대칭) ==")
     kw = dict(expected_stock_mint=STOCK, expected_quantity=STOCK_QTY, stock_decimals=DECIMALS)
@@ -255,6 +314,7 @@ async def _delivery_cases() -> None:
 def main() -> int:
     test_demand()
     test_intent_ceiling()
+    test_symbol_identity()
     test_stock_transfer()
     test_no_false_positive()
     asyncio.run(_delivery_cases())

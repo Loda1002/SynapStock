@@ -37,18 +37,19 @@ from typing import Awaitable, Callable, Iterable, Optional
 
 from config import to_base_units
 
-# ---- check_demand 차단 코드 (7종) ----
+# ---- check_demand 차단 코드 (8종) ----
 GUARD_AMOUNT_MISMATCH = "GUARD_AMOUNT_MISMATCH"        # 청구 금액 != 합의 견적 (base units, 오차 0)
 GUARD_INTENT_EXCEEDED = "GUARD_INTENT_EXCEEDED"        # 청구 금액이 사용자 의도 지출(decision.spend)을 초과
 GUARD_PAYEE_UNKNOWN = "GUARD_PAYEE_UNKNOWN"            # 수취인이 신뢰 목록(allowlist)에 없음
 GUARD_ASSET_MISMATCH = "GUARD_ASSET_MISMATCH"         # 결제 자산이 mandate 허용 자산이 아님
 GUARD_SYMBOL_NOT_ALLOWED = "GUARD_SYMBOL_NOT_ALLOWED"  # 종목이 mandate 허용 종목이 아님
+GUARD_SYMBOL_MISMATCH = "GUARD_SYMBOL_MISMATCH"       # 허용 목록엔 있으나 '지금 주문한' 종목이 아님
 GUARD_LIMIT_EXCEEDED = "GUARD_LIMIT_EXCEEDED"         # 청구 금액이 건별 한도 초과
 GUARD_ORDER_INVALID = "GUARD_ORDER_INVALID"           # 주문번호 누락/형식 오류 (대사 키 부재)
 
 DEMAND_CODES = (
     GUARD_AMOUNT_MISMATCH, GUARD_INTENT_EXCEEDED, GUARD_PAYEE_UNKNOWN, GUARD_ASSET_MISMATCH,
-    GUARD_SYMBOL_NOT_ALLOWED, GUARD_LIMIT_EXCEEDED, GUARD_ORDER_INVALID,
+    GUARD_SYMBOL_NOT_ALLOWED, GUARD_SYMBOL_MISMATCH, GUARD_LIMIT_EXCEEDED, GUARD_ORDER_INVALID,
 )
 
 # 정직한 견적의 센트 반올림 오탐 방지용 허용치(2센트). 브로커 quote 는 subtotal 과 fee 를
@@ -108,7 +109,8 @@ class Guard:
     # ---- 서명 직전: 청구서 4항목 대조 ----
 
     def check_demand(self, required, quote, expected_order_id: Optional[str] = None,
-                     max_spend_usdc: Optional[Decimal] = None) -> GuardResult:
+                     max_spend_usdc: Optional[Decimal] = None,
+                     expected_symbol: Optional[str] = None) -> GuardResult:
         """브로커의 payment-required(청구서)를 합의 견적·mandate·신뢰 목록과 대조한다.
 
         통과하면 ok=True 를 돌려주고, 어긋나면 첫 위반에서 즉시 차단 결과를 돌려준다.
@@ -119,6 +121,23 @@ class Guard:
                         required 도 그 quote 에서 파생되므로 둘의 정합만으로는 '브로커가
                         의도보다 많이 청구'하는 공격(BUG-03)을 못 잡는다. 이 값이 주어지면
                         청구 금액이 의도 지출(+1센트)을 넘을 때 GUARD_INTENT_EXCEEDED 로 차단한다.
+
+        expected_symbol: 엔진이 '지금 주문한' 종목. mandate 의 allowed_symbols 는 **소속 여부**만
+                        보므로 멀티 종목 세션(허용 목록에 여러 종목이 들어 있는 상태)에서는
+                        브로커가 AAPL 을 주문받고 TSLA 청구서를 돌려줘도 통과했다. 금액·수취인·
+                        자산이 전부 정상인 상태에서 물건만 바꿔치기하는 공격이라 다른 검사 5종
+                        어디에도 걸리지 않는다. 이 값이 주어지면 청구서(required.symbol)와
+                        견적(quote.symbol)을 **둘 다** 대조한다 — quote 역시 브로커가 만든
+                        값이라 그것만 믿으면 금액 검사(5번)가 엉뚱한 종목의 가격을 기준으로
+                        통과해 버린다.
+
+        expected_order_id: **호출자가 브로커와 독립적인 주문번호 기준을 가진 경우에만** 넘긴다
+                        (정산 왕복 대사·red_team·테스트). 최초 매수/매도 청구서를 받는 시점에는
+                        주문번호가 브로커의 응답에서 태어나므로 구매자에게 독립 기준이 없다 —
+                        `expected_order_id=required.order_id` 로 자기 자신과 비교하는 것은 항상
+                        참이라 검사가 아니다. 그 시점의 실질 바인딩은 (a)서명 tx 의 온체인 Memo
+                        `AT1:{order_id}:{mandateSig8}` 와 (b)정산 후 check_delivery 의
+                        signed_order_id 대조다. 여기서는 형식(_ORDER_RE)만 강제한다.
         """
         reqs = required.requirements
         order_id = required.order_id
@@ -136,10 +155,19 @@ class Guard:
             return self._block(GUARD_ASSET_MISMATCH, "결제 자산이 mandate 허용 자산이 아닙니다",
                                str(self.mandate.allowed_asset), str(reqs.asset))
 
-        # 3) 종목 — mandate 허용 종목인가
+        # 3) 종목 — mandate 허용 종목인가 (소속) + 지금 주문한 그 종목인가 (동일성)
         if required.symbol not in self.mandate.allowed_symbols:
             return self._block(GUARD_SYMBOL_NOT_ALLOWED, f"허용되지 않은 종목: {required.symbol}",
                                ",".join(self.mandate.allowed_symbols), str(required.symbol))
+        if expected_symbol is not None:
+            if str(required.symbol) != str(expected_symbol):
+                return self._block(GUARD_SYMBOL_MISMATCH,
+                                   "청구서 종목이 지금 주문한 종목과 다릅니다 (허용 목록 안이지만 다른 물건)",
+                                   str(expected_symbol), str(required.symbol))
+            if str(getattr(quote, "symbol", expected_symbol)) != str(expected_symbol):
+                return self._block(GUARD_SYMBOL_MISMATCH,
+                                   "합의 견적의 종목이 지금 주문한 종목과 다릅니다 (금액 대조 기준 오염)",
+                                   str(expected_symbol), str(getattr(quote, "symbol", "")))
 
         # 4) 수취인 — 신뢰 목록(counterparty)인가 (결함 B: AP2 가 pay_to 를 받고도 미검사하던 구멍)
         if str(reqs.pay_to) not in self.payees:
@@ -175,9 +203,11 @@ class Guard:
                            where, str(expected_amount), str(int(reqs.amount)))
 
     def assert_demand(self, required, quote, expected_order_id: Optional[str] = None,
-                      max_spend_usdc: Optional[Decimal] = None) -> GuardResult:
+                      max_spend_usdc: Optional[Decimal] = None,
+                      expected_symbol: Optional[str] = None) -> GuardResult:
         """check_demand 후 위반이면 GuardError 를 던진다 (결제 경로 결선용)."""
-        res = self.check_demand(required, quote, expected_order_id, max_spend_usdc)
+        res = self.check_demand(required, quote, expected_order_id, max_spend_usdc,
+                                expected_symbol)
         if not res.ok:
             raise GuardError(res)
         return res
@@ -186,7 +216,8 @@ class Guard:
 
     def check_stock_transfer(self, required, *, expected_stock_mint,
                              expected_quantity: Decimal, stock_decimals: int,
-                             expected_order_id: Optional[str] = None) -> GuardResult:
+                             expected_order_id: Optional[str] = None,
+                             expected_symbol: Optional[str] = None) -> GuardResult:
         """매도 레그(주식 전송) 청구서를 대조한다 — 매수 레그 check_demand 의 매도 대칭.
 
         매수는 USDC 를 내보내므로 mandate(allowed_asset·건별 한도·의도 상한)로 검증하지만,
@@ -202,17 +233,28 @@ class Guard:
 
         expected_quantity: 엔진이 아는 매도 수량(구매자 보유 포지션). 브로커의 청구 amount 와
                            독립적인 기준이다 — 브로커가 amount 를 부풀려도 여기서 걸린다.
+        expected_symbol:   엔진이 '지금 매도하려는' 종목. 매수 레그의 종목 동일성 검사와 대칭이다.
+                           세션의 stock_mint 는 종목 공통이라 자산 검사로는 종목을 구분할 수 없고,
+                           멀티 종목 세션에서는 AAPL 매도 요청에 TSLA 청구서가 와도 자산·수취인·
+                           수량이 맞으면 통과했다(수량은 종목별 포지션이 우연히 같으면 뚫린다).
         """
         reqs = required.requirements
         order_id = required.order_id
 
         # 1) 주문번호 — 온체인 Memo 대사 키가 될 값. 형식·존재·(있으면) 기대치 대조.
+        #    (매수와 동일: 최초 청구서 시점엔 독립 기준이 없어 형식만 강제 — check_demand 독스트링)
         if not order_id or not _ORDER_RE.match(str(order_id)):
             return self._block(GUARD_ORDER_INVALID, f"주문번호 형식 오류: {order_id!r}",
                                "ord_<10 hex>", str(order_id))
         if expected_order_id is not None and order_id != expected_order_id:
             return self._block(GUARD_ORDER_INVALID, "청구서 주문번호가 처리 중인 주문과 다릅니다",
                                str(expected_order_id), str(order_id))
+
+        # 1b) 종목 — 지금 매도하려는 그 종목인가 (매수 레그의 종목 동일성 검사와 대칭)
+        if expected_symbol is not None and str(required.symbol) != str(expected_symbol):
+            return self._block(GUARD_SYMBOL_MISMATCH,
+                               "매도 청구서 종목이 지금 매도하려는 종목과 다릅니다",
+                               str(expected_symbol), str(required.symbol))
 
         # 2) 자산 — 지불 자산이 합의된 주식 민트인가 (핵심: USDC 로 바꿔 유휴 자금을 빼가는 공격 차단)
         if str(reqs.asset) != str(expected_stock_mint):
@@ -239,12 +281,13 @@ class Guard:
 
     def assert_stock_transfer(self, required, *, expected_stock_mint,
                               expected_quantity: Decimal, stock_decimals: int,
-                              expected_order_id: Optional[str] = None) -> GuardResult:
+                              expected_order_id: Optional[str] = None,
+                              expected_symbol: Optional[str] = None) -> GuardResult:
         """check_stock_transfer 후 위반이면 GuardError 를 던진다 (매도 결제 경로 결선용)."""
         res = self.check_stock_transfer(
             required, expected_stock_mint=expected_stock_mint,
             expected_quantity=expected_quantity, stock_decimals=stock_decimals,
-            expected_order_id=expected_order_id)
+            expected_order_id=expected_order_id, expected_symbol=expected_symbol)
         if not res.ok:
             raise GuardError(res)
         return res

@@ -1114,7 +1114,8 @@ class TradingEngine:
         try:
             blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
             submitted = agent.build_payment(
-                required, blockhash, quote, max_spend_usdc=decision.spend_usdc)
+                required, blockhash, quote, max_spend_usdc=decision.spend_usdc,
+                expected_symbol=symbol)   # 엔진이 '지금 주문한' 종목 — 청구서 종목 바꿔치기 차단
         except GuardError as e:
             self.guard_block_count += 1
             self.bus.emit(ev.GUARD_BLOCKED, {
@@ -1241,7 +1242,8 @@ class TradingEngine:
                 required, blockhash,
                 expected_stock_mint=self._stock_mint,
                 expected_quantity=qty,
-                stock_decimals=CFG.stock_decimals)
+                stock_decimals=CFG.stock_decimals,
+                expected_symbol=symbol)   # 매수 레그와 같은 종목 동일성 검사(대칭)
         except GuardError as e:
             self.guard_block_count += 1
             self.bus.emit(ev.GUARD_BLOCKED, {
