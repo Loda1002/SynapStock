@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>402 Guard — 사는 쪽 에이전트의 지출을 지키는 승인 게이트</title>
+<title>402 Guard — AI 에이전트에게 지갑을 맡기기 위한 승인 게이트</title>
 <!-- Phase 3 스킨(theme.css 변수·--shadow) + 골격(skeleton.css)을 그대로 상속.
      랜딩 전용 구조(스티키 바·히어로·블러 미리보기)만 아래 <style> 에 둔다 —
      공유되는 skeleton.css 를 건드리지 않기 위해 이 페이지 안에 격리.
@@ -52,7 +52,10 @@
               line-height: 1.65; margin: 0 0 26px; max-width: 44ch; }
   .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
   .hero-cta .btn { padding: 12px 24px; font-weight: 600; }
-  .hero-note { margin: 16px 0 0; color: var(--muted); font-size: var(--fs-small); }
+  /* 결과절 — CTA 바로 아래에서 한 박자 세게 닫는다. 본문(--muted)이 아니라 --text 라
+     시선이 카피 → 버튼 → 결과절 순으로 떨어진다. */
+  .hero-claim { margin: 18px 0 0; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .hero-note { margin: 10px 0 0; color: var(--muted); font-size: var(--fs-small); }
   /* 증명 3줄 — 왼쪽 열 하단의 빈 공간을 채우고 오른쪽 카드와 시각적 무게를 맞춘다 */
   .hero-proof { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 2); list-style: none;
                 margin: 28px 0 0; padding: 20px 0 0; border-top: 1px solid var(--border); }
@@ -78,6 +81,12 @@
   .preview-bar strong { font-size: 14px; }
   .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .preview-chart { height: 90px; display: block; width: 100%; }
+  /* 가드 로그 미리보기 — 차단 코드가 실물처럼 보이도록 리스트 마커를 없애고 좁게 쌓는다 */
+  .preview-log { list-style: none; margin: 6px 0 0; padding: 0; display: flex;
+                 flex-direction: column; gap: 8px; }
+  .preview-log li { font-size: var(--fs-small); line-height: 1.4; }
+  .preview-log code { font-size: 11px; }
+  .preview-log .sub { margin: 2px 0 0; }
   .preview-tag { position: absolute; left: 14px; bottom: 14px; z-index: 2;
                  background: var(--card-bg); border: 1px solid var(--border);
                  border-radius: 999px; padding: 4px 12px; font-size: var(--fs-small);
@@ -110,7 +119,7 @@
 <header class="topbar landing-topbar">
   <div class="brand">
     <h1>402 Guard</h1>
-    <p class="tagline">사는 쪽 에이전트를 지키는 지출 승인 게이트</p>
+    <p class="tagline">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트</p>
   </div>
   <nav class="landing-nav" aria-label="주요 메뉴">
     <a class="nav-link" href="#about">소개</a>
@@ -129,23 +138,30 @@
   <!-- 히어로 -->
   <section class="hero">
     <div class="hero-copy">
-      <h2 class="hero-title">사는 쪽 에이전트의 지출을,<br>서명 직전에 지킵니다.</h2>
+      <h2 class="hero-title">손을 떼려면,<br>한도가 있어야 합니다.</h2>
       <p class="hero-sub">
-        402 Guard 는 사람 없이 결제하는 AI 에이전트가 한도를 넘거나 엉뚱한 곳으로
-        돈을 보내지 못하게 막는 <strong>승인 게이트</strong>입니다.
-        수취인·금액·자산을 서명 직전에 대조해, 유출은 <strong>0.00 USDC</strong> 로 증명합니다.
+        402 Guard 는 AI 에이전트가 서명하기 <strong>직전</strong>, 이 청구서가
+        합의한 그 청구서인지 대조합니다. 수취인·금액·자산에 더해 청구서에 적힌
+        <strong>설명</strong>까지 확인하고 나서야 서명합니다.
+        그래서 사람이 화면을 지켜보지 않아도 됩니다.
       </p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="/connect">지갑 연결하고 시작하기</a>
         <a class="btn" href="/app">데모 대시보드 보기</a>
       </div>
+      <!-- 결과절 — 벤치마크 §5 문법(주어에서 '막는다'를 빼고 결과를 긍정형으로 닫는다).
+           "승인 없는 결제"는 제품명(승인 게이트)과 정면충돌해 읽히므로 '건건이'로 한정한다. -->
+      <p class="hero-claim">감시 없는 자율. 건건이 승인하지 않는 결제.</p>
       <p class="hero-note">A2A · AP2 · x402 on Solana · 계정 대신 지갑으로 로그인합니다(비밀번호 없음) · 데모는 연결 없이 바로 둘러볼 수 있습니다.</p>
 
-      <!-- 증명 3줄 — 좌측 열의 시각적 무게를 오른쪽 미리보기 카드와 맞춘다(빈 공간 해소). -->
+      <!-- 증명 3줄 — 좌측 열의 시각적 무게를 오른쪽 미리보기 카드와 맞춘다(빈 공간 해소).
+           유출 0.00 에는 '서명 전 차단 계층'이라는 한정어를 반드시 붙인다 —
+           사후 탐지 계층에는 회수하지 못한 금액이 따로 있고(red_team), 한정어 없이 쓰면
+           반문 한 번에 무너진다(judging_latest.md 축④ 갭). -->
       <ul class="hero-proof">
-        <li><strong>0.00 USDC</strong><p class="sub">누적 유출</p></li>
-        <li><strong>서명 직전 검증</strong><p class="sub">수취인 · 금액 · 자산 대조</p></li>
-        <li><strong>한도 초과 불가</strong><p class="sub">AP2 mandate 로 기계적 차단</p></li>
+        <li><strong>0.00 USDC</strong><p class="sub">서명 전에 가드를 태운 청구서에서 새어나간 금액</p></li>
+        <li><strong>예산을 코드가 집행</strong><p class="sub">표시용 한도가 아니라 AP2 위임장에서 실제 차감</p></li>
+        <li><strong>사는 쪽·파는 쪽 대칭</strong><p class="sub">돈이 나갈 때만이 아니라 자산이 나갈 때도 대조</p></li>
       </ul>
     </div>
 
@@ -177,12 +193,19 @@
                 points="0,74 30,68 60,66 90,58 120,54 150,46 180,42 210,34 240,30"></polyline>
             </svg>
           </section>
+          <!-- 여기에 '손익(실현)·수익률' 카드가 있었다. 첫 화면에서 "수익률이 아니라 지출 통제"라는
+               메시지와 정면충돌하는 유일한 지점이라 가드 로그로 교체했다(judging_latest.md 축① TODO 3).
+               차단 코드는 payments/guard.py 의 실제 GUARD_* 값이다. -->
           <section class="card">
-            <h2>손익 (실현)</h2>
-            <p class="big"><span class="pos blur-num">+4.90</span> <span class="unit">USDC</span></p>
-            <p class="sub">수익률 <span class="pos blur-num">+4.9%</span> · 한도 안에서 정산</p>
-            <p class="big" style="font-size:var(--fs-base)">보유 <span class="blur-num">3</span>주 ·
-              평단 <span class="blur-num">96.2</span> USDC</p>
+            <h2>가드 로그 <span class="sub">서명 직전 판정</span></h2>
+            <ul class="preview-log">
+              <li><span class="badge badge-danger">차단</span> <code>GUARD_PAYEE_UNKNOWN</code>
+                <p class="sub">수취인이 합의한 상대가 아님</p></li>
+              <li><span class="badge badge-danger">차단</span> <code>GUARD_SEMANTIC_MISMATCH</code>
+                <p class="sub">금액은 맞는데 청구서 설명이 주문과 다름</p></li>
+              <li><span class="badge badge-ok">서명</span> <code>STOCK:TSLA x<span class="blur-num">0.05</span></code>
+                <p class="sub">수취인 · 금액 · 자산 · 설명 일치</p></li>
+            </ul>
           </section>
         </div>
       </div>
@@ -193,11 +216,11 @@
   <!-- ABOUT — index.html .about-card 카피 재사용 (킥오프 §3 402 Guard 카피) -->
   <section class="about-card landing-about" id="about">
     <h2>한도를 정하면, 에이전트는 그 안에서만 씁니다</h2>
-    <p class="sub">사람 없이 결제하는 AI 에이전트의 지출을, 서명 직전에 검증하는 승인 게이트입니다.</p>
+    <p class="sub">AI 에이전트가 사람 없이 결제할 수 있도록, 서명 직전에 청구서를 대조하는 승인 게이트입니다.</p>
     <ol class="about-steps">
-      <li><strong>한도를 정합니다.</strong> 총예산·건별 최대·허용 종목을 AP2 mandate 로 서명합니다.</li>
-      <li><strong>에이전트가 그 한도 안에서만 지출합니다.</strong> 초과 청구는 서명되지 않습니다.</li>
-      <li><strong>악성 청구는 차단하고, 유출은 0으로 증명합니다.</strong> 수취인·금액·자산을 대조해 엉뚱한 곳으로 새는 돈을 0.00 USDC 로 지킵니다.</li>
+      <li><strong>한도를 정합니다.</strong> 총예산·건별 최대·허용 종목을 AP2 위임장에 한 번 서명합니다. 그 뒤로는 다시 묻지 않습니다.</li>
+      <li><strong>에이전트가 그 한도 안에서만 지출합니다.</strong> 표시용 숫자가 아니라 위임장에서 실제로 차감되고, 초과 청구는 서명되지 않습니다.</li>
+      <li><strong>합의한 그 청구서일 때만 서명합니다.</strong> 수취인·금액·자산에 더해 청구서에 적힌 설명까지 주문 의도와 대조합니다. 서명 전에 가드를 태운 청구서에서 새어나간 금액은 <strong>0.00 USDC</strong> 입니다.</li>
     </ol>
     <p class="sub" style="margin-top:18px">
       <a class="nav-link" href="/login" style="color:var(--accent)">시작하기 →</a>

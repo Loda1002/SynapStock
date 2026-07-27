@@ -14,7 +14,7 @@
 <header class="topbar">
   <div class="brand">
     <h1>402 Guard</h1>
-    <p class="tagline">사는 쪽 에이전트를 지키는 지출 승인 게이트 — A2A · AP2 · x402 on Solana</p>
+    <p class="tagline">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트 — A2A · AP2 · x402 on Solana</p>
   </div>
   <div class="statusbar">
     <span class="badge" data-net>—</span>
@@ -40,7 +40,7 @@
   <!-- 402 Guard KPI — 첫 화면 핵심. 데이터 출처: GET /api/state 의 state.guard.
        "유출 0.00 USDC" 가 이 제품의 한 줄 증명이다(사는 쪽 에이전트 지출 통제). -->
   <section class="card card-full guard-card" data-card="guard">
-    <h2>402 Guard <span class="sub">에이전트 지출 승인 게이트 — 사람 없이 결제하는 AI의 지출을 지킨다</span></h2>
+    <h2>402 Guard <span class="sub">에이전트 지출 승인 게이트 — 사람이 화면을 지켜보지 않아도 되도록, 서명 직전에 대조한다</span></h2>
     <div class="kpi-row">
       <div class="kpi">
         <p class="kpi-num"><span data-guard-attempts>0</span></p>
@@ -316,11 +316,11 @@
      Phase 4 랜딩(landing.html)에서 재사용 예정. -->
 <section class="card about-card">
   <h2>한도를 정하면, 에이전트는 그 안에서만 씁니다</h2>
-  <p class="sub">사람 없이 결제하는 AI 에이전트의 지출을, 서명 직전에 검증하는 승인 게이트입니다.</p>
+  <p class="sub">AI 에이전트가 사람 없이 결제할 수 있도록, 서명 직전에 청구서를 대조하는 승인 게이트입니다.</p>
   <ol class="about-steps">
-    <li><strong>한도를 정합니다.</strong> 총예산·건별 최대·허용 종목을 AP2 mandate 로 서명합니다.</li>
-    <li><strong>에이전트가 그 한도 안에서만 지출합니다.</strong> 초과 청구는 서명되지 않습니다.</li>
-    <li><strong>악성 청구는 차단하고, 유출은 0으로 증명합니다.</strong> 수취인·금액·자산을 대조해 엉뚱한 곳으로 새는 돈을 0.00 USDC 로 지킵니다.</li>
+    <li><strong>한도를 정합니다.</strong> 총예산·건별 최대·허용 종목을 AP2 위임장에 한 번 서명합니다. 그 뒤로는 다시 묻지 않습니다.</li>
+    <li><strong>에이전트가 그 한도 안에서만 지출합니다.</strong> 표시용 숫자가 아니라 위임장에서 실제로 차감되고, 초과 청구는 서명되지 않습니다.</li>
+    <li><strong>합의한 그 청구서일 때만 서명합니다.</strong> 수취인·금액·자산에 더해 청구서에 적힌 설명까지 주문 의도와 대조합니다. 서명 전에 가드를 태운 청구서에서 새어나간 금액은 <strong>0.00 USDC</strong> 입니다.</li>
   </ol>
 </section>
 
