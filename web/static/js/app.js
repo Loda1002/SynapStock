@@ -102,6 +102,15 @@
     briefingText: $("[data-briefing-text]"),
     grid: $("main.grid"),
     btnLayoutReset: $("[data-btn-layout-reset]"),
+    slimBar: $("[data-slim-bar]"),
+    slimPause: $("[data-slim-pause]"),
+    slimResume: $("[data-slim-resume]"),
+    guardDock: $("[data-guard-dock]"),
+    guardPanel: $("[data-guard-panel]"),
+    guardTab: $("[data-guard-toggle]"),
+    guardHit: $("[data-guard-hit]"),
+    guardHitText: $("[data-guard-hit-text]"),
+    guardHitMore: $("[data-guard-hit-more]"),
   };
 
   const MAX_FEED_ITEMS = 100;
@@ -439,6 +448,11 @@
     el.btnResume.classList.toggle("hidden", s.trading_enabled);
     el.btnPause.disabled = !running;
     el.btnResume.disabled = !running;
+    // 얇은 헤더의 같은 버튼도 함께 맞춘다 (동작은 진짜 버튼에 위임하지만 표시는 각자 한다)
+    el.slimPause.classList.toggle("hidden", !s.trading_enabled);
+    el.slimResume.classList.toggle("hidden", s.trading_enabled);
+    el.slimPause.disabled = !running;
+    el.slimResume.disabled = !running;
     const sessionHint = running ? "" : " (세션 실행 중에만 사용할 수 있습니다)";
     el.btnPause.title = "신규 판단·결제를 즉시 중단합니다" + sessionHint;
     el.btnResume.title = "매매를 다시 시작합니다" + sessionHint;
@@ -717,10 +731,16 @@
     setTimeout(() => t.remove(), 5000);
   }
 
-  function notify(evt, title, body, cls) {
-    // 새로고침 시 SSE 히스토리 재전송분은 알림 제외 (피드 복원만)
+  /* 새로고침하면 SSE 가 히스토리를 처음부터 재전송한다. 피드(로그·타임라인)는 그걸로
+     복원하지만, 알림·배너까지 다시 터지면 "방금 일어난 일"처럼 보여 혼란스럽다.
+     그래서 페이지를 연 시점보다 오래된 이벤트는 알리지 않는다. */
+  function isFresh(evt) {
     const t = Date.parse(evt.ts);
-    if (!isNaN(t) && t < pageLoadedAt - 2000) return;
+    return isNaN(t) || t >= pageLoadedAt - 2000;
+  }
+
+  function notify(evt, title, body, cls) {
+    if (!isFresh(evt)) return;
     if (document.hidden) {
       // 백그라운드 탭 — 브라우저 알림 (켜져 있을 때)
       if (notifyEnabled()) {
@@ -731,6 +751,87 @@
       toast(title, body, cls);  // 보고 있는 탭 — 인앱 토스트
     }
   }
+
+  /* ---------- 402 Guard 알림창 ----------
+     첫 화면 KPI 4개(지출 시도·가드 차단·한도 거부·유출)를 본문 위에 떠 있는 패널로 띄운다.
+     숫자 자체는 renderState 가 카드 때와 똑같은 data-guard-* 훅으로 채운다.
+     시간이 지나 사라지지 않는다 — 제목칸 오른쪽 아래 탭으로 내렸다 올렸다 하고 그 상태를
+     기억한다. 탭은 패널과 한 덩어리라 스크롤 위치와 상관없이 늘 손에 닿는다. */
+  const GUARD_PANEL_KEY = "guard_panel_open_v1";
+
+  function setGuardPanel(open) {
+    el.guardPanel.classList.toggle("is-collapsed", !open);
+    el.guardTab.setAttribute("aria-expanded", open ? "true" : "false");
+    el.guardTab.title = open ? "가드 요약 올리기" : "가드 요약 내리기";
+    try { localStorage.setItem(GUARD_PANEL_KEY, open ? "1" : "0"); } catch (e) { /* 저장 불가 — 무시 */ }
+  }
+
+  el.guardTab.addEventListener("click", () => {
+    setGuardPanel(el.guardPanel.classList.contains("is-collapsed"));
+  });
+
+  // 저장된 상태 복원. 첫 적용은 애니메이션 없이 — 페이지를 열자마자 패널이 접히는 게
+  // 보이면 깜빡임처럼 느껴진다.
+  el.guardPanel.style.transition = "none";
+  setGuardPanel(localStorage.getItem(GUARD_PANEL_KEY) !== "0");
+  setTimeout(() => { el.guardPanel.style.transition = ""; }, 0);
+
+  /* 가드가 막은 건(차단)·확인 못한 건(보류)의 상세 한 줄. 다음 사건이 올 때까지 남는다.
+     접혀 있었다면 펴서 보여준다 — 지출이 막힌 건 조용히 넘길 일이 아니다. */
+  function showGuardHit(d, pending, expand) {
+    const side = d.side === "sell" ? "매도" : "매수";
+    const diff = d.expected ? ` (기대 ${d.expected} · 청구 ${d.actual})` : "";
+    el.guardHitText.textContent =
+      `402 Guard ${pending ? "보류" : "차단"} — ${side}${d.code ? " · " + d.code : ""}: `
+      + (d.detail || "") + diff;
+    el.guardHit.classList.toggle("is-warn", !!pending);
+    el.guardHit.classList.remove("hidden");
+    // 방금 일어난 일일 때만 내려 준다. 새로고침으로 히스토리가 재생될 때까지 내리면
+    // 사용자가 올려 둔 상태를 매번 뒤집는다(내용은 그대로 채워 두므로 내리면 보인다).
+    if (expand) setGuardPanel(true);
+  }
+
+  /* ---------- 얇은 헤더 + 알림창 위치 ----------
+     제목 블록이 화면 위로 완전히 지나가면 얇은 헤더가 대신 내려온다.
+     가드 알림창(과 그 탭)은 "지금 보이는 제목칸" 바로 아래에 붙어 있어야 하므로,
+     스크롤에 따라 기준이 제목 블록 → 얇은 헤더로 바뀌는 것을 여기서 함께 맞춘다. */
+  function syncHeaderUI() {
+    const bar = document.querySelector(".topbar");
+    const gone = bar ? bar.getBoundingClientRect().bottom <= 0 : window.scrollY > 120;
+    el.slimBar.classList.toggle("is-shown", gone);
+    const anchor = gone
+      ? el.slimBar.getBoundingClientRect().height        // 얇은 헤더 아래
+      : Math.max(0, bar ? bar.getBoundingClientRect().bottom : 0);  // 제목 블록 아래
+    el.guardDock.style.top = anchor + "px";
+  }
+  window.addEventListener("scroll", syncHeaderUI, { passive: true });
+  window.addEventListener("resize", syncHeaderUI);
+  syncHeaderUI();
+
+  // 얇은 헤더의 버튼은 진짜 버튼을 대신 눌러 준다 — 확인 절차·API 호출이 한 벌로 유지된다.
+  el.slimPause.addEventListener("click", () => el.btnPause.click());
+  el.slimResume.addEventListener("click", () => el.btnResume.click());
+
+  /* 특정 카드로 화면을 옮긴다. 도착 지점에서는 얇은 헤더가 내려와 있고(스크롤한 상태)
+     알림창이 내려와 있으면 그것까지 화면 위를 덮으므로, 둘의 높이를 합쳐 비워 둔다.
+     그러지 않으면 카드 제목이 헤더·알림창에 가린 채 멈춘다. 숨은 요소도 높이를 잴 수
+     있어(화면 위로 밀어 둔 fixed) 도착 후의 상태를 미리 계산할 수 있다. */
+  function scrollToCard(id) {
+    const card = el.grid.querySelector(`[data-card="${id}"]`);
+    if (!card) return;
+    const panelH = el.guardPanel.classList.contains("is-collapsed")
+      ? 0 : el.guardPanel.getBoundingClientRect().height;
+    const offset = el.slimBar.getBoundingClientRect().height
+      + panelH + el.guardTab.getBoundingClientRect().height + 12;
+    window.scrollTo({
+      top: Math.max(0, card.getBoundingClientRect().top + window.scrollY - offset),
+      behavior: "smooth",
+    });
+    card.classList.add("card-focused");
+    setTimeout(() => card.classList.remove("card-focused"), 2200);
+  }
+
+  el.guardHitMore.addEventListener("click", () => scrollToCard("log"));
 
   // 어떤 분기로 가든 라벨 갱신 + 토스트 피드백 — 눌렀는데 아무 반응 없는 경우를 없앤다
   el.btnNotify.addEventListener("click", async () => {
@@ -839,25 +940,34 @@
         addLog(evt.ts, `[AP2 거부] ${d.order_id} — ${d.reason}`, "log-danger");
         notify(evt, "AP2 거부", d.reason, "danger");
         break;
-      // 402 Guard 계열 — 이 제품의 주인공이다. 예전에는 이 세 이벤트에 로그 처리가
-      // 아예 없어서, 가드가 실제로 차단해도 활동 로그에는 한 줄도 남지 않았다.
+      /* 402 Guard — 이 제품의 주인공이다. 서명 직전 청구서 검증에서 막힌 건(차단)과
+         배송을 확인하지 못한 건(보류). 상세는 상단 가드 요약 바에 한 줄로 남기고(접혀
+         있었으면 펴 준다), 탭이 백그라운드면 브라우저 알림도 보낸다. 전체 내용은
+         협상·이벤트 로그에 쌓인다 — 예전에는 이 이벤트들에 로그 처리가 아예 없어서
+         가드가 실제로 차단해도 활동 로그에는 한 줄도 남지 않았다(심사 축④ 직결). */
       case "guard_blocked":
+      case "guard_pending": {
+        const pending = evt.type === "guard_pending";
+        const side = d.side === "sell" ? "매도" : "매수";
+        const detail = d.detail || "";
         addLog(evt.ts,
-          `[402 Guard 차단] (${d.side === "sell" ? "매도" : "매수"}) ${d.order_id} — ` +
-          `${d.code}: ${d.detail}` +
-          (d.expected ? ` · 기대 ${d.expected} / 실제 ${d.actual}` : "") +
-          (d.where ? ` @ ${d.where}` : "") + " · 서명 미생성(유출 0)",
+          `[402 Guard ${pending ? "보류" : "차단"}] (${side}) ${d.order_id || ""} — ${d.code || ""}: ${detail}`
+          + (d.expected ? ` · 기대 ${d.expected} / 청구 ${d.actual}` : "")
+          + (d.where ? ` · ${d.where}` : "")
+          // 이 꼬리표가 두 사건의 무게 차이다: 차단은 서명 자체를 안 만들었으니 유출 0,
+          // 보류는 대금이 이미 나간 뒤라 되찾을 경로가 없어 세션을 멈춘다.
+          + (pending ? " · 정산 후 확인 실패라 세션을 멈춥니다(회수 경로 없음)"
+                     : " · 서명 미생성(유출 0)"),
           "log-danger");
-        notify(evt, "402 Guard 차단", `${d.code} — ${d.detail}`, "danger");
-        fetchState();
+        const fresh = isFresh(evt);
+        showGuardHit(d, pending, fresh);
+        // 보고 있는 탭에서는 가드 요약 바가 이미 같은 내용을 띄우므로 토스트를 겹치지 않는다.
+        if (fresh && document.hidden) {
+          notify(evt, `402 Guard ${pending ? "보류" : "차단"}`, detail || "정산 후 확인 실패", "danger");
+        }
+        fetchState();   // 가드 KPI(시도·차단 건수) 갱신
         break;
-      case "guard_pending":
-        addLog(evt.ts,
-          `[402 Guard 보류] ${d.order_id || ""} — ${d.code || ""}: ${d.detail || ""}` +
-          " · 정산 후 확인 실패라 세션을 멈춥니다(회수 경로 없음)", "log-danger");
-        notify(evt, "402 Guard 보류", d.detail || "정산 후 확인 실패", "danger");
-        fetchState();
-        break;
+      }
       case "guard_semantic":
         // 차단 건은 바로 위 guard_blocked 가 이미 자세히 남기므로 여기서는 중복을 피한다.
         // 통과·검증불가만 조용히 기록한다 — '이 계층이 평소에도 일하고 있다'가 보여야 한다.
@@ -984,7 +1094,7 @@
     const replay = el.feedSelect.value === "replay";
     el.feedDataset.classList.toggle("hidden", !replay);
     el.subBars.classList.toggle("hidden", !replay);
-    // 멀티 종목 선택은 실데이터 재생에서만. 추세추종(올인)·라이브(온체인)는 단일만이라 잠근다.
+    // 멀티 종목 선택은 실데이터 재생에서만. 라이브(온체인)만 단일 종목이라 잠근다.
     const isTrend = strat === "trend";
     const isLive = el.modeSelect.value === "live";
     const singleOnly = isLive;   // 추세추종도 멀티 가능(종목별 예산 슬라이스). 라이브(온체인)만 단일.
@@ -1072,13 +1182,16 @@
      디자인 시안의 배치가 어떻게 오든 이 배열만 바꾸면 기본 배치가 바뀐다.
      사용자는 카드 제목(h2)을 끌어 재배치할 수 있고 localStorage 에 저장된다.
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
-  const LAYOUT_KEY = "autotrader_layout_v4";  // v4: AI 카드 신설 — 기존 저장 배치 리셋
-  // 시안(dashboard_mockup.png) 섹션 흐름: 가드 KPI → (컨트롤) → 오늘의 결과 →
-  // AI 판단 근거 → 거래 내역 → 한도/브리핑. 세션·멀티종목 컨트롤은 시안에 없지만
-  // 데모에 필수라 가드 바로 뒤에 유지(symbols 는 멀티일 때만 표시).
-  // ai 카드는 가드 바로 다음 — "돈이 새지 않았다" 다음에 "그걸 누가 어떻게 막았나"가 온다.
-  const DEFAULT_LAYOUT = ["guard", "ai", "session", "symbols", "pnl", "valuation", "position",
-                          "price", "decisions", "trades", "log", "budget", "mandate", "briefing"];
+  const LAYOUT_KEY = "autotrader_layout_v6";  // v6: 가드 KPI 를 상단 바로 이동 — 기존 저장 배치 리셋
+  // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
+  // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
+  // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
+  // ai 카드가 결과 바로 다음인 이유: 상단 가드 바의 "돈이 새지 않았다" 다음에 오는 질문이
+  // "그걸 누가 어떻게 막았나"다. 협상 로그·판단 타임라인은 흐르는 기록이라 맨 아래 —
+  // 위쪽은 "지금 상태", 아래쪽은 "무슨 일이 있었나". 가드 요약 바의 "자세히 보기"도 그 자리로 데려간다.
+  const DEFAULT_LAYOUT = ["session", "symbols", "pnl", "valuation", "position", "ai",
+                          "price", "trades", "budget", "mandate", "briefing",
+                          "log", "decisions"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 

@@ -11,6 +11,9 @@ body {
   font-family: var(--font); font-size: var(--fs-base);
   line-height: 1.5; padding: var(--gap);
 }
+/* 대시보드만 좌우 여백을 넓힌다 — 카드가 화면 끝에 붙어 답답해 보이던 것을 푼다.
+   랜딩·로그인은 이미 자체 폭 제한(1160px / 380px)이 있어 건드리지 않는다. */
+body.page-dashboard { padding-left: var(--page-pad); padding-right: var(--page-pad); }
 .hidden { display: none !important; }
 code { font-family: var(--mono); font-size: var(--fs-small); }
 
@@ -20,6 +23,9 @@ code { font-family: var(--mono); font-size: var(--fs-small); }
   border-radius: var(--radius); padding: var(--pad); margin-bottom: var(--gap);
   box-shadow: var(--shadow);
   display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center;
+  /* 이 블록은 고정하지 않는다. 통째로 붙여 두면 접혀서 높이가 커질 때 화면의 30~40%를
+     계속 가린다(실측: 폭 1280px 에서 139px, 540px 에서 305px). 대신 스크롤하면
+     얇은 헤더(.slim-bar)가 대신 내려와 제목·지갑 연결·긴급정지만 들고 따라온다. */
 }
 .brand h1 { margin: 0; font-size: 18px; }
 .brand .tagline { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-small); }
@@ -47,6 +53,9 @@ code { font-family: var(--mono); font-size: var(--fs-small); }
 .btn:hover { border-color: var(--accent); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 a.btn { text-decoration: none; display: inline-block; text-align: center; }
+/* 랜딩 복귀 버튼 — 대시보드 상단바 왼쪽 끝 / 로그인 카드 왼쪽 위 공용.
+   좁은 화면에서 "← 소개" 가 두 줄로 쪼개지지 않게만 잡아 둔다. */
+.btn-back { white-space: nowrap; }
 .btn-emergency { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 700; }
 .btn-resume { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 700; }
 select {
@@ -77,6 +86,32 @@ input[type="number"], input[type="text"], input[type="time"] {
 .card-wide { grid-column: span 2; }
 .card-full { grid-column: 1 / -1; }
 
+/* 카드 hover 플로팅 — 마우스를 올린 카드가 살짝 떠올라 지금 보는 카드가 또렷해진다.
+   값(거리·속도·그림자)은 theme.css 의 --card-lift / --card-lift-speed / --shadow-hover.
+
+   기존 모션과의 관계(둘 다 확인함):
+   ① 등장 모션(.is-visible, fade-in-up)은 transform 을 쓴다. 그래서 hover 는 transform 이
+      아니라 독립 속성인 translate 로 띄운다 — 두 속성은 서로 덮어쓰지 않고 합성되므로
+      "등장 재생 중에 마우스를 올려도" 값이 충돌하거나 튀는 구간이 아예 없다.
+      (같은 transform 을 썼다면 재생 중 애니메이션이 이겨 hover 가 무시됐다가
+       .is-done 이 붙는 순간 뒤늦게 적용된다.)
+   ② 드래그 재배치를 방해하지 않는다. 핸들 .card h2 는 카드와 함께 통째로 3px 올라갈 뿐
+      상대 위치가 그대로고, 재배치 계산은 좌표가 아니라 카드 순서(indexOf→insertBefore,
+      app.js)라 이 3px 과 무관하다. 드롭 표시도 outline(.drop-target)이라 영향 없다. */
+.card {
+  transition: translate var(--card-lift-speed) var(--stagger-ease),
+              box-shadow var(--card-lift-speed) var(--stagger-ease);
+}
+.card:hover {
+  translate: 0 calc(var(--card-lift) * -1);
+  box-shadow: var(--shadow-hover);
+}
+/* 모션 최소화 설정에서는 움직임을 빼고 그림자 강조만 남긴다(js/reveal.js 와 같은 기준) */
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+  .card:hover { translate: none; }
+}
+
 /* 카드 모듈 재배치 — 제목(h2)이 드래그 핸들. HTML5 DnD 라 데스크톱 전용(터치 미지원). */
 .drag-handle { cursor: grab; user-select: none; }
 .drag-handle:active { cursor: grabbing; }
@@ -90,6 +125,28 @@ input[type="number"], input[type="text"], input[type="time"] {
 @media (max-width: 560px) {
   .grid { grid-template-columns: 1fr; }
 }
+
+/* ---- 등장 모션 (스크롤 스태거 페이드인) ----
+   요소가 화면에 들어오는 순간 아래에서 떠오르며 나타나고, 한 번 나타나면 그대로 고정된다
+   (스크롤을 위아래로 반복해도 재생되지 않음). 클래스 부착은 js/reveal.js,
+   값 조정은 theme.css 의 --stagger-* 토큰. 여기엔 상태별 모양만 둔다. */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(var(--stagger-rise)); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 등장 대상 — js/reveal.js 의 TARGETS 선택자와 반드시 같게 유지한다.
+   .reveal-ready 는 reveal.js 가 실행되자마자 <html> 에 붙인다. 스크립트가 없거나
+   로드에 실패하면 이 클래스가 없어 아무것도 숨겨지지 않는다(빈 화면 사고 방지).
+   :where() 로 감싸 특이도를 0 으로 만들어, 아래 두 상태 규칙이 항상 이긴다. */
+:where(.reveal-ready) :where(.grid > .card, .hero-copy > *, .hero-preview, .landing-about > *) {
+  opacity: 0;
+}
+
+.is-visible { animation: fade-in-up var(--stagger-duration) var(--stagger-ease) forwards; }
+/* 재생 완료 — 애니메이션을 떼어낸다. 안 그러면 카드를 드래그로 재배치할 때
+   DOM 이 이동하면서 페이드인이 처음부터 다시 재생된다. */
+.is-done { animation: none; opacity: 1; }
 
 .big { font-size: var(--fs-big); font-weight: 700; margin: 4px 0; }
 .big .unit { font-size: var(--fs-base); font-weight: 400; color: var(--muted); }
@@ -251,26 +308,106 @@ td a { color: var(--accent); }
   to { transform: none; opacity: 1; }
 }
 
-/* ---- 로그인/회원가입 자리표시 페이지 (login.html) ----
-   실제 인증 백엔드 없음 — 제출 후 로드맵의 껍데기. 기존 카드/버튼/필드 골격을
-   그대로 쓰고, 페이지 전용 규칙은 여기 몇 줄만 둔다(전부 theme.css 변수 참조). */
+/* ---- 얇은 헤더 (index.html) ----
+   제목 블록(.topbar)이 스크롤로 화면을 벗어나면 위에서 내려와 대신 따라온다.
+   흔한 사이트 헤더 모양 — 왼쪽 제목, 오른쪽 지갑 연결·긴급정지. 그 셋만 들고 온다.
+   fixed 라 나타나고 사라져도 문서 높이가 변하지 않아 본문이 튀지 않는다. */
+.slim-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 55;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px var(--page-pad);
+  background: var(--card-bg); border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  translate: 0 -100%;                       /* 기본은 화면 위에 숨어 있다 */
+  transition: translate .22s var(--stagger-ease);
+}
+.slim-bar.is-shown { translate: none; }     /* 스크롤하면 위에서 아래로 내려온다 */
+.slim-brand { font-weight: 700; font-size: 15px; color: var(--text); text-decoration: none; }
+.slim-brand:hover { color: var(--accent); }
+.slim-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+/* ---- 402 Guard 알림창 (index.html) ----
+   첫 화면 KPI 4개(지출 시도·가드 차단·한도 거부·유출)를 본문 위에 떠 있는 패널로 보여준다.
+   fixed 라 내렸다 올렸다 해도 카드 배치가 밀리지 않는다. 세로 위치(top)는 "지금 보이는
+   제목칸" 아래로 app.js 가 맞춘다 — 맨 위에서는 제목 블록, 스크롤 중에는 얇은 헤더.
+   패널과 탭을 한 덩어리(dock)로 묶어 두어서, 패널이 접히면 탭이 저절로 제목칸 바로
+   아래로 따라 올라온다(탭 위치를 따로 계산할 필요가 없다). */
+.guard-dock {
+  position: fixed; z-index: 54; top: 0; right: var(--page-pad);
+  width: min(720px, calc(100vw - var(--page-pad) * 2));
+  display: flex; flex-direction: column; align-items: flex-end;
+}
+.guard-panel {
+  width: 100%;
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: var(--pad);
+  box-shadow: var(--shadow-hover);
+  overflow: hidden; max-height: 480px;
+  transition: max-height .3s var(--stagger-ease), opacity .22s var(--stagger-ease),
+              padding .3s var(--stagger-ease), border-width .3s var(--stagger-ease);
+}
+.guard-panel.is-collapsed {
+  max-height: 0; opacity: 0; border-width: 0; padding-top: 0; padding-bottom: 0;
+}
+.guard-panel h2 { margin: 0 0 8px; font-size: var(--fs-base); }
+
+/* 책에 끼운 인덱스처럼 제목칸 오른쪽 아래로 튀어나온 손잡이 — 위쪽 테두리를 없애고
+   아래 모서리만 둥글려 "위에 붙어 있다" 는 느낌을 준다. 스크롤해도 늘 잡을 수 있다. */
+.guard-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px 6px; margin-right: 10px;
+  background: var(--card-bg); color: var(--text);
+  border: 1px solid var(--border); border-top: 0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: var(--shadow);
+  font: inherit; font-size: var(--fs-small); line-height: 1.4; cursor: pointer;
+}
+.guard-tab:hover { color: var(--accent); border-color: var(--accent); }
+/* ▼ 는 "내리기". 내려와 있는 동안에는 뒤집어 ▲(올리기)로 보이게 한다. */
+.chev { display: inline-block; transition: rotate .22s var(--stagger-ease); }
+[aria-expanded="true"] .chev { rotate: 180deg; }
+
+/* 가드가 막은 건(차단) / 배송을 확인 못한 건(보류)의 상세 한 줄 — 다음 사건이 올 때까지 남는다 */
+.guard-hit {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 12px 0 0; padding: 10px 12px;
+  background: var(--bg); border-left: 4px solid var(--danger);
+  border-radius: var(--radius); font-size: var(--fs-small);
+}
+.guard-hit.is-warn { border-left-color: var(--warn); }
+.guard-hit-text { flex: 1; min-width: 0; word-break: break-word; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slim-bar, .guard-panel, .chev { transition: none; }
+}
+
+/* "자세히 보기"로 이동한 카드를 잠깐 표시 — 화면이 어디로 옮겨졌는지 알려준다 */
+.card-focused { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ---- 지갑 연결 페이지 (connect.html) ----
+   `/connect` = 로그인. 지갑 서명이 소유 증명이고 비밀번호는 만들지 않는다(web/auth.py).
+   옛 이메일·비밀번호 자리표시 페이지(login.html)는 이 주소로 리다이렉트만 하는 껍데기로
+   남아 있고, 그 리다이렉트 화면도 아래 규칙을 그대로 쓴다.
+   기존 카드/버튼/필드 골격을 재사용하고 페이지 전용 규칙만 여기 몇 줄 둔다. */
 .auth {
   min-height: calc(100vh - var(--gap) * 2);
   display: flex; align-items: center; justify-content: center;
 }
 .auth-card { width: 100%; max-width: 380px; }
+.auth-top { margin: 0 0 12px; }   /* 카드 왼쪽 위 "← 소개" 줄 */
 .auth-brand { text-align: center; margin-bottom: var(--gap); }
 .auth-brand h1 { font-size: 20px; }
+/* 탭·폼 규칙은 지금 쓰는 페이지가 없지만(지갑 연결은 버튼 하나) 골격으로 남겨 둔다 */
 .auth-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .auth-tabs .auth-tab { flex: 1; }
 .auth-tab.is-active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.auth-form .field { max-width: none; }
+.auth-form .field input { max-width: none; }
 .auth-notice {
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 10px 12px; margin: 0 0 var(--gap); font-size: var(--fs-small); color: var(--muted);
 }
 .auth-notice a { color: var(--accent); }
-.auth-form .field { max-width: none; }
-.auth-form .field input { max-width: none; }
 .auth-submit { width: 100%; margin-top: 4px; }
 .auth-result { margin-top: 8px; }
 .auth-back { text-align: center; margin-top: var(--gap); }

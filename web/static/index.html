@@ -8,10 +8,33 @@
 <!-- theme.css = 색·폰트·간격 변수(스킨). 디자인 시안 수령 시 이 파일 위주로 교체 -->
 <link rel="stylesheet" href="/static/css/theme.css">
 <link rel="stylesheet" href="/static/css/skeleton.css">
+<!-- 스크롤 등장 모션. <head> 에서 읽어야 카드가 잠깐 보였다 숨는 깜빡임이 없다.
+     이 스크립트가 실패하면 아무것도 숨지 않으므로 화면이 비지 않는다. -->
+<script src="/static/js/reveal.js"></script>
 </head>
-<body>
+<body class="page-dashboard">
+
+<!-- 얇은 헤더 — 아래 제목 블록이 스크롤로 화면을 벗어나면 위에서 내려온다.
+     여러 사이트의 헤더처럼 제목(왼쪽) + 지갑 연결·긴급정지(오른쪽)만 남긴다.
+     fixed 라 나타나고 사라져도 문서 높이가 변하지 않는다(화면이 튀지 않음).
+     긴급정지·재개는 아래 제목 블록의 진짜 버튼을 대신 눌러 주는 역할이라 로직이 한 벌로 유지된다.
+     지갑만 링크인 이유: wallet.js 는 [data-wallet-connect] 를 하나만 배선하므로(querySelector)
+     여기에 같은 버튼을 하나 더 두면 라벨이 "지갑 연결"에 굳은 채 눌러도 반응하지 않는다.
+     연결/해제 상태가 모두 있는 /connect 로 보내면 그런 어긋난 상태가 아예 생기지 않는다. -->
+<div class="slim-bar" data-slim-bar>
+  <a class="slim-brand" href="/" title="402 Guard 소개 페이지로">402 Guard</a>
+  <div class="slim-actions">
+    <a class="btn btn-small" href="/connect"
+       title="지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다">지갑 연결</a>
+    <button class="btn btn-small btn-emergency" data-slim-pause>🛑 긴급정지</button>
+    <button class="btn btn-small btn-resume hidden" data-slim-resume>▶ 매매 재개</button>
+  </div>
+</div>
 
 <header class="topbar">
+  <!-- 소개 페이지(랜딩)로 복귀. 백엔드가 라우트를 전환해 / = landing.html, /app = 이 대시보드다.
+       (전환 전 임시 주소였던 /static/landing.html 도 정적 서빙으로 계속 열리긴 한다.) -->
+  <a class="btn btn-back" href="/" title="402 Guard 소개 페이지로 돌아갑니다">← 소개</a>
   <div class="brand">
     <h1>402 Guard</h1>
     <p class="tagline">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트 — A2A · AP2 · x402 on Solana</p>
@@ -24,22 +47,27 @@
     <span class="badge badge-danger hidden" data-paused-badge>🛑 매매 정지됨</span>
   </div>
   <div class="controls">
+    <!-- 가드 알림창 접기/펴기는 제목칸 오른쪽 아래에 붙은 탭(.guard-tab)이 담당한다 —
+         그 탭은 스크롤해도 제목칸을 따라다녀서 여기 버튼을 따로 둘 필요가 없다. -->
     <button class="btn btn-emergency" data-btn-pause>🛑 긴급정지</button>
     <button class="btn btn-resume hidden" data-btn-resume>▶ 매매 재개</button>
     <button class="btn" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림: 꺼짐</button>
-    <!-- 지갑 연결 = 로그인. 서명은 소유 증명일 뿐이고 자금은 움직이지 않는다(web/auth.py). -->
+    <!-- 지갑 연결 = 로그인. 서명은 소유 증명일 뿐이고 자금은 움직이지 않는다(web/auth.py).
+         wallet.js 가 이 두 훅을 찾아 자동으로 배선한다(연결/해제 라벨 전환 포함). -->
     <span class="badge" data-wallet-status title="지갑 미연결">미연결</span>
     <button class="btn" type="button" data-wallet-connect>지갑 연결</button>
   </div>
 </header>
 
-<!-- 카드(모듈) 그리드 — 모든 기능은 data-card 모듈로 분리되어 있고,
-     기본 순서는 app.js DEFAULT_LAYOUT, 사용자는 카드 제목을 끌어 재배치(localStorage 저장).
-     디자인 시안의 배치가 어떤 순서로 오든 DEFAULT_LAYOUT 배열만 바꾸면 적용된다. -->
-<main class="grid">
-  <!-- 402 Guard KPI — 첫 화면 핵심. 데이터 출처: GET /api/state 의 state.guard.
-       "유출 0.00 USDC" 가 이 제품의 한 줄 증명이다(사는 쪽 에이전트 지출 통제). -->
-  <section class="card card-full guard-card" data-card="guard">
+<!-- 402 Guard 알림창 — 첫 화면 KPI 4개(지출 시도·가드 차단·한도 거부·유출)를 담아
+     본문 위에 떠 있는 패널. 가드가 청구서를 막으면(guard_blocked) 상세 줄이 함께 뜬다.
+     책에 붙인 인덱스처럼 제목칸 오른쪽 아래로 튀어나온 탭(.guard-tab)으로 언제든 내렸다
+     올렸다 하고, 그 상태를 localStorage 가 기억한다(자동으로 사라지지 않는다).
+     fixed 라 본문 배치를 밀지 않는다. 세로 위치는 app.js 가 "지금 보이는 제목칸"
+     — 맨 위에서는 제목 블록, 스크롤 중에는 얇은 헤더 — 바로 아래로 맞춘다.
+     데이터 출처: GET /api/state 의 state.guard. -->
+<div class="guard-dock" data-guard-dock>
+  <section class="guard-panel" id="guard-panel" data-guard-panel aria-live="polite">
     <h2>402 Guard <span class="sub">에이전트 지출 승인 게이트 — 사람이 화면을 지켜보지 않아도 되도록, 서명 직전에 대조한다</span></h2>
     <div class="kpi-row">
       <div class="kpi">
@@ -48,6 +76,7 @@
       </div>
       <div class="kpi">
         <p class="kpi-num"><span data-guard-blocked>0</span></p>
+        <!-- 레그별 분해 — 매수/매도 양 레그 대칭이 이 제품의 차별점이라 지표에서도 보여준다 -->
         <p class="sub">가드 차단 (청구서 검증) <span data-guard-legs></span></p>
       </div>
       <div class="kpi">
@@ -59,7 +88,22 @@
         <p class="sub">유출 — 엉뚱한 곳으로 샌 금액 (목표 0.00)</p>
       </div>
     </div>
+    <p class="guard-hit hidden" data-guard-hit>
+      <span class="guard-hit-text" data-guard-hit-text></span>
+      <button class="btn btn-small" data-guard-hit-more>자세히 보기</button>
+    </p>
   </section>
+  <button class="guard-tab" data-guard-toggle aria-expanded="true" aria-controls="guard-panel"
+          title="접기">🛡 가드 요약 <span class="chev" aria-hidden="true">▼</span></button>
+</div>
+
+<!-- 카드(모듈) 그리드 — 모든 기능은 data-card 모듈로 분리되어 있고,
+     기본 순서는 app.js DEFAULT_LAYOUT, 사용자는 카드 제목을 끌어 재배치(localStorage 저장).
+     디자인 시안의 배치가 어떤 순서로 오든 DEFAULT_LAYOUT 배열만 바꾸면 적용된다. -->
+<main class="grid">
+  <!-- 402 Guard KPI 카드는 상단 알림창(위 .guard-dock / .guard-panel)으로 옮겼다 —
+       같은 숫자를 두 곳에 두면 한쪽만 고치는 사고가 난다. -->
+
   <!-- AI 두 레이어 — 데이터 출처: GET /api/state 의 state.ai.
        이 제품에서 AI 재량은 '멈추는 방향으로만' 열려 있다. 그 원칙이 두 곳에 같은 모양으로
        적용된다: 판단 레이어(규칙 게이트)와 청구서 레이어(의미 대조). 둘 다 AI 는 차단만 하고
@@ -108,6 +152,7 @@
       </div>
     </div>
   </section>
+
   <section class="card card-full" data-card="price">
     <div class="price-head">
       <div>
@@ -320,17 +365,8 @@
   </section>
 </main>
 
-<!-- ABOUT — 402 Guard 서사. 그리드(카드 레이아웃) 밖 정적 섹션이라 app.js DEFAULT_LAYOUT 무관.
-     Phase 4 랜딩(landing.html)에서 재사용 예정. -->
-<section class="card about-card">
-  <h2>한도를 정하면, 에이전트는 그 안에서만 씁니다</h2>
-  <p class="sub">AI 에이전트가 사람 없이 결제할 수 있도록, 서명 직전에 청구서를 대조하는 승인 게이트입니다.</p>
-  <ol class="about-steps">
-    <li><strong>한도를 정합니다.</strong> 총예산·건별 최대·허용 종목을 AP2 위임장에 한 번 서명합니다. 그 뒤로는 다시 묻지 않습니다.</li>
-    <li><strong>에이전트가 그 한도 안에서만 지출합니다.</strong> 표시용 숫자가 아니라 위임장에서 실제로 차감되고, 초과 청구는 서명되지 않습니다.</li>
-    <li><strong>합의한 그 청구서일 때만 서명합니다.</strong> 수취인·금액·자산에 더해 청구서에 적힌 설명까지 주문 의도와 대조합니다. 서명 전에 가드를 태운 청구서에서 새어나간 금액은 <strong>0.00 USDC</strong> 입니다.</li>
-  </ol>
-</section>
+<!-- ABOUT 섹션은 랜딩(landing.html #about)으로 일원화했다 — 같은 카피를 두 곳에 두면
+     문구를 고칠 때 한쪽만 바뀐다. 대시보드는 운영 화면이므로 소개글 없이 데이터만 둔다. -->
 
 <footer class="foot">
   <span data-conn-status>서버 연결 대기…</span>
