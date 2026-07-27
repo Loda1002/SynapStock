@@ -1,5 +1,12 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>402 Guard — 프로젝트 소개서</title>
 
+</head>
+<body>
 <style>
   :root {
     --paper: #ffffff;
@@ -207,6 +214,9 @@
   .check .n { font-family: var(--font-mono); font-size: 10px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; }
   .check .t { font-size: 13px; font-weight: 700; margin-top: 3px; }
   .check .d { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.5; }
+  /* 유일하게 결정론이 아닌 검사 — 나머지 7종과 시각적으로 구분한다(설명 없이도 읽히게) */
+  .check.gate-ai { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
+  .check.gate-ai .t .mono { font-size: 9.5px; color: var(--accent); vertical-align: 2px; }
 
   /* ---------- architecture ---------- */
   .arch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6mm; margin-top: 2mm; }
@@ -290,8 +300,8 @@
   <div class="frame"><section class="slide cover">
     <div class="rule"></div>
     <h1>402 Guard</h1>
-    <p class="sub">에이전트 지출 승인 게이트 — 사람 없이 결제하는 AI를 지키는 마지막 검증</p>
-    <p class="claim">x402 결제 규격은 <b>파는 쪽</b>을 보호합니다. 402 Guard는 <b>사는 쪽</b> — 사람 없이 서명하는 구매 에이전트 — 를 보호합니다. 돈이 나가기 직전에 청구서를 사용자의 위임장과 대조하는 계층입니다.</p>
+    <p class="sub">손을 떼려면, 한도가 있어야 합니다</p>
+    <p class="claim">402 Guard는 AI 에이전트가 <b>서명하기 직전</b>, 이 청구서가 합의한 그 청구서인지 대조합니다. 그래서 사람이 화면을 지켜보지 않아도 됩니다. — <b>감시 없는 자율, 승인 없는 결제.</b></p>
     <div class="meta">
       <div><b>트랙</b>Track C · Multi-Agent Commerce</div>
       <div><b>레퍼런스 시나리오</b>토큰화 주식 자동매매</div>
@@ -304,18 +314,18 @@
   <!-- 2. problem -->
   <div class="frame"><section class="slide">
     <span class="eyebrow">문제</span>
-    <h2 class="headline">사람이 매 건 승인하지 않는 결제가 시작됐는데,<br>사는 쪽을 지키는 계층이 없습니다.</h2>
-    <p class="deck-lead">에이전트는 은행 계좌를 개설할 수 없지만 지갑은 코드 한 줄로 만듭니다. 그래서 자율 결제는 블록체인 위에서 먼저 열립니다. 문제는 그 결제 규격이 판매자 보호를 전제로 설계됐다는 점입니다.</p>
+    <h2 class="headline">AI에게 지갑을 맡기면 알아서 사고팝니다.<br>그런데 AI는 가짜 영수증을 의심할 줄 모릅니다.</h2>
+    <p class="deck-lead">사람이 결제하던 시절에는 청구서가 이상하면 사람이 눈치챘습니다. 에이전트가 대신 결제하면 그 마지막 확인이 사라집니다. 그리고 지금 표준 스택에는 그 자리를 메우는 주체가 없습니다.</p>
     <div class="body cols cols-3">
       <div class="box">
-        <span class="tag">규격의 공백</span>
-        <h3>거래 상대 검증이 없다</h3>
-        <p>x402 exact 스킴은 "얼마를 받았는가"는 검증하지만 "누구에게 보내는가"를 구매자 관점에서 검증하는 항목이 없습니다. 판매자 보호에 최적화된 설계입니다.</p>
+        <span class="tag">x402</span>
+        <h3>키는 지키지만, 내용은 안 본다</h3>
+        <p>x402는 구매자의 <b>키</b>를 지킵니다 — 로컬 서명이고 판매자는 키를 갖지 않습니다. 하지만 구매자가 <b>무엇에 서명하는지</b>는 검증하지 않습니다. 수취인이 합의한 상대인지, 청구액이 합의 견적과 같은지를 묻는 주체가 규격에 없습니다. 게다가 exact 스킴은 실행되면 되돌릴 수 없는 push 결제입니다.</p>
       </div>
       <div class="box">
-        <span class="tag">위임의 공백</span>
-        <h3>한도만으로는 못 막는다</h3>
-        <p>결제 위임(AP2 mandate)은 종목·건별 한도·잔여 예산을 검사합니다. 수취인 지갑은 검사하지 않습니다. 한도 안쪽이면 어디로 나가든 통과합니다.</p>
+        <span class="tag">AP2</span>
+        <h3>집행할 사람이 이 세계엔 없다</h3>
+        <p>AP2는 수취인 제약(allowed payees)을 <b>정의합니다.</b> 그리고 그 집행을 Credential Provider · Network · Merchant Payment Processor에 배정합니다. 그런데 <b>자기 지갑으로 결제하는 self-custody 세계에는 그 세 주체가 존재하지 않습니다.</b> 집행 지점이 공석이 됩니다.</p>
       </div>
       <div class="box">
         <span class="tag">결과</span>
@@ -408,12 +418,13 @@
         <div class="check"><div class="n">검사 03</div><div class="t">의도 상한</div><div class="d">사용자가 의도한 지출을 넘는 청구 차단</div></div>
         <div class="check"><div class="n">검사 04</div><div class="t">건별 한도</div><div class="d">위임장의 1회 상한 강제</div></div>
         <div class="check"><div class="n">검사 05</div><div class="t">자산</div><div class="d">허용된 결제 자산인지 확인</div></div>
-        <div class="check"><div class="n">검사 06</div><div class="t">종목</div><div class="d">위임장이 허용한 종목인지 확인</div></div>
+        <div class="check"><div class="n">검사 06</div><div class="t">종목</div><div class="d">허용 목록 안이면서 <b>지금 주문한 그 종목</b>인지</div></div>
         <div class="check"><div class="n">검사 07</div><div class="t">주문번호</div><div class="d">형식·바인딩 확인, 재사용 차단</div></div>
+        <div class="check gate-ai"><div class="n">검사 08</div><div class="t">의미 대조 <span class="mono">AI</span></div><div class="d">설명이 <b>우리가 주문한 그 물건</b>을 가리키는지</div></div>
         <div class="check"><div class="n">정산 후</div><div class="t">배송 검증</div><div class="d">온체인 잔액을 다시 조회해 실제 도착 확인</div></div>
       </div>
 
-      <div class="footnote"><b>결제가 끝나도 끝이 아닙니다.</b> 지불은 됐는데 자산이 오지 않으면 완료로 기록하지 않습니다 — 미확인은 보류 처리하고 세션을 정지합니다. 정산 실패 시 위임 한도는 원복됩니다.</div>
+      <div class="footnote"><b>검사 08만 결정론이 아닙니다.</b> 앞의 7종이 전부 통과한 뒤에만 돌고, <b>차단만 할 수 있으며 통과시킬 권한은 없습니다.</b> &nbsp;·&nbsp; <b>결제가 끝나도 끝이 아닙니다.</b> 지불은 됐는데 자산이 오지 않으면 완료로 기록하지 않습니다 — 미확인은 보류 처리하고 세션을 정지합니다(회수는 못 합니다). 정산 실패 시 위임 한도는 원복됩니다.</div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
     <span class="slide-num mono">05 / 13</span>
@@ -504,10 +515,10 @@
     <h2 class="headline">목업이 아닙니다. 숫자는 전부 재현 가능합니다.</h2>
     <div class="body">
       <div class="kpi-row">
-        <div class="kpi"><div class="l">유출</div><div class="v good">0.00</div><div class="f">USDC · 공격 전 라운드</div></div>
-        <div class="kpi"><div class="l">차단 / 시도</div><div class="v">6 / 20</div><div class="f">공격 3종 매트릭스</div></div>
+        <div class="kpi"><div class="l">서명 전 유출</div><div class="v good">0.00</div><div class="f">USDC · 트랜잭션 미생성</div></div>
+        <div class="kpi"><div class="l">서명 전 차단</div><div class="v">5 / 7</div><div class="f">나머지 2종은 판매자측·사후 탐지</div></div>
         <div class="kpi"><div class="l">오탐</div><div class="v good">0</div><div class="f">정상 14건 전부 통과</div></div>
-        <div class="kpi"><div class="l">온체인 증빙</div><div class="v">9</div><div class="f">devnet · localnet 세션 아카이브</div></div>
+        <div class="kpi"><div class="l">회수 못 한 금액</div><div class="v">29.99</div><div class="f">USDC · 사후 탐지 계층 (숨기지 않습니다)</div></div>
       </div>
 
       <div class="cols cols-2" style="margin-top:6mm; height:auto">
@@ -518,8 +529,8 @@
         </div>
         <div class="box">
           <span class="tag">검증 자동화</span>
-          <h3>테스트 11종 통과 · 공격 스크립트 상시 재현</h3>
-          <p>공격과 정상 거래를 같은 실행에서 돌려 <b>차단률과 오탐을 동시에</b> 산출합니다. 심사위원이 공격자 지갑 주소를 직접 넣어 실행할 수 있습니다.</p>
+          <h3>테스트 20종 통과 · 공격 스크립트 상시 재현</h3>
+          <p>공격과 정상 거래를 같은 실행에서 돌려 <b>차단률과 오탐을 동시에</b> 산출하고, <b>계층을 합치지 않습니다</b> — 서명 전 차단 · 판매자측 방어 · 사후 탐지를 따로 셉니다. 심사위원이 공격자 지갑 주소를 직접 넣어 실행할 수 있습니다.</p>
         </div>
       </div>
 
@@ -555,32 +566,27 @@
   <!-- 10. AI -->
   <div class="frame"><section class="slide">
     <span class="eyebrow">AI 활용</span>
-    <h2 class="headline">AI가 무엇을 판단하든, 게이트는 상수입니다</h2>
-    <p class="deck-lead">Gemini가 시세·이동평균·변동성·평단 손익률과 직전 판단 회고를 보고 스스로 결정합니다. 그리고 그 결정이 무엇이든 한도를 넘을 수는 없습니다.</p>
+    <h2 class="headline">AI 재량은 '멈추는 방향'으로만 열려 있습니다</h2>
+    <p class="deck-lead">이 제품에서 AI에게 준 것은 <b>거부권뿐</b>입니다. 그 원칙이 서로 다른 두 레이어에 <b>같은 모양으로</b> 구현돼 있습니다.</p>
     <div class="body cols cols-2">
-      <div>
-        <ul class="plain">
-          <li><b>판단</b> Gemini 무료 티어 호출로 매수·매도·보류와 한국어 사유를 생성합니다.</li>
-          <li><b>리포트</b> 세션 종료 시 데일리 브리핑을 별도 호출로 생성합니다.</li>
-          <li><b>견고성</b> 응답 파싱을 3단계로 복구하고, 형식 위반은 1회 재요청하며, 실패하면 규칙 판단으로 대체합니다. 규칙 신호가 없으면 AI 판단이어도 개시하지 못하도록 코드가 강제합니다.</li>
-          <li><b>계측</b> 판단 출처(AI / 규칙 / 대체 동작)를 거래 증빙과 세션 요약에 기록합니다.</li>
-        </ul>
-      </div>
       <div class="box">
-        <span class="tag">정직한 수치</span>
-        <h3>AI는 수익을 늘리기보다 낙폭을 줄였습니다</h3>
-        <table class="data" style="margin-top:2mm">
-          <thead><tr><th>동일 구간 비교</th><th>수익률</th><th>최대 낙폭</th></tr></thead>
-          <tbody>
-            <tr><td>규칙 판단</td><td class="num">+4.90%</td><td class="num">7.31</td></tr>
-            <tr><td>Gemini 엄격</td><td class="num">+4.29%</td><td class="num">—</td></tr>
-            <tr><td>Gemini + 지표 보강</td><td class="num">+4.95%</td><td class="num">7.24</td></tr>
-            <tr><td>Gemini 추세 재량</td><td class="num">+2.90%</td><td class="num win">5.00</td></tr>
-          </tbody>
-        </table>
-        <p style="margin-top:3mm">수익 기여는 사실상 중립입니다. 유의미한 차이는 <b>재량으로 보류할 때 낙폭이 줄어든다</b>는 것입니다. 과장하지 않고 그대로 싣습니다.</p>
+        <span class="tag">레이어 ① 판단</span>
+        <h3>규칙 신호 없는 개시를 코드가 막는다</h3>
+        <p>프롬프트에도 "규칙 밖 매매 금지"라고 적혀 있습니다. 그러나 그건 모델의 <b>순응에 기대는 규약</b>일 뿐입니다. 같은 제약을 코드가 기계적으로 강제합니다 — 위반하면 보류로 강등하고 그 사실을 계측에 남깁니다.</p>
+        <div class="box bad" style="margin-top:4mm">
+          <span class="tag">실제로 일어난 일</span>
+          <p>TSLA 481봉 세션에서 Gemini가 <b>"MA5 대비 3% 이상 낮아 조건 충족"이라고 사실과 다르게 단언하며</b> 매수를 시도한 2건(2022-10-24 · 2023-08-14)을 코드가 차단했습니다. 그 세션의 <b>90.2%가 순수 Gemini 판단</b>이었습니다 — AI를 안 써서 사고가 없었던 게 아니라, <b>AI를 실제로 쓴 세션에서 AI가 틀렸고 코드가 잡았습니다.</b></p>
+        </div>
+      </div>
+      <div class="box ok">
+        <span class="tag">레이어 ② 청구서</span>
+        <h3>규칙으로 표현할 수 없는 마지막 한 칸</h3>
+        <p>금액·수취인·자산·종목이 <b>전부 정상</b>인데 사람이 읽는 설명만 다른 물건을 가리키는 청구서 — "12개월 자동 결제 구독의 첫 회차" — 는 하드 검사 7종을 전부 통과합니다.</p>
+        <p style="margin-top:3mm">이건 정규식으로 쓸 수 없습니다. <b>'구독'을 막으면 '멤버십'이 오고, 목록을 늘리면 '자동 갱신 서비스'가 옵니다.</b> 금지어 목록은 언어를 못 따라잡습니다. 그래서 이 한 칸만 언어 모델에게 맡겼습니다 — 차단 권한만 주고서.</p>
+        <p style="margin-top:3mm" class="mono" style="font-size:0.85em">위험 비대칭 · 오탐 → 거래 한 건 손실 &nbsp;|&nbsp; 미탐 → 하드 검사 7종 그대로</p>
       </div>
     </div>
+    <div class="footnote" style="margin-top:4mm"><b>정직하게</b> — AI가 수익을 올린다고 말하지 않습니다. 동일 구간 실측에서 규칙 −37.56% vs Gemini −39.57%로 <b>수익 기여는 중립(약간 열위)</b>이고, 그래서 판단 두뇌는 끌 수 있는 옵션입니다. 반면 청구서 레이어는 끄면 <b>막을 방법이 없는 공격 하나가 열립니다.</b> AI가 부속품인 자리와 대체 불가인 자리를 저희가 구분해 두었습니다.</div>
     <span class="slide-brand mono">402 GUARD</span>
     <span class="slide-num mono">10 / 13</span>
   </section></div>
@@ -713,3 +719,6 @@
     fit();
   })();
 </script>
+
+</body>
+</html>
