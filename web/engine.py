@@ -106,6 +106,8 @@ class TradingEngine:
         self.reject_count = 0                       # B2 브리핑용: AP2 거부 횟수
         self.pause_count = 0                        # B2 브리핑용: 긴급정지 횟수
         self.guard_block_count = 0                  # 402 Guard check_demand 차단 횟수 (첫 화면 KPI)
+        self._guard_checked = 0                     # 가드를 태운 청구서 수 (KPI 분모 — 매수·매도 양 레그)
+        self._guard_blocked_buy = 0                 # 그중 매수 레그 차단 (레그별 분해)
         self.guard_leak_usdc = Decimal(0)           # 가드 통과 후 유출된 USDC (정상 0.00)
         # 판단 출처·행동 누적 카운터 (축② AI 활용 증빙). self.decisions 는 메모리 상한(500)으로
         # 앞부분이 잘리므로, 세션 전체 집계는 반드시 이 카운터를 쓴다.
@@ -618,6 +620,8 @@ class TradingEngine:
         self.reject_count = 0
         self.pause_count = 0
         self.guard_block_count = 0
+        self._guard_checked = 0
+        self._guard_blocked_buy = 0
         self.guard_leak_usdc = Decimal(0)
         self.source_counts = {}
         self.action_counts = {}
@@ -881,6 +885,12 @@ class TradingEngine:
         차단만 기록하면 평소에 이 계층이 일하고 있다는 게 화면에 안 보인다."""
         v = getattr(self._guard, "last_semantic", None) if self._guard is not None else None
         if v is None:
+            return
+        # ⚠ 이 주문의 판정일 때만 방출한다. Guard 는 세션 1개를 전 종목이 공유하므로,
+        # 하드 검사에서 차단돼 의미 대조가 **돌지도 않은** 건에 직전 주문의 '통과' 판정이
+        # 붙어 나가던 결함이 있었다(bug-dept BUG-04). 같은 order_id 로 서로 모순되는
+        # 두 줄('차단'과 '의미 대조 통과')이 로그에 남았다.
+        if v.order_id and v.order_id != str(order_id):
             return
         self.bus.emit(ev.GUARD_SEMANTIC, {
             "side": side, "order_id": order_id, "symbol": symbol, **v.as_event(),
@@ -1154,6 +1164,7 @@ class TradingEngine:
         })
 
         # 402 Guard(청구서 검증) + AP2 한도 검사 — 위반이면 서명 자체가 일어나지 않는다(유출 0)
+        self._guard_checked += 1   # KPI 분모: 가드를 태운 청구서(결과와 무관하게 여기서 센다)
         try:
             blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
             submitted = agent.build_payment(
@@ -1161,6 +1172,7 @@ class TradingEngine:
                 expected_symbol=symbol)   # 엔진이 '지금 주문한' 종목 — 청구서 종목 바꿔치기 차단
         except GuardError as e:
             self.guard_block_count += 1
+            self._guard_blocked_buy += 1
             self._emit_semantic("buy", required.order_id, symbol)
             self.bus.emit(ev.GUARD_BLOCKED, {
                 "side": "buy", "order_id": required.order_id, **e.result.as_event(),
@@ -1282,6 +1294,7 @@ class TradingEngine:
         # 402 Guard(매도 청구서 검증) — 자산(합의 주식 민트)·수취인(브로커)·수량을 엔진의 독립
         # 기준(self._stock_mint·보유 수량 qty)과 대조한다. 위반이면 서명 자체가 일어나지 않는다(유출 0).
         blockhash = await x.get_latest_blockhash(self._client) if live else Hash.default()
+        self._guard_checked += 1   # 매수와 같은 분모에 넣는다 — 양 레그 대칭이 지표에도 성립해야 한다
         try:
             submitted = agent.build_stock_transfer(
                 required, blockhash,
@@ -1772,8 +1785,17 @@ class TradingEngine:
             "last_briefing": self.last_briefing,  # B2 최근 브리핑 (새로고침 복원용)
             "counts": {"trades": len(self.trades), "decisions": len(self.decisions)},
             "guard": {  # 첫 화면 KPI — 시도·차단·유출·오탐 (수익률이 아니라 지출 통제)
-                "attempts": self.guard_block_count + len([t for t in self.trades if t["side"] == "buy"]),
+                # 분모는 '가드를 태운 청구서 전체'다(_guard_checked). 예전에는
+                # guard_block_count + 매수 체결 수 로 계산해서 **모집단이 섞여 있었다** —
+                # 매도 차단은 분자에 들어가는데 매도 성공은 분모에 없었고,
+                # GUARD_BASELINE_UNREAD 로 중단된 매수는 어느 쪽에도 없었다. 오차 방향이
+                # 하필 제품에 유리했다(분모 과소 → 차단율 과대, bug-dept BUG-08).
+                # 양 레그 대칭이 이 제품의 차별점인데 대표 지표가 매도를 비대칭으로 세면
+                # 그 자체가 반증 자료가 된다.
+                "attempts": self._guard_checked,
                 "blocked": self.guard_block_count,
+                "blocked_buy": self._guard_blocked_buy,     # 레그별 분해 — 대칭이 숫자로 보이게
+                "blocked_sell": self.guard_block_count - self._guard_blocked_buy,
                 "ap2_rejected": self.reject_count,
                 "leak_usdc": str(self.guard_leak_usdc),
             },

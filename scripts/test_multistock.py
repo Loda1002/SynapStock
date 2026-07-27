@@ -129,8 +129,17 @@ async def test_guard_kpi_aggregation() -> None:
     g = snap["guard"]
     check("세션이 전 종목 소진으로 종료됨", engine._stop_event.is_set(), f"{ticks}틱")
     check("여러 종목에서 매매 발생(다중 지출)", len(traded_syms) >= 2, f"종목 {sorted(traded_syms)}")
-    check("가드 attempts = 차단 + 전 종목 매수 시도 합산",
-          g["attempts"] == g["blocked"] + len(buys), f"attempts={g['attempts']} buys={len(buys)}")
+    # attempts 는 '가드를 태운 청구서 전체'다 — 매수·매도 양 레그를 같은 분모에 넣는다.
+    # 예전 공식(blocked + 매수 체결 수)은 모집단이 섞여 있었다: 매도 차단은 분자에 들어가는데
+    # 매도 성공은 분모에 없었고, 기준선 조회 실패로 중단된 매수는 어느 쪽에도 없었다
+    # (bug-dept BUG-08 — 오차 방향이 하필 제품에 유리했다).
+    sells = [t for t in engine.trades if t["side"] == "sell"]
+    check("가드 attempts = 양 레그 청구서 전체 (매수·매도 대칭)",
+          g["attempts"] >= g["blocked"] + len(buys) + len(sells),
+          f"attempts={g['attempts']} buys={len(buys)} sells={len(sells)} blocked={g['blocked']}")
+    check("레그별 차단 분해가 합계와 일치",
+          g["blocked_buy"] + g["blocked_sell"] == g["blocked"],
+          f"{g['blocked_buy']}+{g['blocked_sell']} vs {g['blocked']}")
     check("정상 흐름에서 유출 0.00 USDC", Decimal(g["leak_usdc"]) == 0)
     check("정상 흐름에서 가드 차단 0(정직한 브로커)", g["blocked"] == 0)
     check("실현손익은 전 종목 합산 스칼라", "realized_usdc" in snap["pnl"])

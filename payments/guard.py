@@ -183,6 +183,18 @@ class Guard:
                                "수취인이 신뢰 목록에 없습니다 (counterparty 미검증 — 자금 유출 위험)",
                                "|".join(sorted(self.payees)), str(reqs.pay_to))
 
+        # 4b) 단위 — 청구서가 말하는 decimals 가 우리가 아는 자산 단위와 같은가.
+        #     금액은 base units 정수로 대조하는데 **그 정수의 단위를 브로커가 정한다.**
+        #     amount 는 정직하게 두고 decimals 만 6→9 로 올리면 금액 검사를 그대로 통과한 뒤
+        #     AP2 가 차감할 금액이 1/1000 이 된다(trading_agent 가 from_base_units(amount,
+        #     reqs.decimals) 로 차감액을 만든다). 광고하는 3중 통제의 한 축이 상대방이
+        #     채우는 필드에 매달려 있던 셈이다(bug-dept BUG-02). 단위도 자산 정체성의
+        #     일부이므로 별도 코드를 만들지 않고 GUARD_ASSET_MISMATCH 를 재사용한다.
+        if int(reqs.decimals) != int(self.usdc_decimals):
+            return self._block(GUARD_ASSET_MISMATCH,
+                               "청구서 단위(decimals)가 결제 자산 단위와 다릅니다",
+                               f"{self.usdc_decimals} decimals", f"{reqs.decimals} decimals")
+
         # 5) 금액 — 합의 견적과 base units 정수 정합 (오차 0). exact 스킴은 초과도 부족도 안 된다.
         expected_amount = to_base_units(quote.total_usdc, self.usdc_decimals)
         if int(reqs.amount) != expected_amount:
@@ -254,6 +266,7 @@ class Guard:
             description=getattr(reqs, "resource", ""), asset_label=asset_label,
             pay_to=str(reqs.pay_to),
         )
+        v.order_id = str(required.order_id)   # 어느 주문의 판정인지 봉인 — 호출측이 대조한다
         self.last_semantic = v
 
         if v.code == GUARD_SEMANTIC_MISMATCH:
@@ -272,7 +285,7 @@ class Guard:
             self.semantic.stats.unverified_skipped += 1
             self.last_semantic = SemanticVerdict(
                 "OK", True, "unverified", f"{v.reason} · 매도라 하드 검사만으로 진행",
-                v.description)
+                v.description, order_id=str(required.order_id))
             return GuardResult(True, "OK", "의미 대조 불가 — 매도는 하드 검사만으로 진행",
                                f"guard.py:L{sys._getframe(0).f_lineno}", "", v.reason)
 
@@ -344,6 +357,13 @@ class Guard:
             return self._block(GUARD_PAYEE_UNKNOWN,
                                "수취인이 신뢰 목록에 없습니다 (counterparty 미검증 — 자산 유출 위험)",
                                "|".join(sorted(self.payees)), str(reqs.pay_to))
+
+        # 3b) 단위 — 매수 레그와 같은 이유(bug-dept BUG-02). 수량도 base units 정수로
+        #     대조하므로 단위가 어긋나면 '합의한 수량'의 의미가 바뀐다.
+        if stock_decimals is not None and int(reqs.decimals) != int(stock_decimals):
+            return self._block(GUARD_ASSET_MISMATCH,
+                               "매도 청구서 단위(decimals)가 주식 토큰 단위와 다릅니다",
+                               f"{stock_decimals} decimals", f"{reqs.decimals} decimals")
 
         # 4) 수량 — 보유·합의한 매도 수량과 base units 정합 (오차 0). 브로커가 더 많은 주식을
         #    요구하도록 amount 를 부풀리는 것을 엔진의 독립 기준(보유 수량)으로 차단한다.

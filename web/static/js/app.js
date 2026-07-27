@@ -16,6 +16,7 @@
     guardBlocked: $("[data-guard-blocked]"),
     guardAp2: $("[data-guard-ap2]"),
     guardLeak: $("[data-guard-leak]"),
+    guardLegs: $("[data-guard-legs]"),
     aiBrain: $("[data-ai-brain]"),
     aiShare: $("[data-ai-share]"),
     aiGated: $("[data-ai-gated]"),
@@ -377,6 +378,11 @@
     if (s.guard) {
       el.guardAttempts.textContent = s.guard.attempts;
       el.guardBlocked.textContent = s.guard.blocked;
+      // 레그별 분해 — 매수/매도 양 레그 대칭이 이 제품의 차별점이라 지표에서도 보여준다.
+      if (el.guardLegs) {
+        const b = s.guard.blocked_buy, sl = s.guard.blocked_sell;
+        el.guardLegs.textContent = (b || sl) ? `· 매수 ${b} / 매도 ${sl}` : "";
+      }
       el.guardAp2.textContent = s.guard.ap2_rejected;
       const leak = num(s.guard.leak_usdc);
       el.guardLeak.textContent = leak.toFixed(2);

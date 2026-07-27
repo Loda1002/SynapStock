@@ -298,6 +298,81 @@ def test_no_layer() -> None:
           not g.check_demand(buy_required(pay_to=str(EVIL.pubkey())), QUOTE).ok)
 
 
+def test_stale_verdict_not_leaked() -> None:
+    """하드 검사에서 차단된 건에 '직전 주문'의 판정이 새어 나가면 안 된다 (bug-dept BUG-04).
+
+    Guard 는 세션 1개를 전 종목이 공유한다. 하드 검사에서 막히면 check_semantics 는
+    애초에 호출되지 않으므로 last_semantic 에 직전 주문의 값이 남고, 엔진의 GuardError
+    핸들러가 그걸 **차단된 주문의 order_id 로** 이벤트에 실어 보냈다 — 같은 주문에
+    '차단'과 '의미 대조 통과' 두 줄이 동시에 남았다.
+    """
+    print("\n[9] 스테일 판정 누출 — 차단된 주문에 직전 판정이 붙지 않는다")
+    g = guard_with(FakeBrain(MATCH))
+
+    # 1건차: 정상 청구서가 의미 대조를 통과한다.
+    ok1 = g.check_semantics(buy_required(order_id="ord_00aabb1101"), **sem_kw())
+    check("1건차 통과", ok1.ok, ok1.code)
+    check("판정에 그 주문번호가 봉인된다",
+          g.last_semantic.order_id == "ord_00aabb1101", str(g.last_semantic.order_id))
+
+    # 2건차: 수취인 위조 — 하드 검사에서 막히므로 의미 대조는 돌지 않는다.
+    blocked_req = buy_required(pay_to=str(EVIL.pubkey()), order_id="ord_00aabb1102")
+    r = g.check_demand(blocked_req, QUOTE, expected_symbol=SYMBOL)
+    check("2건차는 하드 검사에서 차단", (not r.ok) and r.code == GUARD_PAYEE_UNKNOWN, r.code)
+
+    stale = g.last_semantic
+    check("차단 후에도 last_semantic 은 1건차 값이다(구조상 불가피)",
+          stale is not None and stale.order_id == "ord_00aabb1101")
+    check("★ 그 판정의 주문번호가 차단된 주문과 다르다 — 호출측이 대조로 걸러낼 수 있다",
+          stale.order_id != "ord_00aabb1102", str(stale.order_id))
+    check("의미 통계는 오염되지 않는다(차단 건은 세지 않음)",
+          g.semantic.stats.checked == 1, str(g.semantic.stats.as_dict()))
+
+    # 매도 미검증 통과 경로도 주문번호를 담아야 한다.
+    g2 = guard_with(FakeBrain(MATCH, available=False))
+    g2.check_semantics(sell_required(), **sem_kw("sell", SELL_QUOTE))
+    check("매도 미검증 통과 판정에도 주문번호가 담긴다",
+          g2.last_semantic.order_id == "ord_00aabb1122", str(g2.last_semantic.order_id))
+
+    check("as_event 에 order_id 가 실린다", "order_id" in g.last_semantic.as_event())
+
+
+def test_decimals_unit() -> None:
+    """청구서의 decimals 를 아무도 안 보면 AP2 예산 차감이 브로커 값에 좌우된다 (BUG-02)."""
+    print("\n[10] 단위(decimals) 검증 — 금액 정수의 '단위'를 상대가 정하지 못하게")
+    g = guard_with(None)
+
+    r_ok = g.check_demand(buy_required(), QUOTE, expected_symbol=SYMBOL)
+    check("정상 단위(6)는 통과", r_ok.ok, r_ok.code)
+
+    # amount 는 정직하게 두고 decimals 만 9 로 — 금액 검사는 그대로 통과한다.
+    forged = buy_required()
+    forged.requirements.decimals = 9
+    r = g.check_demand(forged, QUOTE, expected_symbol=SYMBOL)
+    check("단위 위조 차단(GUARD_ASSET_MISMATCH)",
+          (not r.ok) and r.code == "GUARD_ASSET_MISMATCH", r.code)
+    check("차단 사유가 단위임을 밝힌다", "decimals" in r.detail, r.detail)
+
+    # 실제 피해 재현 — 가드가 없으면 AP2 차감액이 1/1000 이 된다.
+    from config import from_base_units
+    honest = from_base_units(32_100_000, 6)
+    cheated = from_base_units(32_100_000, 9)
+    check("[재현] 단위만 바꾸면 AP2 차감액이 1/1000 로 줄어든다",
+          honest == Decimal("32.10") and cheated == Decimal("0.03210"),
+          f"{honest} vs {cheated}")
+
+    # 매도 레그 대칭
+    sell_forged = sell_required()
+    sell_forged.requirements.decimals = 9
+    r_sell = g.check_stock_transfer(sell_forged, expected_stock_mint=STOCK,
+                                    expected_quantity=Decimal("0.18"), stock_decimals=DEC)
+    check("매도 레그도 단위 위조를 차단",
+          (not r_sell.ok) and r_sell.code == "GUARD_ASSET_MISMATCH", r_sell.code)
+    r_sell_ok = g.check_stock_transfer(sell_required(), expected_stock_mint=STOCK,
+                                       expected_quantity=Decimal("0.18"), stock_decimals=DEC)
+    check("매도 정상 단위는 통과(오탐 없음)", r_sell_ok.ok, r_sell_ok.code)
+
+
 def test_stats_shape() -> None:
     print("\n[8] 계측 — _ai_stats 로 올라가는 집계")
     g = guard_with(FakeBrain([MATCH, MISMATCH]))
@@ -323,6 +398,8 @@ def main() -> int:
     test_broken_responses()
     test_cache_budget()
     test_no_layer()
+    test_stale_verdict_not_leaked()
+    test_decimals_unit()
     test_stats_shape()
     print("\n" + "-" * 70)
     print(f" 결과: 통과 {ok} · 실패 {fail}")

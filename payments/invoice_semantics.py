@@ -114,11 +114,15 @@ class SemanticVerdict:
     reason: str = ""
     description: str = ""
     called: bool = False  # 이번 판정이 실제 Gemini 호출을 썼는가 (캐시·미가용은 False)
+    # 어떤 주문의 판정인지. Guard 는 세션 1개를 전 종목이 공유하므로 이 표식이 없으면
+    # **직전 주문의 판정이 다른 주문의 로그로 새어 나간다** — 특히 하드 검사에서 차단돼
+    # 의미 대조가 돌지도 않은 건에 '통과' 판정이 붙는다(bug-dept BUG-04).
+    order_id: str = ""
 
     def as_event(self) -> dict:
         return {"code": self.code, "ok": self.ok, "verdict": self.verdict,
                 "reason": self.reason, "description": self.description,
-                "llm_called": self.called}
+                "llm_called": self.called, "order_id": self.order_id}
 
 
 @dataclass
