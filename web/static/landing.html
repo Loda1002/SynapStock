@@ -33,9 +33,6 @@
   .landing-nav { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin: 0 auto; }
   .nav-link { color: var(--text); text-decoration: none; font-size: var(--fs-base); }
   .nav-link:hover { color: var(--accent); }
-  .nav-soon { color: var(--muted); cursor: default; display: inline-flex; align-items: center; gap: 4px; }
-  .nav-soon em { font-style: normal; font-size: 10px; padding: 1px 6px; border-radius: 999px;
-                 border: 1px solid var(--border); background: var(--bg); color: var(--muted); }
   .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 
   /* 히어로 — 카피(좌) + 흐릿한 대시보드 미리보기(우).
@@ -108,7 +105,9 @@
 
   @media (max-width: 860px) {
     .hero { grid-template-columns: 1fr; gap: var(--gap); padding: var(--gap) 0 calc(var(--gap) * 2); }
-    .hero-preview { order: -1; }
+    /* .hero-preview { order: -1; } 이었다 — 모바일 첫 화면이 흐릿한 화면 예시로 시작하고
+       카피가 스크롤 아래로 밀렸다. 처음 보는 사람이 무엇을 하는 서비스인지 모른 채
+       블러 이미지부터 마주치는 구조라 순서를 되돌린다(카피 → 예시). */
     .hero-proof { gap: var(--gap); margin-top: 20px; }
     .landing-nav { margin: 0; }
   }
@@ -121,13 +120,12 @@
     <h1>402 Guard</h1>
     <p class="tagline">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트</p>
   </div>
+  <!-- '포트폴리오/인사이트/리포트 곧' 자리표시 3개가 있었다. 만들 계획이 없는 메뉴를
+       비활성 상태로 전시하면 "미완성 제품"이라는 인상만 남는다 — 실제로 있는 것만 건다. -->
   <nav class="landing-nav" aria-label="주요 메뉴">
     <a class="nav-link" href="#about">소개</a>
-    <!-- 포트폴리오·인사이트·리포트는 별도 페이지를 만들지 않는다(새 페이지=랜딩·로그인·대시보드 3개까지).
-         지금은 "출시 예정" 표시만. -->
-    <span class="nav-soon" title="출시 예정 — 곧 제공됩니다">포트폴리오 <em>곧</em></span>
-    <span class="nav-soon" title="출시 예정 — 곧 제공됩니다">인사이트 <em>곧</em></span>
-    <span class="nav-soon" title="출시 예정 — 곧 제공됩니다">리포트 <em>곧</em></span>
+    <a class="nav-link" href="/app">대시보드</a>
+    <a class="nav-link" href="/.well-known/x402">x402 디스커버리</a>
   </nav>
   <div class="controls">
     <a class="btn btn-primary" href="/connect">지갑 연결하고 시작하기</a>
@@ -209,7 +207,10 @@
           </section>
         </div>
       </div>
-      <span class="preview-tag">실시간 데모 미리보기</span>
+      <!-- ⚠ "실시간 데모 미리보기"라고 적혀 있었다. 이 블록은 aria-hidden 정적 마크업이고
+           숫자·차단코드가 전부 손으로 적힌 값이다. 목업을 심사에서 제외하는 대회에서
+           정적 화면에 '실시간' 라벨을 붙이면, 들키는 순간 실제 온체인 증빙까지 의심받는다. -->
+      <span class="preview-tag">대시보드 화면 예시</span>
     </div>
   </section>
 
@@ -228,9 +229,21 @@
   </section>
 </main>
 
+<!-- 증빙 링크 — 심사위원이 화면을 믿을 필요 없이 직접 확인할 수 있는 곳만 건다.
+     대회 규칙 3(목업 심사 제외, "화면이 아니라 진짜 트랜잭션")에 대한 우리 쪽 답이다.
+     ⚠ 아래 devnet 결제 tx 의 결제 통화는 저희 지갑이 민트 권한을 쥔 테스트 토큰이다 —
+     그 사실을 링크 옆에 우리가 먼저 적는다(README·submission 과 같은 고지). -->
 <footer class="foot landing-foot">
   <span>402 Guard · A2A · AP2 · x402 on Solana</span>
-  <span>데모는 로그인 없이 이용 가능 · <a class="nav-link" href="/app" style="color:var(--accent)">대시보드</a></span>
+  <span>
+    직접 확인:
+    <a class="nav-link" href="/.well-known/x402" style="color:var(--accent)">x402 디스커버리</a> ·
+    <a class="nav-link" style="color:var(--accent)" target="_blank" rel="noopener"
+       href="https://explorer.solana.com/tx/3MvYmppzWhnrTebVRrek2jE91upNrXvsRrigCrHsJ2MGRvpossxPwEvpEEqrqi49ZW8fZFJgfTTUDJsRjg38tyfi?cluster=devnet"
+       title="devnet 결제 트랜잭션 — 로그의 Memo 'AT1:주문번호:위임장서명' 이 결제와 주문의 온체인 바인딩입니다">devnet 결제 tx</a> ·
+    <a class="nav-link" href="/app" style="color:var(--accent)">대시보드</a>
+  </span>
+  <span class="sub">devnet 증빙의 결제 통화는 저희가 발행한 테스트 토큰입니다(Circle 공식 민트 재실증 예정).</span>
 </footer>
 
 </body>

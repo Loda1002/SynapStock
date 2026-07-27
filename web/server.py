@@ -392,6 +392,13 @@ async def sse_events(request: Request) -> StreamingResponse:
     async def gen():
         q = bus.subscribe()
         try:
+            # 첫 바이트를 즉시 흘린다. 이게 없으면 엔진이 대기 중(=이벤트 히스토리가 비어
+            # 있는 첫 방문)일 때 아래 wait_for(timeout=15) 가 끝날 때까지 본문이 한 바이트도
+            # 안 나간다 — 배포본 실측 ttfb 15.06초. 그동안 대시보드는 '서버 연결 대기…'로
+            # 멈춰 있어서, 심사위원이 URL 을 열고 처음 15초를 죽은 화면으로 본다.
+            # SSE 주석줄(': ')은 규격상 무시되므로 클라이언트 코드 변경이 필요 없고,
+            # 중간 프록시의 응답 버퍼도 함께 밀어낸다.
+            yield ": connected\n\n"
             for e in bus.since(last_id):
                 yield e.to_sse()
             while not await request.is_disconnected():
@@ -419,7 +426,17 @@ def main() -> None:
                     help=f"포트 (기본 {default_port}) — 8000 점유 시 --port 8010 등")
     args = ap.parse_args()
     host = os.environ.get("WEB_HOST", "127.0.0.1")
-    uvicorn.run(app, host=host, port=args.port, log_level="info")
+    # forwarded_allow_ips="*" — Cloud Run 은 TLS 를 앞단에서 끊고 컨테이너로는 평문 http 로
+    # 넘긴다. uvicorn 기본값은 127.0.0.1 에서 온 요청의 X-Forwarded-* 만 신뢰하므로,
+    # 프록시를 거친 요청은 헤더가 무시되고 request.url.scheme 이 "http" 로 남는다.
+    # 실측 피해 2건: ①지갑 서명 팝업의 로그인 메시지에 "URI: http://synapstock-…" 이 찍힌다
+    # (https 사이트에서 http 를 서명해 달라는 화면 — 사용자가 피싱으로 의심할 자리다)
+    # ②세션 쿠키의 secure 플래그가 꺼진 채로 발급된다(server.py 의 set_cookie).
+    # 컨테이너 포트는 Google 프론트엔드를 통해서만 도달 가능하고 그 프론트엔드가 해당
+    # 헤더를 덮어쓰므로, 이 경로에서 "*" 는 스푸핑 위험을 새로 만들지 않는다.
+    # 로컬 개발은 프록시 헤더 자체가 없어 그대로 http 로 동작한다.
+    uvicorn.run(app, host=host, port=args.port, log_level="info",
+                proxy_headers=True, forwarded_allow_ips="*")
 
 
 if __name__ == "__main__":

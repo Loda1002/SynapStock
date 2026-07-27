@@ -4,90 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>로그인 · 회원가입 — 402 Guard</title>
-<!-- 대시보드와 같은 스킨(theme.css) + 골격(skeleton.css)을 그대로 쓴다.
-     디자인 시안 수령 시 theme.css 변수 교체만으로 이 페이지도 함께 스킨이 바뀐다.
-     ⚠ 이 페이지는 "제출 후 로드맵"의 자리표시 껍데기다 — 실제 인증 백엔드는 없다.
-        자격증명을 어디로도 전송하지 않으며(제출은 인라인 안내만), 대시보드 접근을
-        가로막지도 않는다(심사위원은 로그인 없이 관전). 진짜 멀티유저 인증 +
-        사용자별 세션/지갑 분리는 제출 후 self-custody 제품화 단계에서 구현한다. -->
+<title>지갑 연결 — 402 Guard</title>
+<!-- 이 자리에는 이메일·비밀번호 로그인/회원가입 자리표시 폼이 있었다.
+     전송은 하지 않았지만(preventDefault) 화면에는 비밀번호 입력칸과 '회원가입' 탭이 떴다.
+     "비밀번호를 만들지 않습니다"를 셀링 포인트로 내건 self-custody 제품이 살아 있는
+     비밀번호 폼을 같은 도메인에서 서빙하는 것은 서사가 스스로를 반박하는 것이다.
+     `/login` 라우트는 이미 서버가 connect.html 로 보내지만(web/server.py), StaticFiles
+     때문에 `/static/login.html` 은 이 파일을 그대로 열었다 — 그래서 파일 자체를 리다이렉트로 바꾼다.
+     파일을 지우지 않는 이유: 외부에 남아 있을 수 있는 링크가 404 가 되지 않게 한다. -->
+<link rel="canonical" href="/connect">
+<meta http-equiv="refresh" content="0; url=/connect">
 <link rel="stylesheet" href="/static/css/theme.css">
 <link rel="stylesheet" href="/static/css/skeleton.css">
 </head>
 <body>
-
 <main class="auth">
   <section class="card auth-card">
     <div class="brand auth-brand">
       <h1>402 Guard</h1>
-      <p class="tagline">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트 — A2A · AP2 · x402 on Solana</p>
+      <p class="tagline">지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다</p>
     </div>
-
-    <div class="auth-tabs" role="tablist">
-      <button class="btn auth-tab is-active" data-tab="login" role="tab" aria-selected="true">로그인</button>
-      <button class="btn auth-tab" data-tab="signup" role="tab" aria-selected="false">회원가입</button>
-    </div>
-
-    <p class="auth-notice" data-auth-notice>
-      🔒 계정 기능은 <strong>정식 출시 예정</strong>입니다. 현재 데모는
-      <a href="/app">로그인 없이 그대로 이용</a>하실 수 있습니다. (사용자가 자기 지갑을
-      들고 오는 self-custody 계정은 제출 후 로드맵입니다.)
+    <p class="auth-notice">
+      로그인 페이지가 <a href="/connect">지갑 연결</a>로 통합되었습니다. 자동으로 이동합니다.
     </p>
-
-    <!-- 실제 전송 없음: onsubmit 에서 preventDefault 후 인라인 안내만 표시한다.
-         자격증명은 서버로 가지 않는다(자리표시 UI). -->
-    <form class="auth-form" data-auth-form novalidate>
-      <label class="field">이메일
-        <input type="email" name="email" autocomplete="off" placeholder="you@example.com">
-      </label>
-      <label class="field">비밀번호
-        <input type="password" name="password" autocomplete="off" placeholder="••••••••">
-      </label>
-      <label class="field auth-signup-only hidden" data-signup-only>비밀번호 확인
-        <input type="password" name="password2" autocomplete="off" placeholder="••••••••">
-      </label>
-      <button class="btn auth-submit" type="submit" data-auth-submit>로그인</button>
-      <p class="sub auth-result hidden" data-auth-result aria-live="polite"></p>
-    </form>
-
-    <p class="sub auth-back"><a href="/app">← 대시보드로 (로그인 없이 계속)</a></p>
   </section>
 </main>
-
-<script>
-// 자리표시 로그인 UI — 백엔드 없음. 탭 전환 + "출시 예정" 인라인 안내만 한다.
-(function () {
-  var form = document.querySelector("[data-auth-form]");
-  var result = document.querySelector("[data-auth-result]");
-  var submit = document.querySelector("[data-auth-submit]");
-  var signupOnly = document.querySelector("[data-signup-only]");
-  var tabs = document.querySelectorAll(".auth-tab");
-  var mode = "login";
-
-  function setMode(next) {
-    mode = next;
-    tabs.forEach(function (t) {
-      var on = t.getAttribute("data-tab") === next;
-      t.classList.toggle("is-active", on);
-      t.setAttribute("aria-selected", on ? "true" : "false");
-    });
-    signupOnly.classList.toggle("hidden", next !== "signup");
-    submit.textContent = next === "signup" ? "회원가입" : "로그인";
-    result.classList.add("hidden");
-  }
-
-  tabs.forEach(function (t) {
-    t.addEventListener("click", function () { setMode(t.getAttribute("data-tab")); });
-  });
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();  // 어디로도 전송하지 않는다
-    result.textContent = mode === "signup"
-      ? "회원가입은 정식 출시 때 제공됩니다. 지금은 로그인 없이 데모를 이용해 주세요."
-      : "로그인은 정식 출시 때 제공됩니다. 지금은 로그인 없이 데모를 이용해 주세요.";
-    result.classList.remove("hidden");
-  });
-})();
-</script>
+<script>location.replace("/connect");</script>
 </body>
 </html>

@@ -16,6 +16,12 @@ import os
 import sys
 from decimal import Decimal
 
+# 한국어 Windows 콘솔(cp949)에서 결과 줄의 em-dash 가 UnicodeEncodeError 로 죽는다.
+# 이 파일은 market 모듈만 import 해서 config 의 인코딩 안전화 경로를 안 탄다.
+# 심사위원이 README 대로 테스트를 돌렸을 때 결과 대신 트레이스백을 보면 안 된다
+# (관례: scripts/test_dca_schedule.py).
+sys.stdout.reconfigure(errors="replace")
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 

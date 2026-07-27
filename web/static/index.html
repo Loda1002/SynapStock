@@ -179,9 +179,17 @@
         <label class="sym-opt"><input type="checkbox" data-sym-check value="TSLA"> TSLA</label>
         <label class="sym-opt"><input type="checkbox" data-sym-check value="NVDA"> NVDA</label>
       </div>
-      <select data-strategy-select aria-label="매매 전략">
-        <option value="condition">조건형 (AI 판단 매수·매도)</option>
-        <option value="trend">추세추종 (상승세 보유·하락세 매도)</option>
+      <!-- 기본값이 조건형이었다. 조건형은 Gemini 두뇌를 붙이고, 두뇌가 붙으면 청구서 의미
+           대조 계층도 함께 붙는다(engine.py). 그런데 무료 티어 일일 쿼터가 소진돼 있으면
+           의미 대조가 '검사 불가'가 되고 설계대로 **매수가 전건 보류**된다 — 엔진은 계속
+           돌지만 결제가 한 건도 일어나지 않는다. 실측 사례가 있다(20260727_130702: 97건 보류).
+           처음 들어온 사람이 아무 설정도 안 바꾸고 시작 버튼을 눌렀을 때 "결제가 실제로
+           동작하는가"가 쿼터 잔량에 걸리면 안 되므로, 기본값을 두뇌 없는 추세추종으로 둔다.
+           AI 판단을 보려면 조건형을 고르면 된다(라벨에 그 사실을 적어 둔다). -->
+      <select data-strategy-select aria-label="매매 전략"
+              title="추세추종: 결정론적 규칙 신호로 매매합니다(Gemini 미사용 — 쿼터와 무관하게 항상 동작). 조건형: Gemini 가 판단하고 청구서 의미 대조 계층이 함께 켜집니다(무료 티어 쿼터 소진 시 매수가 보류됩니다).">
+        <option value="trend">추세추종 (상승세 보유·하락세 매도 · 항상 동작)</option>
+        <option value="condition">조건형 (Gemini 판단 + 청구서 의미 대조)</option>
         <!-- TEMP: 성능 평가 위해 적립형(DCA) 임시 비활성화 — 복원 시 disabled 제거 + 원 라벨 "적립형 (주기 정액 매수)" 되돌리기 -->
         <option value="dca" disabled>적립형 (성능 평가 위해 임시 비활성화)</option>
       </select>

@@ -415,10 +415,15 @@
     el.feedSelect.disabled = running;
     el.feedDataset.disabled = running;
     el.subBars.disabled = running;
-    // 세션 종목은 실행 중 변경 불가 · 추세추종·라이브는 대기 상태에서도 단일 잠금 · 포커스 전환은 항상 허용
-    // (대기 상태 판정은 사용자가 고른 드롭다운 값을 쓴다 — 스냅샷 strategy 는 직전 세션 값일 수 있음)
+    // 세션 종목은 실행 중 변경 불가 · 잠금 조건은 엔진이 실제로 거부하는 것과 정확히 같게 둔다:
+    // 라이브(engine.py "라이브 세션은 여러 종목을 동시에 지원하지 않습니다")와
+    // 목 시세(engine.py "목 시세는 멀티 종목을 지원하지 않습니다") 두 가지뿐이다.
+    // ⚠ 예전에는 여기서 추세추종도 함께 잠갔다 — 2026-07-25 에 종목별 독립 authorizer 로
+    // 추세추종 멀티가 구현됐는데(engine.py multi_trend) UI 잠금만 남아, 검증에서 가장 좋았던
+    // 3종목 하락장 추세추종(+77.55%) 경로를 웹에서 고를 수 없었다. 화면이 엔진보다 좁으면
+    // 그만큼의 기능은 없는 것과 같다. 포커스 전환은 항상 허용.
     for (const c of document.querySelectorAll("[data-sym-check]"))
-      c.disabled = running || el.strategySelect.value === "trend" || el.modeSelect.value === "live";
+      c.disabled = running || el.modeSelect.value === "live" || el.feedSelect.value === "mock";
     el.strategySelect.disabled = running;
     el.trendSignal.disabled = running;
     el.decisionMode.disabled = running;
