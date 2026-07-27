@@ -99,6 +99,16 @@ Network · Merchant Payment Processor 에 배정합니다. 그런데 **self-cust
    회수하지 못하며, `scripts/red_team.py` 리포트가 두 계층을 **분리해서** 출력합니다.
 5. 구매 대상은 **자체 발행 토큰**입니다 — devnet 에 실물 토큰화 주식이 존재하지 않기
    때문입니다. 민트 상수와 스왑 경로 2곳 교체로 실물 전환됩니다.
+6. **결제 통화도 마찬가지입니다.** 현재 저장소의 devnet 증빙
+   (`artifacts/tx/20260724_1643_solana-devnet_live_buy.json`)에서 오간 'USDC' 는 민트
+   `8L9feSSChJHXEF58etFL1zsTzWiggqRdWFwqLM6vgH4u` 이고, **그 발행 권한은 구매자 지갑
+   자신**입니다(당시 `setup_devnet` 이 테스트 민트를 만들어 `.env` 를 덮어썼습니다).
+   즉 그 트랜잭션은 "자기가 찍은 돈으로 지불"한 것이고, 저희가 먼저 밝힙니다.
+   현재 코드의 기본값은 **Circle 공식 devnet USDC**(`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`,
+   `config.py:44`)이며 `setup_devnet` 은 자체발행 민트를 감지하면 중단합니다. 배포본이
+   402 로 광고하는 asset 도 이 공식 민트입니다. **공식 민트로 정산한 온체인 증빙은
+   재실증 대기 중**이며, 그 전까지 축③ 문구는 "USDC 인터페이스(SPL 6 decimals) 호환"까지가
+   정확한 표현입니다.
 
 ## 아직 안 붙은 것 (다음 단계)
 
