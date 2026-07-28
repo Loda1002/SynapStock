@@ -66,6 +66,17 @@ def main() -> int:
         check(f"[결정론] sub={sub} 재실행 동일",
               [b.close for b in ex] == [b.close for b in ex2])
 
+    # BUG-10 — 독스트링이 말하는 '표본 격자' 성질을 검증 가능하게 못 박는다.
+    # 고가·저가 웨이포인트는 t=1/3·2/3 에 있으므로 sub 가 3의 배수일 때만 격자에 걸린다.
+    # UI 선택지(2/4/8)에서는 하루치를 다시 합친 고가·저가가 실 일봉과 다르다 — 결함이
+    # 아니라 알려진 한계이고, 문구(price_feed 독스트링·index.html 툴팁)가 그렇게 적혀 있다.
+    for sub, exact in ((3, True), (6, True), (2, False), (4, False), (8, False)):
+        ex = IntradayReplayFeed._explode([up], sub)
+        agg_hi, agg_lo = max(b.high for b in ex), min(b.low for b in ex)
+        hit = (agg_hi == up.high and agg_lo == up.low)
+        check(f"[집계H/L] sub={sub} 실 일봉 고가·저가와 " + ("일치" if exact else "불일치(알려진 한계)"),
+              hit is exact, f"집계 {agg_hi}/{agg_lo} vs 실 {up.high}/{up.low}")
+
     # 방향 — 상승일은 저가권 먼저(첫 봉이 시가보다 낮게), 하락일은 고가권 먼저(첫 봉이 시가보다 높게)
     ex8 = IntradayReplayFeed._explode([up, down], 8)
     check("[방향] 상승일 첫 인트라바 < 시가(저가 방향)",
