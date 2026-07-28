@@ -43,6 +43,11 @@ package-lock.json
 # Obsidian 금고 UI 상태 (docs/ 를 Obsidian 으로 열 때 생성) — 머신 전용, 커밋 불필요.
 docs/.obsidian/
 
+# 개발 착수용 로컬 안내 — 제품과 무관하고 START_GUIDE.md:9 이 스스로 "커밋할 필요 없음
+# (로컬 참고용)"이라 적고 있다. 로컬 파일은 유지하고 추적만 해제한다(2026-07-28).
+START_GUIDE.md
+prompts/
+
 # 실험 단계 브리핑 산출물 — 드라이런/로컬 테스트마다 쌓여 커밋 노이즈가 된다.
 # devnet 최종 검증 단계에서는 심사 증빙이므로 이 줄을 지우거나 `git add -f` 로 커밋할 것.
 # (2026-07-23 사용자 결정 / artifacts/tx 의 트랜잭션 증빙은 계속 커밋한다)
