@@ -40,6 +40,57 @@
 
 ## 현재 상태 (2026-07-28 갱신)
 
+> **★★★★★★★ 2026-07-28 밤 — P5 프런트 전달본 병합 + 재배포 완료. 커밋 `481ac4b` 푸시.
+> 리비전 `synapstock-00015-j8f`. 전달서 33행 중 30행 반영 · 회귀 0 · 콘솔 오류 0 · 유출 0.00.**
+>
+> **회귀 대조 결과 = 되돌아간 것 0** (지난 두 번은 여기서 최근 반영분이 사라졌다).
+> 저장소에서 없어진 줄(index 81 · app.js 38 · landing 2)을 한 줄씩 확인해 전부 전달서가
+> 지시한 개명·이동임을 확정했고, 과거 회귀 이력 16종(지갑 로그인 훅 · AI 카드 · `renderAi` ·
+> `guard_semantic` · `data-guard-legs` · `.src-rule-gate` · 전략 기본값 추세추종 · 종목 체크박스
+> 잠금 조건 · `data-card="history"` · `fetchHistory` · `lastEngineStatus` · `actor_label` ·
+> `invoice_semantics` · `blocked_unverified`)은 전부 잔존 확인.
+>
+> **⚠ 다음에 전달본을 받을 때 반드시 볼 것 — 저장소가 줄바꿈 방식이 섞여 있다.**
+> `index.html`·`skeleton.css`·`app.js` 는 **CRLF**, `landing.html` 만 **LF** 다. 전달본은 4개
+> 전부 CRLF 라 정규화 없이 `diff` 를 돌리면 **파일 전체가 바뀐 것처럼 보인다**(이번에 index.html
+> 이 437줄 전부 변경으로 나와 오판할 뻔했다). 게다가 **이 환경의 Git Bash 는 `grep -c $'\r'` 와
+> `awk '/\r$/'` 가 CR 을 못 잡는다** — 줄바꿈 판별은 **`od -c` 나 PowerShell 바이트 스캔만** 믿을 것.
+> 대조는 양쪽을 LF 로 정규화한 뒤 `diff | grep '^<'`(저장소에만 있는 줄) 방향을 먼저 본다.
+>
+> **반영된 것**: 세션 설정 **간단/고급 분리**(간단 = 모드·속도·종목·전략 4개 / 고급 `<details data-adv>`
+> = 시세 피드·데이터셋·봉 간격·AI 판단 모드·추세 신호·TA·DCA) · **`?lab=1`** 로 고급 펼침 + 라이브
+> 옵션·배치 초기화 잠금 해제(`?lab=0` 해제) · 개발 용어 개명(드라이런→**샌드박스**, 목 시세→합성 패턴
+> 피드, 조건형→**AI 판단**, 알림: 차단됨→**알림 받기**) · 세션ID `20260727_135727_dry`→**`07-27 13:57 세션`**
+> (원문은 `title`) · 프로토콜명(AP2·A2A·x402)을 **제목→부제로 이동(삭제 아님)** · `DEFAULT_LAYOUT`
+> 첫 자리 `session`→`pnl`, **`LAYOUT_KEY` _v8** · 브리핑 `fallback_detail` 을 `title` 에만 배선 ·
+> 랜딩 nav 에서 x402 제거(푸터 증빙은 유지) · ABOUT CTA `/connect` 통일.
+>
+> **⚠⚠ 촬영 전 사용자 결정 1건 — L2 가 L1 재배열로 더 나빠졌다.**
+> 전달서 실측은 1040×982 에서 `pnl`·`valuation`·`position` **각 33%** 였는데, `DEFAULT_LAYOUT`
+> 첫 자리가 바뀌며 dock 아래 오는 카드가 달라졌다. **1280×1000 실측: `position` 96% ·
+> `valuation` 40% · `pnl` 0%** — **포지션 카드(보유 수량·평균단가)가 첫 화면에서 사실상 완전히
+> 가려진다**(배포본 스크린샷 확인). 프런트는 지시대로 `.guard-dock` 을 안 건드렸고 '디자이너 확인
+> 후 유지' 결정이 살아 있어 임의로 바꾸지 않았다. **접기 탭으로 내리면 안 가려지므로 촬영 시
+> 패널을 접고 찍는 것도 선택지**다(코드 변경 0).
+>
+> **미반영 1건**: I5(종목 `tAAPL` 툴팁) — 전달서 우선순위 **C(선택)**. A·B 는 전부 반영.
+> **범위 밖 수용 1건**: `skeleton.css` 에 예산 카드 재구성(uiverse.io MIT 출처 명시)이 함께 왔다.
+> 하드코딩 색 없이 `theme.css` 토큰만 쓰고 `data-budget-*` 훅 5개가 그대로라 8/2 시안과 충돌 없음.
+>
+> **배포 검증 실측**(`synapstock-00015-j8f`): 엔드포인트 **12개 200** · `/app` 32,665B·`app.js`
+> 87,382B = 병합본과 바이트 일치 · **SSE 첫 바이트 0.232초**(`: connected`) · `POST /broker/orders`
+> → **402 + accepts[]·payTo·maxAmountRequired**, asset = **Circle 공식 devnet USDC**
+> (`4zMMC9sr…`) · `persistence=firestore` · `state.ai.invoice_semantics`·`guard.blocked_unverified`
+> 방출 · env 에 **`GEMINI_MODEL=gemini-flash-latest` 유지**(`GEMINI_MODE=developer`·
+> `ALLOW_LIVE_FROM_WEB=0`) · 배포본 대시보드 **이력 10건 렌더 + 세션ID 개명 작동** · **콘솔 오류 0**.
+> 로컬 dry 스모크: 80틱 완주 · 체결 3건 · **차단 0 · 유출 0.00** · `?lab=1/0` 과 `#token` 이
+> 서로의 URL 정리를 밟지 않음 확인.
+>
+> # ▶ 다음 = **1차 촬영(7/30~31)**. 그 전에 위 L2 결정 1건만 정하면 된다.
+> 남은 사용자 몫: GitHub public 전환 · Circle USDC devnet 재실증 · 배포 라이브 세션 · 제출물 3종.
+>
+> ---
+>
 > **★ 2026-07-28 저녁 — P5 전달서 완료. 산출물은 문서다: [`docs/frontend_p5_handoff.md`](docs/frontend_p5_handoff.md).
 > `web/static/**` 은 한 줄도 안 건드렸다(프런트 소유). 기준 커밋 `3c1811d`.**
 >
