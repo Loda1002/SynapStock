@@ -148,6 +148,48 @@ input[type="number"], input[type="text"], input[type="time"] {
    DOM 이 이동하면서 페이드인이 처음부터 다시 재생된다. */
 .is-done { animation: none; opacity: 1; }
 
+/* ---- 자세히 보기로 펼치는 카드 — 세포 분열하듯 부모에게서 부풀어 나온다 ----
+   애니메이션을 둘로 나눠 겹친다. 높이(cell-grow)는 감속만 하는 곡선이라 아래 카드들이
+   출렁이지 않고 밀려나고, 크기·투명도(cell-pop)는 끝에서 살짝 넘겼다 돌아오는 곡선이라
+   말랑하게 부푼다. 하나로 합치면 높이까지 같이 튕겨 배치가 흔들린다.
+   높이를 함께 키우는 것이 핵심 — 높이 없이 크기만 키우면 아래 카드가 한 프레임에
+   밀려나 "빡" 하고 튄다. auto 는 애니메이션이 안 걸리므로 최종 높이는 app.js 가
+   재서 --cell-h 로 넘겨준다. 접을 때(is-merging)는 같은 동작을 거꾸로 돌린다. */
+.card.is-splitting, .card.is-merging {
+  overflow: hidden;
+  transform-origin: top center;   /* 위(부모 카드)에 붙어 있다 떨어져 나오는 방향 */
+  transition: none;               /* 분열 중에는 hover 플로팅이 끼어들지 않게 */
+  will-change: height, transform, opacity;
+}
+.card.is-splitting {
+  animation: cell-grow var(--split-duration) var(--stagger-ease) forwards,
+             cell-pop  var(--split-duration) var(--split-ease) forwards;
+}
+.card.is-merging {
+  animation: cell-grow var(--split-duration) var(--stagger-ease) reverse forwards,
+             cell-pop  var(--split-duration) var(--stagger-ease) reverse forwards;
+}
+
+@keyframes cell-grow {
+  from {
+    height: 0; padding-top: 0; padding-bottom: 0;
+    border-top-width: 0; border-bottom-width: 0;
+  }
+  to {
+    height: var(--cell-h, auto); padding-top: var(--pad); padding-bottom: var(--pad);
+    border-top-width: 1px; border-bottom-width: 1px;
+  }
+}
+@keyframes cell-pop {
+  from { opacity: 0; transform: scale(.88, .4); }
+  55%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+/* 모션 최소화 설정에서는 즉시 나타난다(app.js 가 애니메이션 없이 확정 상태로 간다) */
+@media (prefers-reduced-motion: reduce) {
+  .card.is-splitting, .card.is-merging { animation: none; }
+}
+
 .big { font-size: var(--fs-big); font-weight: 700; margin: 4px 0; }
 .big .unit { font-size: var(--fs-base); font-weight: 400; color: var(--muted); }
 .sub { color: var(--muted); font-size: var(--fs-small); margin: 2px 0; }
@@ -173,6 +215,9 @@ input[type="number"], input[type="text"], input[type="time"] {
 .ai-layer h3 .sub { display: inline; margin-left: 6px; font-weight: 400; }
 .ai-layer .kpi-num { font-size: calc(var(--fs-big) * 0.72); }
 .ai-sources { margin-top: 8px; }
+/* 레이어마다 자기 몫의 피드를 펼치는 버튼 — 버튼이 놓인 위치가 곧
+   "이 숫자는 저 피드를 센 것"이라는 설명이라, 카드 헤더로 올리지 않는다. */
+.ai-more { margin: 10px 0 0; }
 
 /* ---- 시세 카드 (메인) + SVG 캔들차트 ----
    외부 차트 라이브러리 없이 직접 그린다(데모데이 오프라인 폴백 원칙). */
@@ -256,6 +301,11 @@ input[type="number"], input[type="text"], input[type="time"] {
 .feed li.log-danger { color: var(--danger); }
 .feed li.log-ok { color: var(--ok); }
 .feed li.log-muted { color: var(--muted); }
+/* ② 청구서 레이어에서 연 경우 — 의미 대조·402 Guard 줄만 남긴다.
+   세션 구분선도 함께 숨긴다(걸러 낸 목록에서는 경계가 오히려 빈 줄로 보인다). */
+.feed-log.filter-review > li:not([data-kind="review"]) { display: none; }
+.log-filter { margin: 0 0 8px; }
+.log-empty { margin: 0 0 8px; }
 
 /* ---- 거래 테이블 ----
    행이 무한히 쌓여 페이지가 끝없이 길어지지 않게 고정 높이 + 내부 스크롤.

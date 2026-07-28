@@ -130,6 +130,11 @@
           </div>
         </div>
         <p class="sub ai-sources" data-ai-sources>판단 출처: —</p>
+        <p class="ai-more">
+          <button class="btn btn-small" data-ai-more="decisions"
+                  title="이 숫자들을 만든 판단을 한 건씩 시간순으로 펼칩니다.">
+            판단 타임라인 보기</button>
+        </p>
       </div>
 
       <div class="ai-layer">
@@ -149,6 +154,11 @@
           </div>
         </div>
         <p class="sub" data-ai-sem-note>—</p>
+        <p class="ai-more">
+          <button class="btn btn-small" data-ai-more="log"
+                  title="이 숫자들을 만든 청구서 심사 줄만 걸러서 펼칩니다.">
+            심사 내역 보기</button>
+        </p>
       </div>
     </div>
   </section>
@@ -323,7 +333,12 @@
       <span class="unit">(세션 시작·종료 스냅샷 기준)</span></p>
   </section>
 
-  <section class="card card-wide" data-card="decisions">
+  <!-- 아래 두 피드는 기본으로 접혀 있다 — 위 AI 카드가 같은 내용을 세션 단위로 요약하고
+       있어서, 둘을 항상 펼쳐 두면 같은 사실이 화면에 두 번 나온다. 각 레이어의
+       "보기" 버튼이 자기 몫을 펼친다(① 판단 → decisions · ② 청구서 → log).
+       카드 안에 중첩하지 않고 형제로 둔 채 숨기기만 하는 이유: 중첩하면
+       app.js 의 cardEls() 가 하위까지 훑어 applyLayout 이 도로 끄집어낸다. -->
+  <section class="card card-wide hidden" data-card="decisions">
     <h2>AI 판단 타임라인
       <span class="sub">판단 출처: <span class="src src-gemini">gemini</span> AI 판단 ·
         <span class="src src-rule">rule</span> 규칙 ·
@@ -333,8 +348,20 @@
     <ol class="feed" data-decision-feed></ol>
   </section>
 
-  <section class="card card-wide" data-card="log">
+  <section class="card card-wide hidden" data-card="log">
     <h2>협상·이벤트 로그 <span class="sub">A2A · x402 · AP2</span></h2>
+    <!-- ② 청구서 레이어에서 열면 심사 줄만 남긴다. 이 로그에는 견적·x402 3단계·AP2 도
+         함께 흐르기 때문에, 거르지 않으면 정작 카드가 센 심사 줄이 묻힌다. -->
+    <p class="sub log-filter hidden" data-log-filter-note>
+      청구서 심사 줄만 보이는 중입니다 — 위 ② 청구서 레이어의 숫자가 센 것과 같은 줄들입니다.
+      <button class="btn btn-small" data-log-filter-clear>전체 보기</button>
+    </p>
+    <!-- 걸러 낸 결과가 0줄일 때. 이 제품에서 심사에 걸린 청구서가 없는 것은 고장이 아니라
+         정상이라, 빈 칸만 남겨 두면 기능이 안 도는 것처럼 읽힌다. -->
+    <p class="sub log-empty hidden" data-log-filter-empty>
+      이 세션에서는 심사에 걸린 청구서가 없습니다 — 차단 0건 · 보류 0건.
+      결제 과정 전체는 위 「전체 보기」로 볼 수 있습니다.
+    </p>
     <ol class="feed feed-log" data-event-log></ol>
   </section>
 

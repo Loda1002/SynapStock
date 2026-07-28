@@ -111,6 +111,10 @@
     guardHit: $("[data-guard-hit]"),
     guardHitText: $("[data-guard-hit-text]"),
     guardHitMore: $("[data-guard-hit-more]"),
+    aiMoreBtns: Array.from(document.querySelectorAll("[data-ai-more]")),
+    logFilterNote: $("[data-log-filter-note]"),
+    logFilterClear: $("[data-log-filter-clear]"),
+    logFilterEmpty: $("[data-log-filter-empty]"),
   };
 
   const MAX_FEED_ITEMS = 100;
@@ -615,12 +619,19 @@
     capList(el.decisionFeed, MAX_FEED_ITEMS);
   }
 
-  function addLog(ts, text, cls) {
+  /* kind="review" 를 붙인 줄만 ② 청구서 레이어의 "심사 내역 보기"에서 살아남는다.
+     색(cls)으로 거르지 않는 이유: log-muted·log-danger 는 다른 이벤트도 함께 쓴다. */
+  function addLog(ts, text, cls, kind) {
     const li = make("li", cls || null);
+    if (kind) li.dataset.kind = kind;
     li.appendChild(make("time", null, timeOf(ts)));
     li.appendChild(make("span", null, text));
     el.eventLog.prepend(li);
     capList(el.eventLog, MAX_LOG_ITEMS);
+    // 필터를 켜 둔 채로 새 줄이 들어오면 "0줄" 안내를 다시 판정한다 — 비어 있던 목록이
+    // 방금 채워졌을 수 있다. feedPrefs 대신 DOM 클래스를 보는 이유는 이 함수가 그보다
+    // 먼저 선언돼 있어서다(호출 시점엔 어차피 초기화가 끝나 있지만 참조를 안 만든다).
+    if (el.eventLog.classList.contains("filter-review")) renderLogFilter();
   }
 
   /* ---------- 세션 경계 ----------
@@ -755,25 +766,25 @@
   /* ---------- 402 Guard 알림창 ----------
      첫 화면 KPI 4개(지출 시도·가드 차단·한도 거부·유출)를 본문 위에 떠 있는 패널로 띄운다.
      숫자 자체는 renderState 가 카드 때와 똑같은 data-guard-* 훅으로 채운다.
-     시간이 지나 사라지지 않는다 — 제목칸 오른쪽 아래 탭으로 내렸다 올렸다 하고 그 상태를
-     기억한다. 탭은 패널과 한 덩어리라 스크롤 위치와 상관없이 늘 손에 닿는다. */
-  const GUARD_PANEL_KEY = "guard_panel_open_v1";
-
+     시간이 지나 사라지지 않는다 — 제목칸 오른쪽 아래 탭으로 내렸다 올렸다 한다.
+     탭은 패널과 한 덩어리라 스크롤 위치와 상관없이 늘 손에 닿는다.
+     ⚠ 접은 상태를 기억하지 않는다(예전에는 기억했다). 이 패널이 이 제품의 첫 문장이라
+     한 번 접어 둔 사람이 다음에 열었을 때 안 보이면 안 된다 — 페이지를 열 때는 늘 펴진
+     상태로 시작하고, 접기는 그 세션 안에서만 유효하다. */
   function setGuardPanel(open) {
     el.guardPanel.classList.toggle("is-collapsed", !open);
     el.guardTab.setAttribute("aria-expanded", open ? "true" : "false");
     el.guardTab.title = open ? "가드 요약 올리기" : "가드 요약 내리기";
-    try { localStorage.setItem(GUARD_PANEL_KEY, open ? "1" : "0"); } catch (e) { /* 저장 불가 — 무시 */ }
   }
 
   el.guardTab.addEventListener("click", () => {
     setGuardPanel(el.guardPanel.classList.contains("is-collapsed"));
   });
 
-  // 저장된 상태 복원. 첫 적용은 애니메이션 없이 — 페이지를 열자마자 패널이 접히는 게
-  // 보이면 깜빡임처럼 느껴진다.
+  // 늘 펴진 채로 시작한다. 첫 적용은 애니메이션 없이 — 페이지를 열자마자 패널이 움직이면
+  // 깜빡임처럼 느껴진다.
   el.guardPanel.style.transition = "none";
-  setGuardPanel(localStorage.getItem(GUARD_PANEL_KEY) !== "0");
+  setGuardPanel(true);
   setTimeout(() => { el.guardPanel.style.transition = ""; }, 0);
 
   /* 가드가 막은 건(차단)·확인 못한 건(보류)의 상세 한 줄. 다음 사건이 올 때까지 남는다.
@@ -831,7 +842,108 @@
     setTimeout(() => card.classList.remove("card-focused"), 2200);
   }
 
-  el.guardHitMore.addEventListener("click", () => scrollToCard("log"));
+  /* ---------- 자세히 보기 (AI 카드 → 두 피드) ----------
+     AI 카드의 두 레이어는 각각 아래 피드 하나를 세션 단위로 요약한 값이다
+     (① 판단 → 판단 타임라인 · ② 청구서 → 협상·이벤트 로그의 심사 줄).
+     같은 사실을 화면에 두 번 두지 않으려고 피드는 접어 두고, 레이어마다 자기 몫만
+     펼치는 버튼을 둔다 — 버튼이 놓인 자리가 곧 "이 숫자는 저 피드"라는 설명이다.
+     ② 로 열 때만 심사 줄 필터가 붙는다(로그에는 견적·x402·AP2 도 함께 흐른다).
+     ⚠ 펼침 상태를 기억하지 않는다 — 페이지를 열 때는 늘 둘 다 접힌 채로 시작한다.
+     위쪽 요약이 먼저 눈에 들어와야 하는 화면이라, 지난번에 펼쳐 뒀다는 이유로 흐르는
+     기록 두 판이 먼저 깔려 있으면 안 된다. 접기는 그 세션 안에서만 유효하다. */
+  const MORE_LABEL = {
+    decisions: ["판단 타임라인 보기", "판단 타임라인 접기"],
+    log: ["심사 내역 보기", "심사 내역 접기"],
+  };
+  const feedPrefs = {};   // { decisions, log, logFilter } — 새로고침하면 비워진다
+
+  const REDUCED_MOTION = !!(window.matchMedia
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  /* 분열 모션이 끝난(또는 건너뛴) 뒤의 확정 상태.
+     어느 쪽 애니메이션이 끝났는지가 아니라 "지금 원하는 상태"(feedPrefs)를 보고 정하므로,
+     빠르게 두 번 눌러 순서가 엉켜도 마지막 의도대로 남고 여러 번 불려도 결과가 같다.
+     펼친 카드에 is-done 을 붙이는 이유: 등장 모션이 카드를 opacity:0 으로 두고 시작하는데
+     (skeleton.css 의 .reveal-ready 규칙) 접혀 있던 카드는 화면에 든 적이 없어 아직 그
+     상태다. 확정하지 않으면 "눌렀는데 빈 칸"이 된다. */
+  function settleFeedCard(card, id) {
+    card.classList.remove("is-splitting", "is-merging");
+    card.style.removeProperty("--cell-h");
+    if (feedPrefs[id]) {
+      card.classList.remove("hidden");
+      card.classList.add("is-done");
+    } else {
+      card.classList.add("hidden");
+    }
+  }
+
+  function renderFeedToggle(id, animate) {
+    const card = el.grid.querySelector(`[data-card="${id}"]`);
+    const btn = el.aiMoreBtns.find((b) => b.dataset.aiMore === id);
+    const open = !!feedPrefs[id];
+    if (btn) {
+      btn.textContent = MORE_LABEL[id][open ? 1 : 0];
+      btn.setAttribute("aria-expanded", String(open));
+    }
+    if (!card) return;
+    // 첫 로드·상태 복원은 모션 없이 곧바로 확정한다(펼침이 이미 끝나 있던 상태다)
+    if (!animate || REDUCED_MOTION) { settleFeedCard(card, id); return; }
+
+    card.classList.remove("is-splitting", "is-merging", "is-done");
+    if (open) card.classList.remove("hidden");
+    /* 최종 높이를 재서 넘긴다 — height:auto 로는 애니메이션이 걸리지 않는다.
+       펼칠 때는 방금 드러난 자연 높이가 도착점이고, 접을 때는 지금 높이가 출발점이다.
+       (offsetHeight 를 읽는 것 자체가 배치를 다시 계산시켜 모션이 처음부터 재생된다.) */
+    card.style.setProperty("--cell-h", card.offsetHeight + "px");
+    card.classList.add(open ? "is-splitting" : "is-merging");
+
+    let settled = false;
+    const finish = () => { if (settled) return; settled = true; settleFeedCard(card, id); };
+    card.addEventListener("animationend", finish, { once: true });
+    // 모션이 어떤 이유로든 끝나지 않아도 카드가 반쯤 접힌 채 남지 않게 하는 안전장치
+    setTimeout(finish, 900);
+  }
+
+  function renderLogFilter() {
+    const on = !!(feedPrefs.log && feedPrefs.logFilter);
+    el.eventLog.classList.toggle("filter-review", on);
+    el.logFilterNote.classList.toggle("hidden", !on);
+    /* 걸러 낸 결과가 0줄이면 왜 비었는지 말해 준다. 차단·보류가 0건인 것은 이 제품에서
+       정상이고 오히려 자랑인데, 눌렀더니 빈 칸이면 기능이 고장 난 것으로 읽힌다.
+       (심사 줄은 가드 차단·보류와 의미 대조뿐이라, 두뇌 없이 무사히 끝난 세션에서는
+       실제로 0줄이 정상이다.) */
+    const none = on && !el.eventLog.querySelector('li[data-kind="review"]');
+    el.logFilterEmpty.classList.toggle("hidden", !none);
+  }
+
+  for (const btn of el.aiMoreBtns) {
+    const id = btn.dataset.aiMore;
+    btn.addEventListener("click", () => {
+      feedPrefs[id] = !feedPrefs[id];
+      if (id === "log") feedPrefs.logFilter = feedPrefs.log;
+      renderFeedToggle(id, true);
+      renderLogFilter();
+      // 화면은 움직이지 않는다 — 버튼이 AI 카드 안에 있고 펼쳐지는 카드가 바로 아래라
+      // 이미 시야에 들어온다. 여기서 스크롤까지 하면 방금 누른 버튼을 놓친다.
+      // (가드 패널의 "자세히 보기"는 멀리 있는 카드로 보내는 것이라 그쪽은 그대로 둔다.)
+    });
+  }
+
+  el.logFilterClear.addEventListener("click", () => {
+    feedPrefs.logFilter = false;
+    renderLogFilter();
+  });
+
+  el.guardHitMore.addEventListener("click", () => {
+    // 가드 바에서 올 때는 걸러내지 않고 통째로 편다 — 차단 한 건의 앞뒤 맥락
+    // (견적·x402 단계)까지 같이 읽어야 하는 자리다. 로그는 이제 기본으로 접혀
+    // 있으므로 스크롤 전에 반드시 펼쳐야 한다.
+    feedPrefs.log = true;
+    feedPrefs.logFilter = false;
+    renderFeedToggle("log", true);
+    renderLogFilter();
+    scrollToCard("log");
+  });
 
   // 어떤 분기로 가든 라벨 갱신 + 토스트 피드백 — 눌렀는데 아무 반응 없는 경우를 없앤다
   el.btnNotify.addEventListener("click", async () => {
@@ -958,7 +1070,7 @@
           // 보류는 대금이 이미 나간 뒤라 되찾을 경로가 없어 세션을 멈춘다.
           + (pending ? " · 정산 후 확인 실패라 세션을 멈춥니다(회수 경로 없음)"
                      : " · 서명 미생성(유출 0)"),
-          "log-danger");
+          "log-danger", "review");
         const fresh = isFresh(evt);
         showGuardHit(d, pending, fresh);
         // 보고 있는 탭에서는 가드 요약 바가 이미 같은 내용을 띄우므로 토스트를 겹치지 않는다.
@@ -978,7 +1090,7 @@
               : `[의미 대조] ${d.order_id} — 청구서가 주문과 같은 물건 확인` +
                 (d.verdict === "cached" ? "(같은 서식 재사용)" : "") +
                 (d.reason ? ` · "${d.reason}"` : ""),
-            "log-muted");
+            "log-muted", "review");
         }
         break;
       case "mandate_updated":
@@ -1182,16 +1294,16 @@
      디자인 시안의 배치가 어떻게 오든 이 배열만 바꾸면 기본 배치가 바뀐다.
      사용자는 카드 제목(h2)을 끌어 재배치할 수 있고 localStorage 에 저장된다.
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
-  const LAYOUT_KEY = "autotrader_layout_v6";  // v6: 가드 KPI 를 상단 바로 이동 — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v7";  // v7: 두 피드를 AI 카드 뒤로 옮기고 기본 접기 — 기존 저장 배치 리셋
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
   // ai 카드가 결과 바로 다음인 이유: 상단 가드 바의 "돈이 새지 않았다" 다음에 오는 질문이
-  // "그걸 누가 어떻게 막았나"다. 협상 로그·판단 타임라인은 흐르는 기록이라 맨 아래 —
-  // 위쪽은 "지금 상태", 아래쪽은 "무슨 일이 있었나". 가드 요약 바의 "자세히 보기"도 그 자리로 데려간다.
+  // "그걸 누가 어떻게 막았나"다. 협상 로그·판단 타임라인은 그 근거라 ai 바로 뒤에 두되
+  // 기본은 접어 둔다 — 펼치면 자기를 부른 숫자 바로 밑에서 열린다(v7 이전에는 맨 아래였다).
   const DEFAULT_LAYOUT = ["session", "symbols", "pnl", "valuation", "position", "ai",
-                          "price", "trades", "budget", "mandate", "briefing",
-                          "log", "decisions"];
+                          "decisions", "log",
+                          "price", "trades", "budget", "mandate", "briefing"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 
@@ -1272,6 +1384,9 @@
 
   // ---------- 시작 ----------
   applyLayout(loadLayout());
+  renderFeedToggle("decisions");
+  renderFeedToggle("log");
+  renderLogFilter();
   initCardDrag();
   renderNotifyBtn();
   fetchState();

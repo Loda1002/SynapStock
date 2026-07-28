@@ -76,6 +76,12 @@
   --stagger-step: .05s;       /* 같이 나타나는 묶음 안에서 요소 사이 시차 (reveal.js 가 읽음) */
   --stagger-rise: 12px;       /* 아래에서 떠오르는 거리 */
   --stagger-ease: cubic-bezier(0, 0, 0.2, 1);
+
+  /* 자세히 보기로 펼치는 카드 — 세포가 분열하듯 부모 카드에서 부풀어 나온다.
+     skeleton 의 cell-grow(높이)·cell-pop(크기) 두 애니메이션이 참조한다.
+     ease 는 끝에서 살짝 넘겼다 돌아오는 곡선 — 그 되돌아옴이 말랑한 느낌을 만든다. */
+  --split-duration: .46s;
+  --split-ease: cubic-bezier(.2, .9, .24, 1.14);
 }
 
 /* 다크 팔레트 — OS/브라우저가 다크 모드일 때 자동 적용 */
