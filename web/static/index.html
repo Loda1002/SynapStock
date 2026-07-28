@@ -395,6 +395,27 @@
       </table>
     </div>
   </section>
+
+  <!-- 지난 세션 이력 — 서버(Firestore)에 이미 쌓여 있는데 화면이 한 줄도 안 보여줬다.
+       첫 방문자에게는 모든 카드가 0 이라 "동작 안 하는 목업"으로 읽히던 것을 닫는다.
+       ⚠ 열 구성 주의: 세션 레코드 스키마에 유출 계열 필드가 없고(있는 척하면 undefined 가
+       그대로 나간다) 실현손익은 이 제품의 서사(수익률이 아니라 지출 통제)와 충돌한다. -->
+  <section class="card card-full" data-card="history">
+    <h2>지난 세션 <span class="sub" data-history-note>불러오는 중…</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>세션</th><th>모드</th><th>종목</th><th>틱</th><th>체결</th>
+            <th>Gemini 비율</th><th>시작</th>
+          </tr>
+        </thead>
+        <tbody data-history-body>
+          <tr class="empty-row"><td colspan="7">불러오는 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </main>
 
 <!-- ABOUT 섹션은 랜딩(landing.html #about)으로 일원화했다 — 같은 카피를 두 곳에 두면

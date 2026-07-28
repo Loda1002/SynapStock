@@ -93,6 +93,8 @@
     decisionFeed: $("[data-decision-feed]"),
     eventLog: $("[data-event-log]"),
     tradesBody: $("[data-trades-body]"),
+    historyBody: $("[data-history-body]"),
+    historyNote: $("[data-history-note]"),
     connStatus: $("[data-conn-status]"),
     walletTrading: $("[data-wallet-trading]"),
     walletBroker: $("[data-wallet-broker]"),
@@ -131,6 +133,7 @@
   let focusSymbol = null;   // 차트/가격/포지션 카드가 보여줄 종목 (기본 = 첫 종목)
   let perSymbol = {};       // state.per_symbol (종목별 price·position·valuation)
   let lastEventId = 0;
+  let lastEngineStatus = "";        // 실행→대기 전환 감지용 (세션 이력 갱신 시점)
   const pageLoadedAt = Date.now();  // A4: SSE 히스토리 재생분 알림 제외 기준
 
   // ---------- 유틸 ----------
@@ -158,6 +161,67 @@
       const r = await fetch("/api/state");
       renderState(await r.json());
     } catch (e) { /* 서버 재기동 중 등 — SSE 재연결이 복구 */ }
+  }
+
+  /* ---------- 지난 세션 이력 (P1-3) ----------
+     서버에는 세션 기록이 쌓여 있는데 화면이 한 줄도 안 읽어서, 첫 방문자에게는
+     모든 카드가 0 인 "동작 안 하는 목업"으로 보였다. 인증도 필요 없는 GET 이다.
+
+     ⚠ 열을 늘리지 말 것. 세션 레코드에 유출 계열 필드가 없어서 '유출' 열은 undefined 가
+     그대로 나가고, '실현손익' 열은 "수익률이 아니라 지출 통제"라는 이 제품의 첫 문장과
+     정면으로 충돌한다(같은 이유로 랜딩에서 수익률 카드를 이미 치웠다). */
+  const HISTORY_LIMIT = 10;
+
+  function renderHistory(data) {
+    const rows = (data && data.sessions) || [];
+    el.historyBody.replaceChildren();
+    if (!data || !data.enabled) {
+      el.historyNote.textContent = "— 이 인스턴스는 영속화가 꺼져 있습니다";
+      el.historyBody.appendChild(emptyRow("영속화 비활성 — 세션 기록을 저장하지 않는 실행입니다."));
+      return;
+    }
+    if (!rows.length) {
+      el.historyNote.textContent = "— 아직 기록이 없습니다";
+      el.historyBody.appendChild(emptyRow("아직 저장된 세션이 없습니다 — 세션을 한 번 실행하면 여기에 남습니다."));
+      return;
+    }
+    el.historyNote.textContent = `— 최근 ${rows.length}건 (서버에 저장된 실행 기록)`;
+    for (const s of rows) {
+      const tr = make("tr");
+      const share = s.ai && s.ai.gemini_share_pct;
+      const cells = [
+        s.session_id || "—",
+        s.mode === "live" ? "라이브(온체인)" : "드라이런",
+        s.symbol || "—",
+        String(num(s.ticks)),
+        String(num(s.trade_count)),
+        share === undefined || share === null ? "—" : `${share}%`,
+        (s.started_at || "").replace("T", " ").slice(0, 19) || "—",
+      ];
+      cells.forEach((c, i) => {
+        const td = make("td", i === 0 ? "mono" : "", c);
+        tr.appendChild(td);
+      });
+      el.historyBody.appendChild(tr);
+    }
+  }
+
+  function emptyRow(text) {
+    const tr = make("tr", "empty-row");
+    const td = make("td", "", text);
+    td.colSpan = 7;
+    tr.appendChild(td);
+    return tr;
+  }
+
+  async function fetchHistory() {
+    try {
+      const r = await fetch(`/api/history/sessions?limit=${HISTORY_LIMIT}`);
+      renderHistory(await r.json());
+    } catch (e) {
+      el.historyNote.textContent = "— 불러오지 못했습니다";
+      el.historyBody.replaceChildren(emptyRow("이력을 불러오지 못했습니다."));
+    }
   }
 
   /* ---------- 평가손익(미실현) · 총자산 ----------
@@ -306,6 +370,12 @@
     const multi = sessionSymbols.length > 1;
     const symLabel = multi ? sessionSymbols.join("·") : (s.symbol || focusSymbol || "—");
     const eng = s.engine || {};
+    /* 세션 이력 갱신 타이밍: ENGINE_STOPPED 는 세션 요약 **저장 전에** 나가므로
+       그 이벤트에서 바로 이력을 다시 읽으면 방금 끝난 세션이 아직 없을 수 있다.
+       서버는 저장이 끝난 **뒤에야** status 를 idle 로 내리므로(engine._finalize),
+       실행→대기 전환을 본 시점이 문서가 확정된 시점이다. */
+    if (lastEngineStatus && lastEngineStatus !== "idle" && eng.status === "idle") fetchHistory();
+    lastEngineStatus = eng.status || "";
     el.net.textContent = (eng.network || "—") + (eng.mode ? " · " + (eng.mode === "live" ? "라이브" : "드라이런") : "");
     el.engineStatus.textContent = { idle: "엔진 대기", running: "엔진 실행 중", stopping: "종료 중…" }[eng.status] || eng.status;
     el.engineStatus.classList.toggle("badge-ok", eng.status === "running");
@@ -1152,7 +1222,7 @@
           (d.cross_check ? ` · 교차검증 USDC ${d.cross_check.usdc_ok ? "PASS" : "FAIL"} / 주식 ${d.cross_check.stock_ok ? "PASS" : "FAIL"}` : ""),
           d.cross_check && !(d.cross_check.usdc_ok && d.cross_check.stock_ok) ? "log-danger" : "log-ok");
         sessionBoundary(evt.ts, "─── 세션 종료 ───", false);
-        fetchState();
+        fetchState();   // 이력 갱신은 여기서 하지 않는다 — renderState 의 idle 전환에서 한다
         break;
       case "balances":
         addLog(evt.ts, `[온체인 잔액·${d.stage === "before" ? "시작" : "종료"}] trading: ${d.balances.trading.usdc} USDC / ${d.balances.trading.stock} 주 · broker: ${d.balances.broker.usdc} USDC / ${d.balances.broker.stock} 주`, "log-muted");
@@ -1326,9 +1396,11 @@
   // ai 카드가 결과 바로 다음인 이유: 상단 가드 바의 "돈이 새지 않았다" 다음에 오는 질문이
   // "그걸 누가 어떻게 막았나"다. 협상 로그·판단 타임라인은 그 근거라 ai 바로 뒤에 두되
   // 기본은 접어 둔다 — 펼치면 자기를 부른 숫자 바로 밑에서 열린다(v7 이전에는 맨 아래였다).
+  // history 는 맨 뒤다 — 첫 화면(가드 KPI → 결과 → AI 근거)을 밀어내지 않으면서,
+  // 스크롤하면 "이 시스템은 전에도 돌았다"는 증거가 나오게 한다.
   const DEFAULT_LAYOUT = ["session", "symbols", "pnl", "valuation", "position", "ai",
                           "decisions", "log",
-                          "price", "trades", "budget", "mandate", "briefing"];
+                          "price", "trades", "budget", "mandate", "briefing", "history"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 
@@ -1415,5 +1487,6 @@
   initCardDrag();
   renderNotifyBtn();
   fetchState();
+  fetchHistory();
   connect();
 })();
