@@ -39,6 +39,12 @@ code { font-family: var(--mono); font-size: var(--fs-small); }
 .stack .row { display: flex; gap: 6px; }
 .stack .row .btn { flex: 1; }
 
+/* 간단/고급 분리 — <details> 기본 동작에 얹는 최소 구조만 둔다(색·글꼴은 기존 토큰 그대로).
+   접어 두는 것이 목적이고, 펼치면 예전과 똑같은 .stack 이 나온다. */
+.adv > summary { cursor: pointer; color: var(--muted); font-size: var(--fs-small); }
+.adv > summary .sub { display: inline; margin-left: 4px; }
+.adv-body { margin-top: 6px; }
+
 /* ---- 배지·버튼 ---- */
 .badge {
   display: inline-block; padding: 2px 8px; border-radius: 999px;
@@ -261,6 +267,25 @@ input[type="number"], input[type="text"], input[type="time"] {
   height: 100%; width: 0%; background: var(--accent);
   transition: width .4s ease;
 }
+
+/* ---- 예산 카드 — 배치 출처: uiverse.io/Ashon-G/giant-mouse-17 (MIT, © Ashon-G / Vashon Gonzales) ----
+   원본은 Tailwind 유틸 + 절대좌표라 개념만 가져오고 전부 다시 썼다.
+   원본이 하드코딩한 색(text-black·bg-amber-300)은 쓰지 않고 theme.css 토큰만 참조한다 —
+   그래야 다크 모드에서 글자가 사라지지 않고, 도착 예정인 디자인 시안이 한 번에 덮어쓴다.
+   막대 색을 원본의 호박색으로 바꾸려면 아래 .budget-card .gauge-fill 한 줄만 열면 된다. */
+.budget-card h2 { color: var(--muted); font-weight: 400; margin-bottom: 12px; }
+.budget-hero {
+  margin: 0; font-weight: 800; line-height: 1.15;
+  font-size: calc(var(--fs-big) * .82);
+}
+.budget-hero .unit { font-size: var(--fs-base); font-weight: 400; color: var(--muted); }
+.budget-hero-label { margin: 2px 0 0; font-size: var(--fs-small); color: var(--muted); }
+/* 원본의 가는 막대(4px). 테두리를 빼고 트랙만 남긴다 — 이 카드 안에서만 바꾼다. */
+.budget-card .gauge { height: 4px; border: 0; margin: 16px 0 12px; }
+.budget-foot { display: flex; justify-content: space-between; gap: var(--gap); }
+.budget-foot-r { text-align: right; }
+.budget-foot-num { margin: 0; font-size: var(--fs-small); font-weight: 700; }
+.budget-foot-label { margin: 2px 0 0; font-size: var(--fs-small); color: var(--muted); }
 
 /* ---- 피드 (판단 타임라인 / 이벤트 로그) ----
    고정 높이 + 내부 스크롤: 이벤트가 쌓여도 카드·페이지 높이가 변하지 않아

@@ -96,8 +96,11 @@
     historyBody: $("[data-history-body]"),
     historyNote: $("[data-history-note]"),
     connStatus: $("[data-conn-status]"),
+    wallets: $("[data-wallets]"),
     walletTrading: $("[data-wallet-trading]"),
     walletBroker: $("[data-wallet-broker]"),
+    sessionCard: $('[data-card="session"]'),
+    adv: $("[data-adv]"),
     btnNotify: $("[data-btn-notify]"),
     toasts: $("[data-toasts]"),
     btnBriefing: $("[data-btn-briefing]"),
@@ -172,6 +175,15 @@
      정면으로 충돌한다(같은 이유로 랜딩에서 수익률 카드를 이미 치웠다). */
   const HISTORY_LIMIT = 10;
 
+  /* 세션ID(`20260727_135727_dry`)는 기계 식별자라 표 첫 칸에 그대로 두면 이 카드 전체가
+     "개발 로그"로 읽힌다. 사람이 읽는 말로 바꾸되 원문은 셀의 title 로 남긴다(축④ 증거).
+     형식이 다르면 원문을 그대로 쓴다 — 못 읽는 것보다 낫다. */
+  function sessionLabel(id) {
+    if (!id) return "—";
+    const m = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/.exec(id);
+    return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]} 세션` : id;
+  }
+
   function renderHistory(data) {
     const rows = (data && data.sessions) || [];
     el.historyBody.replaceChildren();
@@ -190,8 +202,10 @@
       const tr = make("tr");
       const share = s.ai && s.ai.gemini_share_pct;
       const cells = [
-        s.session_id || "—",
-        s.mode === "live" ? "라이브(온체인)" : "드라이런",
+        sessionLabel(s.session_id),
+        // 모드 이름은 실행 모드 드롭다운(S1)과 같은 말을 쓴다 — 같은 것을 두 이름으로
+        // 부르면 심사위원이 다른 기능으로 읽는다('드라이런'은 개발 용어라 걷어냈다).
+        s.mode === "live" ? "라이브(온체인)" : "샌드박스",
         s.symbol || "—",
         String(num(s.ticks)),
         String(num(s.trade_count)),
@@ -200,6 +214,8 @@
       ];
       cells.forEach((c, i) => {
         const td = make("td", i === 0 ? "mono" : "", c);
+        // 축④ 증거라 원문 세션ID 를 지우지 않는다 — 표에는 사람이 읽는 말, 원문은 툴팁.
+        if (i === 0 && s.session_id) td.title = s.session_id;
         tr.appendChild(td);
       });
       el.historyBody.appendChild(tr);
@@ -361,6 +377,81 @@
     }
   }
 
+  /* ---------- 세션 설정 한 문장 (.rules) ----------
+     이 줄은 두 가지를 겸한다: ①고급을 접은 채 보는 "지금 설정" ②시작 버튼을 누르기 전에
+     읽는 유일한 설명문.
+     ⚠ 그래서 **대기 중에는 서버 값이 아니라 화면 드롭다운 값**으로 문장을 만든다.
+     예전에는 대기 상태의 state.strategy.type 이 아직 condition 이라, 드롭다운이 추세추종인데
+     조건형 설명이 떠 있었다 — 실제로 시작될 세션과 다른 설명을 읽히던 실측 불일치다.
+     실행 중에는 지금처럼 서버 값을 쓴다(그때는 서버가 정본이다). */
+  const SIGNAL_LABEL = {
+    pxma20: "가격>MA20", cross_5_20: "골든크로스5/20",
+    cross_1_5: "골든크로스1/5", cross_5_20_1_5: "5/20+1/5 결합",
+  };
+
+  // 라벨에서 부제(— 뒤)·괄호를 떼어낸 짧은 이름. 옵션 문구를 고쳐도 여기가 따라온다.
+  function shortOpt(sel) {
+    const o = sel && sel.selectedOptions && sel.selectedOptions[0];
+    return o ? o.textContent.trim().split(" — ")[0].split(" (")[0].trim() : "";
+  }
+
+  function settingsSummary() {
+    const parts = [shortOpt(el.modeSelect), shortOpt(el.feedSelect)];
+    if (el.feedSelect.value === "replay") parts.push(shortOpt(el.feedDataset));
+    parts.push(shortOpt(el.strategySelect), shortOpt(el.speedSelect));
+    return parts.filter(Boolean).join(" · ");
+  }
+
+  function renderRules(s) {
+    if (!s || !s.rules || !s.budget) return;
+    const idle = !s.engine || s.engine.status === "idle";
+    const feePct = s.fees ? (s.fees.fee_bps / 100) : 0;
+    const strat = idle ? {
+      type: el.strategySelect.value,
+      decision_mode: el.decisionMode.value,
+      trend_signal: el.trendSignal.value,
+      ta_mode: el.taMode.checked,
+      dca_unit: el.dcaUnit.value,
+      dca_every_ticks: el.dcaTicks.value,
+      dca_every_minutes: el.dcaMinutes.value,
+      dca_at_time: el.dcaTime.value,
+      dca_amount_usdc: el.dcaAmount.value,
+    } : (s.strategy || { type: "condition" });
+    const picked = idle ? pickedSymbols() : [];
+    const syms = idle ? (picked.length ? picked : (s.symbol ? [s.symbol] : [])) : sessionSymbols;
+    const multi = syms.length > 1;
+    const symLabel = multi ? syms.join("·") : (syms[0] || s.symbol || "—");
+    const modeLabel = (strat.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격")
+      + (strat.ta_mode ? "+TA" : "");
+    // 멀티면 종목별 1회 매수 금액(총 spend/N)을 쓰고, 종목 여러 개임을 문구에 드러낸다.
+    const spendText = (!idle && strat.spend_per_symbol_usdc) ? strat.spend_per_symbol_usdc
+      : (multi ? (num(s.rules.spend_per_trade) / syms.length).toFixed(2) : s.rules.spend_per_trade);
+    const multiTag = multi ? ` · ${syms.length}종목 동시(각자 독립 포지션, 예산·가드 공유)` : "";
+    /* 전략 이름(label)과 설명(body)을 나눠 둔다. 대기 중에는 앞의 "지금 설정" 요약이 이미
+       전략 이름을 말하고 있어서, label 까지 붙이면 같은 말이 한 줄에 두 번 나온다.
+       실행 중 문장은 예전과 한 글자도 다르지 않다. */
+    let label, body;
+    if (strat.type === "dca") {
+      // 적립형 종목별 금액은 회당 amount/N (조건형 spend/N 과 다르다)
+      const dcaAmt = multi ? (strat.dca_amount_per_symbol_usdc || strat.dca_amount_usdc) + " USDC(종목별)"
+                           : strat.dca_amount_usdc + " USDC";
+      label = "적립형";
+      body = `${dcaSchedule(strat)} ${dcaAmt} 정액 매수 (매도 없음)`;
+    } else if (strat.type === "trend") {
+      const sig = strat.trend_signal_label || SIGNAL_LABEL[strat.trend_signal] || "가격>MA20";
+      label = `추세추종(${sig})`;
+      body = `${symLabel} 이 상승세면 전량 보유, 하락세로 꺾이면 전량 매도(자본 보존)·재상승 시 재매수 (올인/올아웃)`;
+    } else {
+      label = `AI 판단(${modeLabel})`;
+      body = `${symLabel} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${spendText} USDC 어치${multi ? "(종목별)" : ""} 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
+    }
+    const perTradeText = s.budget.all_in ? "전량(올인)" : s.budget.per_trade_max_usdc;
+    const tail = ` · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${perTradeText})${multiTag} · 브로커 수수료 ${feePct}%`;
+    el.rules.textContent = idle
+      ? `지금 설정 — ${settingsSummary()} · ${body}${tail}`
+      : `규칙: ${label}: ${body}${tail}`;
+  }
+
   function renderState(s) {
     lastState = s;
     // 멀티 종목 정리 (rules 텍스트·포커스에서 함께 쓰이므로 먼저) — 포커스는 첫 종목이 기본
@@ -376,32 +467,12 @@
        실행→대기 전환을 본 시점이 문서가 확정된 시점이다. */
     if (lastEngineStatus && lastEngineStatus !== "idle" && eng.status === "idle") fetchHistory();
     lastEngineStatus = eng.status || "";
-    el.net.textContent = (eng.network || "—") + (eng.mode ? " · " + (eng.mode === "live" ? "라이브" : "드라이런") : "");
+    el.net.textContent = (eng.network || "—") + (eng.mode ? " · " + (eng.mode === "live" ? "라이브" : "샌드박스") : "");
     el.engineStatus.textContent = { idle: "엔진 대기", running: "엔진 실행 중", stopping: "종료 중…" }[eng.status] || eng.status;
     el.engineStatus.classList.toggle("badge-ok", eng.status === "running");
     el.brain.textContent = "판단: " + (eng.brain || "—");
     const feePct = s.fees ? (s.fees.fee_bps / 100) : 0;
-    const strat = s.strategy || { type: "condition" };
-    const modeLabel = (strat.decision_mode === "trend" ? "AI 추세·보류 재량" : "AI 엄격")
-      + (strat.ta_mode ? "+TA" : "");
-    // 멀티면 종목별 1회 매수 금액(총 spend/N)을 쓰고, 종목 여러 개임을 문구에 드러낸다.
-    const spendText = strat.spend_per_symbol_usdc || s.rules.spend_per_trade;
-    const multiTag = multi ? ` · ${sessionSymbols.length}종목 동시(각자 독립 포지션, 예산·가드 공유)` : "";
-    let ruleText;
-    if (strat.type === "dca") {
-      // 적립형 종목별 금액은 회당 amount/N (조건형 spend/N 과 다르다)
-      const dcaAmt = multi ? (strat.dca_amount_per_symbol_usdc || strat.dca_amount_usdc) + " USDC(종목별)"
-                           : strat.dca_amount_usdc + " USDC";
-      ruleText = `적립형: ${dcaSchedule(strat)} ${dcaAmt} 정액 매수 (매도 없음)`;
-    } else if (strat.type === "trend") {
-      const sig = strat.trend_signal_label
-        || (strat.trend_signal === "cross_5_20" ? "골든크로스5/20" : "가격>MA20");
-      ruleText = `추세추종(${sig}): ${symLabel} 이 상승세면 전량 보유, 하락세로 꺾이면 전량 매도(자본 보존)·재상승 시 재매수 (올인/올아웃)`;
-    } else {
-      ruleText = `조건형(${modeLabel}): ${symLabel} 가격이 5일 평균(MA5)보다 ${s.rules.buy_dip_pct}% 싸지면 ${spendText} USDC 어치${multi ? "(종목별)" : ""} 매수, 평균단가보다 ${s.rules.take_profit_pct}% 오르면 전량 매도(익절)`;
-    }
-    const perTradeText = s.budget.all_in ? "전량(올인)" : s.budget.per_trade_max_usdc;
-    el.rules.textContent = `규칙: ${ruleText} · 예산 ${s.budget.total_usdc} USDC (건별 최대 ${perTradeText})${multiTag} · 브로커 수수료 ${feePct}%`;
+    renderRules(s);
 
     // 포커스 종목의 시세/포지션/차트를 그린다 (멀티 정리는 renderState 상단에서 끝냈다).
     const fp = (perSymbol[focusSymbol] && perSymbol[focusSymbol].price) || s.price || {};
@@ -411,6 +482,11 @@
 
     el.symbol.textContent = focusSymbol || s.symbol;
     el.posSymbol.textContent = focusSymbol || s.symbol;
+    /* 온체인 실물 심볼이라 바꾸면 tx 증빙과 어긋난다 — 설명만 붙인다.
+       'tAAPL' 의 t 가 무엇인지 화면 어디에도 없었다. */
+    const symTip = `devnet 테스트 토큰 — ${(focusSymbol || s.symbol || "").replace(/^t/, "")} 을 토큰화한 자산`;
+    el.symbol.title = symTip;
+    el.posSymbol.title = symTip;
     if (fp.current != null) el.price.textContent = fp.current + " USDC";
     ticksPerCandle = fp.ticks_per_candle || ticksPerCandle;
     sessionOpen = fp.session_open != null ? num(fp.session_open) : null;
@@ -485,6 +561,8 @@
 
     if (s.wallets.trading) el.walletTrading.textContent = shortKey(s.wallets.trading);
     if (s.wallets.broker) el.walletBroker.textContent = shortKey(s.wallets.broker);
+    // 연결 전에는 대시 두 개만 남아 고장난 것처럼 보인다 — 값이 있을 때만 켠다.
+    el.wallets.classList.toggle("hidden", !(s.wallets.trading || s.wallets.broker));
 
     if (s.last_briefing) renderBriefing(s.last_briefing);  // B2 새로고침 복원
 
@@ -763,7 +841,7 @@
     srcTd.appendChild(make("span", "src src-" + (t.decision_source || "rule"), t.decision_source));
     srcTd.title = t.decision_reason || "";
     tr.appendChild(srcTd);
-    tr.appendChild(make("td", null, t.confirmed ? "온체인 확정" : (t.status === "settled" ? "드라이런(미전송)" : "실패")));
+    tr.appendChild(make("td", null, t.confirmed ? "온체인 확정" : (t.status === "settled" ? "샌드박스(미전송)" : "실패")));
     tr.appendChild(txCell(t.explorer_payment));
     tr.appendChild(txCell(t.explorer_delivery));
     el.tradesBody.prepend(tr);
@@ -783,10 +861,18 @@
 
   // ---------- B2 데일리 브리핑 ----------
   const TRIGGER_LABEL = { "manual": "수동", "session-end": "세션 종료 자동", "market-close": "장 마감 자동" };
+  /* 메타 줄에서 두 가지를 뺐다.
+     ① 저장 경로(`artifacts/briefings/…`) — Cloud Run 컨테이너 안 경로라 방문자가 열 수 없는
+        죽은 문자열이었다. 지우지는 않고 title 로 내린다(이벤트 로그에는 그대로 남는다).
+     ② 폴백 사유 — 서버가 본문에서 분리해 `fallback_detail` 로 따로 내려준다(web/briefing.py).
+        raw 예외 문자열이라 **본문·메타에 찍지 않고 title 에만** 넣는다. */
   function renderBriefing(b) {
     el.briefingMeta.textContent =
-      `${timeOf(b.ts)} 생성 · ${TRIGGER_LABEL[b.trigger] || b.trigger} · 출처 ${b.source === "gemini" ? "Gemini" : "템플릿 폴백"}` +
-      (b.archive ? ` · 저장 ${b.archive}` : "");
+      `${timeOf(b.ts)} 생성 · ${TRIGGER_LABEL[b.trigger] || b.trigger} · 출처 ${b.source === "gemini" ? "Gemini" : "자동 계산 요약"}`;
+    el.briefingMeta.title = [
+      b.fallback_detail ? `AI 요약 실패 사유: ${b.fallback_detail}` : "",
+      b.archive ? `저장 ${b.archive}` : "",
+    ].filter(Boolean).join("\n");
     el.briefingText.textContent = b.text || "";
   }
 
@@ -805,9 +891,11 @@
   }
   const notifyEnabled = () => notifyState() === "on";
 
+  /* ⚠ '차단됨'을 쓰지 않는다 — 같은 화면에 '가드 차단' KPI 가 있어서, 브라우저가 알림을
+     막은 것을 402 Guard 가 무언가를 막은 것으로 읽는다(실제 오독 지점). */
   const NOTIFY_LABEL = {
-    on: "🔔 알림: 켜짐", off: "🔔 알림: 꺼짐",
-    denied: "🔕 알림: 차단됨", unsupported: "🔕 알림: 미지원",
+    on: "🔔 알림 켜짐", off: "🔔 알림 받기",
+    denied: "🔕 브라우저가 알림을 막았습니다", unsupported: "🔕 이 브라우저는 알림 미지원",
   };
 
   function renderNotifyBtn() {
@@ -1211,7 +1299,7 @@
           srcNote = "판단 출처 gemini / rule";
         }
         sessionBoundary(evt.ts, `─── 새 세션 시작 · ${stText} · ${srcNote} ───`, true);
-        addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "드라이런"} · ${d.network} · ${d.symbol} · 시세: ${d.feed ? d.feed.label : "—"} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
+        addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "샌드박스"} · ${d.network} · ${d.symbol} · 시세: ${d.feed ? d.feed.label : "—"} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
         fetchState();
         break;
       }
@@ -1252,6 +1340,42 @@
       } catch (e) { /* 형식 오류 무시 */ }
     };
   }
+
+  /* ---------- 고급(검증용) 모드 ----------
+     세션 설정의 고급은 기본으로 접혀 있고, 주소에 ?lab=1 이 붙어 있으면 펼쳐진 채로 열린다
+     (우리 검증용 북마크 · ?lab=0 이면 해제). 별도 경로(/lab)는 만들지 않는다 — 라우트 신설은
+     백엔드 파일을 건드리고, 대시보드가 사실상 두 벌이 되어 회귀 표면이 2배가 된다.
+     구현 방식은 아래 #token 과 같다: 값을 localStorage 로 옮기고 주소창에서 지운다.
+     ⚠ 순서 — 아래 captureTokenFromHash() 는 replaceState 에 location.search 를 그대로 넘겨
+     search 를 유지하므로, lab 은 **그 함수보다 먼저** 지워야 서로의 정리를 밟지 않는다.
+     반대로 여기서는 location.hash 를 보존한다(#token 을 읽기 전에 지우면 토큰이 유실된다). */
+  const LAB_KEY = "autotrader_lab";
+  (function captureLab() {
+    const p = new URLSearchParams(location.search);
+    if (!p.has("lab")) return;
+    if (p.get("lab") === "0") localStorage.removeItem(LAB_KEY);
+    else localStorage.setItem(LAB_KEY, "1");
+    p.delete("lab");
+    const q = p.toString();
+    history.replaceState(null, "", location.pathname + (q ? "?" + q : "") + location.hash);
+  })();
+
+  /* 고급을 펼치면 감춰 둔 **옵션**(⚡초고속·느림·적립형)도 함께 나타난다. 값은 접혀 있어도
+     DOM 에 살아 있으므로 세션 시작 payload 는 한 줄도 바뀌지 않는다(재현성이 분리의 전제). */
+  function syncAdvOptions() {
+    const open = el.adv.open;
+    for (const o of document.querySelectorAll("[data-adv-option]")) o.hidden = !open;
+  }
+  el.adv.addEventListener("toggle", syncAdvOptions);
+  if (localStorage.getItem(LAB_KEY) === "1") {
+    el.adv.open = true;
+    // 검증용에서만 푸는 잠금: 라이브 모드 옵션 · 푸터의 배치 초기화 줄
+    for (const n of document.querySelectorAll("[data-lab-only]")) {
+      n.classList.remove("hidden");
+      if (n.tagName === "OPTION") n.disabled = false;
+    }
+  }
+  syncAdvOptions();
 
   // ---------- 컨트롤 ----------
   // 조작 API 접근 토큰 — 배포 서버가 CONTROL_TOKEN 을 켠 경우에만 필요하다.
@@ -1302,7 +1426,6 @@
     el.feedDataset.classList.toggle("hidden", !replay);
     el.subBars.classList.toggle("hidden", !replay);
     // 멀티 종목 선택은 실데이터 재생에서만. 라이브(온체인)만 단일 종목이라 잠근다.
-    const isTrend = strat === "trend";
     const isLive = el.modeSelect.value === "live";
     const singleOnly = isLive;   // 추세추종도 멀티 가능(종목별 예산 슬라이스). 라이브(온체인)만 단일.
     el.symPicker.classList.toggle("hidden", !replay);
@@ -1310,11 +1433,10 @@
       c.disabled = singleOnly;
       if (singleOnly) c.checked = false;
     }
+    // '예산/N 슬라이스'는 내부 용어다. 추세추종·AI 판단이 같은 문구가 되므로 분기도 줄였다.
     el.symPickerLabel.textContent = isLive
-      ? "라이브(온체인)는 단일 종목만 지원합니다 — 멀티 종목은 드라이 전용"
-      : isTrend
-        ? "동시 매수 종목 — 추세추종 멀티는 예산/N 슬라이스로 각자 독립 운용:"
-        : "동시 매수 종목 (여러 개 = 멀티 · 비우면 기본 단일):";
+      ? "라이브(온체인)는 단일 종목만 지원합니다 — 여러 종목은 샌드박스 전용"
+      : "살 종목 — 여러 개 고르면 예산을 나눠 동시에 굴립니다";
     const unit = el.dcaUnit.value;
     el.dcaTicksWrap.classList.toggle("hidden", unit !== "ticks");
     el.dcaMinutesWrap.classList.toggle("hidden", unit !== "minutes");
@@ -1326,6 +1448,9 @@
   el.dcaUnit.addEventListener("change", syncDcaInputs);
   el.focusSelect.addEventListener("change", () => setFocus(el.focusSelect.value));
   syncDcaInputs();   // 초기 1회 — 기본 전략/피드에 맞춰 표시 정리
+  /* 대기 중에는 .rules 줄이 드롭다운을 그대로 비춘다(renderRules) — 세션 설정 카드 안에서
+     무엇이 바뀌든 다시 그린다. select·checkbox·number 입력이 전부 change 로 올라온다. */
+  el.sessionCard.addEventListener("change", () => renderRules(lastState));
   function pickedSymbols() {
     // 멀티 종목은 실데이터 재생에서만 — 체크된 티커 목록(비면 단일 기본)
     if (el.feedSelect.value !== "replay") return [];
@@ -1389,7 +1514,9 @@
      디자인 시안의 배치가 어떻게 오든 이 배열만 바꾸면 기본 배치가 바뀐다.
      사용자는 카드 제목(h2)을 끌어 재배치할 수 있고 localStorage 에 저장된다.
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
-  const LAYOUT_KEY = "autotrader_layout_v7";  // v7: 두 피드를 AI 카드 뒤로 옮기고 기본 접기 — 기존 저장 배치 리셋
+  /* ⚠ DEFAULT_LAYOUT 을 바꾸면 이 키도 반드시 올린다. 안 올리면 이미 방문한 적 있는
+     브라우저(= 촬영용 브라우저 포함)가 localStorage 에 저장된 옛 배치를 계속 쓴다. */
+  const LAYOUT_KEY = "autotrader_layout_v8";  // v8: 세션 설정 카드를 첫 자리에서 시세 뒤로 — 기존 저장 배치 리셋
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
@@ -1398,9 +1525,13 @@
   // 기본은 접어 둔다 — 펼치면 자기를 부른 숫자 바로 밑에서 열린다(v7 이전에는 맨 아래였다).
   // history 는 맨 뒤다 — 첫 화면(가드 KPI → 결과 → AI 근거)을 밀어내지 않으면서,
   // 스크롤하면 "이 시스템은 전에도 돌았다"는 증거가 나오게 한다.
-  const DEFAULT_LAYOUT = ["session", "symbols", "pnl", "valuation", "position", "ai",
+  // v8 에서 session 을 맨 앞에서 price 뒤로 내렸다 — 심사위원이 처음 보는 카드가 설정
+  // 컨트롤 덩어리일 이유가 없다. 간단 모드라 카드가 작아져 아래에 둬도 조작에 지장이 없다.
+  // (decisions·log 는 기본 접힘이라 눈에 보이는 순서는 pnl→valuation→position→ai→price→session.)
+  const DEFAULT_LAYOUT = ["pnl", "valuation", "position", "ai",
                           "decisions", "log",
-                          "price", "trades", "budget", "mandate", "briefing", "history"];
+                          "price", "session", "symbols",
+                          "trades", "budget", "mandate", "briefing", "history"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 

@@ -132,7 +132,8 @@
   <nav class="landing-nav" aria-label="주요 메뉴">
     <a class="nav-link" href="#about">소개</a>
     <a class="nav-link" href="/app">대시보드</a>
-    <a class="nav-link" href="/.well-known/x402">x402 디스커버리</a>
+    <!-- x402 디스커버리는 상단 메뉴에서 뺐다 — 처음 온 사람이 메뉴를 누르면 날 JSON 을
+         마주친다. 증빙이라 지우지는 않고, 이미 같은 링크가 있는 푸터에만 남긴다. -->
   </nav>
   <div class="controls">
     <a class="btn btn-primary" href="/connect">지갑 연결하고 시작하기</a>
@@ -236,7 +237,8 @@
       <li><strong>합의한 그 청구서일 때만 서명합니다.</strong> 수취인·금액·자산에 더해 청구서에 적힌 설명까지 주문 의도와 대조합니다. 서명 전에 가드를 태운 청구서에서 새어나간 금액은 <strong>0.00 USDC</strong> 입니다.</li>
     </ol>
     <p class="sub" style="margin-top:18px">
-      <a class="nav-link" href="/login" style="color:var(--accent)">시작하기 →</a>
+      <!-- /login 과 /connect 는 같은 파일을 서빙하므로 동작은 같다 — 상단 CTA 와 문구·링크를 맞춘다. -->
+      <a class="nav-link" href="/connect" style="color:var(--accent)">지갑 연결하고 시작하기 →</a>
     </p>
   </section>
 </main>
