@@ -425,8 +425,13 @@ td a { color: var(--accent); }
   box-shadow: 0 0 0 4px rgba(47, 86, 240, .22), var(--shadow);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow);
   transition: width .3s, border-radius .3s, filter .3s,
-              opacity .22s var(--stagger-ease), translate .22s var(--stagger-ease);
-  /* 스크롤을 내리기 전에는 없는 셈 친다 — visibility 까지 꺼야 투명한 버튼이 클릭을 먹지 않는다 */
+              opacity .22s var(--stagger-ease), translate .22s var(--stagger-ease),
+              visibility .22s;
+  /* 스크롤을 내리기 전에는 없는 셈 친다 — visibility 까지 꺼야 투명한 버튼이 클릭을 먹지 않는다.
+     ⚠ visibility 를 transition 목록에 반드시 넣는다. 빼면 opacity 는 0.22초 동안 사라지는데
+     visibility 만 즉시 hidden 이 되어 **버튼이 뚝 끊기듯 사라진다**(맨 위로를 누른 직후가 그랬다).
+     visibility 는 값 사이를 잇지 않고 끝에서 한 번에 바뀌므로, 목록에 넣으면 페이드가 끝날 때까지
+     보이다가 그 뒤에 꺼진다 — 나타날 때는 반대로 시작하자마자 켜져서 등장이 늦지 않는다. */
   opacity: 0; visibility: hidden; translate: 0 12px;
 }
 .to-top.is-shown { opacity: 1; visibility: visible; translate: none; }

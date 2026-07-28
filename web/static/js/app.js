@@ -1573,9 +1573,14 @@
      app.js 가 읽는 훅은 전부 살아 있다(빼면 null 참조로 대시보드가 통째로 죽는다).
      ⚠ applyLayout 보다 먼저 옮겨야 한다 — 그리드에 남아 있으면 배치 로직이 도로 끌어온다. */
   const devMode = localStorage.getItem(LAB_KEY) === "1";
+  /* 서랍으로 옮기는 카드들.
+     · session  = 세션 조작부(모드·속도·전략) — 개발/시연용 노브다.
+     · history  = '지난 세션' 목록. 세션ID·Gemini 비율은 우리 계측 단위라 관람자가 읽을 것이
+                  아니다(축④·축② 증거로서의 값은 영상·소개서가 대신 진다).
+     '한도 바꾸기'(AP2 재서명)는 여기 없다 — v11 에서 그리드로 되돌렸다. 예산 한도를 정하는 것은
+     개발용 조작이 아니라 이 제품을 쓰는 사람의 일이고, 그 한도를 코드가 집행하는 것이 제품이다. */
   if (el.devSlot) {
-    // 서랍으로 옮기는 카드들. 세션 설정 = 조작부, 한도 바꾸기 = AP2 재서명(운영 조작부).
-    for (const sel of ['[data-card="session"]', '[data-card="mandate"]']) {
+    for (const sel of ['[data-card="session"]', '[data-card="history"]']) {
       const card = $(sel);
       if (card) el.devSlot.appendChild(card);
     }
@@ -1738,24 +1743,25 @@
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
   /* ⚠ DEFAULT_LAYOUT 을 바꾸면 이 키도 반드시 올린다. 안 올리면 이미 방문한 적 있는
      브라우저(= 촬영용 브라우저 포함)가 localStorage 에 저장된 옛 배치를 계속 쓴다. */
-  const LAYOUT_KEY = "autotrader_layout_v10";  // v10: 한도 바꾸기 카드도 개발자 서랍으로 — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v11";  // v11: 한도 바꾸기는 사용자 화면으로 복귀 · 지난 세션은 개발자 서랍으로 — 기존 저장 배치 리셋
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
   // ai 카드가 결과 바로 다음인 이유: 상단 가드 바의 "돈이 새지 않았다" 다음에 오는 질문이
   // "그걸 누가 어떻게 막았나"다. 협상 로그·판단 타임라인은 그 근거라 ai 바로 뒤에 두되
   // 기본은 접어 둔다 — 펼치면 자기를 부른 숫자 바로 밑에서 열린다(v7 이전에는 맨 아래였다).
-  // history 는 맨 뒤다 — 첫 화면(가드 KPI → 결과 → AI 근거)을 밀어내지 않으면서,
-  // 스크롤하면 "이 시스템은 전에도 돌았다"는 증거가 나오게 한다.
+  // v11 에서 history 가 이 배열을 떠났다 — '지난 세션'은 개발자 서랍에 산다(세션ID·Gemini
+  // 비율은 우리 계측 단위라 관람자용이 아니다). "전에도 돌았다"는 증거는 영상·소개서가 진다.
   // v9 에서 session 이 이 배열을 떠났다 — 세션 설정 카드는 그리드가 아니라 개발자 서랍에 산다.
   // (배열에 남아 있어도 applyLayout 이 그리드 안에서만 카드를 찾으므로 무해하지만, 배치의
   //  단일 출처가 이 배열이라는 약속을 지키려면 여기 없는 편이 맞다.)
   // (decisions·log 는 기본 접힘이라 눈에 보이는 순서는 pnl→valuation→position→ai→price.)
-  // v10 에서 mandate 도 빠졌다 — 세션 설정과 같이 개발자 서랍에 산다.
+  // v10 에서 mandate 가 빠졌다가 v11 에서 돌아왔다 — 한도를 정하는 것은 개발용 조작이
+  // 아니라 사용자의 일이다. 자리는 예산 카드 바로 뒤 = "지금 한도" 옆에서 "한도 바꾸기".
   const DEFAULT_LAYOUT = ["pnl", "valuation", "position", "ai",
                           "decisions", "log",
                           "price", "symbols",
-                          "trades", "budget", "briefing", "history"];
+                          "trades", "budget", "mandate", "briefing"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 
