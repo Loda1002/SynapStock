@@ -1511,21 +1511,7 @@ class TradingEngine:
                 except Exception:
                     pass
                 self._broker_http = None
-            self.status = "idle"
-            self._task = None
             self.last_archive_path = archive_path
-            # 세션 요약 영속화 (dry 포함) — 재시작·재배포 후에도 /api/history 로 남는다.
-            # 세션 문서는 핵심 증빙이라 fire-and-forget 이 아니라 짧게 기다려 확정한다.
-            if self.store.enabled and (self.tick or self.trades or self.decisions):
-                try:
-                    await asyncio.wait_for(
-                        self.store.save_session(
-                            self.session_id, self._session_summary(archive_path, cross)),
-                        timeout=5)
-                except Exception as e:
-                    self.store.last_error = f"{type(e).__name__}: {e}"
-                    self.bus.emit(ev.ERROR, {
-                        "message": f"세션 영속 저장 실패: {self.store.last_error}"})
             # 긴급정지는 세션 단위 상태 — 세션이 끝나면 해제한다.
             # (해제하지 않으면 대기 화면·다음 접속에도 "🛑 매매 정지됨" 배지가 남는다)
             was_paused = not self.trading_enabled
@@ -1539,6 +1525,29 @@ class TradingEngine:
             # B2: 세션 종료 시 자동 브리핑 — 백그라운드로 생성해 stop 응답을 막지 않는다
             if self.trades or self.decisions:
                 asyncio.create_task(self._auto_briefing("session-end"))
+            # 세션 요약 영속화 (dry 포함) — 재시작·재배포 후에도 /api/history 로 남는다.
+            # 세션 문서는 핵심 증빙이라 fire-and-forget 이 아니라 짧게 기다려 확정한다.
+            if self.store.enabled and (self.tick or self.trades or self.decisions):
+                try:
+                    await asyncio.wait_for(
+                        self.store.save_session(
+                            self.session_id, self._session_summary(archive_path, cross)),
+                        timeout=5)
+                except Exception as e:
+                    self.store.last_error = f"{type(e).__name__}: {e}"
+                    self.bus.emit(ev.ERROR, {
+                        "message": f"세션 영속 저장 실패: {self.store.last_error}"})
+            # ★ BUG-09: 엔진 소유권을 놓는 것은 반드시 마지막이다.
+            # `status == "idle"` 이 다음 세션의 유일한 관문(start():`self.status != "idle"`)이라,
+            # 이 두 줄 뒤에서 전역 상태를 만지면 **이미 시작된 다음 세션**을 덮어쓴다.
+            # 예전 순서는 status 를 먼저 idle 로 내리고 영속 저장을 await 했다 — 그 5초 창에
+            # 새 세션이 시작되면 끝난 세션의 마무리 코드가 그 세션의 긴급정지를 해제하고
+            # (trading_enabled=True·pause_info=None) 남의 실적으로 ENGINE_STOPPED 를 쐈다.
+            # stop() 은 어차피 `await self._task` 로 이 함수가 끝날 때까지 기다리므로
+            # 응답이 느려지지 않는다. 재생 소진으로 자동 종료될 때만 idle 표시가 저장 시간만큼
+            # 늦어지는데, 그동안 세션은 실제로 아직 안 끝났으므로 그쪽이 정확하다.
+            self._task = None
+            self.status = "idle"
 
     def _archive(self, snap_after: dict) -> tuple[str, Dict[str, Any]]:
         """run_demo 와 동일한 순변화 교차검증 + artifacts/tx/ 증빙 아카이브."""
