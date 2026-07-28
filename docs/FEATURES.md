@@ -55,7 +55,9 @@
 | 기능 | 설명 | 위치 | 상태 |
 |---|---|---|---|
 | **실시간 대시보드** | SSE 스트림, 새로고침 시 Last-Event-ID로 복원 | `web/server.py`, `web/events.py` | ✅ |
-| **카드 모듈 13개** | session·symbols·pnl·valuation·position·**ai**·decisions·log·price·trades·budget·mandate·briefing. 제목 드래그 재배치 + localStorage + 배치 초기화 | `web/static/` | ✅ 배치는 `DEFAULT_LAYOUT` 배열(`LAYOUT_KEY` _v7). 402 Guard KPI 는 카드가 아니라 떠 있는 패널(`.guard-dock`) |
+| **카드 모듈 14개** | session·symbols·pnl·valuation·position·**ai**·decisions·log·price·trades·budget·mandate·briefing·**history**. 제목 드래그 재배치 + localStorage + 배치 초기화 | `web/static/` | ✅ 배치는 `DEFAULT_LAYOUT` 배열(`LAYOUT_KEY` _v7). 402 Guard KPI 는 카드가 아니라 떠 있는 패널(`.guard-dock`) |
+| **지난 세션 이력** | Firestore 에 저장된 실행 기록을 표로 — 세션·모드(드라이런/라이브)·종목·틱·체결·Gemini 비율·시작시각. 세션이 끝나면(실행→대기 전환) 자동 갱신 | `GET /api/history/sessions` · `app.js` `fetchHistory` | ✅ 배포본 실측 10건 렌더 |
+| **가드 정지 사유 표시** | 402 Guard 가 세션을 멈추면 주체(사용자/402 Guard)와 **왜 멈췄는지**를 배지·활동 로그에 남긴다 | `engine.pause(reason=)` · `PAUSE_ACTOR_LABEL` | ✅ 매수·매도 양 레그 검증 |
 | **캔들차트** | SVG 직접 렌더(외부 CDN 0), 양봉·음봉·MA선·현재가선·범례 | `app.js` | ✅ |
 | **긴급정지/재개** | 신규 판단·결제 즉시 중단(진행 정산 1건은 마무리), 정지 주체 기록 | A2 | ✅ 세션 경계 처리 |
 | **한도 설정(재서명)** | 예산/건별 한도 변경 → 새 mandate 서명 → 적용, 변경 이력 로그 | A3 | ✅ |
@@ -150,4 +152,4 @@
 | ① 혁신성·UX | 직관적·새로운 UX, 기존 문제 해결 | 402 Guard 재포지셔닝, 공격 콘솔, 첫 화면 KPI(수익률 아님). 2026-07-28 보강: 소개서에 **경쟁 지도 1장**(AgentFabric·Circle Agent Wallets·Kyvern, "우리가 확인한 범위에서" 한정) + 수익모델 3단 단가(전부 '가정' 명시) | **중** — 2026-07-27 부서 판정. 사유가 "상업성 정량 근거 0건" 하나로 특정됐고 그 부분은 채웠다. 재평가는 8/2 judge-dept 재실행 |
 | ② AI 활용도 | Gemini/Google Cloud AI 스택(에이전트 프레임워크 포함) | Gemini 실호출 3지점(판단·**청구서 의미 대조**·브리핑). AI 재량은 두 레이어 모두 **차단만** 가능. 481봉 대표본 실측 + 규칙 게이트 발동 로그 2건 | **강**(2026-07-27 심사 부서) |
 | ③ 기술·인프라 연동 | USDC·Solana Pay·pay.sh 등, AP2·A2A·x402 등 | 자체 x402 + AP2 + A2A(**병렬 예시라 정합**). devnet tx 를 공용 RPC 로 재조회해 Memo·금액 일치 확인. 라이브 URL 이 실제 402+accepts[] 응답 | **강** — 단 증빙의 결제 통화가 테스트 민트(Circle 공식 민트 재실증 필요) |
-| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx 10건**(`artifacts/tx/20260724_1643_*`, err=null·교차검증 일치) · **테스트 21종 통과** · red_team `rc=0` | **강** — 단 devnet 증빙 1건뿐이고 배포 URL 발생 온체인 tx 0건 |
+| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx 10건**(`artifacts/tx/20260724_1643_*`, err=null·교차검증 일치) · **테스트 22종 통과** · red_team `rc=0` · 라이브 URL 리비전 `synapstock-00014-hft` | **강** — 단 devnet 증빙 1건뿐이고 배포 URL 발생 온체인 tx 0건 |
