@@ -9,6 +9,10 @@
 한도(AP2) 안에서 **Solana USDC 로 토큰화 주식을 실제로 사고팔게** 한 뒤, 그 결제 경로에
 악성 청구서를 던져 봅니다.
 
+**라이브 데모** <https://synapstock-766888967498.asia-northeast3.run.app>
+— 로그인 없이 관전할 수 있습니다. 단일 공용 인스턴스라 세션 조작(시작·정지)은 접근 토큰이
+필요합니다(`docs/deploy_cloud_run.md §6-1`).
+
 > ⚠️ 데모는 전부 **devnet/localnet(테스트 토큰)** + **읽기전용 시세**로 동작합니다. 실제
 > 증권거래·실제 자금 이동은 없습니다. 매매 조건은 사용자가 정의하는 규칙이며 투자 조언이 아닙니다.
 
@@ -301,7 +305,12 @@ solana-agent/
 │   ├── red_team.py         # ★ 공격/차단 매트릭스 (실제 결제 경로를 그대로 태움)
 │   ├── setup_devnet.py     # devnet 준비(민트·에어드랍·지급)
 │   ├── backtest.py         # 규칙 vs Gemini 비교 + 매수후보유 벤치마크
-│   └── test_*.py           # 단위 테스트 20종 (자체 하네스, pytest 불필요)
+│   ├── collect_evidence.py # 증거 수집기 (LLM 없이 테스트·red_team·tx 를 실제로 실행)
+│   └── test_*.py           # 단위 테스트 21종 (자체 하네스, pytest 불필요)
+├── .claude/workflows/
+│   ├── judge-dept.js       # 심사 부서 — 해커톤 4축 자가평가
+│   ├── bug-dept.js         # 버그 부서 — 4렌즈 스캔 (읽기 전용)
+│   └── data-dept.js        # 데이터 부서 — 시세 CSV 건전성
 ├── requirements.txt · .env.example · .gitignore
 ```
 
@@ -312,6 +321,22 @@ solana-agent/
 ```bash
 for f in scripts/test_*.py; do python -m "scripts.$(basename "$f" .py)" || echo "FAIL $f"; done
 ```
+
+## 이 저장소는 스스로를 감사합니다
+
+품질 점검을 사람의 눈이 아니라 **재현 가능한 절차**로 돌립니다. `.claude/workflows/` 에 세 개의
+에이전트 부서가 있습니다 — 심사(해커톤 4축 자가평가) · 버그(4렌즈 스캔, **읽기 전용**) ·
+데이터(시세 CSV 건전성). 각 부서는 팬아웃으로 조사한 뒤 **건별 적대 검증**을 거치고,
+리포트를 내기 전에 자기검토 단계를 통과합니다. 산출물은 `docs/reports/` 에 있습니다.
+
+핵심은 판단이 아니라 **수집**입니다. 수집기는 LLM 없이 테스트·레드팀·tx 아카이브를 실제로
+실행해 수치를 뜹니다 — 추정이 섞이지 않습니다. 직접 돌려 보실 수 있습니다:
+
+```bash
+python scripts/collect_evidence.py
+```
+
+부서 전체를 돌리려면 Claude Code 에서 `Workflow({scriptPath: ".claude/workflows/judge-dept.js"})`.
 
 ## 검증 완료
 

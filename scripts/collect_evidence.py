@@ -10,22 +10,30 @@ LLM 없음. 추정 없음. 오직 실행 결과·파일 내용·git 상태만 �
   - 숫자는 전부 재현 가능한 출처에서 온다: 테스트 종료코드, red_team KPI 라인,
     artifacts JSON, git, git grep(추적 파일만 — secrets/·.venv 는 자동 제외).
 
-실행:
-  .venv/Scripts/python.exe -m scripts.collect_evidence
+실행 (둘 다 동작한다):
+  python scripts/collect_evidence.py
+  python -m scripts.collect_evidence
   → docs/reports/_evidence_YYYYMMDD_HHMMSS.json 생성, 경로를 stdout 마지막 줄에 출력.
 """
 from __future__ import annotations
 
-import config  # noqa: F401 — cp949 콘솔 인코딩 안전화(모든 진입점 필수)
-
-import glob
-import json
 import os
-import re
-import subprocess
 import sys
-import traceback
-from datetime import datetime
+
+# 저장소 루트를 import 경로에 넣는다. `python -m scripts.collect_evidence` 는 루트가
+# 이미 sys.path 에 있지만, 처음 보는 사람이 자연스럽게 치는 `python scripts/collect_evidence.py`
+# 는 스크립트 폴더가 들어가므로 바로 아랫줄 `import config` 에서 ModuleNotFoundError 로 죽는다.
+# README 가 이 명령을 재현 절차로 싣고 있어서(심사위원이 실제로 친다) 두 형태 모두 받는다.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import config  # noqa: F401,E402 — cp949 콘솔 인코딩 안전화(모든 진입점 필수)
+
+import glob  # noqa: E402
+import json  # noqa: E402
+import re  # noqa: E402
+import subprocess  # noqa: E402
+import traceback  # noqa: E402
+from datetime import datetime  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
