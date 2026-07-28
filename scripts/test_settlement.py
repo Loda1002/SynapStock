@@ -244,13 +244,30 @@ async def test_sell_payout_failure():
                                 live=True, client=FakeClient([False]))
     check("주식 미확정 → failed", c_no.status == "failed", f"status={c_no.status}")
 
-    # 다운스트림: partial 매도는 포지션·예산을 건드리지 않는다
+    # 다운스트림: partial 매도(BUG-05) — '주식이 나갔는가'와 '대금이 들어왔는가'는 다른 사건이다.
+    # 매도의 partial 은 confirmed and not paid, 즉 주식 전송 tx 는 온체인에서 확정됐고
+    # USDC 지급만 실패한 상태다. 주식은 실제로 지갑을 떠났으므로 포지션은 차감해야 한다
+    # (예전에는 남겨 둬서 총자산 카드가 부풀었다 — 유출 KPI 는 정확한데 총자산만 낙관).
+    # 반대로 대금은 못 받았으므로 예산 환입은 여전히 없어야 한다.
     ta.position.apply_buy(qty, Decimal("170"))
     ta.auth.spent_usdc = Decimal("50")
-    ta.on_sale_completed(c_fail, "tAAPL", qty, price, sq.total_usdc)
-    check("partial 매도는 포지션 미차감", ta.position.quantity == qty, str(ta.position.quantity))
+    r_partial = ta.on_sale_completed(c_fail, "tAAPL", qty, price, sq.total_usdc)
+    check("partial 매도는 포지션 차감 (주식은 전송 확정 = 지갑을 떠났다)",
+          ta.position.quantity == Decimal("0"), str(ta.position.quantity))
     check("partial 매도는 예산 미환입", ta.auth.spent_usdc == Decimal("50"),
           str(ta.auth.spent_usdc))
+    check("partial 매도 영수증이 정상 매도와 구분된다",
+          "대금 미확인" in r_partial.note, r_partial.note or "<빈 note>")
+
+    # 대조군: 정상(settled) 매도는 포지션 차감 + 예산 환입, note 는 비어 있다
+    ta.position.apply_buy(qty, Decimal("170"))
+    ta.auth.spent_usdc = Decimal("50")
+    r_ok = ta.on_sale_completed(c_ok, "tAAPL", qty, price, sq.total_usdc)
+    check("[대조군] settled 매도는 포지션 차감", ta.position.quantity == Decimal("0"),
+          str(ta.position.quantity))
+    check("[대조군] settled 매도는 예산 환입", ta.auth.spent_usdc < Decimal("50"),
+          str(ta.auth.spent_usdc))
+    check("[대조군] settled 매도 영수증 note 는 비어 있다", r_ok.note == "", r_ok.note)
 
 
 class _Amt:

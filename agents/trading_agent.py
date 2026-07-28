@@ -584,14 +584,35 @@ class TradingAgent:
     # 3') 매도 완료 반영 — 포지션 차감 + 매도 대금을 예산에 환입
     def on_sale_completed(self, completed: PaymentCompleted, quote_symbol: str,
                           quantity: Decimal, price: Decimal, total_usdc: Decimal) -> Receipt:
-        if completed.status == "settled":
+        # BUG-05: '주식이 나갔는가'와 '대금이 들어왔는가'를 분리한다.
+        # 매도의 partial 은 `confirmed and not paid`(broker_agent) — 주식 전송 tx 는 이미
+        # 온체인에서 확정됐고 USDC 지급만 실패한 상태다. 즉 주식은 지갑을 떠났다.
+        # 예전에는 settled 일 때만 차감해서, 사라진 주식이 포지션에 남아 총자산 카드가
+        # 부풀었다(유출 KPI 는 정확한데 총자산만 낙관적 = 두 숫자가 서로 모순).
+        # 매수 레그의 partial(돈만 나가고 물건이 안 옴 → 포지션 미가산)은 보수적으로 옳지만,
+        # 매도는 부호가 반대라 같은 규칙을 쓰면 과대계상이 된다.
+        # ⚠ 버그 리포트의 제안(`status in ("settled","partial") and confirmed`)은 그대로 쓰면
+        # 안 된다 — 드라이런은 브로드캐스트를 안 해 정상 매도도 `confirmed=False` 라
+        # **정상 매도조차 포지션이 안 빠진다**(회귀 게이트에서 test_dry_sell·test_trend 로 잡혔다).
+        # confirmed 조건은 partial 에만 건다. partial 은 설계상 confirmed=True 이므로
+        # 사실상 방어적 확인이고, 드라이런은 애초에 partial 경로에 오지 않는다.
+        if completed.status == "settled" or (completed.status == "partial" and completed.confirmed):
             self.position.apply_sell(quantity)
-            # 추세추종(올인/올아웃)은 매도 대금 전액을 운용현금으로 환입해 복리 재투자한다.
-            # 조건형/적립형은 기존대로 예산(순투입 한도)까지만 환입한다.
+        if completed.status == "settled":
+            # 대금 환입은 실제로 받았을 때만. 추세추종(올인/올아웃)은 매도 대금 전액을
+            # 운용현금으로 환입해 복리 재투자한다. 조건형/적립형은 기존대로 예산까지만.
             self.auth.credit_sale(total_usdc, allow_surplus=(self.strategy.mode == "trend"))
+        # 영수증에도 partial 을 표시한다 — 예전에는 note 가 빈 문자열이라 아카이브에서
+        # 정상 매도와 구분할 수 없었다(포지션은 차감됐는데 대금은 못 받은 건이다).
+        if not completed.confirmed:
+            note = "dry-run: 미브로드캐스트(로컬 서명만)"
+        elif completed.status == "partial":
+            note = "대금 미확인 — 주식은 전송 확정, USDC 도착 미확인"
+        else:
+            note = ""
         return Receipt(
             order_id=completed.order_id, symbol=quote_symbol, side="sell",
             quantity=quantity, total_usdc=total_usdc,
             tx_signature=completed.tx_signature, confirmed=completed.confirmed,
-            note="" if completed.confirmed else "dry-run: 미브로드캐스트(로컬 서명만)",
+            note=note,
         )
