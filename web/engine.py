@@ -1222,9 +1222,20 @@ class TradingEngine:
                     submitted, required.requirements, quote.quantity,
                     live=live, client=self._client)
 
-            # 라이브 정산 성공이면 온체인 재조회로 실제 배송을 확인한다
+            # 라이브 정산이면 온체인 재조회로 실제 배송을 확인한다
             # (결함 I: 결제는 확정됐는데 주식 전달이 실패해도 settled 로 기록되던 문제).
-            if (completed.status == "settled" and live and self._client is not None
+            #
+            # 진입 조건에 partial 을 포함한다 — 매도 레그(_sell_cycle:1345)와 같은 규칙이다.
+            # 브로커는 '대금은 확정 수령했는데 주식 전달 tx 가 확정되지 않음'이면 스스로
+            # partial 을 돌려주는데(broker_agent.py `elif confirmed and not delivered`),
+            # settled 만 검사하면 **그 건이 검증 블록에 아예 못 들어와** 유출 KPI 와
+            # GUARD_PENDING 에서 통째로 빠졌다. USDC 는 이미 온체인에서 떠난 뒤인데
+            # 첫 화면은 유출 0.00 을 계속 표시한다 = de9e000 으로 닫았던 '유출 KPI 자해'가
+            # 매수 레그에서만 되살아난 모양이었다(CODE-01, BUG-01 수정의 비대칭 잔여).
+            #
+            # 판정은 여기서 하지 않고 check_delivery 에 맡긴다 — 배송 tx 가 늦게 확정된
+            # 경우까지 유출로 찍으면 그것도 거짓이다(오탐).
+            if (completed.status in ("settled", "partial") and live and self._client is not None
                     and self._stock_mint is not None):
                 expected_inc = to_base_units(quote.quantity, CFG.stock_decimals)
 
@@ -1555,6 +1566,18 @@ class TradingEngine:
             "broker_fee": {  # A8: 수수료 합계 = 브로커 수익 (수익모델 증빙)
                 "fee_bps": CFG.broker_fee_bps,
                 "total_fees_usdc": str(self.total_fees),
+            },
+            # 402 Guard KPI — 화면(state.guard)과 같은 값을 파일에도 남긴다.
+            # 예전에는 아카이브에 이 블록이 없어서, 세션이 끝난 뒤 tx 증빙 파일만으로는
+            # '유출 0' 을 사후에 증명할 수 없었다(_record_leak 독스트링의 알려진 한계 5).
+            # 심사·발표에서 화면 스크린샷 대신 파일을 근거로 쓸 수 있어야 한다.
+            "guard": {
+                "attempts": self._guard_checked,
+                "blocked": self.guard_block_count,
+                "blocked_buy": self._guard_blocked_buy,
+                "blocked_sell": self.guard_block_count - self._guard_blocked_buy,
+                "ap2_rejected": self.reject_count,
+                "leak_usdc": str(self.guard_leak_usdc),
             },
             "balances_before": self._snap_before,
             "balances_after": snap_after,

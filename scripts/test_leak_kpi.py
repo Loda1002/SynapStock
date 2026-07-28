@@ -33,6 +33,7 @@ import dataclasses
 import os
 import sys
 from decimal import Decimal
+from typing import Optional
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -99,17 +100,29 @@ class _FakeChain:
     delivered_units 를 0 으로 두면 '대가가 끝내 도착하지 않은' 상황이 된다.
     """
 
-    def __init__(self, *, delivered_units: int = 0, fail_first_read: bool = False):
+    def __init__(self, *, delivered_units: int = 0, fail_first_read: bool = False,
+                 confirm_seq: Optional[list] = None):
         self.base = 1_000_000
         self.delivered_units = delivered_units
         self.fail_first_read = fail_first_read
         self.reads = 0
+        # submit_and_confirm 의 확정 결과 시퀀스(소진 후에는 True).
+        # 매수 레그는 이 함수를 두 번 부른다 — ①구매자 USDC 결제 tx ②브로커 주식 전달 tx
+        # (broker_agent.settle:254·263). [True, False] 를 주면 "대금은 확정 수령했는데
+        # 주식 전달 tx 가 실패" = 브로커가 스스로 partial 을 신고하는 상황이 재현된다.
+        self.confirm_seq = list(confirm_seq or [])
+        self.confirms = 0
 
     async def read(self) -> int:
         self.reads += 1
         if self.fail_first_read and self.reads == 1:
             raise RuntimeError("RPC 잔액 조회 실패(테스트 주입)")
         return self.base + (self.delivered_units if self.reads > 1 else 0)
+
+    def next_confirm(self) -> bool:
+        i = self.confirms
+        self.confirms += 1
+        return self.confirm_seq[i] if i < len(self.confirm_seq) else True
 
 
 _CHAIN: list[_FakeChain] = [_FakeChain()]
@@ -131,9 +144,10 @@ def _install_rpc_stubs() -> dict:
         return Hash.default()
 
     async def _submit(client, tx):
-        # 브로커 관점에서는 '온체인 확정 성공'. 실제 자산 도착 여부는 원장이 따로 말한다
+        # 기본은 '온체인 확정 성공'. 실제 자산 도착 여부는 원장이 따로 말한다
         # (= 정산은 됐다는데 물건이 안 온 상황을 그대로 재현).
-        return x.signature_str(tx), True
+        # confirm_seq 를 주면 개별 tx 의 확정 실패까지 재현할 수 있다.
+        return x.signature_str(tx), _CHAIN[0].next_confirm()
 
     async def _balance(client, owner, mint):
         return await _CHAIN[0].read()
@@ -220,6 +234,63 @@ async def test_buy_delivery_unconfirmed_leaks() -> None:
           str(engine.agents[SYMBOL].position.quantity))
     check("유출 발생 시 세션 정지", bool(engine.bus.paused) and not engine.trading_enabled,
           str(engine.bus.paused))
+
+
+# ---------- 2b) 브로커가 스스로 partial 을 신고한 매수도 계상된다 (CODE-01) ----------
+async def test_buy_broker_partial_leaks() -> None:
+    """매수 레그의 검증 진입 조건이 settled 만 보던 비대칭(CODE-01)의 회귀 테스트.
+
+    브로커는 '대금은 확정 수령했는데 주식 전달 tx 가 미확정'이면 스스로 partial 을 신고한다.
+    예전 조건(`status == "settled"`)에서는 그 건이 check_delivery 블록에 아예 못 들어와
+    유출 KPI 도 GUARD_PENDING 도 없이 조용히 넘어갔다 — USDC 는 이미 온체인에서 떠난 뒤인데
+    첫 화면은 계속 '유출 0.00'. 매도 레그에는 이미 있던 대칭이라 매수만 뚫려 있었다.
+    """
+    _p("\n[2b] 라이브 매수 - 브로커 자기신고 partial(대금 수령·주식 전달 실패) → 유출 가산")
+    engine = await _new_session()
+    # confirm_seq=[True, False] → ①구매자 USDC 결제 확정 ②브로커 주식 전달 tx 미확정
+    chain = _FakeChain(delivered_units=0, confirm_seq=[True, False])
+    _go_live(engine, chain)
+
+    quote = await _buy(engine)
+    check("전제 - 브로커가 전달 tx 를 시도했고 미확정이었다(partial 신고 조건)",
+          chain.confirms >= 2, f"confirms={chain.confirms}")
+    leak = engine.guard_leak_usdc
+    check("★회귀 방지(CODE-01) - 브로커 자기신고 partial 도 유출에 계상된다",
+          leak != 0, str(leak))
+    check("유출이 청구 총액과 정확히 일치", leak == quote.total_usdc,
+          f"leak={leak} / total={quote.total_usdc}")
+    codes = [p.get("code") for p in engine.bus.pending]
+    check("GUARD_PENDING 방출(활동 로그·화면에 남는다)",
+          "GUARD_DELIVERY_UNCONFIRMED" in codes, str(codes))
+    trades = [t for t in engine.trades if t["side"] == "buy"]
+    check("거래가 partial 로 기록", bool(trades) and trades[0]["status"] == "partial",
+          trades[0]["status"] if trades else "없음")
+    check("포지션 미반영", engine.agents[SYMBOL].position.quantity == 0,
+          str(engine.agents[SYMBOL].position.quantity))
+    check("세션 정지", not engine.trading_enabled, str(engine.bus.paused))
+
+
+# ---------- 2c) 브로커 partial 이어도 자산이 실제 도착했으면 유출 아님 (오탐 0) ----------
+async def test_buy_broker_partial_but_delivered_no_leak() -> None:
+    """'브로커가 partial 이면 무조건 유출' 로 고치지 않은 이유의 회귀 테스트.
+
+    전달 tx 가 늦게 확정되면 브로커의 자기신고는 partial 이지만 자산은 실제로 도착해 있다.
+    그 경우까지 유출로 찍으면 KPI 가 반대 방향으로 거짓이 된다 — 판정은 온체인 재조회
+    (check_delivery)가 하고, 진입 조건은 '검사 대상에 넣을지'만 정한다.
+    """
+    _p("\n[2c] 라이브 매수 - 브로커는 partial 인데 자산은 도착 → 유출 0 (판정은 check_delivery)")
+    engine = await _new_session()
+    q = engine._broker.quote(SYMBOL, SPEND, PRICE)
+    chain = _FakeChain(delivered_units=to_base_units(q.quantity, eng.CFG.stock_decimals),
+                       confirm_seq=[True, False])
+    _go_live(engine, chain)
+
+    await _buy(engine)
+    check("전제 - 브로커는 전달 tx 미확정으로 partial 신고", chain.confirms >= 2,
+          f"confirms={chain.confirms}")
+    check("온체인에 자산이 도착했으면 유출 0(오탐 없음)", engine.guard_leak_usdc == 0,
+          str(engine.guard_leak_usdc))
+    check("GUARD_PENDING 이벤트 0건", not engine.bus.pending, str(len(engine.bus.pending)))
 
 
 # ---------- 3) 정상 배송에서는 증가하지 않는다 (오탐 0) ----------
@@ -395,6 +466,8 @@ async def main() -> int:
     try:
         await test_dry_stays_zero()
         await test_buy_delivery_unconfirmed_leaks()
+        await test_buy_broker_partial_leaks()
+        await test_buy_broker_partial_but_delivered_no_leak()
         await test_buy_delivered_no_leak()
         await test_buy_baseline_unread_no_leak()
         await test_sell_payout_unconfirmed_leaks()
