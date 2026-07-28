@@ -312,11 +312,13 @@
     <div class="rule"></div>
     <h1>402 Guard</h1>
     <p class="sub">손을 떼려면, 한도가 있어야 합니다</p>
-    <p class="claim">402 Guard는 AI 에이전트가 <b>서명하기 직전</b>, 이 청구서가 합의한 그 청구서인지 대조합니다. 그래서 사람이 화면을 지켜보지 않아도 됩니다. — <b>감시 없는 자율, 승인 없는 결제.</b></p>
+    <!-- "승인 없는 결제" 는 제품명(승인 게이트)과 정면충돌해 읽힌다 — 랜딩과 같은 한정어를 쓴다 -->
+    <p class="claim">402 Guard는 AI 에이전트가 <b>서명하기 직전</b>, 이 청구서가 합의한 그 청구서인지 대조합니다. 그래서 사람이 화면을 지켜보지 않아도 됩니다. — <b>감시 없는 자율, 건건이 승인하지 않는 결제.</b></p>
     <div class="meta">
       <div><b>트랙</b>Track C · Multi-Agent Commerce</div>
       <div><b>레퍼런스 시나리오</b>토큰화 주식 자동매매</div>
       <div><b>네트워크</b>Solana devnet · localnet</div>
+      <div><b>라이브 데모</b>synapstock-766888967498.asia-northeast3.run.app</div>
       <div><b>제출</b>2026-08</div>
     </div>
     <span class="slide-num mono">01 / 14</span>
@@ -540,7 +542,8 @@
         <div class="box ok">
           <span class="tag">Solana devnet 라이브</span>
           <h3>5거래 전부 확정 · 잔액 교차검증 일치</h3>
-          <p>매수 4건·매도 1건이 실제 트랜잭션으로 확정됐고, USDC 순변화 −4.9가 기대치와 정확히 일치했습니다. 각 거래의 결제·전달 서명과 explorer 링크를 파일로 보관합니다.</p>
+          <p>매수 4건·매도 1건이 실제 트랜잭션으로 확정됐고, <b>구매자 지갑 USDC +4.9 · 브로커 −4.9 · 주식 순변화 0</b>이 기대치와 정확히 일치했습니다. 각 거래의 결제·전달 서명과 explorer 링크를 파일로 보관합니다.</p>
+          <p style="margin-top:2mm; font-size:11.5px; color:var(--ink-3)">⚠ 이 세션의 결제 통화는 <b>구매자 지갑이 민트 권한을 쥔 테스트 토큰</b>입니다(devnet). Circle 공식 USDC 민트로의 재실증은 진행 중이며, 저희가 먼저 밝힙니다.</p>
         </div>
         <div class="box">
           <span class="tag">검증 자동화</span>
@@ -692,6 +695,7 @@
           <ul class="plain" style="margin-top:2mm">
             <li><b>수익률</b> 강한 상승장에서는 매수후보유를 이기지 못합니다(+4.90% 대 +30.19%). 저희는 알파를 팔지 않습니다.</li>
             <li><b>자산</b> devnet에는 토큰화 주식이 존재하지 않아 자체 발행 토큰으로 시연합니다.</li>
+            <li><b>결제 통화</b> devnet 증빙 1건의 'USDC' 는 <b>구매자 지갑이 민트 권한을 쥔 테스트 토큰</b>입니다. explorer 에서 민트 권한 한 줄만 봐도 드러나는 사실이라, 지적당하기 전에 저희가 적습니다. Circle 공식 민트로의 재실증이 다음 과제입니다.</li>
             <li><b>규격</b> 표준 402 응답은 <b>매수 레그만</b>입니다. 매도(환매)는 자산이 반대로 흐르는 구조라 A2A 메시지로 남겨 뒀고, 이 사실을 규격 문서에 미구현으로 명시해 공개합니다.</li>
             <li><b>AI 기여</b> 수익 기여는 중립이며, 낙폭 축소에서만 유의미합니다.</li>
           </ul>
@@ -704,7 +708,7 @@
           <ul class="plain" style="margin-top:2mm">
             <li><b>실물 토큰화 주식</b> 메인넷에는 이미 존재합니다. 민트 상수와 스왑 경로 두 곳을 교체하면 같은 게이트가 실물 위에서 돕니다.</li>
             <li><b>매도 레그 표준화</b> 매수는 이미 표준 402로 왕복합니다. 자산이 반대로 흐르는 환매도 같은 규격 위에 올리는 것이 다음 과제입니다.</li>
-            <li><b>상시 접근</b> Cloud Run 배포로 심사 기간 내내 열려 있는 데모 URL을 제공합니다.</li>
+            <li><b>Circle 공식 USDC 재실증</b> devnet 증빙을 공식 민트로 다시 남기는 것이 가장 먼저입니다. 코드 기본값은 이미 공식 민트이고, 자체 발행 민트를 감지하면 중단하도록 해 뒀습니다.</li>
             <li><b>규제</b> 자산을 대신 보관하지 않는 자기수탁 도구 구조를 유지합니다. 토큰화 주식은 증권으로 취급되며 국내 제도는 2027년 시행 예정입니다.</li>
           </ul>
         </div>
@@ -725,7 +729,7 @@
         <ul class="plain" style="margin-top:2mm">
           <li><b>언어·런타임</b> Python 3.10 / 3.11</li>
           <li><b>AI</b> Google Gemini API (무료 티어) — 판단·브리핑, 실패 시 규칙 대체</li>
-          <li><b>블록체인</b> Solana devnet · localnet, USDC(SPL), 자체 발행 토큰화 주식</li>
+          <li><b>블록체인</b> Solana devnet · localnet, USDC(SPL) — <b>devnet 증빙 1건은 자체 발행 테스트 민트</b>, 자체 발행 토큰화 주식</li>
           <li><b>프로토콜</b> 자체 x402 정산 + AP2 위임 + A2A 협의 + <b>402 Guard</b></li>
           <li><b>웹</b> FastAPI + SSE, 외부 라이브러리 없는 정적 대시보드</li>
           <li><b>인프라</b> Google Cloud Run, Firestore, Secret Manager</li>
@@ -735,7 +739,7 @@
         <span class="tag">재현 절차</span>
         <h3>세 줄이면 확인됩니다</h3>
         <ul class="plain" style="margin-top:2mm">
-          <li><b>표준 402 응답</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">curl -i http://&lt;url&gt;/broker/orders</span></li>
+          <li><b>표준 402 응답</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">curl -i https://synapstock-766888967498.asia-northeast3.run.app/broker/orders</span></li>
           <li><b>공격·차단 매트릭스</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.red_team --report</span></li>
           <li><b>거부 4종 데모</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.demo_rejections</span></li>
           <li><b>온체인 증빙</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">artifacts/tx/*.json → explorer ?cluster=devnet</span></li>
@@ -743,7 +747,9 @@
         <p style="margin-top:3mm">모든 결제 실행은 트랜잭션 해시와 전후 잔액을 파일로 남깁니다. 화면의 숫자와 체인의 숫자가 일치하는지 직접 대조하실 수 있습니다.</p>
       </div>
     </div>
-    <div class="footnote" style="margin-top:auto"><b>402 Guard</b> — x402 규격은 파는 쪽을 보호합니다. 저희는 사는 쪽을 보호합니다.</div>
+    <!-- "x402 는 파는 쪽을 보호한다" 는 금지 문장이다 — 스펙에 maxAmountRequired 와 구매자 로컬
+         서명이 이미 있어서 한 줄로 반박된다(competition_research_reconcile.md). 정확한 대비로 바꾼다. -->
+    <div class="footnote" style="margin-top:auto"><b>402 Guard</b> — x402 는 구매자의 <b>키</b>를 지킵니다. 무엇에 서명하는지는 <b>저희가</b> 지킵니다.</div>
     <span class="slide-brand mono">402 GUARD</span>
     <span class="slide-num mono">14 / 14</span>
   </section></div>
