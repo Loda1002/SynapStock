@@ -15,7 +15,10 @@
   // 왜: scripts/*.py 는 sys.path.insert(0, ROOT) 로 루트를 추가한 뒤 config·payments·web 을
   // import 한다. Pylance 는 그 런타임 조작을 따라가지 못해서, 실행은 되는데 편집기에서만
   // "config 를 찾을 수 없음" 으로 보인다.
-  "python.analysis.extraPaths": ["${workspaceFolder}"],
+  //
+  // 값은 반드시 "." 다 — extraPaths 는 워크스페이스 루트 기준 상대경로를 받고
+  // ${workspaceFolder} 치환은 이 설정에서 동작하지 않는다(그렇게 쓰면 조용히 무시된다).
+  "python.analysis.extraPaths": ["."],
 
   // 통합 터미널을 열면 .venv 를 자동 활성화한다 — `python -m scripts.test_*` 를 그냥 칠 수 있게.
   "python.terminal.activateEnvironment": true
