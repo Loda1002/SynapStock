@@ -9,8 +9,10 @@ from typing import Any, Dict, Tuple
 
 from config import CFG
 
-PROMPT = """너는 자율 주식매매 에이전트 서비스의 리포트 작성자다. 아래 세션 데이터를 근거로
-사용자에게 보내는 한국어 데일리 브리핑을 작성하라. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
+PROMPT = """너는 '402 Guard' 의 세션 리포트 작성자다. 이 서비스는 AI 에이전트가 사람이 정한
+한도 안에서 스스로 주식을 사고팔고 USDC 로 정산하되, 결제에 서명하기 직전에 청구서를 대조해
+승인하는 지출 승인 게이트다. 아래 세션 데이터를 근거로 사용자에게 보내는 한국어 데일리
+브리핑을 작성하라. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
 
 [세션 데이터(JSON)]
 {stats}
@@ -45,10 +47,20 @@ def _fallback_text(stats: Dict[str, Any]) -> str:
     return " ".join(lines)
 
 
-def generate_briefing_text(stats: Dict[str, Any]) -> Tuple[str, str]:
-    """리포트 생성 → (본문, 출처 'gemini'/'template')."""
+def generate_briefing_text(stats: Dict[str, Any]) -> Tuple[str, str, str]:
+    """리포트 생성 → (본문, 출처 'gemini'/'template', 실패 상세).
+
+    실패 상세는 **본문에 섞지 않고 따로 돌려준다.** 예전에는 예외 문자열 80자를 본문 끝에
+    이어 붙였는데, 그 본문이 그대로 화면(브리핑 카드)·Firestore·아카이브에 남았다.
+    실측(배포본 `/api/history/briefings`)에서 사용자가 읽는 문장이 이렇게 끝났다:
+      "... (Gemini 호출 실패 ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429,
+       'message': 'You exceeded your cu → 템플릿 요약)"
+    쿼터가 소진된 상태로 시연·촬영하면 심사위원이 이 raw 문자열을 읽게 된다.
+    그래서 본문에는 사람이 읽는 한 문장만 남기고, 원문은 세 번째 값으로 올려보내
+    화면이 `title` 툴팁 등 눈에 띄지 않는 자리에 보관하게 한다(진단 정보를 버리지 않는다).
+    """
     if not CFG.gemini_api_key:
-        return _fallback_text(stats), "template"
+        return _fallback_text(stats), "template", ""
     try:
         from google import genai
         from google.genai import types
@@ -64,9 +76,10 @@ def generate_briefing_text(stats: Dict[str, Any]) -> Tuple[str, str]:
         )
         text = (resp.text or "").strip()
         if text:
-            return text, "gemini"
-        return _fallback_text(stats), "template"
+            return text, "gemini", ""
+        return _fallback_text(stats), "template", "빈 응답"
     except Exception as e:
         detail = str(e).replace("\n", " ")[:80]
         return (_fallback_text(stats)
-                + f" (Gemini 호출 실패 {type(e).__name__}: {detail} → 템플릿 요약)"), "template"
+                + " (AI 요약을 만들지 못해 자동 계산 요약으로 대체했습니다.)"), \
+            "template", f"{type(e).__name__}: {detail}"

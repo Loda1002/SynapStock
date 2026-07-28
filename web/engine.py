@@ -324,7 +324,8 @@ class TradingEngine:
             b = await self.store.load_last_briefing()
             if b:
                 self.last_briefing = {
-                    k: b[k] for k in ("ts", "trigger", "source", "text", "archive")
+                    k: b[k] for k in ("ts", "trigger", "source", "text", "archive",
+                                      "fallback_detail")
                     if k in b}
                 self.last_briefing["restored"] = True  # 재시작 복원본 표시
             # 콘솔 print 는 cp949(한국어 Windows)에서도 안전하게 ASCII 구두점만 쓴다
@@ -975,8 +976,13 @@ class TradingEngine:
             raise EngineError("브리핑할 데이터가 없습니다 — 먼저 세션을 실행하세요.")
         stats = self._briefing_stats()
         # Gemini 호출은 blocking — 이벤트 루프를 막지 않게 워커 스레드에서
-        text, source = await asyncio.to_thread(generate_briefing_text, stats)
+        text, source, fallback_detail = await asyncio.to_thread(generate_briefing_text, stats)
         rec: Dict[str, Any] = {"ts": _now(), "trigger": trigger, "source": source, "text": text}
+        # 폴백 사유는 본문에 섞지 않고 별도 필드로 올린다(web/briefing.py 독스트링 참조).
+        # 화면은 이 값을 title 툴팁처럼 눈에 띄지 않는 자리에 두면 된다 — 진단은 남기되
+        # 심사위원이 읽는 문장에 raw 예외 문자열이 들어가지 않게.
+        if fallback_detail:
+            rec["fallback_detail"] = fallback_detail
         try:
             rec["archive"] = self._save_briefing(rec, stats)
         except Exception as e:
