@@ -209,7 +209,14 @@ python -m scripts.test_http402                    # 53건 검증
 
 엔진의 매수 레그를 이 HTTP 경로로 보내려면 `.env` 에 `BROKER_HTTP_URL=http://127.0.0.1:8402`
 를 주면 된다(빈값이면 기존 인프로세스 A2A). 배포본은 컨테이너당 포트가 하나뿐이라 같은
-라우터가 메인 앱에도 마운트돼 있어 `curl -i https://<배포URL>/broker/orders` 로도 확인된다.
+라우터가 메인 앱에도 마운트돼 있어 라이브 URL 에서도 그대로 확인된다:
+
+```bash
+curl -i -X POST https://synapstock-766888967498.asia-northeast3.run.app/broker/orders \
+     -H "Content-Type: application/json" \
+     -d '{"symbol":"AAPL","spend_usdc":"10","price_usdc":"200"}'
+# → HTTP/2 402  ·  {"x402Version":1,"error":"payment required","accepts":[…]}
+```
 
 > **정직한 범위**: HTTP 402 실왕복은 **매수(자산 구매) 레그**다. 매도(환매)는 브로커가
 > 구매자에게 돈을 보내는 방향이라 402 challenge 모델과 맞지 않아 A2A 인프로세스로 남긴다.
