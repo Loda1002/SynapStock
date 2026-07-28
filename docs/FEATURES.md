@@ -37,7 +37,7 @@
 | **HTTP 402 레그 (G5)** | 브로커를 진짜 HTTP 자원 서버로 노출 — `POST /broker/orders` 가 결제 없으면 **402 Payment Required + accepts[]**, `X-PAYMENT` 헤더가 붙으면 200 + `X-PAYMENT-RESPONSE`. `GET /.well-known/x402` 디스커버리(미구현 항목 선공개). 1회용 청구서로 리플레이 차단, 온체인 정산 기본 잠김. 매수 레그 전용(매도는 방향이 반대라 A2A 인프로세스) | `web/broker_service.py`, `payments/x402_http.py` | ✅ test_http402 53건 · 실제 TCP 데모 `artifacts/x402_http/` |
 | **매수·매도 풀사이클** | USDC⇄주식토큰 양방향 온체인 정산, 전후 잔액 RPC 교차검증 | `agents/broker_agent.py` | ✅ 순변화 PASS |
 | **거부 4종 데모** | 건별한도 초과·mandate 위변조·금액 부족·미허용 종목 | `scripts/demo_rejections.py` | ✅ |
-| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ 7건(전부 localnet) |
+| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ **8건 — localnet 7 · devnet 1** (`20260724_1643_solana-devnet_live_buy.json` = 온체인 tx 10건). 별도로 HTTP 402 실 TCP 왕복 로그 1건 `artifacts/x402_http/` |
 
 ### 1-2. AI 판단 (Gemini)
 
@@ -55,7 +55,7 @@
 | 기능 | 설명 | 위치 | 상태 |
 |---|---|---|---|
 | **실시간 대시보드** | SSE 스트림, 새로고침 시 Last-Event-ID로 복원 | `web/server.py`, `web/events.py` | ✅ |
-| **카드 모듈 11개** | price·session·position·budget·pnl·valuation·mandate·decisions·log·briefing·trades. 제목 드래그 재배치 + localStorage + 배치 초기화 | `web/static/` | ✅ 배치는 `DEFAULT_LAYOUT` 배열 |
+| **카드 모듈 13개** | session·symbols·pnl·valuation·position·**ai**·decisions·log·price·trades·budget·mandate·briefing. 제목 드래그 재배치 + localStorage + 배치 초기화 | `web/static/` | ✅ 배치는 `DEFAULT_LAYOUT` 배열(`LAYOUT_KEY` _v7). 402 Guard KPI 는 카드가 아니라 떠 있는 패널(`.guard-dock`) |
 | **캔들차트** | SVG 직접 렌더(외부 CDN 0), 양봉·음봉·MA선·현재가선·범례 | `app.js` | ✅ |
 | **긴급정지/재개** | 신규 판단·결제 즉시 중단(진행 정산 1건은 마무리), 정지 주체 기록 | A2 | ✅ 세션 경계 처리 |
 | **한도 설정(재서명)** | 예산/건별 한도 변경 → 새 mandate 서명 → 적용, 변경 이력 로그 | A3 | ✅ |
@@ -111,20 +111,22 @@
 
 ---
 
-## 3. 앞으로 바뀔 것 (402 Guard 재포지셔닝, 미구현)
+## 3. 402 Guard 재포지셔닝 — 계획 대비 진행 (G6 외 전부 완료)
 
 > 상세·공수·순서는 [`docs/differentiation.md`](differentiation.md) §2, [`docs/handoff.md`](handoff.md) §5.
+> **'왜' 열은 착수 시점(2026-07-24)에 관측된 결함이고, '상태' 열이 현행이다.**
+> G0~G5 는 전부 닫혔다 — 남은 것은 G6(선택 항목)뿐이다.
 
-| # | 변경 | 왜 | 현재 결함 |
+| # | 변경 | 왜 (2026-07-24 당시) | 상태 |
 |---|---|---|---|
 | **G0** ✅ | 사용자 키 분리(`secrets/user.json`) — **완료 (커밋 329885f, 2026-07-24)** | 에이전트가 자기 허가서를 자기 키로 서명하던 문제 해결 — 위임 서사가 코드에서 사실이 됨 | 해결됨 (검증: 드라이런·엔진 스모크·테스트 4종) |
 | **G1** ✅ | `payments/guard.py` — check_demand 하드 검사 8종 + check_delivery 온체인 재조회 (커밋 89cde31) | 결함 B·C 를 이 계층에서 닫음 | 해결 (단위 13종) |
 | **G2** ✅ | 결제 경로 결선 + `allowed_asset` 살리기 + release/settle 한도 원복 (커밋 9701d90) | authorize 앞 guard, 실패 시 예약 원복(H), partial 배송 처리(I) | 해결 (스모크 예약회계 일치) |
-| **G3** ✅ | `scripts/red_team.py --report` — 공격 3종 + 매트릭스 + 오탐 0 (커밋 7e2f3b8) | 실측 시도18·차단4·유출0.00·오탐0 | 해결 |
+| **G3** ✅ | `scripts/red_team.py --report` — 공격 매트릭스 + 오탐 0 (커밋 7e2f3b8) | **2026-07-28 실행값: 공격 7 · 구매자 서명 전 차단 5 · 판매자측 1 · 사후 탐지 1 · 서명 전 유출 0.00 · 정상 14건 오탐 0 · 가드 없을 때 551.96** (`rc=0`) | 해결 |
 | **G4** ✅ | Memo 바인딩(AT1) + `exact` 정합(`!=`) + 서명 dedup + expires_at (커밋 9523d19) | 대사 키·리플레이·초과지불 방어(D·E) | 해결 (localnet 풀사이클 PASS) |
-| G5 | 브로커 HTTP 402 분리(매수 경로) | HTTP 402가 코드에 0줄 | `engine.py:750` 인프로세스 |
-| G6 | pay.sh/유료 데이터 402 엔드포인트 | 심사 3축 가점(필수 아님 — 공식 기준상 병렬 예시) | — |
-| — | devnet 실증 + explorer 증빙 | 증빙 7건 전부 localhost | `artifacts/tx/` |
+| **G5** ✅ | 브로커 HTTP 402 분리(매수 경로) — **완료 (커밋 70bed10, 2026-07-26)** | 결함 F(HTTP 402 가 코드에 0줄, 브로커가 같은 프로세스의 객체) | 해결 — `web/broker_service.py` · `payments/x402_http.py` · test_http402 53건 · 실 TCP 왕복 `artifacts/x402_http/`. **배포 URL 에서 `curl -i .../broker/orders` → 402** |
+| G6 | pay.sh/유료 데이터 402 엔드포인트 | 심사 3축 가점(필수 아님 — 공식 기준상 병렬 예시) | 미착수 (여유 시) |
+| **—** ✅ | devnet 실증 + explorer 증빙 — **완료 (2026-07-24)** | 증빙이 전부 localhost 였음 | 해결 — devnet 온체인 tx 10건(`artifacts/tx/20260724_1643_solana-devnet_live_buy.json`, err=null·교차검증 일치). **⚠ 이 1건의 결제 통화는 구매자 지갑이 민트 권한을 쥔 테스트 토큰이다 — Circle 공식 민트 재실증이 잔여 과제** |
 
 ---
 
@@ -145,7 +147,7 @@
 
 | 축 | 공식 문구 | 우리 증거 | 강도 |
 |---|---|---|---|
-| ① 혁신성·UX | 직관적·새로운 UX, 기존 문제 해결 | 402 Guard 재포지셔닝, 공격 콘솔, 첫 화면 KPI(수익률 아님) | 재포지셔닝으로 상승 |
+| ① 혁신성·UX | 직관적·새로운 UX, 기존 문제 해결 | 402 Guard 재포지셔닝, 공격 콘솔, 첫 화면 KPI(수익률 아님). 2026-07-28 보강: 소개서에 **경쟁 지도 1장**(AgentFabric·Circle Agent Wallets·Kyvern, "우리가 확인한 범위에서" 한정) + 수익모델 3단 단가(전부 '가정' 명시) | **중** — 2026-07-27 부서 판정. 사유가 "상업성 정량 근거 0건" 하나로 특정됐고 그 부분은 채웠다. 재평가는 8/2 judge-dept 재실행 |
 | ② AI 활용도 | Gemini/Google Cloud AI 스택(에이전트 프레임워크 포함) | Gemini 실호출 3지점(판단·**청구서 의미 대조**·브리핑). AI 재량은 두 레이어 모두 **차단만** 가능. 481봉 대표본 실측 + 규칙 게이트 발동 로그 2건 | **강**(2026-07-27 심사 부서) |
 | ③ 기술·인프라 연동 | USDC·Solana Pay·pay.sh 등, AP2·A2A·x402 등 | 자체 x402 + AP2 + A2A(**병렬 예시라 정합**). devnet tx 를 공용 RPC 로 재조회해 Memo·금액 일치 확인. 라이브 URL 이 실제 402+accepts[] 응답 | **강** — 단 증빙의 결제 통화가 테스트 민트(Circle 공식 민트 재실증 필요) |
-| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx 10건**(`artifacts/tx/20260724_1643_*`, err=null·교차검증 일치) · 테스트 20종 통과 | **강** — 단 devnet 증빙 1건뿐이고 배포 URL 발생 온체인 tx 0건 |
+| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx 10건**(`artifacts/tx/20260724_1643_*`, err=null·교차검증 일치) · **테스트 21종 통과** · red_team `rc=0` | **강** — 단 devnet 증빙 1건뿐이고 배포 URL 발생 온체인 tx 0건 |
