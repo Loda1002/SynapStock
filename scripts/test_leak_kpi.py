@@ -43,6 +43,9 @@ from solders.hash import Hash  # noqa: E402
 from agents.trading_agent import Decision  # noqa: E402
 from config import CFG as REAL_CFG, to_base_units  # noqa: E402
 from payments import x402_solana as x  # noqa: E402
+from payments.invoice_semantics import (  # noqa: E402
+    GUARD_LLM_UNVERIFIED, SemanticStats, SemanticVerdict,
+)
 from web import engine as eng  # noqa: E402
 from web import events as ev  # noqa: E402
 from web.engine import TradingEngine  # noqa: E402
@@ -460,6 +463,47 @@ async def test_pending_event_carries_leak_field() -> None:
           f"{ev_base.get('leak_usdc')} / {bquote.total_usdc}")
 
 
+# ---------- 10) '검사 불가' 보류는 공격 차단과 같은 칸에 합산되지 않는다 (CODE-03) ----------
+async def test_unverified_separated_from_blocked() -> None:
+    """첫 화면 '가드 차단' 이 두 종류의 사건을 한 칸에 더하던 문제의 회귀 테스트.
+
+    Gemini 쿼터가 소진되면 의미 대조가 GUARD_LLM_UNVERIFIED 로 매수를 보류하는데, 그것이
+    guard_block_count 에 그대로 더해져 악성 청구서를 판정으로 막은 건수와 구별되지 않았다.
+    계층을 합치지 않는 것이 이 제품의 미덕인데(red_team 은 blocked_by_policy 로 분리한다)
+    대표 지표가 그걸 어기고 있었다. 총계는 그대로 두고 부분집합으로 방출한다.
+    """
+    _p("\n[10] 의미 대조 '검사 불가'(쿼터 소진) 보류 - 판정 차단과 분리 계상")
+
+    class _AlwaysUnverified:
+        """쿼터 소진·응답 실패로 판정을 못 내리는 상태를 고정 재현한다(네트워크 0)."""
+
+        def __init__(self) -> None:
+            self.stats = SemanticStats()
+
+        def check(self, **kw):
+            return SemanticVerdict(GUARD_LLM_UNVERIFIED, False, "unverified",
+                                   "테스트 주입: 판정자 응답 실패", kw.get("description", ""))
+
+    engine = await _new_session()
+    engine._guard.semantic = _AlwaysUnverified()
+    await _buy(engine)
+
+    g = engine.state_snapshot()["guard"]
+    check("매수가 보류됐다(blocked 1)", g["blocked"] == 1, str(g["blocked"]))
+    check("★그 1건이 '검사 불가'로 분리 계상", g["blocked_unverified"] == 1,
+          str(g["blocked_unverified"]))
+    check("결제가 실제로 나가지 않았다(체결 0건)", not engine.trades, str(len(engine.trades)))
+
+    # 대조군 — 판정으로 막은 차단(수취인 위반)은 '검사 불가'에 섞이지 않는다
+    engine2 = await _new_session()
+    engine2._guard.payees = {"NoBodyKnowsThisPubkey11111111111111111111111"}
+    await _buy(engine2)
+    g2 = engine2.state_snapshot()["guard"]
+    check("대조군 - 수취인 위반도 blocked 1", g2["blocked"] == 1, str(g2["blocked"]))
+    check("★대조군 - 검사 불가는 0 (판정 차단이 섞이지 않는다)",
+          g2["blocked_unverified"] == 0, str(g2["blocked_unverified"]))
+
+
 async def main() -> int:
     eng.CFG = dataclasses.replace(REAL_CFG, stock_mint=STOCK_MINT)
     orig = _install_rpc_stubs()
@@ -475,6 +519,7 @@ async def main() -> int:
         await test_sell_paid_no_leak()
         await test_accumulates_snapshot_and_reset()
         await test_pending_event_carries_leak_field()
+        await test_unverified_separated_from_blocked()
     finally:
         _restore_rpc(orig)
         eng.CFG = REAL_CFG

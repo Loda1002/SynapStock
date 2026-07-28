@@ -29,7 +29,7 @@ from market.price_feed import Bar, IntradayReplayFeed, MockPriceFeed, PriceFeed,
 from payments import x402_solana as x
 from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer, MandateError
 from payments.guard import Guard, GuardError
-from payments.invoice_semantics import InvoiceSemanticChecker
+from payments.invoice_semantics import GUARD_LLM_UNVERIFIED, InvoiceSemanticChecker
 from payments.x402_http import optional_client
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy, Decision
@@ -108,6 +108,7 @@ class TradingEngine:
         self.guard_block_count = 0                  # 402 Guard check_demand 차단 횟수 (첫 화면 KPI)
         self._guard_checked = 0                     # 가드를 태운 청구서 수 (KPI 분모 — 매수·매도 양 레그)
         self._guard_blocked_buy = 0                 # 그중 매수 레그 차단 (레그별 분해)
+        self.guard_unverified_count = 0             # 그중 '검사 불가'(쿼터·응답 실패) 보류 — 판정 차단과 구별
         self.guard_leak_usdc = Decimal(0)           # 가드 통과 후 유출된 USDC (정상 0.00)
         # 판단 출처·행동 누적 카운터 (축② AI 활용 증빙). self.decisions 는 메모리 상한(500)으로
         # 앞부분이 잘리므로, 세션 전체 집계는 반드시 이 카운터를 쓴다.
@@ -622,6 +623,7 @@ class TradingEngine:
         self.guard_block_count = 0
         self._guard_checked = 0
         self._guard_blocked_buy = 0
+        self.guard_unverified_count = 0
         self.guard_leak_usdc = Decimal(0)
         self.source_counts = {}
         self.action_counts = {}
@@ -1171,8 +1173,7 @@ class TradingEngine:
                 required, blockhash, quote, max_spend_usdc=decision.spend_usdc,
                 expected_symbol=symbol)   # 엔진이 '지금 주문한' 종목 — 청구서 종목 바꿔치기 차단
         except GuardError as e:
-            self.guard_block_count += 1
-            self._guard_blocked_buy += 1
+            self._count_guard_block(e.result.code, buy=True)
             self._emit_semantic("buy", required.order_id, symbol)
             self.bus.emit(ev.GUARD_BLOCKED, {
                 "side": "buy", "order_id": required.order_id, **e.result.as_event(),
@@ -1315,7 +1316,7 @@ class TradingEngine:
                 expected_symbol=symbol,   # 매수 레그와 같은 종목 동일성 검사(대칭)
                 quote=quote)              # 의미 대조 입력(매도는 검사 불가 시 진행)
         except GuardError as e:
-            self.guard_block_count += 1
+            self._count_guard_block(e.result.code, buy=False)
             self._emit_semantic("sell", required.order_id, symbol)
             self.bus.emit(ev.GUARD_BLOCKED, {
                 "side": "sell", "order_id": required.order_id, **e.result.as_event(),
@@ -1394,6 +1395,24 @@ class TradingEngine:
         # 대금 미확인(partial)이면 세션을 정지한다 — 반복 매도로 손실이 누적되지 않게(매수측 미러)
         if completed.status == "partial" and self.trading_enabled:
             self.pause(actor="guard")
+
+    def _count_guard_block(self, code: str, *, buy: bool) -> None:
+        """가드 차단 1건을 첫 화면 KPI 에 계상한다 (매수·매도 공통).
+
+        '검사 불가'(GUARD_LLM_UNVERIFIED)를 그 안의 부분집합으로 따로 센다. 결제를 막은
+        것은 맞지만 **악성 청구서를 판정으로 막은 것과는 전혀 다른 사건**이다 — Gemini
+        쿼터가 소진되거나 응답이 실패해서 의미 대조를 못 했고, 그래서 매수를 보류한 것이다
+        (설계상 LLM 은 차단만 가능하고 통과 권한이 없다 → invoice_semantics 참조).
+        이 제품은 계층을 합치지 않는 것이 미덕인데(red_team 은 blocked_by_policy 로 이미
+        분리해 표기한다) 대표 지표가 둘을 같은 칸에 더하면 그 미덕을 스스로 어긴다.
+
+        총계(blocked)는 그대로 두고 부분집합으로만 방출한다 — KPI 칸 수를 늘리지 않기 위해서다.
+        """
+        self.guard_block_count += 1
+        if buy:
+            self._guard_blocked_buy += 1
+        if code == GUARD_LLM_UNVERIFIED:
+            self.guard_unverified_count += 1
 
     def _record_leak(self, amount: Decimal) -> None:
         """서명 후 온체인으로 나갔는데 대가 도착을 확인하지 못한 금액을 KPI 에 가산한다.
@@ -1576,6 +1595,7 @@ class TradingEngine:
                 "blocked": self.guard_block_count,
                 "blocked_buy": self._guard_blocked_buy,
                 "blocked_sell": self.guard_block_count - self._guard_blocked_buy,
+                "blocked_unverified": self.guard_unverified_count,
                 "ap2_rejected": self.reject_count,
                 "leak_usdc": str(self.guard_leak_usdc),
             },
@@ -1819,6 +1839,9 @@ class TradingEngine:
                 "blocked": self.guard_block_count,
                 "blocked_buy": self._guard_blocked_buy,     # 레그별 분해 — 대칭이 숫자로 보이게
                 "blocked_sell": self.guard_block_count - self._guard_blocked_buy,
+                # blocked 의 부분집합: 판정으로 막은 게 아니라 '검사를 못 해서' 보류한 건수.
+                # 악성 청구서 차단과 같은 칸으로 합쳐 보이면 대표 지표가 정직하지 않다.
+                "blocked_unverified": self.guard_unverified_count,
                 "ap2_rejected": self.reject_count,
                 "leak_usdc": str(self.guard_leak_usdc),
             },

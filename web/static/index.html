@@ -68,7 +68,7 @@
      데이터 출처: GET /api/state 의 state.guard. -->
 <div class="guard-dock" data-guard-dock>
   <section class="guard-panel" id="guard-panel" data-guard-panel aria-live="polite">
-    <h2>402 Guard <span class="sub">에이전트 지출 승인 게이트 — 사람이 화면을 지켜보지 않아도 되도록, 서명 직전에 대조한다</span></h2>
+    <h2>402 Guard <span class="sub">에이전트 지출 승인 게이트 — 사람이 화면을 지켜보지 않아도 되도록, 서명 직전에 대조한다. 숫자는 모두 이번 세션 기준.</span></h2>
     <div class="kpi-row">
       <div class="kpi">
         <p class="kpi-num"><span data-guard-attempts>0</span></p>
@@ -76,8 +76,10 @@
       </div>
       <div class="kpi">
         <p class="kpi-num"><span data-guard-blocked>0</span></p>
-        <!-- 레그별 분해 — 매수/매도 양 레그 대칭이 이 제품의 차별점이라 지표에서도 보여준다 -->
-        <p class="sub">가드 차단 (청구서 검증) <span data-guard-legs></span></p>
+        <!-- 레그별 분해 — 매수/매도 양 레그 대칭이 이 제품의 차별점이라 지표에서도 보여준다.
+             '검사 불가'는 악성 청구서를 판정으로 막은 것이 아니라 의미 대조를 못 해서
+             보류한 건수다(Gemini 쿼터 소진·응답 실패). 두 사건을 같은 칸에 합치지 않는다. -->
+        <p class="sub">가드 차단 (청구서 검증) <span data-guard-legs></span><span data-guard-unverified></span></p>
       </div>
       <div class="kpi">
         <p class="kpi-num"><span data-guard-ap2>0</span></p>

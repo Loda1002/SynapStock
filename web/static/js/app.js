@@ -17,6 +17,7 @@
     guardAp2: $("[data-guard-ap2]"),
     guardLeak: $("[data-guard-leak]"),
     guardLegs: $("[data-guard-legs]"),
+    guardUnverified: $("[data-guard-unverified]"),
     aiBrain: $("[data-ai-brain]"),
     aiShare: $("[data-ai-share]"),
     aiGated: $("[data-ai-gated]"),
@@ -395,6 +396,14 @@
       if (el.guardLegs) {
         const b = s.guard.blocked_buy, sl = s.guard.blocked_sell;
         el.guardLegs.textContent = (b || sl) ? `· 매수 ${b} / 매도 ${sl}` : "";
+      }
+      // '검사 불가'는 blocked 의 부분집합이다 — 악성 청구서를 판정으로 막은 것이 아니라
+      // 의미 대조를 못 해서(Gemini 쿼터 소진·응답 실패) 매수를 보류한 건수. 0 이면 감춘다.
+      if (el.guardUnverified) {
+        const u = num(s.guard.blocked_unverified);
+        el.guardUnverified.textContent = u > 0 ? ` · 그중 검사 불가 ${u}` : "";
+        el.guardUnverified.title = u > 0
+          ? "의미 대조를 수행하지 못해 보류한 건수입니다(판정에 의한 차단이 아닙니다)." : "";
       }
       el.guardAp2.textContent = s.guard.ap2_rejected;
       const leak = num(s.guard.leak_usdc);
