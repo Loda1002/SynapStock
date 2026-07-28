@@ -42,6 +42,8 @@
         ✅ 연결됨 — 이 지갑이 이번 세션의 <strong>위임자</strong>로 기록됩니다.
       </p>
       <p class="big"><code data-connect-address>—</code></p>
+      <!-- 온체인 잔액 — 연결된 그 지갑을 체인에서 직접 읽는다(wallet.js mountBalance) -->
+      <p class="sub" data-wallet-balance hidden></p>
       <a class="btn auth-submit" href="/app">대시보드로 이동 →</a>
       <button class="btn" type="button" data-disconnect-btn>연결 해제</button>
     </div>
@@ -65,11 +67,15 @@
   var addr = document.querySelector("[data-connect-address]");
   var noProvider = document.querySelector("[data-no-provider]");
 
+  // 온체인 잔액 표시 — 이 페이지에는 헤더가 없어 mountHeader 가 배선되지 않으므로 직접 건다.
+  var refreshBalance = W.mountBalance(document);
+
   function show(pubkey) {
     var on = !!pubkey;
     idle.hidden = on;
     done.hidden = !on;
     if (on) addr.textContent = pubkey;
+    refreshBalance();
   }
 
   function say(text, bad) {

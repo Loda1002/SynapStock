@@ -139,6 +139,43 @@
     return await res.json();
   }
 
+  // ---- 연결된 지갑의 온체인 잔액 ----
+  // 서버가 세션 쿠키의 지갑만 조회한다(주소를 보내지 않는다). 서버측 20초 캐시가 있어
+  // 폴링해도 공용 devnet RPC 를 두드리지 않는다.
+  async function balance() {
+    var res = await fetch("/api/wallet/balance", { credentials: "same-origin" });
+    if (!res.ok) return { connected: false };
+    return await res.json();
+  }
+
+  // [data-wallet-balance] 요소가 있으면 잔액을 채운다. 이 함수는 **표시에만** 관여한다 —
+  // 조회가 실패하거나 미연결이면 요소를 감춘다(헤더에 빈 칸·에러 문구를 남기지 않는다).
+  // 잔액은 부가 정보라, 여기서 나는 어떤 오류도 연결 흐름을 막지 않아야 한다.
+  function mountBalance(root) {
+    var el = (root || document).querySelector("[data-wallet-balance]");
+    if (!el) return function () {};
+
+    function hide() { el.hidden = true; el.classList.add("hidden"); el.textContent = ""; }
+    function show(text, title) {
+      el.textContent = text;
+      el.title = title || "";
+      el.hidden = false;
+      el.classList.remove("hidden");
+    }
+
+    var refresh = function () {
+      return balance().then(function (b) {
+        if (!b.connected || b.error || !b.sol) { hide(); return b; }
+        // SOL 은 가스, USDC 는 결제 자산 — 둘 다 보여야 "왜 결제가 안 되지" 를 바로 안다.
+        show("◎ " + b.sol + " SOL · " + b.usdc + " USDC",
+             "네트워크 " + (b.network || "") + " · 결제 자산 민트 " + (b.usdc_mint || ""));
+        return b;
+      }).catch(function () { hide(); });
+    };
+    refresh();
+    return refresh;
+  }
+
   async function logout() {
     await postJSON("/api/auth/logout", {});
     var provider = getProvider();
@@ -160,6 +197,8 @@
     if (!btn) return;
 
     var connected = false;
+    var refreshBalance = mountBalance(document);
+    var balanceTimer = null;
 
     function render(pubkey) {
       connected = !!pubkey;
@@ -169,6 +208,10 @@
         status.textContent = connected ? shortKey(pubkey) : "미연결";
         status.title = connected ? pubkey : "지갑을 연결하면 이 세션의 위임자로 기록됩니다";
       }
+      refreshBalance();
+      // 연결돼 있는 동안만 60초마다 갱신한다(서버가 20초 캐시라 실제 RPC 는 그보다 드물다).
+      if (balanceTimer) { clearInterval(balanceTimer); balanceTimer = null; }
+      if (connected) balanceTimer = setInterval(refreshBalance, 60000);
     }
 
     btn.addEventListener("click", async function () {
@@ -198,6 +241,7 @@
 
   global.Wallet402 = {
     getProvider: getProvider, connect: connect, me: me, logout: logout,
+    balance: balance, mountBalance: mountBalance,
     shortKey: shortKey, isUserRejection: isUserRejection, mountHeader: mountHeader,
     PHANTOM_URL: PHANTOM_URL,
   };

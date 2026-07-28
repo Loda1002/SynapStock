@@ -55,6 +55,9 @@
     <!-- 지갑 연결 = 로그인. 서명은 소유 증명일 뿐이고 자금은 움직이지 않는다(web/auth.py).
          wallet.js 가 이 두 훅을 찾아 자동으로 배선한다(연결/해제 라벨 전환 포함). -->
     <span class="badge" data-wallet-status title="지갑 미연결">미연결</span>
+    <!-- 연결된 지갑의 온체인 잔액. 세션 모드(샌드박스/라이브)와 무관하게 체인을 직접 읽는다.
+         미연결이거나 조회 실패면 통째로 감춘다 — 헤더에 빈 칸이 남지 않게. -->
+    <span class="badge hidden" data-wallet-balance></span>
     <button class="btn" type="button" data-wallet-connect>지갑 연결</button>
   </div>
 </header>

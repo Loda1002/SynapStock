@@ -208,6 +208,66 @@ async def auth_logout(request: Request, response: Response):
     return {"ok": True}
 
 
+# ---------- 연결된 지갑의 온체인 잔액 ----------
+#
+# 세션 쿠키의 지갑만 조회한다 — 임의의 주소를 받지 않는다. 공개 정보(체인에 이미 있다)라
+# 보안상 민감하진 않지만, 주소를 파라미터로 받으면 이 서버가 남의 지갑을 훑는 무료
+# RPC 프록시가 된다(공용 devnet RPC 의 429 를 우리 요금으로 사는 셈).
+_BAL_TTL_SEC = 20.0                       # 헤더가 주기적으로 물어보므로 짧게 캐시한다
+_bal_cache: dict = {}                     # pubkey -> (만료시각, 결과 dict)
+
+
+async def _read_wallet_balance(pubkey: str) -> dict:
+    """SOL + 결제 자산(USDC) 잔액을 읽는다. 실패는 예외가 아니라 error 필드로 돌려준다.
+
+    잔액 표시는 부가 정보다 — RPC 가 흔들린다고 헤더가 깨지거나 대시보드가 멈추면 안 된다.
+    드라이런(샌드박스) 세션에서도 값이 나온다: 조회 대상은 엔진이 아니라 체인이고,
+    연결된 지갑은 세션 모드와 무관하게 실재하는 주소다.
+    """
+    from solders.pubkey import Pubkey
+    from payments import x402_solana as x
+
+    owner = Pubkey.from_string(pubkey)
+    mint = Pubkey.from_string(CFG.usdc_mint)   # CFG 는 문자열로 들고 있다
+    client = await x.get_client(CFG.rpc_url)
+    try:
+        sol = await x.get_sol_balance(client, owner)
+        usdc = await x.get_token_balance_ui(client, owner, mint)
+    finally:
+        await client.close()
+    return {"sol": f"{sol:.4f}", "usdc": usdc,
+            "usdc_mint": CFG.usdc_mint, "network": CFG.network}
+
+
+@app.get("/api/wallet/balance")
+async def wallet_balance(request: Request):
+    """연결된 지갑의 온체인 잔액. 미연결이면 connected=false (401 이 아니다)."""
+    s = _session_of(request)
+    if not s:
+        return {"connected": False}
+    pubkey = s.get("pubkey", "")
+
+    now = asyncio.get_running_loop().time()
+    hit = _bal_cache.get(pubkey)
+    if hit and hit[0] > now:
+        return {"connected": True, "pubkey": pubkey, "cached": True, **hit[1]}
+
+    try:
+        data = await _read_wallet_balance(pubkey)
+    except Exception as e:
+        # 조회 실패도 캐시한다 — RPC 가 죽어 있을 때 폴링이 그대로 재시도 폭풍이 된다.
+        data = {"error": f"{type(e).__name__}: {e}"[:120]}
+    if len(_bal_cache) > 200:
+        # 지갑 하나당 한 칸이라 정상 사용에서는 안 찬다. 세션을 대량 생성하면 자라므로
+        # 만료된 것부터 비운다(그래도 넘치면 통째로) — 캐시일 뿐이라 잃어도 안전하다.
+        for k in [k for k, v in _bal_cache.items() if v[0] <= now]:
+            _bal_cache.pop(k, None)
+        if len(_bal_cache) > 200:
+            _bal_cache.clear()
+    _bal_cache[pubkey] = (now + _BAL_TTL_SEC, data)
+    return {"connected": True, "pubkey": pubkey, "cached": False, **data}
+
+
 # ---------- 조회 API ----------
 
 @app.get("/api/state")
