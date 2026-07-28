@@ -144,7 +144,7 @@ gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --filt
 `--source .` 이 엉뚱한 폴더를 통째로 업로드하는 사고**를 막는 안전장치다.
 
 ```powershell
-if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가 아닙니다. 현재 위치: $(Get-Location)" } else { gcloud run deploy synapstock --project $PROJECT_ID --source . --region $REGION --allow-unauthenticated --min-instances 1 --max-instances 1 --no-cpu-throttling --concurrency 300 --cpu 1 --memory 1Gi --timeout 3600 --set-env-vars "FIRESTORE_ENABLED=1,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com,ALLOW_LIVE_FROM_WEB=0,MAX_BUDGET_USDC=1000,GEMINI_MODE=developer" --set-secrets "TRADING_KEYPAIR_JSON=autotrader-trading-wallet:latest,BROKER_KEYPAIR_JSON=autotrader-broker-wallet:latest,USER_KEYPAIR_JSON=autotrader-user-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest,CONTROL_TOKEN=autotrader-control-token:latest" }
+if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가 아닙니다. 현재 위치: $(Get-Location)" } else { gcloud run deploy synapstock --project $PROJECT_ID --source . --region $REGION --allow-unauthenticated --min-instances 1 --max-instances 1 --no-cpu-throttling --concurrency 300 --cpu 1 --memory 1Gi --timeout 3600 --set-env-vars "FIRESTORE_ENABLED=1,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com,ALLOW_LIVE_FROM_WEB=0,MAX_BUDGET_USDC=1000,GEMINI_MODE=developer,GEMINI_MODEL=gemini-flash-latest" --set-secrets "TRADING_KEYPAIR_JSON=autotrader-trading-wallet:latest,BROKER_KEYPAIR_JSON=autotrader-broker-wallet:latest,USER_KEYPAIR_JSON=autotrader-user-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest,CONTROL_TOKEN=autotrader-control-token:latest" }
 ```
 
 끝나면 `Service URL: https://synapstock-....run.app` 이 출력된다 — **이게 라이브 배포 URL(가산점 항목)**.
@@ -153,6 +153,12 @@ if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가
 > 모드가 비어 있으면 **키가 `AIza` 로 시작하는지로 developer/vertex 를 자동 판별**하는데, 이 프로젝트의
 > 키는 `AIza` 로 시작하지 않아 **Vertex 경로로 잡히고 개발자 키로는 동작하지 않는다.** 로컬은 `.env` 에
 > 이 값이 있어 드러나지 않는다. 빠뜨리면 조건형(Gemini) 세션에서만 뒤늦게 터진다.
+
+> ⚠ **`--set-env-vars` 는 기존 env 를 전부 덮어쓴다**(2026-07-28 반영). 위 명령에 없는 변수는
+> 다음 배포에서 **사라진다** — 그래서 `GEMINI_MODEL=gemini-flash-latest` 를 명령에 직접 넣어 두었다.
+> 예전 명령에는 이 줄이 없어서, 재배포할 때마다 §7-1 에서 따로 넣어 둔 모델이 지워지고
+> **일일 쿼터가 소진된 기본 모델로 되돌아갔다.** env 를 하나만 바꾸고 싶을 때는
+> `--set-env-vars` 가 아니라 `--update-env-vars` 를 쓴다(그쪽은 지정한 것만 덧씌운다).
 
 ### 플래그가 이 값인 이유 (줄이면 안 되는 것들)
 
