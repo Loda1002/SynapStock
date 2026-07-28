@@ -5,6 +5,7 @@ Cloud Run 배포(P2)에서는 WEB_HOST=0.0.0.0, PORT 환경변수를 쓰게 된�
 """
 from __future__ import annotations
 import asyncio
+import html
 import os
 from contextlib import asynccontextmanager
 from decimal import Decimal, InvalidOperation
@@ -13,7 +14,7 @@ import secrets as _secrets
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -112,6 +113,32 @@ async def _revalidate_ui(request: Request, call_next):
     if path in ("/", "/app", "/login", "/connect") or path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
+
+
+@app.exception_handler(404)
+async def _not_found(request: Request, exc):
+    """브라우저에는 사람이 읽는 404 를, API 클라이언트에는 기존 JSON 을 준다.
+
+    심사위원이 주소를 잘못 치면 마지막으로 보는 화면이 `{"detail":"Not Found"}` 였다.
+    돌아갈 링크도 없어서 막다른 길이다. API 경로(`/api/*`)와 JSON 을 원한다고 밝힌
+    요청은 그대로 두어 클라이언트 파싱을 깨지 않는다."""
+    path = request.url.path
+    wants_json = (path.startswith("/api/") or path.startswith("/broker/")
+                  or "application/json" in request.headers.get("accept", ""))
+    if wants_json:
+        return JSONResponse({"detail": getattr(exc, "detail", "Not Found")}, status_code=404)
+    body = (
+        "<!doctype html><meta charset='utf-8'><title>404 — 402 Guard</title>"
+        "<style>body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#0f1115;"
+        "color:#e6e8ee;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}"
+        "a{color:#7ee2b8}code{color:#9aa4b2}</style>"
+        "<div><h1 style='margin:0 0 .4em'>404</h1>"
+        "<p>이 주소에는 페이지가 없습니다.</p>"
+        f"<p><code>{html.escape(path)}</code></p>"
+        "<p style='margin-top:1.6em'><a href='/'>소개 페이지</a> · "
+        "<a href='/app'>대시보드</a> · <a href='/connect'>지갑 연결</a></p></div>"
+    )
+    return HTMLResponse(body, status_code=404)
 
 
 @app.get("/")
