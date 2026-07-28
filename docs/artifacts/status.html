@@ -406,7 +406,7 @@
   <div class="topbar-inner">
     <div>
       <h1 class="brand-name">402 Guard 관제탑</h1>
-      <p class="brand-sub">에이전트 지출 승인 게이트 · 해커톤 제출 현황 · 2026-07-27 갱신(프론트 병합·자해 제거·조사 재분석 반영)</p>
+      <p class="brand-sub">에이전트 지출 승인 게이트 · 해커톤 제출 현황 · <b>2026-07-28 갱신</b> · 리비전 synapstock-00010-5qb</p>
     </div>
 
     <div class="topbar-spacer"></div>
@@ -447,36 +447,36 @@
   <section>
     <div class="sec-head">
       <h2>심사 4축 자가평가</h2>
-      <span class="sec-note">심사 부서 07-25 + 경쟁 조사 07-27 + 스펙·코드 재분석 07-27 반영 · 각 축의 남은 위험을 함께 표기</span>
+      <span class="sec-note">심사 부서 07-27 심야 완주(에이전트 11/11·오류 0) 기준 — 축②가 중→강으로 올라 <b>남은 약축은 ① 하나</b></span>
     </div>
     <div class="hair-grid axes">
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">① 혁신성·UX·상업성</span>
-          <span class="stamp warn">중→상승</span>
+          <span class="stamp warn">중</span>
         </div>
-        <p class="axis-why"><strong>최대 갭이던 "가드 서사가 첫 화면에 없다"가 해소됐다</strong> — 프론트 병합으로 가드 KPI가 <span class="mono">DEFAULT_LAYOUT</span> 맨 앞, <span class="mono">/</span>=랜딩·<span class="mono">/app</span>=대시보드. 남은 위험 2건: 순수 방어 프레이밍의 실측 천장이 2위(1위는 안전을 '자율성의 조건'으로 서술) · 전역 싱글턴이라 <strong>다중 사용자 확장 답이 없다.</strong></p>
+        <p class="axis-why"><strong>유일한 약축이고, 사유가 하나로 특정돼 있다 — 상업성 정량 근거 0건.</strong> 경쟁 지도·경쟁사명·시장 규모가 장표·소개서·차별화 문서 전부에서 0건이고, 수익모델 2·3단에 단가 숫자가 없다. 오늘 P3 세 항목이 정확히 이걸 채운다.</p>
       </div>
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">② AI 활용도</span>
-          <span class="stamp crit">중·위험</span>
+          <span class="stamp good">강</span>
         </div>
-        <p class="axis-why">규칙 게이트·판단 출처 계측·481봉 실측으로 정량 근거는 확보. <strong>여전히 배포본에 <span class="mono">GEMINI_MODE</span>가 없다 — 이 상태로 심사자가 라이브 URL을 열면 축② 증빙이 0.</strong> 그리고 <strong>Gemini 무료 티어가 일일 500건</strong>이라 481봉×2종목(962건) 세션은 하루 예산의 2배다.</p>
+        <p class="axis-why"><strong>중 → 강.</strong> 근거: Gemini 실호출 3지점 · 481봉 대표본 · <strong>AI가 사실과 다르게 단언한 매수를 코드가 차단한 로그 2건</strong> · 의미 대조가 하드 검사 6종을 전부 통과한 청구서를 서명 전에 차단. LLM은 <strong>차단만 가능하고 통과 권한이 없다</strong>는 일관성 자체가 증거다.</p>
       </div>
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">③ 기술·인프라</span>
-          <span class="stamp warn">강·단서</span>
+          <span class="stamp good">강</span>
         </div>
-        <p class="axis-why">x402·exact·Memo·AP2·A2A·Guard·HTTP 402가 전부 실물. <strong>pay.sh 리스크는 철회</strong> — 공식 심사기준이 '등'이 붙은 병렬 예시임이 재확인됐다. <strong>남은 단서: devnet 증빙의 USDC가 구매자 지갑이 민트 권한인 자체 발행 토큰이다.</strong> Circle 공식 민트로 재실증하기 전까지 "USDC" 라 단정할 수 없다.</p>
+        <p class="axis-why">x402·exact·Memo·AP2·A2A·Guard·HTTP 402가 전부 실물. pay.sh 리스크는 철회(공식 기준이 병렬 예시). <strong>최대 단일 구멍: devnet 증빙의 'USDC'가 구매자 지갑이 민트 권한을 쥔 테스트 토큰이다.</strong> 절반은 닫혔다(우리가 먼저 밝히는 고지 추가) — 나머지 절반이 Circle 공식 민트 재실증.</p>
       </div>
       <div class="cell">
         <div class="axis-top">
           <span class="axis-name">④ 실제 구동</span>
-          <span class="stamp warn">강·단서</span>
+          <span class="stamp good">강</span>
         </div>
-        <p class="axis-why">localnet 풀사이클·devnet 라이브 모두 실 트랜잭션·잔액 교차검증 통과. <strong>단 라이브 URL은 축④ 증빙이 아니다</strong> — 배포본이 드라이런이라 <span class="mono">check_delivery</span>가 한 번도 실행되지 않는다. 온체인 증빙은 <span class="mono">artifacts/tx/</span>로 분리해 말해야 한다. 미해소 반문: <strong>"실제로 무엇을 산 건가요?"</strong></p>
+        <p class="axis-why">localnet 풀사이클·devnet 라이브 모두 실 트랜잭션·잔액 교차검증 통과. <strong>단 배포본 온체인 tx는 0건이다</strong>(세션 12건 전부 <span class="mono">mode=dry</span>). 라이브 URL이 보여주는 것은 402 청구서와 서명 전 차단까지이고, 온체인 증빙은 <span class="mono">artifacts/tx/</span>로 <strong>분리해서</strong> 말해야 한다.</p>
       </div>
     </div>
   </section>
@@ -484,7 +484,7 @@
   <section>
     <div class="sec-head">
       <h2>실증 KPI</h2>
-      <span class="sec-note">07-27 <span class="mono">red_team --report</span> 실행값 · 계층을 분리해 표기(예전의 뭉뚱그린 "차단 6 / 유출 0.00"은 자해였다) · 가드 없을 때 피해 합계 519.86 USDC · 하락장 실증 TSLA 추세추종 +67.8%(보유 −20.5%)</span>
+      <span class="sec-note">2026-07-28 <span class="mono">python -m scripts.red_team --report</span> 실행값 · 계층을 분리해 표기(뭉뚱그린 "차단 6 / 유출 0.00"은 폐기 — 스스로 자해였다고 적었다) · 의미 대조 판정자는 녹화 재생(오프라인·결정론) · 하락장 실증 TSLA 추세추종 +67.8%(보유 −20.5%)</span>
     </div>
     <div class="hair-grid kpis">
       <div class="cell">
@@ -494,8 +494,8 @@
       </div>
       <div class="cell">
         <span class="kpi-label">구매자 차단</span>
-        <span class="kpi-value">4 / 6</span>
-        <span class="kpi-foot">공격 6 중 서명 전 4 · 판매자측 1 · 사후 1</span>
+        <span class="kpi-value">5 / 7</span>
+        <span class="kpi-foot">공격 7 중 서명 전 5 · 판매자측 1 · 사후 1</span>
       </div>
       <div class="cell">
         <span class="kpi-label">회수 불가</span>
@@ -508,14 +508,14 @@
         <span class="kpi-foot">같은 실행의 정상 14건 전부 통과</span>
       </div>
       <div class="cell">
-        <span class="kpi-label">테스트</span>
-        <span class="kpi-value good">18</span>
-        <span class="kpi-foot">종 · 각 커밋 시점 통과</span>
+        <span class="kpi-label">가드 없으면</span>
+        <span class="kpi-value">551.96</span>
+        <span class="kpi-foot">USDC 피해 · 시나리오 가정치 포함</span>
       </div>
       <div class="cell">
-        <span class="kpi-label">라이브 URL</span>
-        <span class="kpi-value good">배포</span>
-        <span class="kpi-foot">synapstock · 온체인 증빙은 artifacts/tx</span>
+        <span class="kpi-label">테스트</span>
+        <span class="kpi-value good">20</span>
+        <span class="kpi-foot">종 · 비UTF-8 콘솔 포함 통과</span>
       </div>
     </div>
   </section>
@@ -528,60 +528,81 @@
           <h2>남은 일</h2>
           <button class="btn" id="resetBtn" type="button">체크 초기화</button>
         </div>
-
         <div class="panel">
           <div class="group">
             <div class="group-head">
               <div>
-                <div class="group-title">오늘 (07-27) — 사용자 지정 순서</div>
-                <div class="group-owner">1 → 2 → 3 → 4 순으로</div>
+                <div class="group-title">오늘 (07-28) — 계획서 P1 잔여 · P3 상업성</div>
+                <div class="group-owner">화면을 바꾸는 창은 1차 촬영 전까지 · 전부 미착수 확인됨</div>
               </div>
-              <span class="group-count" data-count="today">0/4</span>
+              <span class="group-count" data-count="today">0/5</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="t1" data-group="today"><label for="t1">① 디자이너에게 컨셉 재브리핑 (회의) <span class="why">디자이너는 아직 'Auto Trader'로 알고 있다. 브리프 완성 — docs/design/concept_brief_402guard.md · 회의는 §9 순서(비유 → 근거 → 시안 90% 유지 → 신규 요청 6건)</span></label></li>
-              <li class="item"><input type="checkbox" id="t2" data-group="today" checked><label for="t2">② 프론트 시안 병합 <span class="why">완료 — 커밋 bdd4c1d(리브랜딩·가드 KPI 최상단·시안 스킨·랜딩) + e4f80bd(/=랜딩, /app=대시보드) + 7761026(캐시 무효화). 재배포 리비전 synapstock-00004-7jc</span></label></li>
-              <li class="item"><input type="checkbox" id="t3" data-group="today"><label for="t3">③ 로그인 + 회원가입(지갑 연결) <span class="why">아직 브랜딩만 바뀐 껍데기다(login.html 10줄 변경). 지갑 연결 = 로그인. 참고 amikomarkets.com은 Privy(지갑 인증 서비스) 사용 흔적 — 로그인 흐름 자체는 미확인. 개인키 서버 보관은 하지 않음</span></label></li>
-              <li class="item"><input type="checkbox" id="t4" data-group="today"><label for="t4">④ 기능 정체성·경계 구체화 <span class="why">서비스와 기능의 경계가 모호하다는 사용자 지적. 4계층 분리 제안 = 정책(사용자가 정하는 울타리) / 판단(교체 가능한 전략·두뇌) / 집행(규칙게이트→AP2→402 Guard→정산) / 데모 조작판(데이터셋·속도·봉간격). 화면·소개서·README가 같은 뼈대를 쓰게 된다</span></label></li>
+              <li class="item"><input type="checkbox" id="t1" data-group="today"><label for="t1">랜딩에 '단일 공용 인스턴스' 고지 한 줄 <span class="why">P1-1. 엔진이 전역 싱글턴이라 한 명이 세션을 켜면 다른 심사위원은 막힌다. 구조를 숨기지 않고 규정하는 게 정직하고 싸다. 실측: landing.html에 해당 문구 0건. ⚠ require_control을 dry start에 여는 안은 채택 금지(stop이 토큰 게이트라 아무도 못 푼다)</span></label></li>
+              <li class="item"><input type="checkbox" id="t2" data-group="today"><label for="t2">쿼터 보류를 '가드 차단' KPI에서 분리 <span class="why">P1-2, 0.7h. Gemini 쿼터가 소진되면 GUARD_LLM_UNVERIFIED 보류가 guard_block_count에 그대로 더해져 악성 청구 차단과 같은 칸에 표시된다. 계층을 안 합치는 게 이 제품의 미덕인데 대표 KPI가 그걸 어긴다. 실측: engine.py에 blocked_unverified 0건. ⚠ KPI 칸은 4개 유지(늘리면 재촬영)</span></label></li>
+              <li class="item"><input type="checkbox" id="t3" data-group="today"><label for="t3">수익모델 3단에 숫자 넣기 <span class="why">P3-1. 축①이 '중'인 사유가 상업성 정량 근거 0건 하나로 특정돼 있다. 실측: pitch_deck 수익모델 3박스가 전부 정성 서술이고 숫자는 0.3% 하나뿐. 2·3단 단가는 '가정'이라 명시하고 넣는다 — 숫자 없는 것보다 낫다</span></label></li>
+              <li class="item"><input type="checkbox" id="t4" data-group="today"><label for="t4">경쟁 지도 1장 <span class="why">P3-2. 실측: pitch_deck에 AgentFabric·Circle·Kyvern 0건. 축 = 개인키 미접근 / 스코프 위임 / 수취인 검사 / <b>금액 온체인 강제</b> / <b>청구서↔견적 대조</b> / <b>매수·매도 대칭</b>. 가장 강한 칸: 1위 수상작이 자기 소스에 'Advisory limits (NOT enforced on-chain)'라 적었다. ⚠ '우리가 확인한 범위에서' 한정어 필수 · 공격 톤 금지</span></label></li>
+              <li class="item"><input type="checkbox" id="t5" data-group="today"><label for="t5">타겟 고객 3층에 숫자 연결 <span class="why">P3-3. pitch_deck:484-500에 3층(개발사 / 커머스 플랫폼 / 자율 매매 사용자)이 이미 있다. 각 층에 "몇 곳 × 얼마" 초기 목표만 가정으로 붙이면 정성→정량. ⚠ 출처 못 대는 TAM은 넣지 않는다 — 정직성이 셀링 포인트라 여기서 어기면 손해가 더 크다</span></label></li>
             </ul>
           </div>
 
           <div class="group">
             <div class="group-head">
               <div>
-                <div class="group-title">프론트 — 402 Guard 서사를 첫 화면에</div>
-                <div class="group-owner">07-27 병합 완료 · 범위 web/static/**</div>
+                <div class="group-title">제출물 3종 — 탈락 확률 1위</div>
+                <div class="group-owner">8/7 1차 심사의 주 평가 대상 · 1차 완본 마감 7/30</div>
               </div>
-              <span class="group-count" data-count="front">0/6</span>
+              <span class="group-count" data-count="sub">0/11</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="f1" data-group="front" checked><label for="f1">가드 KPI 카드 추가 <span class="why">index.html에 data-card="guard" + app.js가 state.guard 렌더. 카드가 DEFAULT_LAYOUT 맨 앞</span></label></li>
-              <li class="item"><input type="checkbox" id="f2" data-group="front" checked><label for="f2">헤더 브랜딩 교체 <span class="why">index·login·landing 전부 '402 Guard'. FastAPI title(/docs)·브라우저 알림 문구까지 교체</span></label></li>
-              <li class="item"><input type="checkbox" id="f3" data-group="front" checked><label for="f3">DEFAULT_LAYOUT 재배치 <span class="why">guard → session → symbols → pnl … 순. ⚠ pnl·valuation·position이 아직 4~6번째라 스크롤 한 번이면 수익률이 보인다 — 더 내릴지 판단 필요</span></label></li>
-              <li class="item"><input type="checkbox" id="f4" data-group="front" checked><label for="f4">시안 스킨 적용 <span class="why">theme.css·skeleton.css에 시안 값 반영. 로컬 검증(2종목 하락장·틱 481 자동 종료·콘솔 오류 0) 통과</span></label></li>
-              <li class="item"><input type="checkbox" id="f5" data-group="front" checked><label for="f5">랜딩 페이지 + 진입 경로 분리 <span class="why">landing.html 신설, / = 랜딩 · /app = 대시보드 · /login. 옛 /static/index.html도 계속 열린다</span></label></li>
-              <li class="item"><input type="checkbox" id="f6" data-group="front"><label for="f6">전략 옵션 '고급 설정'으로 접기 <span class="why">남은 최소 범위 3건 중 유일한 미완. 첫 화면 요소 수 축소 — 용어 과적재로 무수상한 사례(GuardianOS)의 교훈. 오늘 할일 ④와 같은 뿌리</span></label></li>
+              <li class="item"><input type="checkbox" id="s0" data-group="sub" checked><label for="s0">가드 '검사 몇 종' 표기 통일 <span class="why">커밋 6d39ee5 — PDF 7종·영상 대본 6종·README 6종이라 쓰고 7개 나열로 제각각이던 것을 실물(하드 8종)로 통일. 화면과 내레이션이 어긋나면 재촬영 사유였다</span></label></li>
+              <li class="item"><input type="checkbox" id="s1" data-group="sub" checked><label for="s1">소개서 PDF 배경색 유실 수정 <span class="why">커밋 ddac74b — print-color-adjust 부재로 '배경 그래픽 켜기' 체크박스 하나에 덱 절반의 색이 걸려 있었다</span></label></li>
+              <li class="item"><input type="checkbox" id="s2" data-group="sub"><label for="s2">소개서 — 결제 통화 자체발행 고지 신설 <span class="why">P2-3. 실측: pitch_deck:644가 <b>자산(주식)만</b> 밝히고 결제 통화는 빠졌다. :678도 'USDC(SPL)'로 무조건 서술. README·submission은 d5f98e7로 이미 밝히는데 소개서에만 없다 — 정직성이 셀링 포인트인 제품에서 가장 비싼 불일치</span></label></li>
+              <li class="item"><input type="checkbox" id="s3" data-group="sub"><label for="s3">소개서 — 사실오류 정정 <span class="why">P2-3. 실측: :538 'USDC 순변화 −4.9' 그대로 있다 → 구매자 지갑 기준 <b>+4.9</b>(브로커가 −4.9). 아티팩트의 net_out 값을 잔액 변화 라벨로 옮겨 붙인 실수</span></label></li>
+              <li class="item"><input type="checkbox" id="s4" data-group="sub"><label for="s4">소개서 — 금지 문장 제거 <span class="why">P2-3. 실측: :696 마지막 각주 "x402 규격은 파는 쪽을 보호합니다" 그대로 → "x402는 구매자의 키를 지킵니다. 무엇에 서명하는지는 저희가 지킵니다."</span></label></li>
+              <li class="item"><input type="checkbox" id="s5" data-group="sub"><label for="s5">소개서 — URL 자리표시자·커버 <span class="why">P2-3. 실측: :547·:688에 &lt;url&gt; 자리표시자 그대로. .meta에 라이브 URL 기재, '상시 접근'을 로드맵에서 "지금 열려 있음"으로 이동</span></label></li>
+              <li class="item"><input type="checkbox" id="s6" data-group="sub"><label for="s6">소개서 — 스크린샷 2장 삽입 <span class="why">P2-3. 실측: :563·:569 '촬영 후 삽입' 자리표시자 그대로. 가드 KPI가 보이는 /app 상단 + red_team --report 터미널. ⚠ 아티팩트로도 게시돼 CSP상 외부 파일 참조가 막힌다 → data: URI로 인라인</span></label></li>
+              <li class="item"><input type="checkbox" id="s7" data-group="sub"><label for="s7">소개서 — 인쇄 → PDF 저장·육안 확인 <span class="why">13페이지 · 빈 페이지 0 · 색 유실 0</span></label></li>
+              <li class="item"><input type="checkbox" id="s8" data-group="sub"><label for="s8">데모 대본 정본화 <span class="why">P2-2. ⚠ 타이머가 붙어 <b>실제로 보고 찍게 될</b> demo_script.html이 구버전이다. 실측 3건 전부 확인: ①첫 대사가 금지 문장 ②:360 KPI가 폐기 수치(시도 20·차단 6 — status.html이 스스로 "자해였다"고 적은 값) ③<b>의미 대조 장면 E가 아예 없다</b>(0건) — submission.md가 "3분 초과해도 E는 절대 자르지 않는다"고 지정한 축② 유일 영상 근거다. 시간 없으면 상단에 "구버전" 배너만 달고 정본을 보며 촬영</span></label></li>
+              <li class="item"><input type="checkbox" id="s9" data-group="sub"><label for="s9">1차 촬영·편집·<b>유튜브 업로드</b> <span class="why">7/29~30. ⚠ 업로드가 스케줄에 없었다 — 제출 폼 6번이 유튜브 링크다. <b>1차 완본을 먼저 올려 링크를 확보하고 폼에 넣어 둔다</b>(폼 재제출 허용 여부 미확인). 공격 차단 장면은 웹 콘솔(3.5h) 대신 red_team --report 터미널 한 컷(0.2h)으로 대체</span></label></li>
+              <li class="item"><input type="checkbox" id="s10" data-group="sub"><label for="s10">구글폼 7항목 제출 <span class="why">라이브 URL은 #token 포함본, README·공개 저장소에는 토큰 없는 URL. <b>8/3 18:00까지 제출 완료</b>, 나머지는 버퍼</span></label></li>
             </ul>
           </div>
 
           <div class="group">
             <div class="group-head">
               <div>
-                <div class="group-title">백엔드 — 심사 축② 보완</div>
-                <div class="group-owner">담당: 나 · 범위 web/static 제외 전부</div>
+                <div class="group-title">public 전환 전 저장소 정합성 (P2-4)</div>
+                <div class="group-owner">되돌릴 수 없다 — 지금 공개하면 스스로 감점된다</div>
               </div>
-              <span class="group-count" data-count="back">0/9</span>
+              <span class="group-count" data-count="pub">0/8</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="b1" data-group="back" checked><label for="b1">규칙 게이트 코드 강제 <span class="why">커밋 94fe605 — 규칙 신호 없는 개시를 코드가 차단. 실제로 Gemini의 잘못된 매수 개시 2건 차단됨</span></label></li>
-              <li class="item"><input type="checkbox" id="b2" data-group="back" checked><label for="b2">판단 출처 계측 <span class="why">커밋 3602015 — AI 관여를 tx 아티팩트·세션 요약·/api/state.ai에 기록</span></label></li>
-              <li class="item"><input type="checkbox" id="b3" data-group="back" checked><label for="b3">대규모 하락장 Gemini 백테스트 <span class="why">커밋 e81a9ce — TSLA 481봉 실측. rule −37.56% vs gemini −39.57%(AI 기여 중립~열위, 정직하게 공개)</span></label></li>
-              <li class="item"><input type="checkbox" id="b4" data-group="back"><label for="b4">Gemini 온체인 세션 1회 아카이빙 <span class="why">조건형+Gemini로 devnet 실행 — 축②의 실구동 증빙. 아카이브에 ai 블록이 자동으로 남는다</span></label></li>
-              <li class="item"><input type="checkbox" id="b5" data-group="back" checked><label for="b5">브로커 HTTP 402 레그(G5) <span class="why">커밋 70bed10 — 402 + accepts[] 반환, 테스트 53건, 매수 레그만(매도는 방향이 반대라 A2A 유지)</span></label></li>
-              <li class="item"><input type="checkbox" id="b6" data-group="back" checked><label for="b6">판단 두뇌 선택 strategy.brain <span class="why">커밋 8440a1b — auto / rule / gemini. UI 드롭다운은 프론트 병합 때 함께</span></label></li>
-              <li class="item"><input type="checkbox" id="b7" data-group="back" checked><label for="b7">드라이런 매도 레그 복구 <span class="why">커밋 7d6a178 — 배포본에서만 드러난 결함. 매수만 되고 익절이 전무해 수익률 시연이 불가했다</span></label></li>
-              <li class="item"><input type="checkbox" id="b8" data-group="back" checked><label for="b8">Gemini 429를 일일·분당 한도로 구분 <span class="why">커밋 c2ffe9a — 일일 한도(500건/일)를 분당 한도처럼 다뤄 retryDelay 41초마다 하루 종일 헛호출했다. quotaId에 PerDay면 30분 쿨다운 + 오류 91자 요약(예전엔 100자에서 잘려 원인 추적 불가)</span></label></li>
-              <li class="item"><input type="checkbox" id="b9" data-group="back" checked><label for="b9">자해 3건 제거 <span class="why">커밋 de9e000 — ①유출 KPI가 증가 코드 없는 상수였다 → _record_leak 배선 ②red_team이 guarded_leak=0 하드코딩 + 회수 못한 29.99를 되찾은 것처럼 표기 → 3계층 분리(prevent/counterparty/detect) ③devnet USDC가 구매자 지갑이 민트 권한인 자체 발행 토큰 → Circle 공식 민트 기본화 + 자체발행 감지 시 중단</span></label></li>
+              <li class="item"><input type="checkbox" id="p1" data-group="pub" checked><label for="p1">bug_latest 상단 상태 배너 <span class="why">"BUG-01(2981739) · BUG-02/04/08(7a2b251) 수정 완료 · 스캔 시점 스냅샷". ⚠ .gitignore로 내리는 안은 작동하지 않는다(이미 추적 중 + 다른 문서 6곳이 경로 참조) — 배너가 더 싸고 정직하다</span></label></li>
+              <li class="item"><input type="checkbox" id="p2" data-group="pub"><label for="p2">★ differentiation §0 결함 9건에 상태 열 <span class="why">가장 아픔. 실측: 표가 <b>전부 현재형</b>이라 "이 팀이 스스로 밝힌 현행 보안 결함 9건"으로 읽힌다. 특히 G(에이전트가 자기 허가서에 서명)·I(배송 실패해도 settled)는 제품 주장을 정면으로 무너뜨린다 — <b>실제로는 고쳐졌다</b>. 각 행에 해결 커밋 해시 + 최상단에 "2026-07-24 전략 결정 기록"</span></label></li>
+              <li class="item"><input type="checkbox" id="p3" data-group="pub"><label for="p3">differentiation 3행 '트레이딩 봇 0건' 삭제 <span class="why">실측: 아직 남아 있다. 출처 미확인 + 반례 3건(Peaks·Clawpump·Agent Arc)으로 반증된 문장이 재포지셔닝의 출발점으로 적혀 있다</span></label></li>
+              <li class="item"><input type="checkbox" id="p4" data-group="pub"><label for="p4">FEATURES 자기모순 정정 <span class="why">실측 확인: :37은 G5 완료(✅)인데 :125는 "HTTP 402가 코드에 0줄"로 미구현 표에 있다 — <b>축③ 최강 증거를 같은 파일 안에서 스스로 부정</b>. 증빙 카운트 실측(localnet 7·devnet 1·로그 1)·카드 수 11→14도 함께</span></label></li>
+              <li class="item"><input type="checkbox" id="p5" data-group="pub"><label for="p5">.env.example 정정 <span class="why">실측: :40 ALLOW_LIVE_FROM_WEB=1 그대로 — 바로 위 주석·config.py 기본값과 <b>반대</b>. setup_devnet 서술도 현행(Circle 공식 기본·자체발행 감지 시 중단)으로. 누락 키 4종 추가</span></label></li>
+              <li class="item"><input type="checkbox" id="p6" data-group="pub"><label for="p6">내부 노트 추적 해제 <span class="why">실측: START_GUIDE.md·prompts/ 가 추적 중이다(START_GUIDE 스스로 "커밋할 필요 없음"이라 적어 두고). git rm --cached + CLAUDE.md 최상단에 "개발 에이전트용 내부 작업 노트" 한 줄 + '탈락 확률'·자가등급 표현 중립화</span></label></li>
+              <li class="item"><input type="checkbox" id="p7" data-group="pub"><label for="p7">LICENSE 신설 <span class="why">실측: 없다. MIT + data/market/*.csv는 Alpha Vantage 출처라 "재배포 아닌 데모·평가 목적" 예외 명시. README 상단 라이브 URL 자리표시자도 교체</span></label></li>
+              <li class="item"><input type="checkbox" id="p8" data-group="pub"><label for="p8">public 전환 (사용자) <span class="why">위 7건 완료 후. 직전에 git ls-files로 시크릿 최종 확인(현재 0건)</span></label></li>
+            </ul>
+          </div>
+
+          <div class="group">
+            <div class="group-head">
+              <div>
+                <div class="group-title">최종 버그픽스 (P4 — 반드시 마지막)</div>
+                <div class="group-owner">P1~P3에서 코드·문서를 많이 건드리므로 여기서 새 버그가 난다</div>
+              </div>
+              <span class="group-count" data-count="bug">0/5</span>
+            </div>
+            <ul class="items">
+              <li class="item"><input type="checkbox" id="g1" data-group="bug"><label for="g1">★ CODE-01 매수 레그 partial 대칭 <span class="why">2h·최우선. <b>실측 재확인: engine.py:1227 매수는 status=="settled"만, :1339 매도는 in("settled","partial")</b> — 브로커가 스스로 partial을 신고한 매수가 유출 KPI·GUARD_PENDING에서 통째로 빠진다. de9e000으로 닫았던 '유출 KPI 자해'가 매수 레그에서 되살아난 모양. ⚠ "partial이면 무조건 _record_leak"은 채택 금지(늦게 확정된 배송을 유출로 찍는다) — 조건문만 매도와 동일하게 하고 판정은 check_delivery에 맡긴다</span></label></li>
+              <li class="item"><input type="checkbox" id="g2" data-group="bug"><label for="g2">BUG-09 세션 경계 긴급정지 해제 <span class="why">0.5h. 끝난 세션의 _finalize가 await 뒤 전역 상태를 덮어써 <b>다음 세션의 긴급정지를 해제</b>한다. 대본이 '공격 세션 → 운용 세션'으로 이어지면 촬영 중에 밟는다</span></label></li>
+              <li class="item"><input type="checkbox" id="g3" data-group="bug"><label for="g3">CODE-06 가드 정지 사유 표시 <span class="why">0.5h. 화면에 "🛑 매매 정지됨 (guard)"만 남고 왜 멈췄는지가 없다. pause에 reason 인자 + 액터 표시명(human→사용자, guard→402 Guard). ⚠ risk-guard 액터는 저장소에 없으니 매핑에 넣지 말 것</span></label></li>
+              <li class="item"><input type="checkbox" id="g4" data-group="bug"><label for="g4">BUG-10 인트라바 문구 정정 <span class="why">0.2h. 합성 인트라바가 실제 고가·저가를 지나지 않는데 독스트링·UI 툴팁은 "지난다"고 단언한다. 인트라바 기능 자체는 사용자 보류 결정</span></label></li>
+              <li class="item"><input type="checkbox" id="g5" data-group="bug"><label for="g5">마무리 회귀 게이트 <span class="why">각 배치 끝에 테스트 20종 + red_team 재실행. P2-3·P2-4의 문자열 치환이 test_invoice_semantics·red_team의 라벨·키와 얽혀 있어 <b>조용히 무언가를 깨뜨릴 수 있다</b>. 비UTF-8 콘솔에서도 돌릴 것(심사위원 환경 재현)</span></label></li>
             </ul>
           </div>
 
@@ -589,57 +610,35 @@
             <div class="group-head">
               <div>
                 <div class="group-title">배포·실증</div>
-                <div class="group-owner">담당: 나 · gcloud는 직접 실행</div>
+                <div class="group-owner">★ Circle 재실증은 1차 촬영보다 앞이어야 한다</div>
               </div>
-              <span class="group-count" data-count="ops">0/6</span>
+              <span class="group-count" data-count="ops">0/7</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="o1" data-group="ops" checked><label for="o1">Cloud Run 배포 + 프론트 재배포 <span class="why">완료 — synapstock / asia-northeast3, 리비전 synapstock-00004-7jc. 402·디스커버리·랜딩 전부 정상. 라이브 URL은 https://synapstock-766888967498.asia-northeast3.run.app</span></label></li>
-              <li class="item"><input type="checkbox" id="o2" data-group="ops"><label for="o2">⚠ GEMINI_MODE=developer 재배포 <span class="why">아직 미해소. 키가 AIza로 시작하지 않아 vertex로 자동 선택되면 Gemini 미작동 → 심사자가 라이브 URL을 열면 축② 증빙이 0. 환경변수 한 줄이라 가장 값싼 리스크 해소</span></label></li>
-              <li class="item"><input type="checkbox" id="o3" data-group="ops"><label for="o3">devnet Circle USDC 실증 <span class="why">사용자 합의 다음 순서 ②. .env 교체 → Circle devnet 파우셋 → setup_devnet 재실행 → 라이브 아카이브 재생성. 지금 devnet 증빙 1건은 자체 발행 USDC라 축③ 문구를 'USDC 인터페이스 호환'으로 낮춰야 한다</span></label></li>
-              <li class="item"><input type="checkbox" id="o4" data-group="ops"><label for="o4">배포 URL에서 온체인 매수·매도 재현 <span class="why">현재 통과한 건 드라이런까지. 배포본은 드라이런이라 check_delivery가 실행되지 않는다 · verification_checklist 3단계 + 로그 아카이빙</span></label></li>
-              <li class="item"><input type="checkbox" id="o5" data-group="ops"><label for="o5">devnet 라이브 2~3회 추가 <span class="why">정상 매수·정상 매도·한도초과 거부 각 1회 이상 (현재 devnet 세션 1건뿐) · SOL 필요</span></label></li>
-              <li class="item"><input type="checkbox" id="o6" data-group="ops"><label for="o6">explorer 링크 생존 확인 <span class="why">제출 직전 devnet 트랜잭션 1건 실제 조회 스크린샷</span></label></li>
+              <li class="item"><input type="checkbox" id="o1" data-group="ops" checked><label for="o1">프런트 전달본 병합 + 재배포 <span class="why">리비전 synapstock-00010-5qb. 얇은 헤더·떠 있는 가드 패널·스크롤 등장 모션·AI 카드 '자세히 보기'. 실측: 엔드포인트 11개 200 · SSE 첫 바이트 0.063초 · 서명 메시지 URI https · 콘솔 오류 0. ⚠ 전달본은 저장소보다 앞선 시점 기준이라 지갑 로그인·AI 카드·전략 기본값 등이 회귀해 있었고 되살렸다 — <b>다음 전달본에서도 같은 대조를 먼저 할 것</b></span></label></li>
+              <li class="item"><input type="checkbox" id="o2" data-group="ops" checked><label for="o2">지갑 서명 형식 4종 흡수 <span class="why">커밋 3b0a72f — Phantom 실검증은 시도 기회가 사실상 한 번이라 가장 흔한 실패 원인을 미리 없앴다. 64바이트가 아니면 무엇을 받았는지 말해 주는 오류를 던진다</span></label></li>
+              <li class="item"><input type="checkbox" id="o3" data-group="ops"><label for="o3">★ Circle USDC devnet 재실증 (사용자) <span class="why">P1-4. 최대 단일 구멍의 나머지 절반. devnet SOL + Circle 파셋 → setup_devnet(기본값이 이미 공식 민트, 자체발행 감지 시 중단) → --live. <b>촬영 큐시트 G가 explorer 화면인데 지금 devnet 아카이브는 자체발행 민트 1건뿐</b>이라, 재실증이 촬영보다 뒤면 심사위원이 영상 속 explorer에서 민트 권한 한 줄을 보게 된다</span></label></li>
+              <li class="item"><input type="checkbox" id="o4" data-group="ops"><label for="o4">배포 URL에서 mode=live 세션 1건 <span class="why">현재 리비전 env에 STOCK_MINT가 없어 라이브가 첫 클릭에서 막힌다. --update-env-vars로 STOCK_MINT·ALLOW_LIVE_FROM_WEB=1 주입 → 세션 → 아카이빙 → 0으로 복귀. ⚠ <b>세션이 도는 중에는 어떤 update도 하지 말 것</b>(새 리비전 = 구 인스턴스 종료, SSE가 열려 있으면 세션 저장 코드에 도달조차 못 한다)</span></label></li>
+              <li class="item"><input type="checkbox" id="o5" data-group="ops"><label for="o5">Phantom 실확장 검증 (사용자·2분) <span class="why">확장 설치 → /connect → 버튼 → 팝업 승인. Solana 지식·자금·가스 불필요(트랜잭션이 아니라 서명). 실패하면 오류 메시지 한 줄만 전달하면 원인이 특정된다</span></label></li>
+              <li class="item"><input type="checkbox" id="o6" data-group="ops"><label for="o6">제출용 #token URL 준비 + 촬영 규칙 <span class="why">P1-1. app.js가 해시 토큰을 localStorage로 옮기고 주소창에서 지우는 코드는 <b>이미 있다</b>(실측 확인). 남은 건 운영 — 제출 폼에만 #token 포함본, 촬영 브라우저에 미리 심어 두고 본 촬영은 순수 URL로, 편집 시 주소창 프레임 전수 확인</span></label></li>
+              <li class="item"><input type="checkbox" id="o7" data-group="ops"><label for="o7">CONTROL_TOKEN 로테이션 (심사 후) <span class="why">#token URL을 제출 폼에 낸 결과. 심사 종료 후 1회</span></label></li>
             </ul>
           </div>
 
           <div class="group">
             <div class="group-head">
               <div>
-                <div class="group-title">정직성·카피 (조사 재분석 후속)</div>
-                <div class="group-owner">근거: docs/reports/competition_research_reconcile.md · 사용자 합의 다음 순서 ①</div>
+                <div class="group-title">여유 / 멘토링 (8/10~20)</div>
+                <div class="group-owner">제출물 3종이 미확정이면 전부 버린다</div>
               </div>
-              <span class="group-count" data-count="race">0/8</span>
+              <span class="group-count" data-count="later">0/5</span>
             </div>
             <ul class="items">
-              <li class="item"><input type="checkbox" id="c1" data-group="race" checked><label for="c1">pay.sh 필수 여부 확인 <span class="why">해소 — 공식 심사기준 3번이 '등'이 붙은 병렬 예시임이 재확인됐다. 조사가 인용한 "must" 문장은 원출처에서 재현되지 않았다. 스크리닝 탈락 리스크 격상은 철회</span></label></li>
-              <li class="item"><input type="checkbox" id="c2" data-group="race"><label for="c2">반박 가능한 카피 3건 정정 <span class="why">①x402 = "파는 쪽 보호"가 아니라 "키는 지키지만 무엇에 서명하는지는 검증하지 않는다" ②AP2 = 집행 주체(CP·Network·MPP)가 self-custody에 없어 공석 → 우리가 그 자리를 채움, 표기는 '준수'가 아니라 'mandate 위임 모델을 ed25519로 재구성' ③사후구제 = "대체한다"가 아니라 "위조 계열을 없애고 나머지는 상한을 씌운다(되돌리지는 못함)"</span></label></li>
-              <li class="item"><input type="checkbox" id="c3" data-group="race"><label for="c3">KPI 문구 변경으로 어긋난 곳 정정 <span class="why">유출 0.00에 '서명 전 차단 계층' 한정어가 필요하다. 대상 differentiation.md:69·87·164·238 / submission.md:65·66 / pitch_deck.html:507·508 / FEATURES.md:123</span></label></li>
-              <li class="item"><input type="checkbox" id="c4" data-group="race"><label for="c4">매도 레그 기준선 실패 시 return 통일 <span class="why">3~5줄. 매수는 실패 시 release+pause+return으로 결제를 안 하는데, 매도는 플래그만 세우고 곧바로 settle_sale을 부른다 — 검증 불가 상태에서 주식이 먼저 나가고 앱은 떠난 주식을 계속 자산으로 계상한다</span></label></li>
-              <li class="item"><input type="checkbox" id="c5" data-group="race"><label for="c5">(선택) mandate에 payees 봉인 <span class="why">2~3h. 지금 allowlist는 7곳 전부 런타임에 브로커 키페어에서 만든다 — 권위 원천이 배포 운영자다. _payload()에 payees 한 줄을 넣으면 "위임장 서명에 봉인된 수취인 제약 — 한 글자만 바꿔도 서명이 깨진다"를 시연할 수 있다</span></label></li>
-              <li class="item"><input type="checkbox" id="c6" data-group="race"><label for="c6">유출 계측 잔여 한계 6건 <span class="why">engine._record_leak 독스트링에 명시돼 있다 — 전송 후 예외 경로 미계상(정지도 안 걸림) / HTTP 원격이 status를 쥠 / 매도 과소계상 / 확인불가와 확정손실 혼합 / 아카이브 미기록 / AP2 한도 부풀림. "이 숫자가 곧 실제 유출"이라 단정 금지</span></label></li>
-              <li class="item"><input type="checkbox" id="c7" data-group="race"><label for="c7">아키텍처 다이어그램 1장 <span class="why">사용자 → 에이전트 → 402 Guard → 솔라나 4계층. 소개서 필수 요소이고 유사 대회에서 pass/fail 스크리닝 항목이었다</span></label></li>
-              <li class="item"><input type="checkbox" id="c8" data-group="race"><label for="c8">심사 Q&A 카드 10문항 + 규제 2문항 <span class="why">코드를 안 보고 답할 수 있을 때까지. 재분석에서 나온 신규 3문항 필수: "402 Guard는 결국 Credential Provider를 구현한 것 아닌가" / "그 정도는 클라이언트 SDK에 if문 하나면 되는데 왜 계층인가" / "유출 0.00을 증가시키는 코드를 지금 열어 보여줄 수 있나". 규제 2건: 무등록 투자일임 / 이용자 자금 분리 보관</span></label></li>
-            </ul>
-          </div>
-
-          <div class="group">
-            <div class="group-head">
-              <div>
-                <div class="group-title">제출물</div>
-                <div class="group-owner">담당: 나 · 08-03 23:59 최종 제출 마감(공식)</div>
-              </div>
-              <span class="group-count" data-count="sub">0/8</span>
-            </div>
-            <ul class="items">
-              <li class="item"><input type="checkbox" id="s1" data-group="sub"><label for="s1">소개서 PDF 장표 <span class="why">문제→402 Guard→아키텍처→KPI→수익모델→로드맵. 경쟁 대비 1장·타겟 한 줄·수익모델 2안(거래 수수료 / 검증 건당 과금) 추가</span></label></li>
-              <li class="item"><input type="checkbox" id="s2" data-group="sub"><label for="s2">데모 영상 3분 이내 <span class="why">유튜브 공개/일부공개 링크 · 첫 5초에 2단 구조 태그라인 동일 문장</span></label></li>
-              <li class="item"><input type="checkbox" id="s3" data-group="sub"><label for="s3">README 402 Guard 재작성 <span class="why">첫 3줄 + 재현 명령 3개(curl 402 · red_team · explorer) + 최상단에 devnet 트랜잭션 해시 직링크</span></label></li>
-              <li class="item"><input type="checkbox" id="s4" data-group="sub"><label for="s4">저장소 public 전환 <span class="why">제출 직전 필수 · 지금 private</span></label></li>
-              <li class="item"><input type="checkbox" id="s5" data-group="sub"><label for="s5">구글폼 7항목 작성 <span class="why">docs/submission.md 초안을 확정본으로 교체</span></label></li>
-              <li class="item"><input type="checkbox" id="s6" data-group="sub"><label for="s6">트랙 명칭·규격 재확인 <span class="why">트랙 공식 명칭·영상 길이 상한을 디스코드 공지로 대조. 일정은 확인됨(8/3 최종 제출 → 8/7 파이널리스트 약 10팀 → 8/10~20 멘토링 → 8/21 데모데이)</span></label></li>
-              <li class="item"><input type="checkbox" id="s7" data-group="sub"><label for="s7">데모 대본을 '공격 차단' 중심으로 재작성 <span class="why">유출 0.00은 화면상 비사건(non-event)이라 그대로 두면 볼 것이 없다. 60~90초 안에 전 루프가 돈다는 시간 약속을 대본에 명시. demo_script.html:308 첫 대사도 새 카피로 교체</span></label></li>
-              <li class="item"><input type="checkbox" id="s8" data-group="sub"><label for="s8">라이브 데모 폴백 2중 (멘토링 기간) <span class="why">devnet 공용 RPC 429 · Gemini 무료 티어 쿨다운 · Cloud Run 콜드스타트 = 실제 발생 이력이 있는 3중 외부 의존. 녹화 영상 + 로컬넷 전환 경로, 8/21 전 1회 리허설</span></label></li>
+              <li class="item"><input type="checkbox" id="l1" data-group="later"><label for="l1">대시보드에 Firestore 이력 표시 <span class="why">P1-3. 서버에 세션 12건이 있는데 app.js가 /api/history를 <b>한 번도 호출하지 않아</b>(실측 0건) 첫 화면이 전부 0이라 "동작 안 하는 목업"으로 읽힌다. ⚠ 열 구성 주의: leak 계열 필드가 스키마에 없어 undefined로 렌더되고, 실현손익은 상위 2건이 음수라 방금 치운 수익률이 되돌아온다. ⚠ <b>1차 촬영 전에 넣거나 아예 촬영 후로</b> — 중간에 넣으면 재촬영</span></label></li>
+              <li class="item"><input type="checkbox" id="l2" data-group="later"><label for="l2">8/2 judge-dept 재실행 1회 <span class="why">P2-3·P2-4에서 12개 이상 지점을 고치므로 치환 누락과 새로 생긴 자기모순을 기계적으로 잡는다. 리포트 자체가 축② 소재로 재사용된다</span></label></li>
+              <li class="item"><input type="checkbox" id="l3" data-group="later"><label for="l3">잔여 버그 4건 <span class="why">BUG-03(release 0 클램프가 추세추종 복리 자본을 삼킴) · BUG-05(partial 매도 포지션 미차감 → 총자산 과대, CODE-01과 같은 계열이라 맥락 붙어 있을 때가 가장 싸다) · BUG-06 · BUG-07. ⚠ 리포트는 9건으로 보이지만 실제 잔여 중간은 6건</span></label></li>
+              <li class="item"><input type="checkbox" id="l4" data-group="later"><label for="l4">웹 공격 콘솔 + MCP 서버 <span class="why">3.5h+. 8/7 1차 심사는 PDF·저장소·영상만 보므로 붙여볼 사람이 없다. 8/3 전에 넣으면 영상을 다시 찍어야 한다</span></label></li>
+              <li class="item"><input type="checkbox" id="l5" data-group="later"><label for="l5">제출 후 리비전 동결 + 크레딧 확인 <span class="why">계획이 8/3에서 끝나는데 심사는 8/21까지 간다. 배포 플래그가 --min-instances 1 --no-cpu-throttling이라 <b>상시 과금</b>이다. "코드를 푸시해도 배포하지 않는다" 규칙 필요</span></label></li>
             </ul>
           </div>
         </div>
@@ -677,11 +676,21 @@
           <div class="report">
             <div class="report-top">
               <span class="report-name">심사 부서</span>
-              <span class="stamp info">2026-07-25</span>
+              <span class="stamp good">2026-07-27 심야</span>
             </div>
-            <p class="report-line">축③④ 강 · 축①② 중. 최대 갭은 가드 서사가 첫 화면에 없다는 것.</p>
+            <p class="report-line">에이전트 11/11·오류 0. <strong>축① 중 · 축② 강 · 축③ 강 · 축④ 강.</strong> 축①이 '중'인 사유는 상업성 정량 근거 0건 하나로 특정됐다. 8/2에 1회 더 돌려 치환 누락을 기계적으로 잡을 것.</p>
             <span class="report-path">docs/reports/judging_latest.md</span>
             <code class="cmd">Workflow({scriptPath:".claude/workflows/judge-dept.js"})</code>
+          </div>
+
+          <div class="report">
+            <div class="report-top">
+              <span class="report-name">AgentFabric 벤치마크</span>
+              <span class="stamp info">2026-07-27</span>
+            </div>
+            <p class="report-line">Cronos x402 1위($24,000·191팀) raw 소스 대조. <strong>그들의 'Max spend'는 UI 표시용이고(자기 소스에 <span class="mono">Advisory limits (NOT enforced on-chain)</span>), 우리 AP2 예산 차감은 코드가 강제한다.</strong> 겹치는 것 6건은 차별점으로 쓰면 즉사. ⚠ 공격 톤 금지.</p>
+            <span class="report-path">docs/reports/agentfabric_benchmark.md</span>
+            <code class="cmd">§5에 카피 교체 문안 — 경쟁 지도 1장의 출처</code>
           </div>
 
           <div class="report">
@@ -718,13 +727,13 @@
                 <tr><th>항목</th><th>상태</th><th>남은 일</th></tr>
               </thead>
               <tbody>
-                <tr><td>1. 트랙</td><td class="st"><span class="stamp warn">확인</span></td><td>Track C 유력 · 공식 명칭 대조 필요</td></tr>
-                <tr><td>2. 프로젝트 소개</td><td class="st"><span class="stamp info">초안</span></td><td>2단 구조 태그라인 + 카피 3건 정정 반영</td></tr>
-                <tr><td>3. 소개서 PDF</td><td class="st"><span class="stamp crit">미착수</span></td><td>장표 + 아키텍처 다이어그램 · pitch_deck 카피 정정 선행</td></tr>
-                <tr><td>4. GitHub</td><td class="st"><span class="stamp warn">private</span></td><td>README 재작성 + public 전환</td></tr>
-                <tr><td>5. 기술 스택</td><td class="st"><span class="stamp info">초안</span></td><td>AP2를 'mandate 위임 모델 재구성(SD-JWT/VC 미채택)'으로</td></tr>
-                <tr><td>6. 데모 영상</td><td class="st"><span class="stamp crit">미착수</span></td><td>대본 재작성 → 촬영 → 업로드 (3분 이내)</td></tr>
-                <tr><td>7. 라이브 URL</td><td class="st"><span class="stamp good">배포됨</span></td><td>권장 항목 · GEMINI_MODE 재배포 후 최종 확인</td></tr>
+                <tr><td>1. 트랙</td><td class="st"><span class="stamp warn">확인</span></td><td>공식 명칭·영상 길이 상한을 디스코드 공지로 대조</td></tr>
+                <tr><td>2. 프로젝트 소개</td><td class="st"><span class="stamp good">확정본</span></td><td>문제정의·솔루션 요약 완료 (<span class="mono">feef5da</span>)</td></tr>
+                <tr><td>3. 소개서 PDF</td><td class="st"><span class="stamp crit">편집 중</span></td><td>HTML 장표는 실재 · 자체발행 고지·사실오류·금지문장·스크린샷 6건 남음</td></tr>
+                <tr><td>4. GitHub</td><td class="st"><span class="stamp warn">private</span></td><td>README 재작성 완료(<span class="mono">f123886</span>) · 정합성 7건 후 public</td></tr>
+                <tr><td>5. 기술 스택</td><td class="st"><span class="stamp good">확정본</span></td><td>완료 (<span class="mono">feef5da</span>)</td></tr>
+                <tr><td>6. 데모 영상</td><td class="st"><span class="stamp crit">미착수</span></td><td>큐시트는 있음 · 대본 정본화 → 촬영 → <b>유튜브 업로드</b></td></tr>
+                <tr><td>7. 라이브 URL</td><td class="st"><span class="stamp good">배포됨</span></td><td>권장 항목 · 제출 폼에는 <span class="mono">#token</span> 포함본</td></tr>
               </tbody>
             </table>
           </div>
@@ -733,25 +742,24 @@
 
       <section style="margin-bottom:0; margin-top:18px">
         <div class="sec-head">
-          <h2>잔여 버그 9건</h2>
-          <span class="sec-note">전부 낮음·정보 등급 · 수정 여부는 판단 대기</span>
+          <h2>잔여 버그 — 6건 + 신규 1건</h2>
+          <span class="sec-note">⚠ 리포트는 9건으로 보이지만 3건은 이미 닫혔다</span>
         </div>
         <div class="panel">
           <div class="table-scroll">
             <table>
               <thead>
-                <tr><th>번호</th><th>등급</th><th>내용</th></tr>
+                <tr><th>번호</th><th>데모 노출</th><th>내용</th></tr>
               </thead>
               <tbody>
-                <tr><td class="id">BUG-05</td><td class="st"><span class="stamp idle">낮음</span></td><td>authorize 비멱등 — 같은 주문번호 재승인 시 예산 이중계상</td></tr>
-                <tr><td class="id">BUG-06</td><td class="st"><span class="stamp idle">낮음</span></td><td>주문번호 정규식이 끝 개행을 허용 — 대사 키에 개행 유입</td></tr>
-                <tr><td class="id">BUG-07</td><td class="st"><span class="stamp idle">낮음</span></td><td>Gemini가 낸 NaN 지출액이 '호출 실패'로 잘못 기록</td></tr>
-                <tr><td class="id">BUG-08</td><td class="st"><span class="stamp idle">낮음</span></td><td>잔돈 예산에서 0원·0수량 주문이 게이트를 통과</td></tr>
-                <tr><td class="id">BUG-09</td><td class="st"><span class="stamp idle">낮음</span></td><td>열 누락 CSV가 안내 없이 원시 오류로 크래시</td></tr>
-                <tr><td class="id">BUG-10</td><td class="st"><span class="stamp idle">낮음</span></td><td>첫 화면 KPI의 시도 수가 AP2 거부 건을 빠뜨림</td></tr>
-                <tr><td class="id">BUG-11</td><td class="st"><span class="stamp idle">낮음</span></td><td>매수 진행 중 한도 교체 시 실패분 예약 원복 누락</td></tr>
-                <tr><td class="id">BUG-12</td><td class="st"><span class="stamp idle">낮음</span></td><td>부팅 복원에서 Firestore 조회가 무제한 대기</td></tr>
-                <tr><td class="id">BUG-13</td><td class="st"><span class="stamp idle">정보</span></td><td>견적이 0·음수 종가를 방어하지 않음</td></tr>
+                <tr><td class="id">CODE-01</td><td class="st"><span class="stamp crit">우선</span></td><td><b>신규.</b> 매수 레그가 <span class="mono">settled</span>만 처리해(매도는 <span class="mono">settled·partial</span>) 브로커가 스스로 신고한 partial 매수가 유출 KPI에서 빠진다</td></tr>
+                <tr><td class="id">BUG-09</td><td class="st"><span class="stamp warn">있음</span></td><td>끝난 세션의 <span class="mono">_finalize</span>가 await 뒤 전역 상태를 덮어써 <b>다음 세션의 긴급정지를 해제</b> — 대본이 '공격 → 운용'이면 촬영 중 밟는다</td></tr>
+                <tr><td class="id">BUG-10</td><td class="st"><span class="stamp idle">문구</span></td><td>합성 인트라바가 실제 고가·저가를 지나지 않는데 독스트링·툴팁은 "지난다"고 단언</td></tr>
+                <tr><td class="id">BUG-03</td><td class="st"><span class="stamp idle">낮음</span></td><td><span class="mono">release()</span> 0 클램프가 추세추종 복리 자본(음수 spent)을 삼킴</td></tr>
+                <tr><td class="id">BUG-05</td><td class="st"><span class="stamp idle">낮음</span></td><td>partial 매도에서 포지션 미차감 → 총자산 과대계상 (CODE-01과 같은 계열)</td></tr>
+                <tr><td class="id">BUG-06</td><td class="st"><span class="stamp idle">낮음</span></td><td>미체결 판단이 '직전 행동 회고'에 사실처럼 기록 (brain=gemini 경로)</td></tr>
+                <tr><td class="id">BUG-07</td><td class="st"><span class="stamp idle">낮음</span></td><td>추세추종 멀티에서 예산 하향 시 슬라이스 음수</td></tr>
+                <tr><td class="id">—</td><td class="st"><span class="stamp good">닫힘</span></td><td>BUG-01(<span class="mono">2981739</span>) · BUG-02·04·08(<span class="mono">7a2b251</span>)</td></tr>
               </tbody>
             </table>
           </div>
@@ -762,22 +770,22 @@
 
   <section style="margin-top:34px">
     <div class="notice" style="margin-bottom:12px">
-      <p><strong>일정 확정.</strong> <strong>08-03(월) 23:59 최종 제출 마감</strong> → 08-07 1차 심사·파이널리스트 약 10팀 → 08-10~20 집중 멘토링 → <strong>08-21 데모데이(라이브)</strong>. 조사 리포트의 "08-03은 스크리닝일 뿐"이라는 서술은 <strong>운영 판단으로 쓰면 위험합니다</strong> — 제출물 3종(소개서 PDF·공개 저장소·데모 영상 3분)이 08-03에 확정되고 그것이 1차 심사 대상입니다. 라이브 URL은 권장입니다.</p>
+      <p><strong>화면을 바꾸는 창은 두 개뿐입니다.</strong> 1차 촬영 전(<b>7/28~29</b>)과 2차 촬영 전(<b>8/1~8/2</b>). 그 사이(7/30~7/31)에는 <strong>문서·저장소·백엔드만</strong> 건드립니다 — 중간에 화면이 바뀌면 1차 완본이 무너지고 재촬영입니다. 같은 이유로 <strong>7/29 도착하는 50% 시안은 반영하지 않습니다.</strong> 일정: 08-03 23:59 제출 마감 → 08-07 파이널리스트 약 10팀 → 08-10~20 멘토링 → 08-21 데모데이.</p>
     </div>
     <div class="notice">
-      <p><strong>다음 순서(사용자 합의).</strong> ① <strong>카피 정정</strong>(x402·AP2·사후구제 3건 + KPI 문구 변경으로 어긋난 곳) → ② <strong>devnet Circle USDC 실증</strong>(.env 교체 → 파우셋 → setup 재실행 → 라이브 아카이브 재생성) → ③ <strong>제출물 3종</strong>. 유출 계측 잔여 6건은 여유가 있을 때. 오늘 목록의 ③로그인·지갑 연결과 ④기능 경계 구체화는 이 순서 안에서 자리를 잡아야 합니다.</p>
+      <p><strong>촬영 순서 지뢰.</strong> 큐시트 G 구간이 explorer 트랜잭션 화면인데, devnet 아카이브는 <strong>자체발행 민트 결제 1건뿐</strong>입니다. Circle 재실증이 1차 촬영보다 뒤면 <strong>심사위원이 영상 속 explorer에서 민트 권한 한 줄을 보게 됩니다.</strong> 둘 중 하나를 반드시 고르세요 — <b>A안</b> 재실증을 촬영 앞으로 당긴다 / <b>B안</b> G 구간을 '아카이브 JSON + 고지 자막'으로 바꾸고 explorer를 비추지 않는다.</p>
     </div>
   </section>
 
   <footer>
-    <div>근거: <span class="mono">docs/reports/competition_research_reconcile.md</span> · <span class="mono">docs/reports/competition_research.md</span> · <span class="mono">docs/reports/judging_latest.md</span> · <span class="mono">docs/reports/bug_latest.md</span> · <span class="mono">docs/reports/data_latest.md</span> · <span class="mono">docs/design/concept_brief_402guard.md</span> · 커밋 <span class="mono">bdd4c1d</span>·<span class="mono">c2ffe9a</span>·<span class="mono">e4f80bd</span>·<span class="mono">de9e000</span>·<span class="mono">7761026</span></div>
-    <div>실증 KPI는 07-27 <span class="mono">python scripts/red_team.py --report</span> 를 실제로 돌려 받은 값입니다(<span class="mono">[KPI-JSON]</span> 줄). 체크 상태는 이 브라우저에만 저장됩니다 — 항목이 다시 바뀌어 저장 키를 <span class="mono">v3</span>로 올렸으므로 이전 체크는 초기화됩니다.</div>
+    <div>단일 출처: <span class="mono">docs/next_session_plan.md</span>(P1~P4 전체 계획·근거·채택 금지안) · <span class="mono">docs/reports/judging_latest.md</span> · <span class="mono">docs/reports/agentfabric_benchmark.md</span> · <span class="mono">docs/reports/competition_research_reconcile.md</span> · <span class="mono">docs/reports/bug_latest.md</span> · <span class="mono">docs/design/concept_brief_402guard.md</span></div>
+    <div>체크리스트 41건은 계획서의 P1~P4 를 실행 순서로 재배열한 것이며, 각 항목의 "미착수" 판정은 <b>2026-07-28에 저장소 코드를 직접 grep 해 확인</b>했습니다(추정 아님). 실증 KPI는 같은 날 <span class="mono">python -m scripts.red_team --report</span> 를 실제로 돌려 받은 <span class="mono">[KPI-JSON]</span> 값입니다. 체크 상태는 이 브라우저에만 저장되며, 항목이 바뀌어 저장 키를 <span class="mono">v4</span>로 올렸으므로 이전 체크는 초기화됩니다.</div>
   </footer>
 </main>
 
 <script>
   (function () {
-    var STORE_KEY = "guard402.status.v3";
+    var STORE_KEY = "guard402.status.v4";
     var DEADLINE = new Date("2026-08-03T23:59:00+09:00").getTime();
     var KICKOFF = new Date("2026-07-21T00:00:00+09:00").getTime();
     var DEMODAY = new Date("2026-08-21T00:00:00+09:00").getTime();
