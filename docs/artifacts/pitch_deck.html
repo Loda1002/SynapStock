@@ -245,6 +245,8 @@
   table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.data th, table.data td { text-align: left; padding: 4mm 4mm; border-top: 1px solid var(--rule); vertical-align: top; }
   table.data thead th { border-top: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  /* 한 슬라이드에 표 + 설명이 함께 들어갈 때 쓰는 압축판 (넘치면 .frame 이 조용히 잘라낸다) */
+  table.data.tight th, table.data.tight td { padding: 2.4mm 4mm; }
   table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
   table.data td.win { color: var(--good); font-weight: 700; }
   table.data td.lose { color: var(--crit); font-weight: 700; }
@@ -299,7 +301,7 @@
 
 <div class="toolbar">
   <span class="title">402 Guard — 프로젝트 소개서</span>
-  <span class="note">A4 가로 13장. 인쇄 창에서 <b>대상을 PDF로 저장</b>, 배율 100%, 배경 그래픽 켜기로 저장하면 제출용 PDF가 됩니다.</span>
+  <span class="note">A4 가로 14장. 인쇄 창에서 <b>대상을 PDF로 저장</b>, 배율 100%, 배경 그래픽 켜기로 저장하면 제출용 PDF가 됩니다.</span>
   <button class="print-btn" id="printBtn" type="button">PDF로 저장</button>
 </div>
 
@@ -317,7 +319,7 @@
       <div><b>네트워크</b>Solana devnet · localnet</div>
       <div><b>제출</b>2026-08</div>
     </div>
-    <span class="slide-num mono">01 / 13</span>
+    <span class="slide-num mono">01 / 14</span>
   </section></div>
 
   <!-- 2. problem -->
@@ -343,7 +345,7 @@
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">02 / 13</span>
+    <span class="slide-num mono">02 / 14</span>
   </section></div>
 
   <!-- 3. attack -->
@@ -374,7 +376,7 @@
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">03 / 13</span>
+    <span class="slide-num mono">03 / 14</span>
   </section></div>
 
   <!-- 4. why -->
@@ -404,7 +406,7 @@
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">04 / 13</span>
+    <span class="slide-num mono">04 / 14</span>
   </section></div>
 
   <!-- 5. solution -->
@@ -437,7 +439,7 @@
       <div class="footnote"><b>검사 09만 결정론이 아닙니다.</b> 앞의 하드 검사 8종이 전부 통과한 뒤에만 돌고, <b>차단만 할 수 있으며 통과시킬 권한은 없습니다.</b> &nbsp;·&nbsp; <b>결제가 끝나도 끝이 아닙니다.</b> 지불은 됐는데 자산이 오지 않으면 완료로 기록하지 않습니다 — 미확인은 보류 처리하고 세션을 정지합니다(회수는 못 합니다). 정산 실패 시 위임 한도는 원복됩니다.</div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">05 / 13</span>
+    <span class="slide-num mono">05 / 14</span>
   </section></div>
 
   <!-- 6. architecture -->
@@ -486,7 +488,7 @@
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">06 / 13</span>
+    <span class="slide-num mono">06 / 14</span>
   </section></div>
 
   <!-- 7. customer -->
@@ -498,16 +500,19 @@
         <span class="tag">1차 고객</span>
         <h3>에이전트에 결제를 붙이는 개발사</h3>
         <p>구매·구독·API 과금을 자동화하려는 팀. 결제 자체는 x402로 쉽게 붙지만, "이 청구서를 믿어도 되는가"는 각자 알아서 짜야 합니다. 그 계층을 표준화해 제공합니다.</p>
+        <p class="mono" style="margin-top:3mm; font-size:11.5px; color:var(--ink-3)">12개월 목표(가정) 20곳 × 월 100만 검사 × $0.001 = 월 $20,000</p>
       </div>
       <div class="box">
         <span class="tag">2차 고객</span>
         <h3>에이전틱 커머스 플랫폼</h3>
         <p>다수의 구매 에이전트가 낯선 판매자와 거래하는 마켓. 플랫폼이 구매자 보호를 제공하지 못하면 신뢰가 성립하지 않습니다.</p>
+        <p class="mono" style="margin-top:3mm; font-size:11.5px; color:var(--ink-3)">12개월 목표(가정) 기업 3곳 × 월 $2,000 = 월 $6,000</p>
       </div>
       <div class="box">
         <span class="tag">레퍼런스</span>
         <h3>자율 매매 도구 사용자</h3>
         <p>고빈도·반복 결제라 위험이 누적되는 최악의 조건. 여기서 성립하면 다른 곳에서도 성립합니다. 그래서 토큰화 주식 자동매매를 첫 시나리오로 골랐습니다.</p>
+        <p class="mono" style="margin-top:3mm; font-size:11.5px; color:var(--ink-3)">에이전트 200대 × 대당 월 15,000 USDC 거래 × 0.3% = 월 $9,000</p>
       </div>
       <div class="box tint" style="grid-column: span 3">
         <span class="tag">우리가 파는 것</span>
@@ -516,7 +521,7 @@
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">07 / 13</span>
+    <span class="slide-num mono">07 / 14</span>
   </section></div>
 
   <!-- 8. evidence -->
@@ -547,7 +552,7 @@
       <div class="footnote"><b>재현 명령</b> &nbsp;<span class="mono">curl -i &lt;url&gt;/broker/orders</span> → 402 &nbsp;·&nbsp; <span class="mono">python -m scripts.red_team --report</span> &nbsp;·&nbsp; 온체인 확인 <span class="mono">explorer.solana.com/tx/&lt;sig&gt;?cluster=devnet</span></div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">08 / 13</span>
+    <span class="slide-num mono">08 / 14</span>
   </section></div>
 
   <!-- 9. demo -->
@@ -570,7 +575,7 @@
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">09 / 13</span>
+    <span class="slide-num mono">09 / 14</span>
   </section></div>
 
   <!-- 10. AI -->
@@ -598,10 +603,45 @@
     </div>
     <div class="footnote" style="margin-top:4mm"><b>정직하게</b> — AI가 수익을 올린다고 말하지 않습니다. 동일 구간 실측에서 규칙 −37.56% vs Gemini −39.57%로 <b>수익 기여는 중립(약간 열위)</b>이고, 그래서 판단 두뇌는 끌 수 있는 옵션입니다. 반면 청구서 레이어는 끄면 <b>막을 방법이 없는 공격 하나가 열립니다.</b> AI가 부속품인 자리와 대체 불가인 자리를 저희가 구분해 두었습니다.</div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">10 / 13</span>
+    <span class="slide-num mono">10 / 14</span>
   </section></div>
 
-  <!-- 11. business -->
+  <!-- 11. competition -->
+  <div class="frame"><section class="slide">
+    <span class="eyebrow">경쟁 지도</span>
+    <h2 class="headline">'얼마까지'를 말하는 팀은 많습니다.<br>'무엇에 대해'를 묻는 칸이 비어 있었습니다</h2>
+    <p class="deck-lead">저희가 <b>소스·문서로 직접 확인한 범위</b>의 세 곳과 나란히 놓습니다. 확인하지 못한 칸은 물음표로 남깁니다 — 없다고 적지 않습니다.</p>
+    <div class="body">
+      <div class="box" style="margin-bottom:5mm">
+        <span class="tag">먼저, 겹치는 것</span>
+        <p>개인키 미접근 · 1회 서명 후 자율 실행 · 스코프 위임 · x402 레일 · 테스트넷 배포 — 이 다섯은 <b>경쟁군과 겹칩니다.</b> 차별점으로 쓰지 않습니다. 아래 네 줄만 저희 칸입니다.</p>
+      </div>
+      <table class="data">
+        <thead><tr>
+          <th style="width:31%">비교 축</th>
+          <th>AgentFabric <span class="mono" style="font-size:9.5px; text-transform:none; letter-spacing:0">Cronos x402 1위</span></th>
+          <th>Circle Agent Wallets</th>
+          <th>Kyvern</th>
+          <th style="width:23%">402 Guard</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>수취인 검사 — <b>누구에게</b></td><td>—</td><td>✓</td><td>✓</td><td class="win">✓</td></tr>
+          <tr><td>금액 한도 <b>집행</b> (표시가 아니라)</td><td>UI 표시용 <span class="mono">*</span></td><td>?</td><td>?</td><td class="win">✓ 서명 직전 차감</td></tr>
+          <tr><td><b>청구서 ↔ 합의 견적 대조</b></td><td>—</td><td>—</td><td>—</td><td class="win">✓ 하드 8종 + 설명 의미 대조</td></tr>
+          <tr><td><b>매수·매도 양 레그 대칭</b></td><td>—</td><td>—</td><td>—</td><td class="win">✓</td></tr>
+        </tbody>
+      </table>
+      <div class="footnote" style="margin-top:auto">
+        <b>*</b> AgentFabric 은 자기 소스에 <span class="mono">Advisory limits (NOT enforced on-chain, just for UI display)</span> 라고 적어 두었습니다. <b>정직하게 단 플래그입니다</b> — 그들의 온체인 세션키는 '무엇을 건드릴 수 있는가'까지 강제합니다. '얼마를·누구에게'가 아직 그 레이어에 없을 뿐입니다.
+        &nbsp;·&nbsp; <b>저희 한도 집행도 온체인이 아닙니다</b> — 에이전트 프로세스 안의 코드가 서명 직전에 차감합니다(<span class="mono">ap2_mandate.py</span>). 온체인 이관은 로드맵입니다.
+        &nbsp;·&nbsp; <b>?</b> = 저희가 확인하지 못한 칸 &nbsp;<b>—</b> = <b>저희가 확인한 범위에서</b> 발견하지 못함. "세계 최초"라고 말하지 않습니다.
+      </div>
+    </div>
+    <span class="slide-brand mono">402 GUARD</span>
+    <span class="slide-num mono">11 / 14</span>
+  </section></div>
+
+  <!-- 12. business -->
   <div class="frame"><section class="slide">
     <span class="eyebrow">수익모델</span>
     <h2 class="headline">지금 도는 것과, 팔릴 것</h2>
@@ -609,25 +649,35 @@
       <div class="box">
         <span class="tag">현재 구현</span>
         <h3>거래 수수료 0.3%</h3>
-        <p>브로커 에이전트가 견적에 수수료를 분리 표기하고, 누적 수수료를 화면에 표시합니다. 요율은 설정값이며 최종 수치는 재검토 중입니다.</p>
+        <p>브로커 에이전트가 견적에 수수료를 분리 표기하고, 누적 수수료를 화면에 표시합니다. <b>지금 코드에 있고 화면에 뜨는 유일한 단</b>입니다.</p>
+        <p class="mono" style="margin-top:3mm; font-size:11.5px; color:var(--ink-3)">에이전트 1대가 월 15,000 USDC 거래 → 월 45 USDC</p>
       </div>
       <div class="box tint">
-        <span class="tag">제품화 1</span>
-        <h3>게이트 SDK · 건당 과금</h3>
-        <p>에이전트에 결제를 붙이는 개발사가 게이트를 라이브러리로 가져다 씁니다. 검사 건수 기준 과금이 자연스럽습니다 — 결제가 늘수록 검사도 늘기 때문입니다.</p>
+        <span class="tag">제품화 1 · 단가 가정</span>
+        <h3>게이트 SDK · 검사 1건 $0.001</h3>
+        <p>에이전트에 결제를 붙이는 개발사가 게이트를 라이브러리로 가져다 씁니다. 결제가 늘수록 검사도 늘어 건당 과금이 자연스럽습니다. <b>원가 근거</b> — 의미 대조는 결제 시도마다만 돌고 숫자를 가린 '서식' 캐시를 써서 실측 <b>87건 대조 = LLM 3회</b>였습니다.</p>
       </div>
       <div class="box">
-        <span class="tag">제품화 2</span>
-        <h3>정책 관리 · 감사 로그</h3>
-        <p>여러 에이전트의 위임 한도를 한 곳에서 관리하고, 차단·유출·오탐 이력을 감사 가능한 형태로 남기는 관리 도구. 팀·기업 단위 구독.</p>
+        <span class="tag">제품화 2 · 단가 가정</span>
+        <h3>정책·감사 구독 · 월 $200 / $2,000</h3>
+        <p>여러 에이전트의 위임 한도를 한 곳에서 관리하고, 차단·유출·오탐 이력을 감사 가능한 형태로 남기는 관리 도구. 팀 월 $200 · 기업 월 $2,000.</p>
       </div>
       <div class="box" style="grid-column: span 3">
-        <span class="tag">시장이 열리는 조건</span>
-        <p>에이전트 결제가 늘어날수록 "청구서를 믿어도 되는가"는 각 팀이 중복해서 푸는 문제가 됩니다. 결제 레일(x402)은 표준화됐지만 <b>구매자 보호는 아직 표준이 없습니다</b>. 저희는 그 자리를 먼저 채우려 합니다. 가정이며, 첫 검증은 이 레퍼런스 구현입니다.</p>
+        <span class="tag">12개월 목표 시나리오 — 전부 가정</span>
+        <table class="data tight" style="margin-top:1mm">
+          <thead><tr><th style="width:34%">층</th><th>목표</th><th>단가</th><th style="width:20%">월 매출</th></tr></thead>
+          <tbody>
+            <tr><td>개발사 — 게이트 SDK</td><td>20곳 · 각 월 100만 검사</td><td class="num">검사 1건 $0.001</td><td class="num">$20,000</td></tr>
+            <tr><td>플랫폼 — 정책·감사 구독</td><td>기업 3곳</td><td class="num">월 $2,000</td><td class="num">$6,000</td></tr>
+            <tr><td>자율 매매 — 거래 수수료</td><td>에이전트 200대 · 대당 월 15,000 USDC</td><td class="num">0.3%</td><td class="num">$9,000</td></tr>
+            <tr><td><b>합계</b></td><td></td><td></td><td class="num"><b>월 $35,000</b></td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:2mm; font-size:11.5px; color:var(--ink-3)"><b>정직하게</b> — 위 표는 <b>전부 가정</b>입니다. 출처를 댈 수 없는 시장 규모(TAM) 수치는 적지 않았습니다. 검증된 것은 1단뿐이고(<span class="mono">BROKER_FEE_BPS=30</span> 이 코드에 있고 화면에 누적액이 뜹니다), 2·3단은 <b>단가 가설</b>입니다.</p>
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">11 / 13</span>
+    <span class="slide-num mono">12 / 14</span>
   </section></div>
 
   <!-- 12. honest limits + roadmap -->
@@ -661,7 +711,7 @@
       </div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">12 / 13</span>
+    <span class="slide-num mono">13 / 14</span>
   </section></div>
 
   <!-- 13. appendix -->
@@ -695,7 +745,7 @@
     </div>
     <div class="footnote" style="margin-top:auto"><b>402 Guard</b> — x402 규격은 파는 쪽을 보호합니다. 저희는 사는 쪽을 보호합니다.</div>
     <span class="slide-brand mono">402 GUARD</span>
-    <span class="slide-num mono">13 / 13</span>
+    <span class="slide-num mono">14 / 14</span>
   </section></div>
 
 </div>
