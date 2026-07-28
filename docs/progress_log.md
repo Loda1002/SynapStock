@@ -97,3 +97,16 @@
 - **매도 사이클 + 거부 케이스 완료**: x402 역방향(주식 전송→브로커 온체인 검증→USDC 지급) 구현, 매도 대금은 AP2 예산에 환입(예산=순투입 한도). localnet 라이브 풀사이클 검증 — 매수 4·매도 1 전부 온체인 확정, 순변화 교차검증 PASS(+7 USDC 수익 시나리오). `scripts/demo_rejections.py`: 건별 한도 초과·mandate 위변조·금액 부족·미허용 종목 4종 정상 차단(로그 아카이브). 특기: 라이브 중 Gemini 무료 티어 rate limit로 3틱이 규칙 폴백 처리 — 폴백 설계 실전 검증. CLAUDE.md 현재 상태·다음 단계 갱신(1=웹 서비스화, 2=Cloud Run, 3=디자인, 4=devnet, 5=제출물).
 - **다음 단계 2번(Gemini 교체) 완료**: `agents/gemini_decider.py` 신설 — Gemini API(무료 티어, `gemini-flash-latest`, developer 모드)가 시세 흐름·규칙·예산을 보고 매수/매도/보류 판단 + 한국어 이유 생성. 호출 실패 시 규칙 기반 자동 폴백(데모데이 네트워크 대비). localnet 라이브 재검증: **Gemini 판단 매수 3건 온체인 확정**, 교차검증 PASS, 아카이브에 판단 주체·이유 기록. 참고: 신규 계정 키는 `AQ.` 새 형식이고 gemini-2.5 계열이 신규 사용자에게 차단돼 `gemini-flash-latest` 별칭 사용. 연결 확인은 `scripts/check_gemini.py`.
 - **다음 단계 1번(라이브 tx) localnet 완료**: WSL Ubuntu에 Agave 4.1.1 설치 → solana-test-validator 기동 → setup → `run_demo.py --live` 성공. 매수 3건 = 온체인 tx 6건(USDC 결제+주식 전달) 확정, 전후 잔액 RPC 교차검증 PASS, `artifacts/tx/20260722_1547_solana-localnet_live_buy.json` 아카이브. 수정 2건: 클라이언트 커밋먼트 Confirmed 통일(에어드랍 자금 미인식 해결), `preflight_commitment=Confirmed` 명시(Finalized 뱅크 preflight의 "Blockhash not found" 해결). 증빙 보강: 주식 전달 tx 서명 수집(기존엔 버려짐), 라이브 미확정 시 status=failed 처리, 전후 잔액 스냅샷·교차검증·JSON 아카이빙 추가. git 저장소 초기화. devnet은 SOL 확보(디스코드 요청) 후 .env 전환만 하면 됨.
+
+## 2026-07-28 (2) — P1·P2·P3 대부분 완료 + 지갑 잔액 표시 (커밋 9건)
+
+- CODE-01: 브로커 자기신고 `partial` 매수가 배송 검증 블록에 못 들어가 유출 KPI·GUARD_PENDING 에서 빠지던 결함 수정. 음성 대조로 재현 확인(옛 조건에서 leak=0 / total=9.99). tx 아카이브에 guard 블록 추가.
+- CODE-03/07: 쿼터 소진 보류(GUARD_LLM_UNVERIFIED)를 `blocked_unverified` 부분집합으로 분리 방출. KPI 칸은 4개 유지. 가드 패널에 '이번 세션 기준' 명시.
+- UX-02/GAP-01: 런북 6-1 신설(#token 링크 규칙·촬영 규칙·토큰 로테이션·채택 금지안), 랜딩에 단일 공용 인스턴스 고지, 401 문구 교체.
+- P3 상업성 정량: 경쟁 지도 슬라이드 신설(소개서 13→14장), 수익모델 3단 단가 + 12개월 목표 월 \,000(전부 '가정' 명시, TAM 없음), 타겟 고객 3층에 목표 수치.
+- P2-3: 소개서에 결제 통화 자체발행 고지 신설, 사실오류 정정(USDC 순변화 −4.9 → 구매자 +4.9, 아카이브 재확인), 금지 문장 제거, 커버에 라이브 URL.
+- DOC-03: 촬영 대본을 정본(submission.md 6장)과 동기화 — 6→7장면(A~G), 금지 문장·폐기 KPI 제거, 축② 근거인 장면 E(의미 대조) 신설, G 구간 explorer 조건부 경고.
+- GAP-07: README 에 부서 3종 소개 + 라이브 URL. `python scripts/collect_evidence.py` 가 sys.path 문제로 크래시하던 것 수정(두 실행 형태 모두 rc=0).
+- 신규: 연결 지갑 온체인 잔액 표시(`GET /api/wallet/balance` + 헤더 배지 + /connect). 세션 쿠키의 지갑만 조회, 실패는 error 필드, 20초 캐시(실패 포함). test_wallet_balance 20건 신설 → 테스트 21종.
+- 배포 리비전 `synapstock-00013-sgs`. 엔드포인트 11개 실측 정상, `/broker/orders` POST → 402 + accepts[].
+- 8/1 09:00 제출물 리마인드 예약(scheduled task).
