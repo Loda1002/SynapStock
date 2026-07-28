@@ -35,6 +35,46 @@
   .nav-link:hover { color: var(--accent); }
   .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 
+  /* 상단 메뉴 = Uiverse 의 container 컴포넌트(알약 트랙 + 미끄러지는 글라이더).
+     원본은 라디오 버튼이라 페이지를 이동시키지 못한다 — 링크(<a>)로 옮기고, 글라이더는
+     ①기본값은 현재 페이지인 '소개'에 머물고 ②마우스를 올린 탭으로 미끄러진다(:has()).
+     :has() 를 모르는 브라우저에서는 글라이더가 '소개' 자리에 머물 뿐 메뉴는 그대로 동작한다.
+     원본의 알림 뱃지(.notification)는 뺐다 — 여기엔 셀 것이 없다.
+     색은 원본의 하드코딩 값(#fff·#185ee0·#e6eef9) 대신 테마 변수를 쓴다. 특히 트랙 배경을
+     흰색으로 두면 같은 흰색인 상단바(.topbar) 위에서 알약이 통째로 사라져 보인다. */
+  .tabs {
+    --tab-w: 88px;                    /* 세 탭의 공통 폭 = 글라이더가 한 칸 미끄러지는 거리 */
+    display: flex; position: relative;
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 6px; border-radius: 99px;
+  }
+  .tabs * { z-index: 2; }
+  .tab {
+    display: flex; align-items: center; justify-content: center;
+    height: 30px; width: var(--tab-w);
+    font-size: 13px; font-weight: 500; color: var(--text); text-decoration: none;
+    border-radius: 99px; white-space: nowrap;
+    transition: color .15s ease-in;
+  }
+  .tab:hover, .tab.is-current { color: var(--accent); }
+  /* position:absolute 인데 top·left 가 없다 = 첫 탭 자리(플렉스 컨테이너 내용 상자 왼쪽 위)에
+     놓인다. 원본이 translateX 로만 위치를 잡는 이유다 — 그 계산을 그대로 쓴다. */
+  .glider {
+    position: absolute; z-index: 1;
+    height: 30px; width: var(--tab-w);
+    background: var(--card-bg);
+    background: color-mix(in srgb, var(--accent) 13%, var(--card-bg));
+    border-radius: 99px;
+    transform: translateX(0);
+    transition: transform .25s ease-out;
+  }
+  .tabs:has(.tab:nth-child(1):hover) .glider { transform: translateX(0); }
+  .tabs:has(.tab:nth-child(2):hover) .glider { transform: translateX(100%); }
+  .tabs:has(.tab:nth-child(3):hover) .glider { transform: translateX(200%); }
+  @media (prefers-reduced-motion: reduce) {
+    .glider { transition: none; }
+  }
+
   /* 히어로 — 카피(좌) + 흐릿한 대시보드 미리보기(우).
      타입 스케일은 대시보드용(--fs-big=34)보다 크게 잡는다 — 랜딩 헤드라인이 약해 보이던 문제.
      좌우 높이차로 왼쪽 아래에 빈 공간이 크게 남던 것은 .hero-proof 로 무게를 맞춘다. */
@@ -110,6 +150,10 @@
        블러 이미지부터 마주치는 구조라 순서를 되돌린다(카피 → 예시). */
     .hero-proof { gap: var(--gap); margin-top: 20px; }
     .landing-nav { margin: 0; }
+    /* 원본은 여기서 .tabs 를 통째로 60% 로 줄였다 — 한글 메뉴는 글자가 읽기 어려워지므로
+       글자 크기는 두고 탭 폭만 줄인다(글라이더 이동 단위가 --tab-w 라 저절로 따라온다). */
+    .tabs { --tab-w: 72px; padding: 4px; }
+    .tab { font-size: 12px; }
   }
 </style>
 <!-- 스크롤 등장 모션 — 대시보드와 같은 스크립트를 공유한다(js/reveal.js 헤더 "대시보드·랜딩 공용").
@@ -129,11 +173,17 @@
   </div>
   <!-- '포트폴리오/인사이트/리포트 곧' 자리표시 3개가 있었다. 만들 계획이 없는 메뉴를
        비활성 상태로 전시하면 "미완성 제품"이라는 인상만 남는다 — 실제로 있는 것만 건다. -->
+  <!-- 알약 트랙 위를 글라이더가 미끄러지는 탭 메뉴(스타일은 위 <style> 의 .tabs).
+       ⚠ 디스커버리(/.well-known/x402)는 사람이 읽는 화면이 아니라 날 JSON 이다 —
+          처음 온 사람이 상단 메뉴를 눌러 그걸 마주치는 것이 이 메뉴의 유일한 약점이다
+          (그래서 예전에 뺐었다). 사용자 요청으로 다시 넣었고, 증빙 링크라 푸터에도 그대로 있다. -->
   <nav class="landing-nav" aria-label="주요 메뉴">
-    <a class="nav-link" href="#about">소개</a>
-    <a class="nav-link" href="/app">대시보드</a>
-    <!-- x402 디스커버리는 상단 메뉴에서 뺐다 — 처음 온 사람이 메뉴를 누르면 날 JSON 을
-         마주친다. 증빙이라 지우지는 않고, 이미 같은 링크가 있는 푸터에만 남긴다. -->
+    <div class="tabs">
+      <a class="tab is-current" href="#about">소개</a>
+      <a class="tab" href="/app">대시보드</a>
+      <a class="tab" href="/.well-known/x402">디스커버리</a>
+      <span class="glider" aria-hidden="true"></span>
+    </div>
   </nav>
   <div class="controls">
     <a class="btn btn-primary" href="/connect">지갑 연결하고 시작하기</a>
@@ -259,6 +309,17 @@
   </span>
   <span class="sub">devnet 증빙의 결제 통화는 저희가 발행한 테스트 토큰입니다(Circle 공식 민트 재실증 예정).</span>
 </footer>
+
+<!-- 맨 위로 — 스크롤을 내리기 전에는 보이지 않는다(숨김이 CSS 기본값, js/to-top.js 가 벗긴다).
+     글자 "맨 위로"는 CSS(.to-top::before)가 그리므로 aria-label 로 읽을 이름을 따로 준다. -->
+<button class="to-top" type="button" data-to-top aria-label="맨 위로">
+  <svg class="to-top-icon" viewBox="0 0 384 512" aria-hidden="true">
+    <path
+      d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"
+    ></path>
+  </svg>
+</button>
+<script src="/static/js/to-top.js"></script>
 
 </body>
 </html>

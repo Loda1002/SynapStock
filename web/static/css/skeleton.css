@@ -232,7 +232,12 @@ input[type="number"], input[type="text"], input[type="time"] {
   gap: var(--gap); flex-wrap: wrap;
 }
 .huge { font-size: calc(var(--fs-big) * 1.6); font-weight: 700; margin: 2px 0; line-height: 1.1; }
-.chart-legend { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+/* 차트 아래 한 줄 — 조작부·범례·집계 정보. 그래프 위에 두면 가드 요약 패널이 가린다. */
+.chart-legend {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px var(--gap); margin-top: 6px;
+}
+.chart-legend .chart-hint { margin-left: auto; }
 .swatch {
   display: inline-block; width: 10px; height: 10px; border-radius: 2px;
   margin: 0 4px 0 10px; vertical-align: -1px;
@@ -244,7 +249,21 @@ input[type="number"], input[type="text"], input[type="time"] {
 .swatch-ma10 { background: var(--ma10); }
 .swatch-ma20 { background: var(--ma20); }
 .swatch-ma50 { background: var(--ma50); }
-.chart { width: 100%; height: 320px; display: block; margin-top: 6px; }
+.swatch-ma100 { background: var(--ma100); }
+.swatch-ma200 { background: var(--ma200); }
+
+/* 이동평균 범례 — 항목을 낱개로 감싸 두어야 app.js 가 "아직 봉이 모자란" 항목만 흐리게 한다 */
+.ma-legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ma-legend > span { display: inline-flex; align-items: center; gap: 3px; }
+.ma-legend > span.ma-off { opacity: .35; }   /* 그 기간만큼 봉이 아직 안 쌓였다 */
+
+/* 차트 조작부 (봉 묶기 · 최신으로) */
+.chart-tools { display: flex; gap: 6px; align-items: center; }
+.chart-tools select { font-size: var(--fs-small); padding: 2px 6px; }
+.chart-hint { opacity: .75; }
+
+.chart { width: 100%; height: 320px; display: block; margin-top: 6px; touch-action: none; cursor: grab; }
+.chart.is-dragging { cursor: grabbing; }
 .chart .grid-line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
 .chart .axis-label { fill: var(--muted); font-size: 11px; font-family: var(--mono); }
 .chart .candle-up { fill: var(--buy); stroke: var(--buy); }
@@ -255,6 +274,8 @@ input[type="number"], input[type="text"], input[type="time"] {
 .chart .ma10 { fill: none; stroke: var(--ma10); stroke-width: 1.5; stroke-dasharray: 4 2; }
 .chart .ma20 { fill: none; stroke: var(--ma20); stroke-width: 2; stroke-dasharray: 5 3; }
 .chart .ma50 { fill: none; stroke: var(--ma50); stroke-width: 1.5; stroke-dasharray: 8 3; }
+.chart .ma100 { fill: none; stroke: var(--ma100); stroke-width: 1.8; }
+.chart .ma200 { fill: none; stroke: var(--ma200); stroke-width: 2.2; }
 .chart .last-price { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 2; }
 .chart .empty-note { fill: var(--muted); font-size: 13px; }
 
@@ -367,7 +388,12 @@ td a { color: var(--accent); }
 .toasts {
   position: fixed; right: var(--gap); bottom: var(--gap); z-index: 100;
   display: flex; flex-direction: column; gap: 8px; max-width: 340px;
+  /* 같은 우하단에 "맨 위로" 버튼(.to-top, 50px)이 떠 있어서 그 높이만큼 띄운다.
+     겹치면 토스트가 버튼을 덮어 스크롤 중에 버튼을 누를 수 없다. */
+  padding-bottom: calc(50px + var(--gap));
+  pointer-events: none;   /* 비어 있는 여백이 버튼 클릭을 가로채지 않게 */
 }
+.toast { pointer-events: auto; }
 .toast {
   background: var(--card-bg); border: 1px solid var(--border);
   border-left: 4px solid var(--accent); border-radius: var(--radius);
@@ -381,6 +407,44 @@ td a { color: var(--accent); }
 @keyframes toast-in {
   from { transform: translateY(8px); opacity: 0; }
   to { transform: none; opacity: 1; }
+}
+
+/* ---- "맨 위로" 버튼 (landing.html · index.html 공용) ----
+   Uiverse 의 goback 컴포넌트를 옮겼다 — 평소엔 화살표만 있는 원이고, 마우스를 올리면
+   가로로 늘어나면서 화살표가 위로 빠져나가고 그 자리에 글자가 올라온다.
+   원본과 다른 점 두 가지:
+   · 클래스 이름을 .button → .to-top 으로 바꿨다(.button 은 이 저장소의 다른 버튼과 부딪힌다).
+   · 하드코딩 색(검정 원·보라 링) 대신 테마 변수를 쓴다 — 다크 모드에서 색이 따로 놀지 않게.
+   숨김이 기본값이라 js/to-top.js 가 없거나 실패해도 화면에 이상한 버튼이 남지 않는다. */
+.to-top {
+  position: fixed; right: var(--gap); bottom: var(--gap); z-index: 101;
+  width: 50px; height: 50px; border-radius: 50%;
+  border: none; background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; cursor: pointer; overflow: hidden;
+  box-shadow: 0 0 0 4px rgba(47, 86, 240, .22), var(--shadow);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow);
+  transition: width .3s, border-radius .3s, filter .3s,
+              opacity .22s var(--stagger-ease), translate .22s var(--stagger-ease);
+  /* 스크롤을 내리기 전에는 없는 셈 친다 — visibility 까지 꺼야 투명한 버튼이 클릭을 먹지 않는다 */
+  opacity: 0; visibility: hidden; translate: 0 12px;
+}
+.to-top.is-shown { opacity: 1; visibility: visible; translate: none; }
+.to-top:hover { width: 116px; border-radius: 50px; filter: brightness(1.08); }
+
+.to-top-icon { width: 12px; transition: transform .3s; }
+.to-top-icon path { fill: #fff; }
+.to-top:hover .to-top-icon { transform: translateY(-200%); }
+
+/* 화살표가 위로 빠져나간 자리에 올라오는 글자. 평소에는 글자 크기가 0 이라 원 안이 비어 있다. */
+.to-top::before {
+  position: absolute; bottom: -20px; content: "맨 위로";
+  color: #fff; font-size: 0;
+}
+.to-top:hover::before { bottom: unset; font-size: 13px; transition: font-size .3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .to-top, .to-top-icon { transition: none; }
 }
 
 /* ---- 얇은 헤더 (index.html) ----
@@ -498,3 +562,38 @@ tr.focus-row .linklike { text-decoration: none; }
 [data-focus-select] { font: inherit; }
 .feed .sym { font-weight: 600; color: var(--accent); }
 td.sym { font-weight: 600; }
+
+/* ---- 개발자 전용 서랍 (index.html .dev-dock) ----
+   우리가 개발·검증에 쓰는 조작부(세션 설정·진단 배지·배치 실험)를 화면 왼쪽 아래 한곳에 모은다.
+   ?lab=1 이 아니면 .dev-dock 에 .hidden 이 붙은 채라 탭조차 보이지 않는다 —
+   런칭 때 "개발용 UI 숨기기"가 이 스위치 하나로 끝나게 하려는 구조다.
+   오른쪽 아래는 토스트·맨위로 버튼이 쓰므로 왼쪽에 둔다. */
+.dev-dock {
+  position: fixed; left: var(--gap); bottom: var(--gap); z-index: 102;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+}
+.dev-tab {
+  border: 1px solid var(--border); background: var(--card-bg); color: var(--muted);
+  border-radius: 99px; padding: 6px 14px; font: inherit; font-size: var(--fs-small);
+  cursor: pointer; box-shadow: var(--shadow);
+}
+.dev-tab:hover { color: var(--text); }
+.dev-dock.is-open .dev-tab { color: var(--accent); border-color: var(--accent); }
+
+.dev-drawer {
+  order: -1;                                   /* 탭 위로 펼쳐진다 */
+  width: min(380px, calc(100vw - var(--gap) * 2));
+  max-height: 74vh; overflow: auto;
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-hover);
+  padding: var(--pad);
+}
+.dev-drawer[hidden] { display: none; }
+.dev-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.dev-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.dev-foot { margin-top: 10px; }
+/* 서랍 안에서는 카드 껍데기(그림자·테두리·hover 뜨기)를 벗긴다 — 카드 속 카드로 보이지 않게 */
+.dev-drawer .card {
+  box-shadow: none; border: none; padding: 0; margin: 0; background: none;
+}
+.dev-drawer .card:hover { box-shadow: none; transform: none; }

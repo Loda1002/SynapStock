@@ -61,6 +61,9 @@
     priceChange: $("[data-price-change]"),
     changeBasis: $("[data-change-basis]"),
     chart: $("[data-chart]"),
+    chartGroup: $("[data-chart-group]"),
+    chartView: $("[data-chart-view]"),
+    chartLatest: $("[data-chart-latest]"),
     candleInfo: $("[data-candle-info]"),
     tickInfo: $("[data-tick-info]"),
     posQty: $("[data-pos-qty]"),
@@ -101,6 +104,10 @@
     walletBroker: $("[data-wallet-broker]"),
     sessionCard: $('[data-card="session"]'),
     adv: $("[data-adv]"),
+    devDock: $("[data-dev-dock]"),
+    devDrawer: $("[data-dev-drawer]"),
+    devToggle: $("[data-dev-toggle]"),
+    devSlot: $("[data-dev-slot]"),
     btnNotify: $("[data-btn-notify]"),
     toasts: $("[data-toasts]"),
     btnBriefing: $("[data-btn-briefing]"),
@@ -137,6 +144,13 @@
   let perSymbol = {};       // state.per_symbol (종목별 price·position·valuation)
   let lastEventId = 0;
   let lastEngineStatus = "";        // 실행→대기 전환 감지용 (세션 이력 갱신 시점)
+  /* 이미 캔들로 반영한 마지막 틱 번호.
+     SSE 는 새로고침하면 Last-Event-ID 이후의 이벤트 히스토리를 처음부터 다시 흘려보낸다
+     (피드·로그를 복원하려고 일부러 그렇게 돼 있다). 그런데 /api/state 스냅샷에 이미 들어
+     있는 구간의 price_tick 까지 되돌아오므로, 그대로 받으면 같은 봉이 두 번 쌓인다
+     (실측: 새로고침 후 501봉짜리 세션이 718봉이 됐다). 예전에는 캔들을 60개만 들고 있어서
+     겹친 만큼이 잘려 나가 안 보였을 뿐이다. */
+  let lastBarTick = 0;
   const pageLoadedAt = Date.now();  // A4: SSE 히스토리 재생분 알림 제외 기준
 
   // ---------- 유틸 ----------
@@ -467,6 +481,12 @@
        실행→대기 전환을 본 시점이 문서가 확정된 시점이다. */
     if (lastEngineStatus && lastEngineStatus !== "idle" && eng.status === "idle") fetchHistory();
     lastEngineStatus = eng.status || "";
+    /* 스냅샷이 어디까지 담고 있는지 기록해 둔다 — SSE 히스토리 재생이 이 구간을 다시 흘릴 때
+       같은 봉을 두 번 쌓지 않게 하는 기준선이다(위 lastBarTick 주석). 그냥 대입하는 이유:
+       새 세션은 틱이 1부터 다시 시작하므로 최댓값을 유지하면 새 봉이 영영 안 쌓인다.
+       스냅샷이 한두 틱 옛것이어서 기준선이 낮아지는 경우는 무해하다 — 살아 있는 이벤트는
+       언제나 그보다 앞선 틱 번호로 오기 때문에 중복이 생기지 않는다. */
+    lastBarTick = num(eng.tick);
     el.net.textContent = (eng.network || "—") + (eng.mode ? " · " + (eng.mode === "live" ? "라이브" : "샌드박스") : "");
     el.engineStatus.textContent = { idle: "엔진 대기", running: "엔진 실행 중", stopping: "종료 중…" }[eng.status] || eng.status;
     el.engineStatus.classList.toggle("badge-ok", eng.status === "running");
@@ -495,10 +515,16 @@
     el.changeBasis.textContent = changeBasis === "prev-close" ? "전일 종가 대비" : "세션 시작가 대비";
     const feed = s.price.feed || {};   // 피드 라벨은 세션 공통(top-level)
     el.feedBadge.textContent = "시세: " + (feed.label || "—");
-    candles = (fp.candles || []).map((c) => ({
+    /* 서버는 '최근 N봉'만 준다. 이미 쌓아 둔 이력 뒤에 이어 붙여야 체결·가드 이벤트마다 도는
+       fetchState 가 스크롤용 과거 이력을 지우지 않는다. 포커스 종목이 바뀐 경우는 다른 종목의
+       이력이므로 병합하지 않고 통째로 바꾼다. */
+    const srvCandles = (fp.candles || []).map((c) => ({
       o: num(c.open), h: num(c.high), l: num(c.low), c: num(c.close), n: c.count,
       t: c.ts || null, w: !!c.warmup,
     }));
+    candles = candlesSymbol === focusSymbol ? mergeCandles(candles, srvCandles) : srvCandles;
+    candlesSymbol = focusSymbol;
+    trimKept();
     drawChart();
     renderPriceChange(fp.current);
     renderSymbolStrip();   // 종목별 요약 행 (멀티에서만 표시)
@@ -630,9 +656,21 @@
 
   /* ---------- 캔들차트 (SVG 직접 구현, 외부 라이브러리 없음) ----------
      목 시세는 틱당 단일 가격이라 서버가 N틱을 한 캔들(시가·고가·저가·종가)로 묶는다.
-     여기서는 그 결과를 그리고, 틱이 올 때마다 같은 규칙으로 마지막 캔들을 갱신한다. */
+     여기서는 그 결과를 그리고, 틱이 올 때마다 같은 규칙으로 마지막 캔들을 갱신한다.
+
+     이력은 잘라내지 않고 전부 들고 있다(candles). 화면에는 그중 최근 viewSize 개만 그리고,
+     휠·드래그로 과거 구간을 훑어볼 수 있다 — 지나간 봉이 화면에서 사라져도 없어지지 않게.
+     이동평균은 **자르기 전 전체 이력** 위에서 계산한 뒤 보이는 구간만 잘라 쓴다.
+     (예전에는 60봉만 들고 그 60봉 위에서 MA 를 구해서, MA50 이 오른쪽 끝 10여 개 점으로만
+      그려지고 MA100·MA200 은 아예 성립하지 않았다.) */
   const SVG_NS = "http://www.w3.org/2000/svg";
   const CH = { w: 640, h: 260, padL: 6, padR: 54, padT: 10, padB: 16 };
+  const MAX_KEPT = 2000;             // 이력 보관 상한 — 아주 긴 세션에서도 브라우저가 버티는 선
+  const VIEW_MIN = 20, VIEW_MAX = 400;
+  let viewSize = 60;                 // 화면에 보이는 봉 개수 (묶기 적용 후 기준)
+  let viewEnd = null;                // 보이는 구간의 오른쪽 끝(+1). null = 항상 최신을 따라간다
+  let chartGroup = 1;                // 봉 묶기 배수 — 1 = 받은 봉 그대로
+  let candlesSymbol = null;          // candles 가 어느 종목 것인지 (포커스 전환 시 병합 금지)
 
   function svgNode(tag, attrs, cls) {
     const n = document.createElementNS(SVG_NS, tag);
@@ -650,6 +688,53 @@
     });
   }
 
+  /* 봉 N개를 한 봉으로 묶는다 — 시가=첫 봉 시가, 종가=마지막 봉 종가, 고·저=구간 최대·최소.
+     ▶ 분봉/일봉 전환을 붙일 자리다. 지금은 "받은 봉을 N개씩 묶어 보는" 화면 단위 기능이고,
+        나중에 서버가 진짜 분봉/일봉을 내려주게 되면 캔들 배열의 모양이 같으므로 이 함수는
+        그대로 두고 chartGroup 대신 피드 쪽 timeframe 만 바꾸면 된다.
+     ⚠ 왼쪽부터 묶기 때문에 배열이 잘린 상태에서는 하루 경계와 정확히 맞지 않을 수 있다 —
+        그래서 라벨을 '일봉'이 아니라 'N봉 묶기'로 적는다(있는 그대로). */
+  function groupCandles(src, k) {
+    if (k <= 1 || src.length <= 1) return src;
+    const out = [];
+    for (let i = 0; i < src.length; i += k) {
+      const g = src.slice(i, i + k);
+      let h = g[0].h, l = g[0].l, n = 0;
+      for (const c of g) { if (c.h > h) h = c.h; if (c.l < l) l = c.l; n += (c.n || 0); }
+      out.push({
+        o: g[0].o, h, l, c: g[g.length - 1].c, n,
+        t: g[g.length - 1].t || g[0].t, w: g.every((c) => c.w),
+      });
+    }
+    return out;
+  }
+
+  /* 서버가 준 최근 N봉을 이미 갖고 있는 이력에 이어 붙인다.
+     서버 목록은 항상 '가장 최근 N개'라, 그 첫 봉이 내 이력 어디에 있는지 찾아 그 뒤를 갈아끼운다.
+     겹치는 지점이 없으면 다른 세션·다른 종목이므로 통째로 바꾼다.
+     (이 병합이 없으면 체결·가드 이벤트마다 도는 fetchState 가 매번 이력을 60봉으로 되감는다.) */
+  function mergeCandles(prev, srv) {
+    if (!srv.length) return prev;
+    if (!prev.length) return srv;
+    const key = (c) => `${c.t || ""}|${c.o}|${c.h}|${c.l}|${c.c}`;
+    const first = key(srv[0]);
+    for (let i = prev.length - 1; i >= 0; i--) {
+      if (key(prev[i]) === first) {
+        // 체결·가드 이벤트로 받은 스냅샷은 방금 그린 봉보다 한두 틱 옛것일 수 있다.
+        // 겹치는 지점부터 세어 이미 더 길게 갖고 있으면 최신 꼬리를 잃지 않게 그대로 둔다.
+        return prev.length - i >= srv.length ? prev : prev.slice(0, i).concat(srv);
+      }
+    }
+    return srv;
+  }
+
+  function trimKept() {
+    if (candles.length <= MAX_KEPT) return;
+    const cut = candles.length - MAX_KEPT;
+    candles.splice(0, cut);
+    if (viewEnd != null) viewEnd = Math.max(viewSize, viewEnd - cut);
+  }
+
   function pushTickToCandle(price) {
     const cur = candles[candles.length - 1];
     if (cur && cur.n < ticksPerCandle) {
@@ -659,7 +744,7 @@
       cur.n += 1;
     } else {
       candles.push({ o: price, h: price, l: price, c: price, n: 1 });
-      if (candles.length > 60) candles.shift();
+      trimKept();
     }
     if (sessionOpen == null) sessionOpen = price;
   }
@@ -670,35 +755,50 @@
       o: num(b.open), h: num(b.high), l: num(b.low), c: num(b.close),
       n: ticksPerCandle, t: b.ts || null, w: false,
     });
-    if (candles.length > 60) candles.shift();
+    trimKept();
     if (sessionOpen == null) sessionOpen = num(b.close);
   }
+
+  // 표시 이동평균 — MA1 은 종가 연결선(캔들이 흔들려도 흐름이 보이게).
+  // MA100·MA200 은 그만큼 봉이 쌓여야 값이 생긴다(실제 주식 차트와 같다).
+  const MA_SET = [[1, "ma1"], [5, "ma5"], [10, "ma10"], [20, "ma20"],
+                  [50, "ma50"], [100, "ma100"], [200, "ma200"]];
 
   function drawChart() {
     const svg = el.chart;
     svg.textContent = "";
-    // 일봉 판별: ts 가 날짜만(YYYY-MM-DD)이면 실데이터 일봉, ISO 시각이면 목 틱 집계
-    const isDaily = candles.some((c) => c.t && !c.t.includes("T"));
-    const warmCount = candles.filter((c) => c.w).length;
-    el.candleInfo.textContent = candles.length
-      ? (isDaily
-          ? `일봉 ${candles.length}개` + (warmCount ? ` (이전 이력 ${warmCount})` : "")
-          : `캔들 1개 = ${ticksPerCandle}틱 · ${candles.length}개`)
-      : "캔들 집계 대기";
-    if (!candles.length) {
+    const all = groupCandles(candles, chartGroup);   // 전체 이력(묶기 적용)
+    if (!all.length) {
+      el.candleInfo.textContent = "캔들 집계 대기";
+      if (el.chartLatest) el.chartLatest.classList.add("hidden");
       const note = svgNode("text", { x: CH.w / 2, y: CH.h / 2, "text-anchor": "middle" }, "empty-note");
       note.textContent = "세션을 시작하면 시세 캔들이 그려집니다";
       svg.appendChild(note);
       return;
     }
 
-    const closes = candles.map((c) => c.c);
-    // 표시 이동평균 1/5/10/20/50 — MA1은 종가 연결선(캔들이 흔들려도 흐름이 보이게),
-    // 100/200일선은 판단용으로만 계산(차트 창이 60봉이라 미표시)
-    const maLines = [[1, "ma1"], [5, "ma5"], [10, "ma10"], [20, "ma20"], [50, "ma50"]]
-      .map(([p, cls]) => [movingAvg(closes, p), cls]);
-    let min = Math.min(...candles.map((c) => c.l));
-    let max = Math.max(...candles.map((c) => c.h));
+    // 이동평균은 전체 이력 위에서 먼저 구한다 — 화면을 잘라도 선이 끊기지 않게
+    const closesAll = all.map((c) => c.c);
+    const maAll = MA_SET.map(([p, cls]) => [movingAvg(closesAll, p), cls, p]);
+
+    // 보이는 구간 [start, end) — viewEnd 가 null 이면 항상 최신을 따라간다
+    const size = Math.min(viewSize, all.length);
+    const end = viewEnd == null ? all.length : Math.min(Math.max(viewEnd, size), all.length);
+    const start = Math.max(0, end - size);
+    const view = all.slice(start, end);
+    const following = viewEnd == null || end >= all.length;
+
+    // 일봉 판별: ts 가 날짜만(YYYY-MM-DD)이면 실데이터 일봉, ISO 시각이면 목 틱 집계
+    const isDaily = view.some((c) => c.t && !c.t.includes("T"));
+    const unit = isDaily ? "봉" : `캔들(${ticksPerCandle}틱)`;
+    el.candleInfo.textContent = following
+      ? `${unit} ${all.length}개` + (chartGroup > 1 ? ` · ${chartGroup}봉 묶기` : "")
+      : `${start + 1}~${end} / ${all.length}${unit}`;
+    if (el.chartLatest) el.chartLatest.classList.toggle("hidden", following);
+
+    const maLines = maAll.map(([arr, cls, p]) => [arr.slice(start, end), cls, p]);
+    let min = Math.min(...view.map((c) => c.l));
+    let max = Math.max(...view.map((c) => c.h));
     for (const [arr] of maLines) {
       for (const v of arr) { if (v != null) { min = Math.min(min, v); max = Math.max(max, v); } }
     }
@@ -708,9 +808,9 @@
     const plotH = CH.h - CH.padT - CH.padB;
     const plotW = CH.w - CH.padL - CH.padR;
     const y = (v) => CH.padT + plotH * (1 - (v - min) / (max - min));
-    const step = plotW / Math.max(candles.length, 12);   // 캔들이 적어도 과하게 넓어지지 않게
+    const step = plotW / Math.max(view.length, 12);   // 캔들이 적어도 과하게 넓어지지 않게
     const x = (i) => CH.padL + step * (i + 0.5);
-    const bodyW = Math.max(2, Math.min(16, step * 0.6));
+    const bodyW = Math.max(1, Math.min(16, step * 0.6));
 
     // 가로 격자 + 오른쪽 가격 눈금
     for (let k = 0; k <= 4; k++) {
@@ -723,20 +823,20 @@
     }
 
     // 하단 날짜 눈금 (일봉 재생) — 처음·중간·끝 3개
-    if (isDaily && candles.length > 1) {
-      const marks = [0, Math.floor(candles.length / 2), candles.length - 1];
+    if (isDaily && view.length > 1) {
+      const marks = [0, Math.floor(view.length / 2), view.length - 1];
       for (const i of new Set(marks)) {
-        if (!candles[i].t) continue;
+        if (!view[i].t) continue;
         const lbl = svgNode("text", {
-          x: x(i), y: CH.h - 3, "text-anchor": i === 0 ? "start" : i === candles.length - 1 ? "end" : "middle",
+          x: x(i), y: CH.h - 3, "text-anchor": i === 0 ? "start" : i === view.length - 1 ? "end" : "middle",
         }, "axis-label");
-        lbl.textContent = candles[i].t.slice(5);  // MM-DD
+        lbl.textContent = view[i].t.slice(5);  // MM-DD
         svg.appendChild(lbl);
       }
     }
 
     // 캔들 — 심지(고가~저가) + 몸통(시가~종가), 종가 ≥ 시가면 양봉
-    candles.forEach((c, i) => {
+    view.forEach((c, i) => {
       const cls = (c.c >= c.o ? "candle-up" : "candle-down") + (c.w ? " candle-warmup" : "");
       const cx = x(i);
       svg.appendChild(svgNode("line", { x1: cx, x2: cx, y1: y(c.h), y2: y(c.l), "stroke-width": 1 }, cls));
@@ -754,11 +854,87 @@
       if (pts.split(" ").length > 1) svg.appendChild(svgNode("polyline", { points: pts }, cls));
     }
 
-    // 현재가 기준선
-    const last = closes[closes.length - 1];
+    // 아직 봉이 모자라 못 그리는 이동평균은 범례를 흐리게 — "선이 왜 없지"를 화면에서 답한다.
+    // 기준이 p 가 아니라 p+1 인 이유: 봉이 딱 p 개면 평균값이 한 점만 나와 선이 되지 않는다.
+    for (const [, cls, p] of maAll) {
+      const sw = document.querySelector(`.swatch-${cls}`);
+      if (sw && sw.parentElement) sw.parentElement.classList.toggle("ma-off", all.length < p + 1);
+    }
+
+    // 현재가 기준선 — 과거를 보고 있을 때는 그 구간의 마지막 종가
+    const last = view[view.length - 1].c;
     svg.appendChild(svgNode("line", {
       x1: CH.padL, x2: CH.padL + plotW, y1: y(last), y2: y(last),
     }, "last-price"));
+  }
+
+  /* ---------- 차트 스크롤 (지나간 봉 다시 보기) ----------
+     드래그가 기본이고, Shift+휠도 같은 일을 한다. 오른쪽 끝까지 오면 viewEnd 를 null 로
+     되돌려 새 봉을 자동으로 따라간다.
+     ⚠ 그냥 휠은 가로채지 않는다. 차트는 화면 폭을 다 쓰는 카드라, 휠을 먹으면 대시보드를
+        스크롤하다 커서가 차트를 지나는 순간 페이지가 멈춘다(촬영 중이면 그대로 화면에 남는다).
+        확대·축소도 휠에 걸지 않는다 — 트랙패드 핀치가 ctrl+휠로 오기 때문에 손대지 않아도
+        배율이 멋대로 바뀐다(실측: 60봉으로 시작한 차트가 43봉이 되어 있었다).
+        보이는 봉 수는 아래 '보기 범위' 선택으로만 바뀐다. */
+  function panChart(bars) {
+    const total = groupCandles(candles, chartGroup).length;
+    if (!total) return;
+    const size = Math.min(viewSize, total);
+    const cur = viewEnd == null ? total : viewEnd;
+    const next = Math.min(Math.max(cur + bars, size), total);
+    viewEnd = next >= total ? null : next;
+    drawChart();
+  }
+
+  if (el.chart) {
+    el.chart.addEventListener("wheel", (e) => {
+      if (!candles.length || !e.shiftKey) return;   // 그냥 휠은 페이지 스크롤 그대로
+      e.preventDefault();
+      panChart(Math.sign(e.deltaY || e.deltaX) * Math.max(1, Math.round(viewSize / 8)));
+    }, { passive: false });
+
+    let dragX = null, dragEnd = null;
+    el.chart.addEventListener("pointerdown", (e) => {
+      if (!candles.length) return;
+      dragX = e.clientX;
+      dragEnd = viewEnd;
+      el.chart.setPointerCapture(e.pointerId);
+      el.chart.classList.add("is-dragging");
+    });
+    el.chart.addEventListener("pointermove", (e) => {
+      if (dragX == null) return;
+      const total = groupCandles(candles, chartGroup).length;
+      const size = Math.min(viewSize, total);
+      const perBar = el.chart.clientWidth / Math.max(size, 1);
+      const moved = Math.round((dragX - e.clientX) / Math.max(perBar, 1));
+      const base = dragEnd == null ? total : dragEnd;
+      const next = Math.min(Math.max(base + moved, size), total);
+      viewEnd = next >= total ? null : next;
+      drawChart();
+    });
+    const endDrag = () => { dragX = null; el.chart.classList.remove("is-dragging"); };
+    el.chart.addEventListener("pointerup", endDrag);
+    el.chart.addEventListener("pointercancel", endDrag);
+  }
+
+  if (el.chartLatest) {
+    el.chartLatest.addEventListener("click", () => { viewEnd = null; drawChart(); });
+  }
+  if (el.chartGroup) {
+    el.chartGroup.addEventListener("change", () => {
+      chartGroup = parseInt(el.chartGroup.value, 10) || 1;
+      viewEnd = null;   // 묶기 단위가 바뀌면 인덱스 뜻이 달라진다 — 최신으로 되돌린다
+      drawChart();
+    });
+  }
+  if (el.chartView) {
+    el.chartView.addEventListener("change", () => {
+      const v = parseInt(el.chartView.value, 10);
+      // 0 = 전체 보기. VIEW_MAX 로 잘라 두는 이유는 봉 하나가 1px 미만이 되면 그림이 뭉개져서다.
+      viewSize = v > 0 ? Math.min(VIEW_MAX, Math.max(VIEW_MIN, v)) : VIEW_MAX;
+      viewEnd = null;
+      drawChart();
+    });
   }
 
   function renderPriceChange(current) {
@@ -1175,12 +1351,23 @@
             + (d.date ? ` · ${d.date}` : "")
             + (d.progress ? ` (${d.progress.played}/${d.progress.total}봉)` : "");
           if (d.prev_close != null) prevClose = num(d.prev_close);
-          if (d.bar) pushBarCandle(d.bar);        // 실데이터: 1틱 = 1봉 (실제 OHLC)
-          else pushTickToCandle(num(d.price));    // 목 시세: N틱 집계
+          /* 히스토리 재생분(이미 /api/state 스냅샷에 들어 있는 구간)은 캔들로 다시 쌓지 않는다.
+             두 겹으로 막는다:
+              ① isFresh — 페이지를 연 시각보다 오래된 이벤트. 이벤트 버퍼에는 **지난 세션**까지
+                 들어 있고 세션이 바뀌면 틱 번호가 1부터 다시 시작하므로, 틱 번호만으로는
+                 못 거른다(실측: 100봉짜리 세션을 열었더니 지난 481봉 세션이 얹혀 451봉).
+              ② lastBarTick — 스냅샷을 받은 순간과 SSE 가 붙는 순간 사이에 걸친 한두 틱.
+             가격·틱 표시는 위에서 이미 갱신했으므로 걸러도 화면이 뒤로 가지 않는다. */
+          if (isFresh(evt) && num(d.tick) > lastBarTick) {
+            lastBarTick = num(d.tick);
+            if (d.bar) pushBarCandle(d.bar);        // 실데이터: 1틱 = 1봉 (실제 OHLC)
+            else pushTickToCandle(num(d.price));    // 목 시세: N틱 집계
+          }
           // 포커스 종목의 누적 캔들을 캐시에 되써서, 포커스 전환 재구성이 최신 봉을 읽게 한다
           // (안 하면 마지막 fetchState 시점 캔들로 되감김). 키는 서버 캔들 형태로 맞춘다.
+          // 뒤쪽 일부만 되쓴다 — 틱마다 도는 코드라 전체 이력(최대 2000봉)을 매번 복사하지 않는다.
           if (perSymbol[focusSymbol] && perSymbol[focusSymbol].price) {
-            perSymbol[focusSymbol].price.candles = candles.map((c) => ({
+            perSymbol[focusSymbol].price.candles = candles.slice(-90).map((c) => ({
               open: c.o, high: c.h, low: c.l, close: c.c, count: c.n, ts: c.t, warmup: c.w,
             }));
           }
@@ -1367,13 +1554,31 @@
     for (const o of document.querySelectorAll("[data-adv-option]")) o.hidden = !open;
   }
   el.adv.addEventListener("toggle", syncAdvOptions);
-  if (localStorage.getItem(LAB_KEY) === "1") {
+
+  /* ---------- 개발자 전용 서랍 ----------
+     세션 설정 카드를 그리드에서 꺼내 서랍에 넣는다(마크업은 읽기 쉽게 카드들 사이에 둔다).
+     서랍과 탭은 ?lab=1 일 때만 화면에 나온다 — 런칭 때 개발용 조작부를 감추는 스위치가
+     이 한 곳으로 모이게 하려는 구조다. 감추기만 하고 DOM 에서 빼지는 않으므로
+     app.js 가 읽는 훅은 전부 살아 있다(빼면 null 참조로 대시보드가 통째로 죽는다).
+     ⚠ applyLayout 보다 먼저 옮겨야 한다 — 그리드에 남아 있으면 배치 로직이 도로 끌어온다. */
+  const devMode = localStorage.getItem(LAB_KEY) === "1";
+  if (el.devSlot && el.sessionCard) el.devSlot.appendChild(el.sessionCard);
+  if (devMode) {
+    el.devDock.classList.remove("hidden");
     el.adv.open = true;
-    // 검증용에서만 푸는 잠금: 라이브 모드 옵션 · 푸터의 배치 초기화 줄
+    // 검증용에서만 푸는 잠금: 라이브 모드 옵션
     for (const n of document.querySelectorAll("[data-lab-only]")) {
       n.classList.remove("hidden");
       if (n.tagName === "OPTION") n.disabled = false;
     }
+  }
+  if (el.devToggle) {
+    el.devToggle.addEventListener("click", () => {
+      const open = el.devDrawer.hidden;          // 지금 닫혀 있으면 연다
+      el.devDrawer.hidden = !open;
+      el.devToggle.setAttribute("aria-expanded", String(open));
+      el.devDock.classList.toggle("is-open", open);
+    });
   }
   syncAdvOptions();
 
@@ -1516,7 +1721,7 @@
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
   /* ⚠ DEFAULT_LAYOUT 을 바꾸면 이 키도 반드시 올린다. 안 올리면 이미 방문한 적 있는
      브라우저(= 촬영용 브라우저 포함)가 localStorage 에 저장된 옛 배치를 계속 쓴다. */
-  const LAYOUT_KEY = "autotrader_layout_v8";  // v8: 세션 설정 카드를 첫 자리에서 시세 뒤로 — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v9";  // v9: 세션 설정 카드가 그리드를 떠나 개발자 서랍으로 — 기존 저장 배치 리셋
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
@@ -1525,12 +1730,13 @@
   // 기본은 접어 둔다 — 펼치면 자기를 부른 숫자 바로 밑에서 열린다(v7 이전에는 맨 아래였다).
   // history 는 맨 뒤다 — 첫 화면(가드 KPI → 결과 → AI 근거)을 밀어내지 않으면서,
   // 스크롤하면 "이 시스템은 전에도 돌았다"는 증거가 나오게 한다.
-  // v8 에서 session 을 맨 앞에서 price 뒤로 내렸다 — 심사위원이 처음 보는 카드가 설정
-  // 컨트롤 덩어리일 이유가 없다. 간단 모드라 카드가 작아져 아래에 둬도 조작에 지장이 없다.
-  // (decisions·log 는 기본 접힘이라 눈에 보이는 순서는 pnl→valuation→position→ai→price→session.)
+  // v9 에서 session 이 이 배열을 떠났다 — 세션 설정 카드는 그리드가 아니라 개발자 서랍에 산다.
+  // (배열에 남아 있어도 applyLayout 이 그리드 안에서만 카드를 찾으므로 무해하지만, 배치의
+  //  단일 출처가 이 배열이라는 약속을 지키려면 여기 없는 편이 맞다.)
+  // (decisions·log 는 기본 접힘이라 눈에 보이는 순서는 pnl→valuation→position→ai→price.)
   const DEFAULT_LAYOUT = ["pnl", "valuation", "position", "ai",
                           "decisions", "log",
-                          "price", "session", "symbols",
+                          "price", "symbols",
                           "trades", "budget", "mandate", "briefing", "history"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));

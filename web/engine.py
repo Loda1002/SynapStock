@@ -50,7 +50,11 @@ MAX_PRICE_POINTS = 120
 # 캔들차트: 목 시세는 틱당 단일 가격이라 N틱을 묶어 하나의 캔들(OHLC)로 집계한다.
 # 2틱(기본 8초 틱 → 캔들 16초)이면 데모 길이에서 이동평균선이 눈에 보인다.
 TICKS_PER_CANDLE = 2
-MAX_CANDLES = 90
+# 화면 표시 전용 버퍼다 — 매매 판단은 에이전트가 따로 들고 있는 봉 이력을 쓰므로 이 값은
+# 자금 경로에 닿지 않는다. 90 이던 것을 늘린 이유: 대시보드가 차트를 과거로 스크롤하고
+# MA100·MA200 을 그리려면 이만큼의 이력이 필요한데, 세션 도중 새로고침하면 클라이언트가
+# 쌓아 둔 이력이 사라지고 여기서 받은 것만 남는다. (/api/state 응답 크기와 맞바꾼 값이다.)
+MAX_CANDLES = 300
 
 # 드라이런 전용 자리표시 스톡 민트 — STOCK_MINT 미설정(devnet 셋업 전 = 배포 직후 상태)에도
 # 매도 레그가 동작해야 한다. 온체인 전송이 없는 드라이런에서만 쓰이고, 라이브는 세션 시작에서
@@ -1775,7 +1779,7 @@ class TradingEngine:
             "change_basis": ("prev-close" if self.feed_info.get("type") == "replay"
                              else "session-open"),
             "history": ph[-60:],
-            "candles": candles[-60:],
+            "candles": candles[-MAX_CANDLES:],
             "ticks_per_candle": TICKS_PER_CANDLE,
         }
 

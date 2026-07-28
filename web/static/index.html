@@ -37,13 +37,13 @@
   <a class="btn btn-back" href="/" title="402 Guard 소개 페이지로 돌아갑니다">← 소개</a>
   <div class="brand">
     <h1>402 Guard</h1>
-    <p class="tagline">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트 — A2A · AP2 · x402 on Solana</p>
+    <p class="tagline" title="A2A(에이전트 간 협의) · AP2(한도 위임) · x402(정산) on Solana">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트</p>
   </div>
+  <!-- 진단 배지 4개(네트워크·엔진 상태·판단 모듈·시세 피드)는 개발자 서랍으로 옮겼다 —
+       관람자에게는 읽을 이유가 없는 계기판 값이고, 배너가 그것들로 차 있으면 제품명이 묻힌다.
+       DOM 에서 지우지는 않는다(app.js 가 매 갱신마다 값을 쓰므로 없애면 null 참조로 죽는다).
+       매매 정지 배지만 남긴다 — 이건 관람자가 알아야 하는 안전 상태다. -->
   <div class="statusbar">
-    <span class="badge" data-net>—</span>
-    <span class="badge" data-engine-status>대기</span>
-    <span class="badge" data-brain>판단 모듈: —</span>
-    <span class="badge" data-feed-badge>시세: —</span>
     <span class="badge badge-danger hidden" data-paused-badge>🛑 매매 정지됨</span>
   </div>
   <div class="controls">
@@ -73,7 +73,8 @@
      데이터 출처: GET /api/state 의 state.guard. -->
 <div class="guard-dock" data-guard-dock>
   <section class="guard-panel" id="guard-panel" data-guard-panel aria-live="polite">
-    <h2>402 Guard <span class="sub">에이전트 지출 승인 게이트 — 사람이 화면을 지켜보지 않아도 되도록, 서명 직전에 대조한다. 숫자는 모두 이번 세션 기준.</span></h2>
+    <h2>402 Guard <span class="sub"
+        title="사람이 화면을 지켜보지 않아도 되도록, 에이전트가 서명하기 직전에 청구서를 대조합니다. 숫자는 모두 이번 세션 기준입니다.">서명 직전에 청구서를 대조합니다</span></h2>
     <div class="kpi-row">
       <div class="kpi">
         <p class="kpi-num"><span data-guard-attempts>0</span></p>
@@ -84,15 +85,15 @@
         <!-- 레그별 분해 — 매수/매도 양 레그 대칭이 이 제품의 차별점이라 지표에서도 보여준다.
              '검사 불가'는 악성 청구서를 판정으로 막은 것이 아니라 의미 대조를 못 해서
              보류한 건수다(Gemini 쿼터 소진·응답 실패). 두 사건을 같은 칸에 합치지 않는다. -->
-        <p class="sub">가드 차단 (청구서 검증) <span data-guard-legs></span><span data-guard-unverified></span></p>
+        <p class="sub" title="받은 청구서가 합의한 견적과 다르면 서명 전에 막습니다 (수취인·자산·종목·금액·주문번호 등 8종 검사)">가드 차단 <span data-guard-legs></span><span data-guard-unverified></span></p>
       </div>
       <div class="kpi">
         <p class="kpi-num"><span data-guard-ap2>0</span></p>
-        <p class="sub">한도 거부 (AP2)</p>
+        <p class="sub" title="AP2 위임장의 총예산·건별 한도를 넘어서 거부된 건수">한도 거부</p>
       </div>
       <div class="kpi kpi-hero">
         <p class="kpi-num"><span data-guard-leak>0.00</span> <span class="unit">USDC</span></p>
-        <p class="sub">유출 — 엉뚱한 곳으로 샌 금액 (목표 0.00)</p>
+        <p class="sub" title="가드를 통과했는데도 엉뚱한 곳으로 나간 금액 — 목표는 0.00 입니다">유출 (목표 0.00)</p>
       </div>
     </div>
     <p class="guard-hit hidden" data-guard-hit>
@@ -129,11 +130,11 @@
           </div>
           <div class="kpi">
             <p class="kpi-num"><span data-ai-gated>0</span></p>
-            <p class="sub">규칙 게이트가 되돌린 AI 개시</p>
+            <p class="sub" title="AI 가 시작하려 한 매수·매도를 규칙 게이트가 되돌린 건수">규칙이 되돌림</p>
           </div>
           <div class="kpi">
             <p class="kpi-num"><span data-ai-fallbacks>0</span></p>
-            <p class="sub">호출 실패 → 규칙 대체</p>
+            <p class="sub" title="Gemini 호출이 실패해 규칙 판단으로 대체한 건수">규칙으로 대체</p>
           </div>
         </div>
         <p class="sub ai-sources" data-ai-sources>판단 출처: —</p>
@@ -149,15 +150,15 @@
         <div class="kpi-row">
           <div class="kpi">
             <p class="kpi-num"><span data-ai-sem-checked>0</span></p>
-            <p class="sub">의미 대조한 청구서</p>
+            <p class="sub" title="청구서의 사람이 읽는 설명이 주문 의도와 같은 물건인지 대조한 건수">대조한 청구서</p>
           </div>
           <div class="kpi kpi-hero">
             <p class="kpi-num"><span data-ai-sem-blocked>0</span></p>
-            <p class="sub">설명이 달라 차단</p>
+            <p class="sub" title="금액·수취인은 정상인데 설명이 다른 물건이라 서명 전에 막은 건수">설명이 달라 차단</p>
           </div>
           <div class="kpi">
             <p class="kpi-num"><span data-ai-sem-unverified>0</span></p>
-            <p class="sub">검증 불가로 매수 보류</p>
+            <p class="sub" title="Gemini 응답을 못 받아 대조하지 못해 매수를 보류한 건수 (설계상 매도는 진행)">검증 불가 → 보류</p>
           </div>
         </div>
         <p class="sub" data-ai-sem-note>—</p>
@@ -179,19 +180,53 @@
         <p class="huge" data-price>—</p>
         <p class="sub"><span data-price-change>—</span> <span class="unit" data-change-basis>세션 시작가 대비</span></p>
       </div>
-      <div class="chart-legend">
-        <span class="sub"><i class="swatch swatch-up"></i>양봉(상승) <i class="swatch swatch-down"></i>음봉(하락)</span>
-        <span class="sub"><i class="swatch swatch-ma1"></i>MA1(종가) <i class="swatch swatch-ma5"></i>MA5 <i class="swatch swatch-ma10"></i>MA10 <i class="swatch swatch-ma20"></i>MA20 <i class="swatch swatch-ma50"></i>MA50</span>
-        <span class="sub" data-candle-info>캔들 집계 대기</span>
-        <span class="sub" data-tick-info>틱 대기 중</span>
-      </div>
     </div>
     <svg class="chart" data-chart viewBox="0 0 640 260" role="img"
          aria-label="캔들차트 — 시가·고가·저가·종가와 이동평균선"></svg>
+    <!-- 조작부·범례를 그래프 위가 아니라 아래에 둔다. 위쪽은 402 Guard 요약 패널(.guard-dock)이
+         떠 있는 자리라, 여기 두면 스크롤 위치에 따라 통째로 가린다(실측 100%). -->
+      <div class="chart-legend">
+        <span class="chart-tools">
+          <!-- 봉 묶기 — 받은 봉을 N개씩 한 봉으로 합쳐 본다. 인트라바(하루 여러 봉) 세션을
+               하루 단위로 되돌려 볼 때 쓰고, 서버가 진짜 분봉/일봉을 내려주게 되면 그 선택이
+               이 자리에 들어온다(app.js groupCandles 주석 참고). -->
+          <select data-chart-group aria-label="봉 묶기"
+                  title="받은 봉을 N개씩 묶어 한 봉으로 봅니다. 하루를 여러 봉으로 나눠 재생 중일 때 하루 단위로 되돌려 보는 용도입니다.">
+            <option value="1">원본 봉</option>
+            <option value="2">2봉 묶기</option>
+            <option value="4">4봉 묶기</option>
+            <option value="8">8봉 묶기</option>
+          </select>
+          <!-- 보이는 봉 수. 확대·축소를 휠에 걸지 않는 이유는 app.js 의 차트 스크롤 주석 참고
+               (트랙패드 핀치가 ctrl+휠로 들어와 손대지 않아도 배율이 바뀐다). -->
+          <select data-chart-view aria-label="보기 범위" title="차트에 한 번에 보이는 봉 개수">
+            <option value="60" selected>60봉 보기</option>
+            <option value="120">120봉 보기</option>
+            <option value="240">240봉 보기</option>
+            <option value="0">전체 보기</option>
+          </select>
+          <button class="btn btn-small hidden" data-chart-latest title="최신 봉으로 돌아갑니다">최신 ▸</button>
+        </span>
+        <span class="sub"><i class="swatch swatch-up"></i>양봉 <i class="swatch swatch-down"></i>음봉</span>
+        <!-- 이동평균선. 봉이 그 기간만큼 쌓이기 전에는 선이 없으므로, app.js 가 해당 항목에
+             .ma-off 를 붙여 흐리게 만든다("선이 왜 없지"를 화면에서 답한다). -->
+        <span class="sub ma-legend">MA
+          <span><i class="swatch swatch-ma1"></i>1</span>
+          <span><i class="swatch swatch-ma5"></i>5</span>
+          <span><i class="swatch swatch-ma10"></i>10</span>
+          <span><i class="swatch swatch-ma20"></i>20</span>
+          <span><i class="swatch swatch-ma50"></i>50</span>
+          <span><i class="swatch swatch-ma100"></i>100</span>
+          <span><i class="swatch swatch-ma200"></i>200</span>
+        </span>
+        <span class="sub" data-candle-info>캔들 집계 대기</span>
+        <span class="sub" data-tick-info>틱 대기 중</span>
+        <span class="sub chart-hint">좌우로 끌면 지나간 봉을 볼 수 있습니다</span>
+      </div>
   </section>
 
   <section class="card card-wide hidden" data-card="symbols">
-    <h2>종목별 요약 <span class="sub">멀티 종목 · 하나의 예산·가드 아래 각자 독립 포지션</span></h2>
+    <h2>종목별 요약 <span class="sub" title="여러 종목을 골라도 예산과 402 Guard 는 하나입니다 — 포지션만 종목별로 독립입니다">하나의 예산 아래 독립 포지션</span></h2>
     <div class="table-wrap">
       <table>
         <thead>
@@ -203,12 +238,12 @@
     </div>
   </section>
 
-  <!-- 세션 설정 — 간단/고급 분리(P5).
-       간단에는 관람자가 실제로 만지는 넷(모드·속도·종목·전략)만 두고, 우리가 검증에 쓰는
-       노브는 아래 <details data-adv> 뒤로 접는다. **지우는 게 아니라 접는 것**이라 접힌
-       상태에서도 DOM 에 그대로 있고, app.js 는 값을 예전과 똑같이 읽는다(재현성 전제).
-       주소에 ?lab=1 을 붙이면 처음부터 펼쳐진 채로 열린다(우리 검증용 북마크, ?lab=0 로 해제).
-       현재 설정 한 문장은 카드 맨 아래 .rules 줄이 겸한다(app.js renderRules). -->
+  <!-- 세션 설정 — 관람 화면에서는 감춘다.
+       ⚠ 이 카드는 페이지가 열릴 때 app.js 가 통째로 아래 개발자 서랍(.dev-drawer)으로 옮긴다.
+          여기 그대로 두는 이유는 두 가지다: ①마크업이 카드 사이에 있어야 읽기 쉽다
+          ②스크립트가 실패해도 카드가 그리드에 남아 조작이 아예 막히지는 않는다.
+       고급 노브는 그 안에서 다시 <details data-adv> 뒤로 접힌다(값은 접혀 있어도 살아 있다 —
+       세션 시작 payload 가 한 줄도 바뀌지 않는 것이 분리의 전제다). -->
   <section class="card" data-card="session">
     <h2>세션 설정 <span class="sub">무엇을 · 어떻게 살지</span></h2>
     <div class="stack">
@@ -326,9 +361,9 @@
        막대 → 좌우 두 지표" 라는 배치만 옮기고 flex + theme.css 토큰으로 다시 짰다.
        데이터 훅(data-budget-*)은 다섯 개 전부 그대로다 — app.js 는 한 줄도 안 바뀐다. -->
   <section class="card budget-card" data-card="budget">
-    <h2>예산 <span class="sub">AP2 위임장에서 실제로 차감됩니다</span></h2>
+    <h2>예산 <span class="sub" title="화면에 표시만 하는 상한이 아니라, AP2 위임장에서 실제로 차감되는 값입니다">코드가 집행하는 상한</span></h2>
     <p class="budget-hero"><span data-budget-remaining>0</span> <span class="unit">USDC</span></p>
-    <p class="budget-hero-label">남은 예산 — 코드가 집행하는 상한</p>
+    <p class="budget-hero-label">남은 예산</p>
     <div class="gauge" role="progressbar"><div class="gauge-fill" data-budget-fill></div></div>
     <div class="budget-foot">
       <div>
@@ -351,7 +386,7 @@
       <label class="field">건별 최대 (USDC)
         <input data-mandate-per-trade type="number" min="0" step="any" required>
       </label>
-      <p class="sub">허용 종목: <span data-mandate-symbols>—</span> <span class="unit">(멀티 종목이면 공유 예산·한도)</span></p>
+      <p class="sub" title="여러 종목을 골라도 예산과 한도는 이 하나를 함께 씁니다">허용 종목: <span data-mandate-symbols>—</span></p>
       <button class="btn" type="submit" data-btn-mandate title="AP2 mandate 재서명">한도 적용</button>
       <p class="sub" data-mandate-hint>—</p>
     </form>
@@ -361,19 +396,17 @@
     <h2>손익 (실현)</h2>
     <p class="big"><span data-pnl>0</span> <span class="unit">USDC</span></p>
     <p class="sub">수익률 <span data-return-pct>0</span>% · 누적 매수 <span data-cum-buy>0</span> USDC</p>
-    <p class="sub">브로커 수수료 <span data-fee-rate>—</span> · 누적 수수료 <span data-cum-fee>0</span> USDC <span class="unit">(브로커 수익)</span></p>
+    <p class="sub" title="브로커가 가져가는 몫 — 이 제품의 수익모델 근거입니다">브로커 수수료 <span data-fee-rate>—</span> · 누적 <span data-cum-fee>0</span> USDC</p>
   </section>
 
   <section class="card" data-card="valuation">
     <h2>평가손익 <span class="sub">미실현 · 총자산</span></h2>
     <p class="big"><span data-unrealized>0</span> <span class="unit">USDC</span>
       <span class="sub" data-unrealized-pct>0%</span></p>
-    <p class="sub">보유 평가액 <span data-position-value>0</span> USDC
-      <span class="unit">(지금 매도 시 수령 예상, 수수료 차감)</span></p>
-    <p class="sub">총자산 <strong data-total-asset>0</strong> USDC
-      = 가용 예산 <span data-cash>0</span> + 주식 평가 <span data-position-value2>0</span></p>
-    <p class="sub hidden" data-onchain-row>온체인 지갑 USDC <span data-onchain-usdc>—</span>
-      <span class="unit">(세션 시작·종료 스냅샷 기준)</span></p>
+    <p class="sub" title="지금 전량 매도하면 받을 것으로 예상되는 금액 — 브로커 수수료를 뺀 값입니다">보유 평가액 <span data-position-value>0</span> USDC</p>
+    <p class="sub" title="가용 예산 + 주식 평가액">총자산 <strong data-total-asset>0</strong> USDC
+      = <span data-cash>0</span> + <span data-position-value2>0</span></p>
+    <p class="sub hidden" data-onchain-row title="세션 시작·종료 시점에 찍은 스냅샷 기준입니다">온체인 지갑 USDC <span data-onchain-usdc>—</span></p>
   </section>
 
   <!-- 아래 두 피드는 기본으로 접혀 있다 — 위 AI 카드가 같은 내용을 세션 단위로 요약하고
@@ -414,7 +447,8 @@
     <h2>데일리 브리핑 <span class="sub">Gemini 요약 · 실패하면 자동 계산 요약</span></h2>
     <div class="briefing-bar">
       <button class="btn" data-btn-briefing>📋 오늘 요약</button>
-      <span class="sub" data-briefing-meta>아직 브리핑이 없습니다 — 세션 종료 시 자동 생성되고, 장 마감 시각에도 하루 1회 생성됩니다.</span>
+      <span class="sub" data-briefing-meta
+            title="세션이 끝나면 자동으로 만들어지고, 장 마감 시각에도 하루 한 번 만들어집니다.">아직 브리핑이 없습니다</span>
     </div>
     <p class="briefing-text" data-briefing-text></p>
   </section>
@@ -461,21 +495,59 @@
 <!-- ABOUT 섹션은 랜딩(landing.html #about)으로 일원화했다 — 같은 카피를 두 곳에 두면
      문구를 고칠 때 한쪽만 바뀐다. 대시보드는 운영 화면이므로 소개글 없이 데이터만 둔다. -->
 
-<!-- 배치 실험 안내와 지갑 줄은 둘 다 '개발 중에만 의미 있던 것'이다.
-     · 배치 바꾸기는 촬영본과 화면이 달라지는 길이라 검증용(?lab=1)에서만 보인다.
-     · 지갑 줄은 연결 전에 대시 두 개만 남아 고장난 것처럼 보여서, 값이 들어오면 그때 켠다
-       (app.js renderState 가 .hidden 을 벗긴다). -->
+<!-- 배치 실험 안내는 개발자 서랍으로 옮겼다(촬영본과 화면이 달라지는 길이라 관람 화면에 둘
+     이유가 없다). 지갑 줄은 연결 전에 대시 두 개만 남아 고장난 것처럼 보여서, 값이 들어오면
+     그때 켠다(app.js renderState 가 .hidden 을 벗긴다). -->
 <footer class="foot">
   <span data-conn-status>서버 연결 대기…</span>
-  <span class="hidden" data-lab-only>💡 카드 제목을 잡아 끌면 배치를 바꿀 수 있습니다
-    <button class="btn btn-small" data-btn-layout-reset title="카드 배치를 기본값으로 되돌립니다">배치 초기화</button></span>
   <span class="wallets hidden" data-wallets>거래 지갑 <code data-wallet-trading>—</code> ⇄ 브로커 지갑 <code data-wallet-broker>—</code></span>
 </footer>
+
+<!-- ───────────── 개발자 전용 서랍 ─────────────
+     우리가 개발·검증에 쓰는 것만 한곳에 모은다: 세션 조작 · 진단 배지 · 배치 실험.
+     세션 설정 카드는 페이지가 열릴 때 app.js 가 여기로 옮겨 넣는다(마크업은 그리드에 있다).
+     켜기/끄기는 주소에 ?lab=1 / ?lab=0 — localStorage 가 기억한다. 꺼져 있으면 탭도 서랍도
+     화면에 없다. 런칭 때 "개발용 UI 숨기기"가 이 스위치 하나로 끝나게 하려는 구조다.
+     ⚠ 감추는 것이지 지우는 것이 아니다 — app.js 가 아래 훅들에 매 갱신마다 값을 쓰므로
+        DOM 에서 빼면 null 참조로 대시보드가 통째로 죽는다. -->
+<div class="dev-dock hidden" data-dev-dock>
+  <button class="dev-tab" data-dev-toggle aria-expanded="false" aria-controls="dev-drawer"
+          title="개발자 전용 조작부를 엽니다 (주소 끝에 ?lab=0 을 붙여 열면 이 탭까지 사라집니다)">🛠 개발자</button>
+  <aside class="dev-drawer" id="dev-drawer" data-dev-drawer hidden aria-label="개발자 전용">
+    <div class="dev-head">
+      <strong>개발자 전용</strong>
+      <span class="sub">?lab=0 으로 끕니다</span>
+    </div>
+    <!-- 진단 배지 — 예전에는 상단 배너에 있었다. 관람자가 읽을 값이 아니라 여기로 내렸다. -->
+    <div class="dev-badges">
+      <span class="badge" data-net>—</span>
+      <span class="badge" data-engine-status>대기</span>
+      <span class="badge" data-brain>판단 모듈: —</span>
+      <span class="badge" data-feed-badge>시세: —</span>
+    </div>
+    <!-- 세션 설정 카드가 app.js 에 의해 여기로 들어온다 -->
+    <div data-dev-slot></div>
+    <p class="sub dev-foot">💡 카드 제목을 잡아 끌면 배치를 바꿀 수 있습니다
+      <button class="btn btn-small" data-btn-layout-reset title="카드 배치를 기본값으로 되돌립니다">배치 초기화</button></p>
+  </aside>
+</div>
 
 <!-- A4 거래 알림 — 인앱 토스트 스택 (우하단) -->
 <div class="toasts" data-toasts aria-live="polite"></div>
 
+<!-- 맨 위로 — 스크롤을 내리기 전에는 보이지 않는다(숨김이 CSS 기본값, js/to-top.js 가 벗긴다).
+     같은 우하단의 토스트 스택은 이 버튼 높이만큼 위로 띄워 두었다(skeleton.css .toasts).
+     글자 "맨 위로"는 CSS(.to-top::before)가 그리므로 aria-label 로 읽을 이름을 따로 준다. -->
+<button class="to-top" type="button" data-to-top aria-label="맨 위로">
+  <svg class="to-top-icon" viewBox="0 0 384 512" aria-hidden="true">
+    <path
+      d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"
+    ></path>
+  </svg>
+</button>
+
 <script src="/static/js/wallet.js"></script>
 <script src="/static/js/app.js"></script>
+<script src="/static/js/to-top.js"></script>
 </body>
 </html>
