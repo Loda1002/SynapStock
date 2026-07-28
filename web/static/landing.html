@@ -112,6 +112,13 @@
     .landing-nav { margin: 0; }
   }
 </style>
+<!-- 스크롤 등장 모션 — 대시보드와 같은 스크립트를 공유한다(js/reveal.js 헤더 "대시보드·랜딩 공용").
+     이 태그가 없으면 <html> 에 reveal-ready 가 안 붙어 skeleton.css 의 숨김 규칙이 아예 걸리지
+     않는다. 그래서 빠뜨려도 화면이 깨지지는 않고 모션만 사라진다 — 실제로 그 상태였다.
+     <head> 에서 읽어야 요소가 잠깐 보였다 숨는 깜빡임이 없다.
+     등장 대상은 이 페이지에서 .hero-copy 의 자식들 · .hero-preview · .landing-about 의 자식들이다
+     (.grid 는 이 페이지에 없어 흐릿한 미리보기 안의 .card 들은 대상이 아니다). -->
+<script src="/static/js/reveal.js"></script>
 </head>
 <body>
 
