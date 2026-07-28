@@ -57,6 +57,11 @@ MAX_CANDLES = 90
 # fail-fast 하므로 이 값이 체인에 닿는 경로는 없다.
 DRY_STOCK_MINT = Pubkey.default()
 
+# 긴급정지 주체의 화면 표시명 (CODE-06). 저장소에 실제로 존재하는 액터만 넣는다 —
+# `pause()` 를 부르는 곳은 HTTP 핸들러(human, 기본값)와 엔진의 가드 경로 3곳(guard)뿐이다.
+# 모르는 값이 오면 원문을 그대로 보여 준다(없는 액터를 지어내지 않는다).
+PAUSE_ACTOR_LABEL = {"human": "사용자", "guard": "402 Guard"}
+
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
@@ -704,16 +709,23 @@ class TradingEngine:
 
     # ---------- A2 긴급정지 ----------
 
-    def pause(self, actor: str = "human") -> Dict[str, Any]:
+    def pause(self, actor: str = "human", reason: str = "") -> Dict[str, Any]:
+        """긴급정지. `reason` 은 402 Guard 가 멈춘 이유를 화면에 남기기 위한 것이다(CODE-06).
+
+        사람이 누른 정지는 이유가 자명하지만, 가드가 스스로 멈추면 화면에
+        `🛑 매매 정지됨 (guard)` 만 남아 **왜 멈췄는지가 어디에도 없었다** —
+        이 제품에서 가장 중요한 순간의 설명이 비어 있던 셈이다.
+        """
         # 정지 상태는 세션(start~stop) 안에서만 의미가 있다 — 대기 중 정지는 거부한다
         # (버그: 대기 중 정지가 남아 다음 접속에도 "정지됨" 배지가 보였다)
         if self.status != "running":
             raise EngineError("실행 중인 세션이 없습니다 — 긴급정지는 세션 실행 중에만 가능합니다.")
         if self.trading_enabled:
             self.trading_enabled = False
-            self.pause_info = {"actor": actor, "ts": _now()}
+            self.pause_info = {"actor": actor, "actor_label": PAUSE_ACTOR_LABEL.get(actor, actor),
+                               "reason": reason, "ts": _now()}
             self.pause_count += 1
-            self.bus.emit(ev.TRADING_PAUSED, {"actor": actor})
+            self.bus.emit(ev.TRADING_PAUSED, dict(self.pause_info))
         return self.state_snapshot()
 
     def resume(self, actor: str = "human") -> Dict[str, Any]:
@@ -1209,7 +1221,9 @@ class TradingEngine:
                     "where": "engine.py:_buy_cycle", "expected": "", "actual": "",
                 })
                 if self.trading_enabled:
-                    self.pause(actor="guard")
+                    self.pause(actor="guard",
+                               reason=f"{symbol} 매수 — 정산 전 주식 잔액 기준선을 읽지 못해 "
+                                      "배송 검증이 불가능합니다(GUARD_BASELINE_UNREAD)")
                 return
 
         completed = None
@@ -1276,7 +1290,10 @@ class TradingEngine:
 
         # 배송 미확인(partial)이면 세션을 정지한다 — 반복 결제로 손실이 누적되지 않게
         if completed is not None and completed.status == "partial" and self.trading_enabled:
-            self.pause(actor="guard")
+            self.pause(actor="guard",
+                       reason=f"{symbol} 매수 — USDC 는 나갔는데 주식 도착이 확인되지 않았습니다"
+                              f"(주문 {required.order_id} · {quote.total_usdc} USDC). "
+                              "같은 손실이 반복되지 않게 멈춥니다")
 
     # ---------- 매도 사이클 (run_demo 이식 + A7 실현손익) ----------
 
@@ -1394,7 +1411,10 @@ class TradingEngine:
 
         # 대금 미확인(partial)이면 세션을 정지한다 — 반복 매도로 손실이 누적되지 않게(매수측 미러)
         if completed.status == "partial" and self.trading_enabled:
-            self.pause(actor="guard")
+            self.pause(actor="guard",
+                       reason=f"{symbol} 매도 — 주식은 나갔는데 USDC 도착이 확인되지 않았습니다"
+                              f"(수량 {qty} · {quote.total_usdc} USDC). "
+                              "같은 손실이 반복되지 않게 멈춥니다")
 
     def _count_guard_block(self, code: str, *, buy: bool) -> None:
         """가드 차단 1건을 첫 화면 KPI 에 계상한다 (매수·매도 공통).

@@ -469,7 +469,15 @@
     const sessionHint = running ? "" : " (세션 실행 중에만 사용할 수 있습니다)";
     el.btnPause.title = "신규 판단·결제를 즉시 중단합니다" + sessionHint;
     el.btnResume.title = "매매를 다시 시작합니다" + sessionHint;
-    if (s.pause_info) el.pausedBadge.textContent = `🛑 매매 정지됨 (${s.pause_info.actor}, ${timeOf(s.pause_info.ts)})`;
+    if (s.pause_info) {
+      // 가드가 스스로 멈춘 순간이 이 제품에서 가장 중요한 화면인데, 예전에는 주체 코드
+      // (`guard`)만 있고 왜 멈췄는지가 어디에도 없었다. 사유는 서버가 문장으로 준다.
+      const p = s.pause_info;
+      const who = p.actor_label || p.actor;
+      el.pausedBadge.textContent = `🛑 매매 정지됨 (${who}, ${timeOf(p.ts)})`
+        + (p.reason ? ` — ${p.reason}` : "");
+      el.pausedBadge.title = p.reason || "";
+    }
   }
 
   /* ---------- 캔들차트 (SVG 직접 구현, 외부 라이브러리 없음) ----------
@@ -1106,11 +1114,14 @@
         addLog(evt.ts, `[AP2 한도 변경] 예산 ${d.old.budget_total_usdc}→${d.new.budget_total_usdc} · 건별 ${d.old.per_trade_max_usdc}→${d.new.per_trade_max_usdc} USDC (${d.applied === "immediate" ? "재서명·즉시 적용" : "다음 세션부터 적용"} · 주체: ${d.actor})`, "log-ok");
         fetchState();
         break;
-      case "trading_paused":
-        addLog(evt.ts, `[긴급정지] 신규 판단·결제 중단 (주체: ${d.actor})`, "log-danger");
-        notify(evt, "긴급정지", `신규 판단·결제 중단 (주체: ${d.actor})`, "danger");
+      case "trading_paused": {
+        const who = d.actor_label || d.actor;
+        const why = d.reason ? ` — ${d.reason}` : "";
+        addLog(evt.ts, `[긴급정지] 신규 판단·결제 중단 (주체: ${who})${why}`, "log-danger");
+        notify(evt, "긴급정지", `신규 판단·결제 중단 (주체: ${who})${why}`, "danger");
         fetchState();
         break;
+      }
       case "trading_resumed":
         addLog(evt.ts, `[재개] 매매 재개 (주체: ${d.actor})`, "log-ok");
         notify(evt, "매매 재개", `주체: ${d.actor}`, "ok");
