@@ -377,6 +377,10 @@
     </div>
   </section>
 
+  <!-- 한도 바꾸기 — 관람 화면에서는 감춘다(운영 조작부다).
+       세션 설정 카드와 같은 방식으로, 페이지가 열릴 때 app.js 가 개발자 서랍으로 옮긴다.
+       ⚠ 지우지 않는 이유: '한도가 화면 표시가 아니라 실제로 집행된다'는 것이 이 제품의
+          핵심 주장이고, 그 한도를 다시 서명해 바꿔 보이는 것이 축③ 증거다. -->
   <section class="card" data-card="mandate">
     <h2>한도 바꾸기 <span class="sub" title="AP2 mandate 를 새 한도로 다시 서명합니다">AP2 위임장을 다시 서명합니다</span></h2>
     <form data-mandate-form>
@@ -460,7 +464,12 @@
         <thead>
           <tr>
             <th>시각</th><th>종목</th><th>방향</th><th>수량</th><th>단가</th><th>수수료</th><th>총액(USDC)</th>
-            <th>판단</th><th>상태</th><th>결제 tx</th><th>전달 tx</th>
+            <th>판단</th><th>상태</th>
+            <!-- 온체인 tx 두 열은 라이브 세션에서만 값이 생긴다(샌드박스는 전송이 없어 전부 —).
+                 빈 열 두 개가 늘 보이던 것을 감추되 지우지는 않는다 — 라이브의 explorer 링크는
+                 "화면이 아니라 진짜 트랜잭션"을 보여 주는 증거다. 표시 전환은 app.js 가
+                 <body class="live-mode"> 로 하고, 규칙은 skeleton.css 의 .col-tx. -->
+            <th class="col-tx">결제 tx</th><th class="col-tx">전달 tx</th>
           </tr>
         </thead>
         <tbody data-trades-body>
@@ -480,12 +489,13 @@
       <table>
         <thead>
           <tr>
-            <th>세션</th><th>모드</th><th>종목</th><th>틱</th><th>체결</th>
+            <!-- '틱'은 엔진 내부 단위라 뺐다. 'Gemini 비율'은 심사 축② 근거라 남긴다. -->
+            <th>세션</th><th>모드</th><th>종목</th><th>체결</th>
             <th>Gemini 비율</th><th>시작</th>
           </tr>
         </thead>
         <tbody data-history-body>
-          <tr class="empty-row"><td colspan="7">불러오는 중…</td></tr>
+          <tr class="empty-row"><td colspan="6">불러오는 중…</td></tr>
         </tbody>
       </table>
     </div>

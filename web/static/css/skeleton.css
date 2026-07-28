@@ -597,3 +597,11 @@ td.sym { font-weight: 600; }
   box-shadow: none; border: none; padding: 0; margin: 0; background: none;
 }
 .dev-drawer .card:hover { box-shadow: none; transform: none; }
+/* 서랍에 카드가 둘 이상 들어오므로 사이를 띄운다(카드 껍데기를 벗겨 붙어 보이던 자리) */
+.dev-drawer .card + .card { margin-top: var(--gap); padding-top: var(--gap); border-top: 1px solid var(--border); }
+
+/* 거래 내역의 온체인 tx 두 열 — 라이브 세션에서만 보인다.
+   샌드박스는 전송이 없어 값이 전부 "—" 라, 빈 열 두 개가 늘 화면에 남아 있었다.
+   지우지 않는 이유는 라이브의 explorer 링크가 "진짜 트랜잭션" 증거이기 때문이다.
+   전환은 app.js renderState 가 <body> 에 .live-mode 를 붙였다 떼며 한다. */
+body:not(.live-mode) .col-tx { display: none; }

@@ -221,7 +221,7 @@
         // 부르면 심사위원이 다른 기능으로 읽는다('드라이런'은 개발 용어라 걷어냈다).
         s.mode === "live" ? "라이브(온체인)" : "샌드박스",
         s.symbol || "—",
-        String(num(s.ticks)),
+        // '틱' 열은 뺐다 — 엔진 내부 단위라 관람자에게 읽을 것이 아니다(index.html 주석 참고).
         String(num(s.trade_count)),
         share === undefined || share === null ? "—" : `${share}%`,
         (s.started_at || "").replace("T", " ").slice(0, 19) || "—",
@@ -239,7 +239,7 @@
   function emptyRow(text) {
     const tr = make("tr", "empty-row");
     const td = make("td", "", text);
-    td.colSpan = 7;
+    td.colSpan = 6;   // 세션·모드·종목·체결·Gemini 비율·시작 ('틱' 열 제거 후)
     tr.appendChild(td);
     return tr;
   }
@@ -488,6 +488,8 @@
        언제나 그보다 앞선 틱 번호로 오기 때문에 중복이 생기지 않는다. */
     lastBarTick = num(eng.tick);
     el.net.textContent = (eng.network || "—") + (eng.mode ? " · " + (eng.mode === "live" ? "라이브" : "샌드박스") : "");
+    // 거래 내역의 온체인 tx 두 열은 라이브에서만 값이 생긴다 — 샌드박스에서는 감춘다(.col-tx).
+    document.body.classList.toggle("live-mode", eng.mode === "live");
     el.engineStatus.textContent = { idle: "엔진 대기", running: "엔진 실행 중", stopping: "종료 중…" }[eng.status] || eng.status;
     el.engineStatus.classList.toggle("badge-ok", eng.status === "running");
     el.brain.textContent = "판단: " + (eng.brain || "—");
@@ -528,7 +530,11 @@
     drawChart();
     renderPriceChange(fp.current);
     renderSymbolStrip();   // 종목별 요약 행 (멀티에서만 표시)
-    if (eng.tick) el.tickInfo.textContent = `틱 ${eng.tick} · 간격 ${eng.tick_interval_sec}s`;
+    // 위 price_tick 과 같은 문법 — 재생 피드면 '몇 번째 봉', 아니면 틱 수.
+    if (eng.tick) {
+      el.tickInfo.textContent = feed.bars_total
+        ? `(${eng.tick}/${feed.bars_total}봉)` : `틱 ${eng.tick}`;
+    }
 
     // 실데이터 CSV 가 없으면 재생 옵션을 잠근다 (fetch_market_data.py 안내)
     const replayOpt = el.feedSelect.querySelector('option[value="replay"]');
@@ -1023,8 +1029,10 @@
     el.tradesBody.prepend(tr);
   }
 
+  // 온체인 tx 셀 — 라이브에서만 보인다(.col-tx + body.live-mode). 샌드박스에서는 값이 없어
+  // 빈 열 두 개가 늘 남던 자리다. 감추기만 하고 만들기는 그대로 해서 모드 전환에 바로 따라온다.
   function txCell(url) {
-    const td = make("td");
+    const td = make("td", "col-tx");
     if (url) {
       const a = make("a", null, "explorer ↗");
       a.href = url; a.target = "_blank"; a.rel = "noopener";
@@ -1347,9 +1355,12 @@
         // 포커스 종목만 가격 카드·차트·평가손익을 갱신 (다른 종목 틱은 표만 갱신)
         if (!d.symbol || d.symbol === focusSymbol) {
           el.price.textContent = d.price + " USDC";
-          el.tickInfo.textContent = `틱 ${d.tick}`
-            + (d.date ? ` · ${d.date}` : "")
-            + (d.progress ? ` (${d.progress.played}/${d.progress.total}봉)` : "");
+          /* '틱'·'간격'은 엔진 내부 단위라 화면에서 뺐다 — 실데이터 재생에서는 날짜와
+             '몇 번째 봉인지'가 같은 것을 사람 말로 전한다. 합성 패턴 피드(개발용)에는
+             봉 총수가 없으므로 그때만 틱 수를 그대로 쓴다(그쪽은 실제로 틱이 단위다). */
+          el.tickInfo.textContent = d.progress
+            ? (d.date ? `${d.date} ` : "") + `(${d.progress.played}/${d.progress.total}봉)`
+            : (d.date || `틱 ${d.tick}`);
           if (d.prev_close != null) prevClose = num(d.prev_close);
           /* 히스토리 재생분(이미 /api/state 스냅샷에 들어 있는 구간)은 캔들로 다시 쌓지 않는다.
              두 겹으로 막는다:
@@ -1517,7 +1528,7 @@
   // ---------- SSE 연결 ----------
   function connect() {
     const es = new EventSource("/api/events?since=" + lastEventId);
-    es.onopen = () => { el.connStatus.textContent = "실시간 연결됨 (SSE)"; };
+    es.onopen = () => { el.connStatus.textContent = "실시간 연결됨"; };   // '(SSE)' 는 프로토콜 이름이라 뺐다
     es.onerror = () => { el.connStatus.textContent = "연결 끊김 — 재연결 중…"; };
     es.onmessage = (m) => {
       try {
@@ -1562,7 +1573,13 @@
      app.js 가 읽는 훅은 전부 살아 있다(빼면 null 참조로 대시보드가 통째로 죽는다).
      ⚠ applyLayout 보다 먼저 옮겨야 한다 — 그리드에 남아 있으면 배치 로직이 도로 끌어온다. */
   const devMode = localStorage.getItem(LAB_KEY) === "1";
-  if (el.devSlot && el.sessionCard) el.devSlot.appendChild(el.sessionCard);
+  if (el.devSlot) {
+    // 서랍으로 옮기는 카드들. 세션 설정 = 조작부, 한도 바꾸기 = AP2 재서명(운영 조작부).
+    for (const sel of ['[data-card="session"]', '[data-card="mandate"]']) {
+      const card = $(sel);
+      if (card) el.devSlot.appendChild(card);
+    }
+  }
   if (devMode) {
     el.devDock.classList.remove("hidden");
     el.adv.open = true;
@@ -1721,7 +1738,7 @@
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
   /* ⚠ DEFAULT_LAYOUT 을 바꾸면 이 키도 반드시 올린다. 안 올리면 이미 방문한 적 있는
      브라우저(= 촬영용 브라우저 포함)가 localStorage 에 저장된 옛 배치를 계속 쓴다. */
-  const LAYOUT_KEY = "autotrader_layout_v9";  // v9: 세션 설정 카드가 그리드를 떠나 개발자 서랍으로 — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v10";  // v10: 한도 바꾸기 카드도 개발자 서랍으로 — 기존 저장 배치 리셋
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
@@ -1734,10 +1751,11 @@
   // (배열에 남아 있어도 applyLayout 이 그리드 안에서만 카드를 찾으므로 무해하지만, 배치의
   //  단일 출처가 이 배열이라는 약속을 지키려면 여기 없는 편이 맞다.)
   // (decisions·log 는 기본 접힘이라 눈에 보이는 순서는 pnl→valuation→position→ai→price.)
+  // v10 에서 mandate 도 빠졌다 — 세션 설정과 같이 개발자 서랍에 산다.
   const DEFAULT_LAYOUT = ["pnl", "valuation", "position", "ai",
                           "decisions", "log",
                           "price", "symbols",
-                          "trades", "budget", "mandate", "briefing", "history"];
+                          "trades", "budget", "briefing", "history"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 
