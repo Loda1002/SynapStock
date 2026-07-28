@@ -269,7 +269,8 @@
   <div class="page-head">
     <span class="eyebrow">제출물 · 데모 영상</span>
     <h1>402 Guard 촬영 대본 — 3분</h1>
-    <p>장면 6개, 합계 180초. 왼쪽 타이머를 켜고 촬영하면 현재 장면이 자동으로 따라옵니다. 대사는 그대로 읽어도 되고, <em>강조된 문장</em>만 지켜도 논지는 유지됩니다.</p>
+    <p>장면 7개(A~G), 합계 180초. 왼쪽 타이머를 켜고 촬영하면 현재 장면이 자동으로 따라옵니다. 대사는 그대로 읽어도 되고, <em>강조된 문장</em>만 지켜도 논지는 유지됩니다.</p>
+    <p style="margin-top:6px"><b>정본 동기화</b> — 이 대본은 <code>docs/submission.md §6</code> 큐시트와 같은 내용입니다(2026-07-28). 둘이 어긋나면 <code>submission.md</code> 가 정본입니다.</p>
   </div>
 
   <div class="layout">
@@ -283,8 +284,8 @@
 
         <div class="now">
           <span class="eyebrow">현재 장면</span>
-          <div class="now-scene" id="nowScene">1. 문제 — 사람이 빠진 결제</div>
-          <div class="now-left mono" id="nowLeft">이 장면 20초</div>
+          <div class="now-scene" id="nowScene">A. 문제 — 사람이 빠진 결제</div>
+          <div class="now-left mono" id="nowLeft">이 장면 22초</div>
         </div>
 
         <div class="controls">
@@ -303,118 +304,132 @@
     <div>
       <div class="scenes" id="scenes">
 
-        <section class="scene" data-start="0" data-dur="20">
+        <section class="scene" data-start="0" data-dur="22">
           <button class="scene-head" type="button">
             <span class="scene-time mono">0:00</span>
-            <span class="scene-title">1. 문제 — 사람이 빠진 결제</span>
-            <span class="scene-dur">20초</span>
+            <span class="scene-title">A. 문제 — 사람이 빠진 결제</span>
+            <span class="scene-dur">22초</span>
           </button>
           <div class="scene-body">
             <div class="block">
               <h4>말할 것</h4>
-              <p class="say">AI 에이전트가 사람 없이 지갑으로 결제하는 시대가 옵니다. 그런데 <em>x402 결제 규격은 파는 쪽을 보호하도록 설계돼 있고, 사는 쪽 — 사람 없이 서명하는 구매 에이전트 — 을 지키는 계층이 비어 있습니다.</em> 저희는 그 비어 있는 절반을 만들었습니다.</p>
+              <p class="say">AI 에이전트에게 지갑을 맡기면 사람 없이도 알아서 사고팝니다. 그런데 <em>AI 는 가짜 영수증을 의심할 줄 모릅니다.</em> 사람이 결제하던 시절에는 청구서가 이상하면 사람이 눈치챘습니다. 그 마지막 확인이 사라졌습니다.</p>
             </div>
             <div class="block">
               <h4>보여줄 것</h4>
               <ul class="do">
-                <li>제목 화면: <code>402 Guard — 에이전트 지출 승인 게이트</code></li>
-                <li>한 줄 도식: 구매 에이전트 → [ 게이트 ] → 브로커</li>
+                <li>랜딩 페이지 → 대시보드 KPI 클로즈업</li>
               </ul>
-              <div class="proof"><b>주의</b> 이 20초 안에 '트레이딩 봇'이라는 단어를 쓰지 않습니다.</div>
+              <div class="proof"><b>주의</b> 이 22초 안에 '트레이딩 봇'이라는 단어를 쓰지 않습니다.</div>
             </div>
           </div>
         </section>
 
-        <section class="scene" data-start="20" data-dur="30">
+        <section class="scene" data-start="22" data-dur="18">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">0:20</span>
-            <span class="scene-title">2. 위협 — 한도는 지켜지는데 전액을 잃는다</span>
-            <span class="scene-dur">30초</span>
+            <span class="scene-time mono">0:22</span>
+            <span class="scene-title">B. 빈 자리 — 아무도 서 있지 않은 곳</span>
+            <span class="scene-dur">18초</span>
           </button>
           <div class="scene-body">
             <div class="block">
               <h4>말할 것</h4>
-              <p class="say">악성 브로커가 건별 한도 45달러 안쪽인 44.94달러를 청구합니다. 금액은 정상입니다. <em>수취인 지갑 주소만 자기 것으로 바꿉니다.</em> 지금 업계 기본값인 가드 없는 에이전트는 이걸 그대로 서명합니다. 돈은 나가고 주식은 오지 않습니다. 한도는 지켜졌는데 전액을 잃습니다.</p>
+              <p class="say">x402 는 구매자의 <em>키</em>를 지킵니다. 무엇에 서명하는지는 검증하지 않습니다. AP2 는 수취인 제약을 정의하지만 그 집행을 카드사·결제망에 맡깁니다 — <em>자기 지갑으로 결제하는 세계에는 그 주체가 없습니다.</em> 402 Guard 가 그 자리에 섭니다.</p>
             </div>
             <div class="block">
               <h4>보여줄 것</h4>
               <ul class="do">
-                <li>가드를 끈 상태로 공격 실행 — 라벨은 <code>가드 없는 일반 에이전트</code></li>
-                <li>수취인 주소가 다른 지갑으로 바뀐 청구서를 화면에 확대</li>
-                <li>한도 검사만 통과하는 순간을 그대로 노출</li>
+                <li>슬라이드 1장 — x402 / AP2 / 공석</li>
               </ul>
-              <div class="proof"><b>근거</b> AP2 authorize는 종목·건별한도·잔여예산만 보고 수취인은 검사하지 않는다 — 이 결함이 게이트의 존재 이유입니다.</div>
+              <div class="proof"><b>금지</b> "x402 는 파는 쪽을 보호합니다" 는 부정확합니다(스펙에 <code>maxAmountRequired</code> 와 구매자 로컬 서명이 이미 있습니다). 위 문장을 그대로 쓰십시오.</div>
             </div>
           </div>
         </section>
 
-        <section class="scene" data-start="50" data-dur="40">
+        <section class="scene" data-start="40" data-dur="35">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">0:50</span>
-            <span class="scene-title">3. 차단 — 서명 직전의 마지막 검사</span>
-            <span class="scene-dur">40초</span>
+            <span class="scene-time mono">0:40</span>
+            <span class="scene-title">C. 정상 동작 — 실제로 돌려 보겠습니다</span>
+            <span class="scene-dur">35초</span>
           </button>
           <div class="scene-body">
             <div class="block">
               <h4>말할 것</h4>
-              <p class="say">같은 공격을 402 Guard를 켜고 다시 돌립니다. 게이트는 서명 직전에 청구서를 사용자가 서명한 위임장과 대조합니다. 주문번호, 자산, 종목, <em>수취인, 금액, 사용자가 의도한 지출 상한, 건별 한도</em> — 하나라도 어긋나면 서명하지 않습니다. 결과는 시도 20건 중 6건 차단, <em>유출 0.00 USDC</em>입니다.</p>
+              <p class="say">실제로 돌려 보겠습니다. 시세 한 봉마다 에이전트가 판단하고, 판매자 에이전트와 견적을 합의하고, x402 로 정산합니다. 지금 보시는 체결은 전부 <em>실제 서명된 트랜잭션</em>입니다.</p>
             </div>
             <div class="block">
               <h4>보여줄 것</h4>
               <ul class="do">
-                <li>터미널: <code>python -m scripts.red_team --report</code></li>
-                <li>공격·차단 매트릭스와 차단 코드를 정지 화면으로</li>
-                <li>대시보드 KPI 카드: 시도·차단·유출 0.00·오탐 0</li>
+                <li><code>/app</code> 세션 시작 → 틱·판단·A2A 견적·402·체결이 흐르는 화면</li>
               </ul>
-              <div class="proof"><b>실측</b> 시도 20 · 차단 6 · 유출 0.00 USDC · 오탐 0 (정상 14건 전부 통과)</div>
+              <div class="proof"><b>촬영</b> 이 구간은 <code>brain=rule</code> 로 찍어 체결이 확실히 나오게 합니다. AI 수치는 F 구간에서 별도 짧은 <code>brain=gemini</code> 세션으로 확보(컷 분리).</div>
             </div>
           </div>
         </section>
 
-        <section class="scene" data-start="90" data-dur="40">
+        <section class="scene" data-start="75" data-dur="25">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">1:30</span>
-            <span class="scene-title">4. 온체인 — 목업이 아니라는 증거</span>
-            <span class="scene-dur">40초</span>
+            <span class="scene-time mono">1:15</span>
+            <span class="scene-title">D. 공격 1 — 수취인만 바꾼 청구서</span>
+            <span class="scene-dur">25초</span>
           </button>
           <div class="scene-body">
             <div class="block">
               <h4>말할 것</h4>
-              <p class="say">정상 거래는 막히지 않습니다. 브로커는 진짜 원격 서비스라 결제 없이 주문하면 <em>402 Payment Required</em>를 그대로 돌려줍니다. 결제를 붙이면 Solana에서 USDC가 실제로 이동합니다. <em>트랜잭션 메모에 주문번호를 심어 어느 주문인지 체인에서 대조할 수 있고</em>, 정산 뒤에는 잔액을 다시 조회해 청구서대로 도착했는지 확인합니다.</p>
+              <p class="say">이번엔 공격해 보겠습니다. 악성 판매자가 <em>한도 안쪽 금액</em>으로 정상처럼 청구하되 받는 사람만 자기 지갑으로 바꿉니다. 한도는 지켜졌습니다. 그런데 전액을 잃습니다. — 402 Guard 가 <em>서명을 만들기 전에</em> 막습니다. 유출 0.</p>
             </div>
             <div class="block">
               <h4>보여줄 것</h4>
               <ul class="do">
-                <li>터미널: <code>curl -i http://localhost:8402/broker/orders</code> → 402 응답 헤더·결제 조건 확대</li>
-                <li>정상 매수 1건 — 판단 → 견적 → 게이트 통과 → 결제 완료</li>
-                <li>explorer에서 <code>?cluster=devnet</code> 트랜잭션 실제 조회</li>
-                <li>메모 필드 <code>AT1:{order_id}</code> 확대</li>
-                <li>증빙 파일 <code>artifacts/tx/</code> 교차검증 수치</li>
+                <li>터미널: <code>python -m scripts.red_team --report --attacker &lt;심사위원 주소&gt;</code></li>
+                <li>차단 코드 <code>GUARD_PAYEE_UNKNOWN</code> 줄을 정지 화면으로</li>
               </ul>
-              <div class="proof"><b>실측</b> devnet 라이브 5거래 전부 확정, USDC 순변화 −4.9가 기대치와 일치</div>
+              <div class="proof"><b>실측(2026-07-28 재실행)</b> 공격 7 · 구매자 서명 전 차단 5 · 판매자측 1 · 사후 탐지 1 · <b>유출 0.00 USDC</b> · 정상 14건 오탐 0.<br>
+              ⚠ 예전 대본의 <b>'시도 20 · 차단 6'</b> 은 <b>폐기된 수치</b>입니다(모집단이 섞여 있었습니다). 화면에 나오는 값만 읽으십시오.</div>
             </div>
           </div>
         </section>
 
-        <section class="scene" data-start="130" data-dur="30">
+        <section class="scene" data-start="100" data-dur="35">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">2:10</span>
-            <span class="scene-title">5. 자율성 — AI가 무엇을 판단하든 게이트는 상수</span>
-            <span class="scene-dur">30초</span>
+            <span class="scene-time mono">1:40</span>
+            <span class="scene-title">★ E. 공격 2 — 숫자는 다 맞는데 물건이 다르다</span>
+            <span class="scene-dur">35초</span>
           </button>
           <div class="scene-body">
             <div class="block">
               <h4>말할 것</h4>
-              <p class="say">판단은 Gemini가 합니다. 시세와 지표를 보고 사고팔지를 스스로 정합니다. 하지만 <em>AI가 무엇을 판단하든 한도를 넘길 수는 없습니다.</em> 사람이 미리 서명한 정책을 코드가 매 건 강제하기 때문입니다. 사람을 부르지 않고도 안전한 자율 결제 — 이게 저희가 만든 것입니다.</p>
+              <p class="say">여기가 오늘 보여드리고 싶은 부분입니다. 이 청구서는 <em>금액도, 받는 사람도, 자산도, 종목도 전부 정상</em>입니다. 화면에 보시는 대로 <em>하드 검사 8종을 전부 통과합니다.</em> 다른 건 설명 한 줄뿐입니다 — '12개월 자동 결제 구독의 첫 회차'. 이건 정규식으로 쓸 수 없습니다. '구독'을 막으면 '멤버십'이 옵니다. 그래서 <em>여기 한 칸만 언어 모델에게 맡겼습니다.</em></p>
             </div>
             <div class="block">
               <h4>보여줄 것</h4>
               <ul class="do">
-                <li>판단 타임라인에서 <code>[gemini]</code> 배지와 한국어 판단 이유</li>
-                <li>한도 초과 시도 → 기계적 거부 1건</li>
-                <li>여러 종목이 각자 예산 안에서 독립적으로 도는 화면</li>
+                <li>같은 리포트의 <code>①''</code> 행 클로즈업 — <b><code>하드 검사 8종: 전부 통과</code> 줄이 읽혀야 합니다</b></li>
+                <li>이어서 <code>GUARD_SEMANTIC_MISMATCH</code> 차단 줄</li>
               </ul>
-              <div class="proof"><b>정직하게</b> 수익률은 팔지 않습니다. 벤치마크에 지는 구간도 소개서에 그대로 실었습니다.</div>
+              <div class="proof"><b>절대 자르지 않습니다</b> — 3분을 넘기면 G → C 순으로 줄이고 <b>E 는 그대로 둡니다.</b> 심사 축② (AI 활용도)의 유일한 영상 근거입니다.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" data-start="135" data-dur="25">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">2:15</span>
+            <span class="scene-title">F. AI 의 권한 — 준 것은 거부권뿐</span>
+            <span class="scene-dur">25초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">다만 AI 에게 준 것은 <em>거부권뿐</em>입니다. 통과시킬 권한은 없습니다. 같은 원칙이 판단 레이어에도 있습니다 — 실제로 저희 로그에는 Gemini 가 <em>사실과 다르게</em> '조건을 충족했다'고 단언하며 매수를 시도한 기록이 있고, 코드가 그 2건을 차단했습니다. <em>오탐이면 거래 한 건을 놓치고, 미탐이면 검사 8종이 그대로 남습니다.</em></p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li>대시보드 AI 카드 — 판단 레이어 / 청구서 레이어 두 칸</li>
+                <li>판단 출처 배지 <code>rule-gate</code> (AI 판단을 코드가 되돌린 표시)</li>
+              </ul>
+              <div class="proof"><b>정직하게</b> "AI 가 수익을 올립니다" 는 말하지 않습니다 — 실측은 규칙 −37.56% 대 Gemini −39.57% 로 중립(약간 열위)입니다.</div>
             </div>
           </div>
         </section>
@@ -422,21 +437,23 @@
         <section class="scene" data-start="160" data-dur="20">
           <button class="scene-head" type="button">
             <span class="scene-time mono">2:40</span>
-            <span class="scene-title">6. 마무리 — 직접 재현해 보십시오</span>
+            <span class="scene-title">G. 증빙·마무리</span>
             <span class="scene-dur">20초</span>
           </button>
           <div class="scene-body">
             <div class="block">
               <h4>말할 것</h4>
-              <p class="say">저희가 파는 것은 수익률이 아니라 <em>지출 통제</em>입니다. 첫 화면의 숫자도 수익률이 아니라 시도·차단·유출 0.00·오탐 0입니다. 명령 한 줄이면 이 결과를 그대로 재현하실 수 있습니다.</p>
+              <p class="say">목업이 아닙니다. 트랜잭션 해시와 판단 출처가 파일로 남습니다. — <em>감시 없는 자율, 건건이 승인하지 않는 결제.</em> 402 Guard 였습니다.</p>
             </div>
             <div class="block">
               <h4>보여줄 것</h4>
               <ul class="do">
-                <li>KPI 화면 정지 + 재현 명령 <code>python -m scripts.red_team --report</code></li>
-                <li>저장소 주소와 (배포되면) 라이브 URL</li>
+                <li><code>artifacts/tx/</code> JSON 의 교차검증 블록 → 랜딩으로 마무리</li>
+                <li>저장소 주소와 라이브 URL(<b>토큰 없는 순수 URL</b>)</li>
               </ul>
-              <div class="proof"><b>끝맺음</b> 마지막 3초는 KPI 화면을 말없이 정지해 둡니다.</div>
+              <div class="proof"><b>⚠ explorer 화면은 조건부입니다</b> — <code>artifacts/tx/</code> 의 devnet 파일은 1건뿐이고 그 결제 통화가 <b>구매자 지갑이 민트 권한을 쥔 테스트 토큰</b>입니다. explorer 를 비추면 심사위원이 민트 권한 한 줄을 보게 됩니다.<br>
+              → <b>A안</b> Circle 공식 USDC 재실증을 촬영 앞으로 당겼다면 explorer 를 비춥니다.<br>
+              → <b>B안</b> 아니라면 explorer 대신 <b>아카이브 JSON + 고지 자막</b>으로 갑니다.</div>
             </div>
           </div>
         </section>
