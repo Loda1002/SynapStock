@@ -22,7 +22,9 @@
 | **P2-5 `GAP-07`** README 부서 3종 + 라이브 URL | ✅ | `087a732` |
 | (신규) 연결 지갑 온체인 잔액 표시 | ✅ | `59eee89` |
 
-**배포 리비전 `synapstock-00013-sgs`** (2026-07-28 재배포·검증 완료).
+**배포 리비전 `synapstock-00014-hft`** (2026-07-28 오후 재배포·검증 완료 — P2-4·P4·P1-3·P1-5 반영본).
+직전은 `synapstock-00013-sgs`. 되돌리기: `gcloud run services update-traffic synapstock
+--region asia-northeast3 --to-revisions synapstock-00013-sgs=100`.
 실측: 엔드포인트 11개 정상(`/broker/orders` POST → **402 + accepts[]**) · `/api/wallet/balance` 200 ·
 랜딩 `단일 공용 인스턴스` · 대시보드 `이번 세션 기준` · `data-guard-unverified` 훅 존재.
 배포 env 에 **`GEMINI_MODEL=gemini-flash-latest` 포함 확인**.

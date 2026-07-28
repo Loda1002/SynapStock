@@ -72,8 +72,12 @@
 > `OPS-06`·`OPS-07`·`UX-09` 를 런북 **§6-2 시연·촬영 운영 규칙**으로 신설
 > (`BROKER_HTTP_URL` 배포 env 에 넣지 않기 · 촬영 세션 60~120봉 · 촬영은 라이트 모드 고정).
 >
-> **⚠ 배포 미반영** — 위 코드 변경(BUG-09·CODE-06·BUG-05·P1-3·404)은 아직 Cloud Run 에 안 올라갔다.
-> 재배포는 런북 §4 한 줄 명령(`GEMINI_MODEL` 포함 확인) → §5 검증.
+> **✅ 재배포 완료 — 리비전 `synapstock-00014-hft`** (2026-07-28 오후, 검증 통과).
+> 실측: 엔드포인트 **11개 200** · `app.js` 에 `fetchHistory`·`lastEngineStatus`·`actor_label` 존재 ·
+> `index.html` 에 `data-card="history"`·BUG-10 정정 툴팁 · **404 → text/html + 복귀 링크**
+> (`/api/nope` 는 그대로 JSON) · SSE 첫 바이트 **0.067초** · `POST /broker/orders` → **402 + accepts[]** ·
+> `state.guard.blocked_unverified`·`state.ai.invoice_semantics` 방출 · `persistence=firestore` ·
+> **env 에 `GEMINI_MODEL=gemini-flash-latest` 유지 확인** · 배포본 대시보드에서 **이력 10건 실제 렌더**·콘솔 오류 0.
 >
 > **잔여**: '여유 시' 버그 3건(BUG-03·06·07, 전부 낮음·심사 노출 경로 없음) · `GAP-10`(업타임 보험).
 > **사용자 몫**: GitHub public 전환 · 재배포 · Circle USDC devnet 재실증 · 제출물 3종.
