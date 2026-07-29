@@ -40,6 +40,85 @@
 
 ## 현재 상태 (2026-07-29 갱신)
 
+> **★★★★★★★★★★★ 2026-07-29 낮 — 온체인 예산 집행 A-lite 구현 완료. 커밋 5건 전부 푸시
+> (`cc4d3f9` C2 · `64fb86d` C1 · `da9d0d9` C3 · `24565f6` C5 · `70664f6` 문서).
+> 테스트 23종 전부 통과 · red_team rc=0 · 유출 0.00 · 제품 결제 경로 무변경.**
+>
+> **★ 가장 중요한 한 줄 — 과장 금지.** 이 작업은 **제품 배선이 아니다.** 엔진·화면·API·
+> 드라이런 어디에도 동작 변화가 없다. *"402 Guard 의 예산이 온체인에서 집행된다"* 는
+> **거짓**이고, 정확한 문장은 *"예산 상한을 체인이 집행하는 레일을 실증했고, 엔진 배선은
+> 로드맵"* 이다. 아카이브의 **`wired_into_product: false`** 가 그 경계를 기계 판독 가능하게
+> 남긴다. 영상 '말하지 말 것' 목록에도 추가했다(`submission.md §6`).
+>
+> **만든 것 (설계 `docs/design/onchain_budget_design.md` 명세 그대로)**
+> - **`payments/delegation.py`**(신규·호출자 0) — `read_delegation`(RPC 1회로 잔액+위임 잔여)
+>   · `approve_budget`(**절대값** 의미 고정 — 감액은 전송 전 `DelegationError`. SPL approve 가
+>   누적이 아니라 덮어쓰기라 '재충전' 의도가 한도를 깎는다) · `revoke_budget`(멱등) ·
+>   `spl_error_code`(속성 경로 1순위 + 문자열 폴백) · `classify_rejection`(순수 함수).
+>   **`GuardResult` 재사용** → C4 배선이 한 줄이고 화면 코드 변경 0. **`guard.py` 무수정 =
+>   하드 검사 8종 카운트 불변**(온체인 거부는 서명 *뒤* 체인이 거절하는 것이라 정의가 다르다).
+> - **`build_transfer_transaction(source_owner=)`** — 출처 ATA 를 지불자에서 분리. 기본값
+>   경로는 **바이트 동일**이고, 판매자 `verify_payment` 는 출처 ATA 를 아예 안 보므로
+>   **판매자측 변경 0줄**.
+> - **`scripts/demo_delegation.py`**(심사 산출물) — approve → 결제 → 한도 초과 거절 →
+>   **★대조군(잔액 부족, 같은 0x1)** → 자기 상향 공격 → revoke. `.env`·시크릿·Gemini 키
+>   **불필요**(localnet 기본 + 임시 지갑 + 테스트 민트 자체 생성).
+> - **C5** `snapshot_balances(user_pk=)` + `usdc_net_out` 추출 — 교차검증에 자금 소유자 지갑
+>   합산. user 잔액이 현재 0 이라 값이 지금까지와 **완전히 동일**하다.
+>
+> **★ 이 작업의 핵심 명제(영상 X 구간이 보여줄 것)**: 체인은 **한도 초과와 잔액 부족을 같은
+> 에러 코드(0x1)로** 거절한다. 구분하지 않으면 **지갑이 빈 것을 "체인이 한도를 집행했다"고
+> 광고하게 된다.** 그래서 실패 직후 계정 상태를 1회 재조회해 갈라내고, **잔액이 충분했을
+> 때만** 한도를 주장한다. 음성 대조 N1 이 "코드만 보는 순진한 분류기"를 같은 파일에서
+> 나란히 돌려 그것이 실제로 거짓 광고를 한다는 것을 단언한다.
+>
+> **⚠⚠ 테스트 배치 실행법이 바뀌어야 한다 — 이번에 실측으로 드러났다.**
+> ① **`python scripts/test_*.py` 로 돌리면 6종이 `ModuleNotFoundError` 로 실패한다**
+>    (`test_brain_select`·`test_dataquality`·`test_dca_schedule`·`test_gemini_parse`·
+>    `test_indicators`·`test_store` 에는 `sys.path.insert` 가 없다 — 각 파일 독스트링이
+>    `python -m scripts.test_xxx` 를 지시한다). **선재 조건이지 이번 작업의 회귀가 아니다.**
+> ② **시스템 python 이 아니라 `.venv\Scripts\python.exe` 가 정본이다** — 시스템 쪽에는
+>    `google-genai` 가 없어 `test_brain_select` 가 실패한다(`.venv` 에는 2.13.0). solders
+>    0.27.1 · solana 0.38.0 은 양쪽 동일.
+> **올바른 배치 명령**:
+> ```powershell
+> Get-ChildItem scripts/test_*.py | ForEach-Object { & ".venv\Scripts\python.exe" -m ("scripts." + $_.BaseName) *> $null; "{0,-30} rc={1}" -f $_.Name, $LASTEXITCODE }
+> ```
+>
+> **실측 검증**: 단위 **23종 전부 rc=0** · `test_delegation` **58종**(오프라인 41 + localnet 17)
+> · `red_team --report` rc=0(유출 0.00 · 오탐 0 · KPI 불변) · **localnet 라이브 세션 1회**
+> (`run_demo --live --ticks 12`) `usdc_ok/stock_ok=True`, 아카이브에 `balances_before.user` 와
+> `cross_check.usdc_wallets` 존재 · 증빙 `artifacts/tx/20260729_1243_solana-localnet_delegation.json`
+> (온체인 거절 3건 · 유출 0.00 · approve/transfer/revoke tx 3건).
+> ※ 라이브 세션은 `.env`·`secrets/` 를 건드리지 않고 임시 지갑·임시 민트로 돌렸다
+>   (`setup_devnet.py` 는 마지막에 `.env` 를 덮어쓰므로 쓸 수 없다 — `:191`).
+>
+> **Cloud Run 영향 = 0. 재배포 불필요.** `artifacts/` 는 `.dockerignore` 로 이미지에서 제외되고,
+> `payments/delegation.py` 는 이미지에 들어가되 임포트하는 코드가 없다. C5 가 건드린
+> `snapshot_balances` 는 **라이브에서만** 호출되는데 배포본은 `ALLOW_LIVE_FROM_WEB=0` +
+> `CONTROL_TOKEN` 으로 라이브가 잠겨 있다 → 드라이런 경로는 RPC 증가도 동작 변화도 없다.
+> (다음에 다른 이유로 재배포할 때 자연히 포함되면 된다. 런북 §4 명령에 `GEMINI_MODEL` 포함 필수.)
+>
+> **문서 5곳 반영**(`70664f6`): 소개서 슬라이드 11 각주(⚠ **게시본 재발행 필요** — 같은 URL
+> 유지. `.frame` 넘침은 브라우저 실측으로 14장 전부 0 확인) · README:105 · 벤치마크 §4-1
+> 각주(**갭은 닫히지 않았다**를 명시) · FEATURES §1-1 행 1개(상태 = ⚠ 제품 미배선) ·
+> **submission §6 큐시트에 축③ `X` 구간 12초 신설**(배포 URL `curl -i` 402 원문 6초 +
+> `demo_delegation` ④⑤ 6초). 재원은 **A −4 · B −3 · G −5** 이고 **D·E 는 손대지 않았다**.
+> 총합 180초·구간 연속성 검산 통과. 단위 테스트 표기 20→23종 정정.
+> **일부러 바꾸지 않은 것**: `landing.html:224`·`index.html:364` 의 "예산을 코드가 집행" —
+> 지금도 사실이고(AP2 가 실제로 차감한다) 여기에 온체인을 붙이면 **배선하지 않은 것을 첫
+> 화면이 주장**하게 된다. **화면 변경 0 = 재촬영 사유 0.**
+>
+> **⚠ 촬영 전 남은 것 1건**: `docs/artifacts/demo_script.html` 에 **X 구간과 A·B·G 시간 조정이
+> 아직 반영돼 있지 않다**(submission.md 에 경고를 적어 뒀다). 촬영 전에 대본을 갱신하고
+> 게시본을 같은 URL 로 재발행할 것. X 구간 ②컷은 **localnet 검증기가 떠 있어야** 찍힌다.
+>
+> **다음(선택)**: C4(엔진 배선)는 **8/3 전에는 하지 않는다** — 교차검증 파손 위험 + 촬영이
+> 드라이런 경로다. devnet 실증(`--devnet --budget 2 --spend 1`)은 Circle 파우셋에서 **user
+> 지갑**으로 USDC 를 받았을 때만. 파우셋 대기를 일정에 넣지 않는다(설계 §8-3).
+>
+> ---
+>
 > **★★★★★★★★★★ 2026-07-29 새벽 — 사용자 지정 프런트 3건 + 재배포 완료. 커밋 `a65b834` 푸시.
 > 리비전 `synapstock-00018-dhr`. 엔드포인트 13개 200 · 정적 파일 5개 저장소와 바이트 일치 ·
 > 콘솔 오류 0.**

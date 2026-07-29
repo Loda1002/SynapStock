@@ -134,6 +134,18 @@
 - **다음 단계 2번(Gemini 교체) 완료**: `agents/gemini_decider.py` 신설 — Gemini API(무료 티어, `gemini-flash-latest`, developer 모드)가 시세 흐름·규칙·예산을 보고 매수/매도/보류 판단 + 한국어 이유 생성. 호출 실패 시 규칙 기반 자동 폴백(데모데이 네트워크 대비). localnet 라이브 재검증: **Gemini 판단 매수 3건 온체인 확정**, 교차검증 PASS, 아카이브에 판단 주체·이유 기록. 참고: 신규 계정 키는 `AQ.` 새 형식이고 gemini-2.5 계열이 신규 사용자에게 차단돼 `gemini-flash-latest` 별칭 사용. 연결 확인은 `scripts/check_gemini.py`.
 - **다음 단계 1번(라이브 tx) localnet 완료**: WSL Ubuntu에 Agave 4.1.1 설치 → solana-test-validator 기동 → setup → `run_demo.py --live` 성공. 매수 3건 = 온체인 tx 6건(USDC 결제+주식 전달) 확정, 전후 잔액 RPC 교차검증 PASS, `artifacts/tx/20260722_1547_solana-localnet_live_buy.json` 아카이브. 수정 2건: 클라이언트 커밋먼트 Confirmed 통일(에어드랍 자금 미인식 해결), `preflight_commitment=Confirmed` 명시(Finalized 뱅크 preflight의 "Blockhash not found" 해결). 증빙 보강: 주식 전달 tx 서명 수집(기존엔 버려짐), 라이브 미확정 시 status=failed 처리, 전후 잔액 스냅샷·교차검증·JSON 아카이빙 추가. git 저장소 초기화. devnet은 SOL 확보(디스코드 요청) 후 .env 전환만 하면 됨.
 
+## 2026-07-29 (2) — 온체인 예산 집행 A-lite 구현 완료 (커밋 5건: C2→C1→C3→C5→문서)
+
+- **제품 결제 경로 무변경.** 엔진·화면·API·드라이런 어디에도 동작 변화가 없다. 정확한 문장은 "예산 상한을 체인이 집행하는 레일을 실증했고, 엔진 배선은 로드맵"이다. 아카이브의 `wired_into_product: false` 가 그 경계를 기계 판독 가능하게 남긴다.
+- C2 `payments/delegation.py` 신규 — `read_delegation`(RPC 1회로 잔액+위임 잔여) · `approve_budget`(절대값 의미 고정, 감액은 전송 전 거부) · `revoke_budget`(멱등) · `spl_error_code` · `classify_rejection`. `GuardResult` 재사용이라 화면 코드 변경 0. `guard.py` 무수정 = 하드 검사 8종 카운트 불변.
+- C1 `build_transfer_transaction(source_owner=)` — 출처 ATA 를 지불자에서 분리. 기본값 경로는 **바이트 동일**(수정 전 payload 를 골든 상수로 박아 증명). 판매자 `verify_payment` 는 출처 ATA 를 안 보므로 판매자측 변경 0줄.
+- C3 `scripts/demo_delegation.py` — approve → 결제 → 한도 초과 거절 → **대조군(잔액 부족, 같은 0x1)** → 자기 상향 공격 → revoke. localnet 무설정 재현. 실측 rc=0 · 온체인 거절 3건 · 유출 0.00(온체인 차분으로 계산).
+- C5 `snapshot_balances(user_pk=)` + `usdc_net_out` 추출 — 교차검증에 자금 소유자 지갑 합산. 현재 user 잔액이 0 이라 값이 지금까지와 동일하고, 옛 아카이브 재계산도 기록값과 일치(−4.9).
+- **음성 대조 3건**: N1 코드만 보는 순진한 분류기가 잔액 부족을 '한도 거부'로 광고한다는 것 / N2 골든 payload 바이트 동일 / N3 옛 식은 user 지출을 0 으로 셈.
+- 검증(`.venv` 정본 환경): 단위 테스트 **23종 전부 rc=0** · `test_delegation` 58종(오프라인 41 + localnet 17) · red_team rc=0(유출 0.00 · 오탐 0) · localnet 라이브 세션 1회 교차검증 PASS.
+- ⚠ **테스트 배치 실행 주의**: `python scripts/test_*.py` 로 돌리면 6종이 `ModuleNotFoundError` 로 실패한다(그 파일들엔 `sys.path.insert` 가 없다). `python -m scripts.test_*` 형식으로, **`.venv\Scripts\python.exe` 로** 돌릴 것 — 시스템 python 에는 `google-genai` 가 없어 `test_brain_select` 가 실패한다.
+- 문서 5곳(소개서·README·벤치마크·FEATURES·submission §6). 영상 큐시트에 **축③ X 구간 12초 신설**(402 원문 6초 + 위임 ④⑤ 6초), 재원 A −4 · B −3 · G −5, D·E 무변경. 랜딩·대시보드 문구는 일부러 그대로 뒀다(배선 전이라 첫 화면이 주장하면 과장).
+
 ## 2026-07-28 (2) — P1·P2·P3 대부분 완료 + 지갑 잔액 표시 (커밋 9건)
 
 - CODE-01: 브로커 자기신고 `partial` 매수가 배송 검증 블록에 못 들어가 유출 KPI·GUARD_PENDING 에서 빠지던 결함 수정. 음성 대조로 재현 확인(옛 조건에서 leak=0 / total=9.99). tx 아카이브에 guard 블록 추가.
