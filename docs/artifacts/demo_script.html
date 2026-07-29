@@ -269,8 +269,8 @@
   <div class="page-head">
     <span class="eyebrow">제출물 · 데모 영상</span>
     <h1>402 Guard 촬영 대본 — 3분</h1>
-    <p>장면 7개(A~G), 합계 180초. 왼쪽 타이머를 켜고 촬영하면 현재 장면이 자동으로 따라옵니다. 대사는 그대로 읽어도 되고, <em>강조된 문장</em>만 지켜도 논지는 유지됩니다.</p>
-    <p style="margin-top:6px"><b>정본 동기화</b> — 이 대본은 <code>docs/submission.md §6</code> 큐시트와 같은 내용입니다(2026-07-28). 둘이 어긋나면 <code>submission.md</code> 가 정본입니다.</p>
+    <p>장면 8개(A~C · <b>X</b> · D~G), 합계 180초. 왼쪽 타이머를 켜고 촬영하면 현재 장면이 자동으로 따라옵니다. 대사는 그대로 읽어도 되고, <em>강조된 문장</em>만 지켜도 논지는 유지됩니다.</p>
+    <p style="margin-top:6px"><b>정본 동기화</b> — 이 대본은 <code>docs/submission.md §6</code> 큐시트와 같은 내용입니다(2026-07-29 · 축③ <b>X 구간 12초 신설</b> + A·B·G 시간 조정 반영). 둘이 어긋나면 <code>submission.md</code> 가 정본입니다.</p>
   </div>
 
   <div class="layout">
@@ -304,11 +304,11 @@
     <div>
       <div class="scenes" id="scenes">
 
-        <section class="scene" data-start="0" data-dur="22">
+        <section class="scene" data-start="0" data-dur="18">
           <button class="scene-head" type="button">
             <span class="scene-time mono">0:00</span>
             <span class="scene-title">A. 문제 — 사람이 빠진 결제</span>
-            <span class="scene-dur">22초</span>
+            <span class="scene-dur">18초</span>
           </button>
           <div class="scene-body">
             <div class="block">
@@ -320,16 +320,16 @@
               <ul class="do">
                 <li>랜딩 페이지 → 대시보드 KPI 클로즈업</li>
               </ul>
-              <div class="proof"><b>주의</b> 이 22초 안에 '트레이딩 봇'이라는 단어를 쓰지 않습니다.</div>
+              <div class="proof"><b>주의</b> 이 18초 안에 '트레이딩 봇'이라는 단어를 쓰지 않습니다.</div>
             </div>
           </div>
         </section>
 
-        <section class="scene" data-start="22" data-dur="18">
+        <section class="scene" data-start="18" data-dur="15">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">0:22</span>
+            <span class="scene-time mono">0:18</span>
             <span class="scene-title">B. 빈 자리 — 아무도 서 있지 않은 곳</span>
-            <span class="scene-dur">18초</span>
+            <span class="scene-dur">15초</span>
           </button>
           <div class="scene-body">
             <div class="block">
@@ -346,9 +346,9 @@
           </div>
         </section>
 
-        <section class="scene" data-start="40" data-dur="35">
+        <section class="scene" data-start="33" data-dur="35">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">0:40</span>
+            <span class="scene-time mono">0:33</span>
             <span class="scene-title">C. 정상 동작 — 실제로 돌려 보겠습니다</span>
             <span class="scene-dur">35초</span>
           </button>
@@ -367,9 +367,35 @@
           </div>
         </section>
 
-        <section class="scene" data-start="75" data-dur="25">
+        <section class="scene" data-start="68" data-dur="12">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">1:15</span>
+            <span class="scene-time mono">1:08</span>
+            <span class="scene-title">★ X. 레일 — 결제 규격과 온체인 예산 (축③)</span>
+            <span class="scene-dur">12초</span>
+          </button>
+          <div class="scene-body">
+            <div class="block">
+              <h4>말할 것</h4>
+              <p class="say">결제 규격은 붙인 게 아니라 구현했습니다. 결제 없이 주문하면 <em>402 와 청구 조건</em>이 그대로 나옵니다. 한도는 지금 파이썬이 지킵니다 — 그래서 한도를 체인에 내려 봤습니다. 위임 한도를 넘긴 결제와 잔액이 모자란 결제는 <em>체인이 같은 에러 코드로 거절합니다.</em> 구분하지 않으면 지갑이 빈 것을 한도라고 광고하게 됩니다.</p>
+            </div>
+            <div class="block">
+              <h4>보여줄 것</h4>
+              <ul class="do">
+                <li><b>①컷 6초</b> — 배포 URL 에 <code>curl -i -X POST /broker/orders</code> 한 방. <b><code>HTTP/2 402 Payment Required</code> 와 <code>accepts[]</code></b> 원문. asset 이 <b>Circle 공식 devnet USDC</b> 인 줄이 읽혀야 합니다.</li>
+                <li><b>②컷 6초</b> — <code>python -m scripts.demo_delegation</code> 의 <b>④와 ⑤ 두 줄</b>. 위쪽 <code>custom program error 0x1</code> 이 <b>두 컷에서 같고</b>, 판정만 <code>GUARD_ONCHAIN_BUDGET</code> / <code>GUARD_ONCHAIN_FUNDS</code> 로 갈립니다.</li>
+              </ul>
+              <div class="proof"><b>자막 고정</b> <b>"레일 검증 · 제품 배선은 로드맵"</b>.<br>
+              <b>금지</b> <b>"예산이 온체인에서 집행됩니다"</b> — 배선 전입니다. 엔진 결제 경로는 무변경이고, 증빙 JSON 의 <code>"wired_into_product": false</code> 가 그 경계를 기계 판독 가능하게 남깁니다.<br>
+              <b>촬영</b> ②컷은 <b>localnet 검증기가 떠 있어야</b> 찍힙니다(<code>solana-test-validator</code>). 시크릿·<code>.env</code>·Gemini 키는 필요 없습니다.<br>
+              <b>부수 이득</b> ②컷은 localnet 증빙이라 G 구간의 자체발행 민트 논란이 여기엔 없습니다 — 심사 평가 네트워크가 Devnet·Localnet 둘 다이고 SPL Token 프로그램 주소는 두 네트워크에서 같습니다.<br>
+              <b>왜 신설했나</b> 축③(기술 완성도·블록체인 인프라 연동)이 주축인 장면이 0초였습니다. 재원은 <b>A −4 · B −3 · G −5</b> 이고 <b>D·E 는 건드리지 않았습니다.</b></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" data-start="80" data-dur="25">
+          <button class="scene-head" type="button">
+            <span class="scene-time mono">1:20</span>
             <span class="scene-title">D. 공격 1 — 수취인만 바꾼 청구서</span>
             <span class="scene-dur">25초</span>
           </button>
@@ -390,9 +416,9 @@
           </div>
         </section>
 
-        <section class="scene" data-start="100" data-dur="35">
+        <section class="scene" data-start="105" data-dur="35">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">1:40</span>
+            <span class="scene-time mono">1:45</span>
             <span class="scene-title">★ E. 공격 2 — 숫자는 다 맞는데 물건이 다르다</span>
             <span class="scene-dur">35초</span>
           </button>
@@ -412,9 +438,9 @@
           </div>
         </section>
 
-        <section class="scene" data-start="135" data-dur="25">
+        <section class="scene" data-start="140" data-dur="25">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">2:15</span>
+            <span class="scene-time mono">2:20</span>
             <span class="scene-title">F. AI 의 권한 — 준 것은 거부권뿐</span>
             <span class="scene-dur">25초</span>
           </button>
@@ -434,11 +460,11 @@
           </div>
         </section>
 
-        <section class="scene" data-start="160" data-dur="20">
+        <section class="scene" data-start="165" data-dur="15">
           <button class="scene-head" type="button">
-            <span class="scene-time mono">2:40</span>
+            <span class="scene-time mono">2:45</span>
             <span class="scene-title">G. 증빙·마무리</span>
-            <span class="scene-dur">20초</span>
+            <span class="scene-dur">15초</span>
           </button>
           <div class="scene-body">
             <div class="block">
@@ -473,6 +499,7 @@
               <li><input type="checkbox" id="p2"><label for="p2">폴백 준비 — 네트워크 불안정 시 localnet 재시연 경로</label></li>
               <li><input type="checkbox" id="p3"><label for="p3">라이브 세션 게이트 <code>ALLOW_LIVE_FROM_WEB=1</code> (시연 직전에만)</label></li>
               <li><input type="checkbox" id="p4"><label for="p4">화면에 개인 키·시크릿 경로가 보이지 않는지 확인</label></li>
+              <li><input type="checkbox" id="p9"><label for="p9"><b>X 구간 ②컷</b> — localnet 검증기 기동 (<code>solana-test-validator</code>) 후 <code>python -m scripts.demo_delegation</code> 이 <code>rc=0</code> 인지 미리 1회</label></li>
             </ul>
           </div>
           <div class="prep-cell">
@@ -480,7 +507,7 @@
             <ul>
               <li><input type="checkbox" id="p5"><label for="p5">브랜딩이 402 Guard로 바뀐 대시보드인지 (AutoTrader 표기 잔존 확인)</label></li>
               <li><input type="checkbox" id="p6"><label for="p6">첫 화면에 가드 KPI 카드가 보이는지</label></li>
-              <li><input type="checkbox" id="p7"><label for="p7">터미널 글자 크기 키우기 — 영상에서 읽혀야 함</label></li>
+              <li><input type="checkbox" id="p7"><label for="p7">터미널 글자 크기 키우기 — D·E 의 <code>하드 검사 8종: 전부 통과</code> 와 X 의 <code>custom program error 0x1</code> 이 읽혀야 함</label></li>
               <li><input type="checkbox" id="p8"><label for="p8">3분 이내인지 최종 확인 후 업로드 (유튜브 공개 또는 일부공개)</label></li>
             </ul>
           </div>
@@ -488,8 +515,8 @@
       </section>
 
       <footer>
-        장면 배분 22 · 18 · 35 · 25 · 35 · 25 · 20 = 180초. 3분을 넘기면 <b>G → C</b> 순으로 줄이고, <b>E(공격 2 — 물건)는 절대 자르지 않습니다</b> — 심사 축② 의 유일한 영상 근거입니다.<br>
-        근거: docs/submission.md §6(정본) · docs/differentiation.md §1·§3 · scripts/red_team.py 실측(2026-07-28) · artifacts/tx/20260724_1643_solana-devnet_live_buy.json
+        장면 배분 A 18 · B 15 · C 35 · <b>X 12</b> · D 25 · E 35 · F 25 · G 15 = 180초. 3분을 넘기면 <b>G → C</b> 순으로 줄이고, <b>E(공격 2 — 물건)는 절대 자르지 않습니다</b> — 심사 축② 의 유일한 영상 근거입니다. <b>X 도 자르지 않습니다</b> — 축③ 이 주축인 유일한 장면입니다.<br>
+        근거: docs/submission.md §6(정본) · docs/differentiation.md §1·§3 · scripts/red_team.py 실측(2026-07-28) · artifacts/tx/20260724_1643_solana-devnet_live_buy.json · artifacts/tx/20260729_1243_solana-localnet_delegation.json(X 구간)
       </footer>
     </div>
   </div>
