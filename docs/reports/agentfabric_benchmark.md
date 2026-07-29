@@ -71,6 +71,7 @@ README·사이트는 `Max spend: 5 CRO`·`maximum value`·`how much value they a
 ## 4. 그쪽에 있고 우리에 없는 것 (정직한 갭)
 
 1. **온체인 스마트컨트랙트 집행** — `AgentDelegator.sol` 509줄이 체인 위에서 검증. 우리 Guard 는 파이썬 프로세스 안 평범한 객체이고 검사가 조건부다(`trading_agent.py:487,530`).
+   (2026-07-29 갱신 — 금액 축 한정으로 SPL Token 위임 레일을 실증했다: `docs/design/onchain_budget_design.md` · `scripts/demo_delegation.py`. **갭은 닫히지 않았다** — 배선 전이고, 위임은 수취인·대상을 강제하지 않는다.)
 2. **MCP 서버** — ChatGPT·Claude 가 바로 발견·호출. 심사위원이 '내 Claude 에 붙여봤다'가 되면 축④의 의미가 달라진다.
 3. **수익 레이어 결합** — 방어를 단독으로 팔지 않고 x402 API 프록시 + 워크플로 마켓플레이스와 묶었다.
 4. **위임 만료의 온체인 강제** — `validAfter/validUntil`. 우리 `OpenPaymentMandate` 엔 **만료 필드 자체가 없다**.

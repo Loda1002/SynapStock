@@ -636,7 +636,7 @@
       </table>
       <div class="footnote" style="margin-top:auto">
         <b>*</b> AgentFabric 은 자기 소스에 <span class="mono">Advisory limits (NOT enforced on-chain, just for UI display)</span> 라고 적어 두었습니다. <b>정직하게 단 플래그입니다</b> — 그들의 온체인 세션키는 '무엇을 건드릴 수 있는가'까지 강제합니다. '얼마를·누구에게'가 아직 그 레이어에 없을 뿐입니다.
-        &nbsp;·&nbsp; <b>저희 한도 집행도 온체인이 아닙니다</b> — 에이전트 프로세스 안의 코드가 서명 직전에 차감합니다(<span class="mono">ap2_mandate.py</span>). 온체인 이관은 로드맵입니다.
+        &nbsp;·&nbsp; <b>저희 한도 집행도 온체인이 아닙니다</b> — 에이전트 프로세스 안의 코드가 서명 직전에 차감합니다(<span class="mono">ap2_mandate.py</span>). 온체인 이관은 로드맵이고, <b>레일은 이미 실증했습니다</b> — SPL Token 위임으로 예산 상한을 체인이 집행하고 초과 결제를 거절하는 것을 독립 스크립트로 확인했습니다(<span class="mono">scripts/demo_delegation.py</span>). <b>제품 경로에는 아직 연결하지 않았습니다.</b>
         &nbsp;·&nbsp; <b>?</b> = 저희가 확인하지 못한 칸 &nbsp;<b>—</b> = <b>저희가 확인한 범위에서</b> 발견하지 못함. "세계 최초"라고 말하지 않습니다.
       </div>
     </div>
