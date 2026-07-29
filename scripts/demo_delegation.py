@@ -219,6 +219,9 @@ async def main() -> int:
     steps: list = []
     classification: list = []
     unexpected: list = []
+    # 아래 안전망이 참조한다 — 준비 단계에서 죽어도 NameError 가 나지 않게 미리 둔다.
+    user = agent = mint = None
+    revoked = False
     try:
         # ═══════════ ① 준비 ═══════════
         if args.devnet:
@@ -232,8 +235,10 @@ async def main() -> int:
         start = await read_delegation(client, user.pubkey(), mint)
         agent_usdc = await x.get_token_balance_ui(client, agent.pubkey(), mint)
         print(f"  user (자금 소유자) : {user.pubkey()}   USDC {ui(start.balance, decimals)}")
+        # 문구를 잔액과 무관하게 박아 두면 지갑을 재사용하는 --devnet 실행에서 화면이 거짓말한다.
         print(f"  agent(거래 실행자) : {agent.pubkey()}   USDC {agent_usdc}"
-              f"   <- 이 지갑에는 결제할 돈이 없다")
+              + ("   <- 이 지갑에는 결제할 돈이 없다" if Decimal(agent_usdc or 0) == 0
+                 else "   (이 잔액은 결제에 쓰지 않는다 — 아래 결제는 전부 user 계정에서 나간다)"))
         print(f"  broker(수취인)     : {broker.pubkey()}")
         print(f"  민트               : {mint}"
               f"{'  (테스트 민트 · 이 데모가 발행)' if self_minted else '  (CFG.usdc_mint)'}")
@@ -349,14 +354,25 @@ async def main() -> int:
             return 1
         code5, state5, verdict5 = await classify_failure(client, res, user.pubkey(), mint,
                                                          funds_request, decimals, agent.pubkey())
+        # ★ '④와 같은 코드' 는 화면에 그대로 나가는 주장이다 — 실제로 같을 때만 말한다.
+        same_code = code is not None and code5 is not None and code == code5
         print(f"  한도 상향  : delegatedAmount = {ui(st5.delegated_amount, decimals)}  "
               f"(tx {sig_raise})")
-        print(f"  체인 응답  : custom program error 0x{code5:x}        <- ④와 같은 코드입니다"
-              if code5 is not None else "  체인 응답  : (코드 추출 실패)")
+        if code5 is None:
+            print("  체인 응답  : (코드 추출 실패)")
+        elif same_code:
+            print(f"  체인 응답  : custom program error 0x{code5:x}        <- ④와 같은 코드입니다")
+        else:
+            print(f"  체인 응답  : custom program error 0x{code5:x}"
+                  f"        (④는 {'0x%x' % code if code is not None else '추출 실패'} — 달랐다)")
         print(f"  판정       : {verdict5.code} — {verdict5.expected} < {verdict5.actual}")
-        print(f"  ※ 에러 코드만으로는 '한도 거부'와 '잔액 부족'을 구분할 수 없습니다. 그래서")
-        print(f"     실패할 때마다 계정 상태를 한 번 더 읽어 어느 쪽인지 판정합니다. 구분하지")
-        print(f"     않으면 지갑이 빈 것을 \"체인이 한도를 집행했다\"고 광고하게 됩니다.")
+        if same_code:
+            print(f"  ※ 에러 코드만으로는 '한도 거부'와 '잔액 부족'을 구분할 수 없습니다. 그래서")
+            print(f"     실패할 때마다 계정 상태를 한 번 더 읽어 어느 쪽인지 판정합니다. 구분하지")
+            print(f"     않으면 지갑이 빈 것을 \"체인이 한도를 집행했다\"고 광고하게 됩니다.")
+        else:
+            print(f"  ※ 이번 실행에서는 두 원인의 에러 코드가 달랐습니다. 그래도 판정은 코드가")
+            print(f"     아니라 계정 상태로 합니다 — 코드는 체인 구현에 따라 달라질 수 있습니다.")
         classification.append({
             "case": "insufficient-funds",
             "requested_usdc": str(from_base_units(funds_request, decimals)),
@@ -365,7 +381,6 @@ async def main() -> int:
             "spl_error_code": code5, **verdict5.as_event()})
         if verdict5.code != GUARD_ONCHAIN_FUNDS:
             unexpected.append(f"잔액 부족 판정이 {verdict5.code} 입니다")
-        same_code = code is not None and code == code5
 
         # ═══════════ ⑥ 자기 상향 공격 ═══════════
         hr("⑥ 에이전트가 스스로 자기 한도를 올리려 한다 (자기 상향 공격)")
@@ -403,6 +418,7 @@ async def main() -> int:
         # ═══════════ ⑦ revoke ═══════════
         hr("⑦ 사용자가 위임을 회수한다 (revoke)")
         sig_revoke = await revoke_budget(client, user, mint, fee_payer=agent)
+        revoked = True
         st7 = await read_delegation(client, user.pubkey(), mint)
         ok, res, _ = await attempt_payment(client, agent, user.pubkey(), broker.pubkey(),
                                            mint, spend, decimals, "ord_" + pysecrets.token_hex(5))
@@ -435,6 +451,18 @@ async def main() -> int:
         leak_base = left_account - spend                    # 정상 결제 1건 외에 나간 것
         leak = from_base_units(max(leak_base, 0), decimals)
     finally:
+        # ★ 안전망 — ⑤에서 한도를 잔액 기준으로 크게 올린 뒤 ⑦에서 회수한다. 그 사이에 죽으면
+        #   사용자 지갑에 위임이 남는다. 지출 상한을 다루는 스크립트가 상한을 걸어 둔 채
+        #   끝나는 것은 그 자체가 사고이므로, 어떤 경로로 빠져나가든 회수를 시도한다.
+        if user is not None and mint is not None and not revoked:
+            try:
+                left = await read_delegation(client, user.pubkey(), mint)
+                if left.delegate is not None:
+                    sig = await revoke_budget(client, user, mint, fee_payer=agent)
+                    print(f"\n[정리] 데모가 끝까지 가지 못해 위임을 회수했습니다 (tx {sig})")
+            except BaseException as e:        # noqa: BLE001 — 정리 실패가 원래 오류를 가리면 안 된다
+                print(f"\n[경고] 위임 자동 회수 실패 — 사용자 지갑에 위임이 남아 있을 수 "
+                      f"있습니다. `revoke` 를 직접 실행하세요. {type(e).__name__}: {e}")
         await client.close()
 
     # ---------- 증빙 아카이빙 ----------

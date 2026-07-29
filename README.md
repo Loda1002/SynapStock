@@ -225,6 +225,29 @@ curl -i -X POST https://synapstock-766888967498.asia-northeast3.run.app/broker/o
 > facilitator 없이 판매자가 직접 검증·정산한다. 두 가지 모두 디스커버리 응답의
 > `notImplemented` 에 그대로 적혀 있다.
 
+## 온체인 예산 레일 — SPL Token 위임 (레일 검증 · **제품 미배선**)
+
+위 402 Guard 의 한도는 **에이전트 프로세스 안의 코드**가 서명 직전에 집행한다. 그 집행을
+체인으로 내릴 수 있는지를 독립 스크립트로 확인해 두었다. 사용자가 `approve` 로 상한을 걸면
+에이전트는 자기 서명만으로 사용자 자금을 쓸 수 있고, 상한을 넘는 순간 **SPL Token 프로그램이**
+거절한다. 에이전트는 자기 한도를 올리지 못하고, 사용자는 `revoke` 로 언제든 끊는다.
+
+```bash
+solana-test-validator                 # 별도 터미널 (localnet)
+python -m scripts.demo_delegation     # .env·시크릿·Gemini 키 불필요 — 임시 지갑·테스트 민트 자체 생성
+python -m scripts.test_delegation --localnet
+```
+
+핵심은 **거절 사유를 정직하게 갈라내는 것**이다. 체인은 *한도 초과*와 *잔액 부족*을 **같은
+에러 코드(`0x1`)** 로 거절한다. 구분하지 않으면 지갑이 빈 것을 "체인이 한도를 집행했다"고
+광고하게 되므로, 실패 직후 계정 상태를 한 번 더 읽어 **잔액이 충분했을 때만** 한도를 주장한다
+(`payments/delegation.py`). 데모가 두 경우를 나란히 보여 준다.
+
+> **⚠ 제품 경로에는 연결하지 않았다.** 엔진 결제는 여전히 에이전트 지갑에서 나가고 한도는
+> 오프체인이 집행한다. 증빙 JSON의 **`"wired_into_product": false`** 가 그 경계를 기계 판독
+> 가능하게 남긴다. 정확한 문장은 *"레일을 실증했고, 엔진 배선은 로드맵"* 이다.
+> 설계·근거: [`docs/design/onchain_budget_design.md`](docs/design/onchain_budget_design.md)
+
 ## 실데이터 시세 (리플레이) · 백테스트
 
 시세는 **실제 미국 주식 일봉**을 내려받아 재생한다(결정적 재현 — 심사·데모에서 같은 구간이
@@ -315,7 +338,7 @@ solana-agent/
 │   ├── setup_devnet.py     # devnet 준비(민트·에어드랍·지급)
 │   ├── backtest.py         # 규칙 vs Gemini 비교 + 매수후보유 벤치마크
 │   ├── collect_evidence.py # 증거 수집기 (LLM 없이 테스트·red_team·tx 를 실제로 실행)
-│   └── test_*.py           # 단위 테스트 21종 (자체 하네스, pytest 불필요)
+│   └── test_*.py           # 단위 테스트 23종 (자체 하네스, pytest 불필요)
 ├── .claude/workflows/
 │   ├── judge-dept.js       # 심사 부서 — 해커톤 4축 자가평가
 │   ├── bug-dept.js         # 버그 부서 — 4렌즈 스캔 (읽기 전용)
@@ -367,4 +390,4 @@ python scripts/collect_evidence.py
 - **의미 대조(2026-07-27)**: 값이 전부 정상이고 설명만 다른 청구서를 하드 검사 8종이 **전부
   통과**시킨 뒤 의미 대조가 차단하는 것을 같은 실행에서 확인. 실제 Gemini 판정 근거 문장까지
   리포트에 출력. 정상 거래 14건 오차단 0, 실제 LLM 호출 1회(서식 캐시 13).
-- **테스트 20종 전부 통과** — `payments/`·`web/`·`market/` 단위 + 회귀
+- **테스트 23종 전부 통과** — `payments/`·`web/`·`market/` 단위 + 회귀

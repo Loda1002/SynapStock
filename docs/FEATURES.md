@@ -38,7 +38,7 @@
 | **매수·매도 풀사이클** | USDC⇄주식토큰 양방향 온체인 정산, 전후 잔액 RPC 교차검증 | `agents/broker_agent.py` | ✅ 순변화 PASS |
 | **거부 4종 데모** | 건별한도 초과·mandate 위변조·금액 부족·미허용 종목 | `scripts/demo_rejections.py` | ✅ |
 | **온체인 예산 레일 (A-lite)** | SPL Token 위임으로 예산 상한을 체인이 집행. 한도 초과·회수 후 결제를 체인이 거절하고, **같은 에러 코드(0x1)인 잔액 부족과 구분해** 라벨링한다(구분하지 않으면 지갑이 빈 것을 '한도 집행'으로 광고하게 된다). 에이전트는 자기 한도를 못 올린다 | `payments/delegation.py`, `scripts/demo_delegation.py` | ⚠ **제품 미배선** — 독립 증빙 전용(엔진 결제 경로 무변경). localnet 아카이브 1건 · 단위 23종 |
-| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ **8건 — localnet 7 · devnet 1** (`20260724_1643_solana-devnet_live_buy.json` = 온체인 tx 10건). 별도로 HTTP 402 실 TCP 왕복 로그 1건 `artifacts/x402_http/` |
+| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ **10건 — localnet 9 · devnet 1** (`20260724_1643_solana-devnet_live_buy.json` = 온체인 tx 10건). 그중 1건은 매매 세션이 아니라 **온체인 예산 레일** 증빙(`*_delegation.json`, `wired_into_product:false`). 별도로 HTTP 402 실 TCP 왕복 로그 1건 `artifacts/x402_http/` |
 
 ### 1-2. AI 판단 (Gemini)
 
@@ -153,4 +153,4 @@
 | ① 혁신성·UX | 직관적·새로운 UX, 기존 문제 해결 | 402 Guard 재포지셔닝, 공격 콘솔, 첫 화면 KPI(수익률 아님). 2026-07-28 보강: 소개서에 **경쟁 지도 1장**(AgentFabric·Circle Agent Wallets·Kyvern, "우리가 확인한 범위에서" 한정) + 수익모델 3단 단가(전부 '가정' 명시) | **중** — 2026-07-27 부서 판정. 사유가 "상업성 정량 근거 0건" 하나로 특정됐고 그 부분은 채웠다. 재평가는 8/2 judge-dept 재실행 |
 | ② AI 활용도 | Gemini/Google Cloud AI 스택(에이전트 프레임워크 포함) | Gemini 실호출 3지점(판단·**청구서 의미 대조**·브리핑). AI 재량은 두 레이어 모두 **차단만** 가능. 481봉 대표본 실측 + 규칙 게이트 발동 로그 2건 | **강**(2026-07-27 심사 부서) |
 | ③ 기술·인프라 연동 | USDC·Solana Pay·pay.sh 등, AP2·A2A·x402 등 | 자체 x402 + AP2 + A2A(**병렬 예시라 정합**). devnet tx 를 공용 RPC 로 재조회해 Memo·금액 일치 확인. 라이브 URL 이 실제 402+accepts[] 응답 | **강** — 단 증빙의 결제 통화가 테스트 민트(Circle 공식 민트 재실증 필요) |
-| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx 10건**(`artifacts/tx/20260724_1643_*`, err=null·교차검증 일치) · **테스트 22종 통과** · red_team `rc=0` · 라이브 URL 리비전 `synapstock-00014-hft` | **강** — 단 devnet 증빙 1건뿐이고 배포 URL 발생 온체인 tx 0건 |
+| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx 10건**(`artifacts/tx/20260724_1643_*`, err=null·교차검증 일치) · **테스트 23종 통과** · red_team `rc=0` · 라이브 URL 리비전 `synapstock-00014-hft` | **강** — 단 devnet 증빙 1건뿐이고 배포 URL 발생 온체인 tx 0건 |
