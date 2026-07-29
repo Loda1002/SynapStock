@@ -147,7 +147,13 @@ class PaymentAuthorizer:
         amt = self._reservations.pop(order_id, None)
         if amt is None:
             return Decimal(0)
-        self.spent_usdc = max(Decimal(0), self.spent_usdc - amt)
+        # ⚠ 여기에 0 클램프를 두면 안 된다(bug-dept BUG-03). 추세추종은 아래 credit_sale
+        # (allow_surplus=True)로 spent 를 의도적으로 음수까지 내려 '실현이익을 운용현금으로
+        # 재투자'하는 복리를 표현한다. 그 상태에서 매수 1건이 release 되면 음수 spent 가 0 으로
+        # 올라붙어, 벌어 놓은 운용 한도가 세션이 끝날 때까지 조용히 사라졌다(로그도 안 남는다).
+        # 멱등성은 위 pop 이 담당하고 amt 는 항상 authorize 가 더한 값이므로, 비잉여 모드에서
+        # 클램프는 애초에 발동할 수 없는 죽은 코드였다.
+        self.spent_usdc -= amt
         return amt
 
     def settle(self, order_id: str) -> Decimal:

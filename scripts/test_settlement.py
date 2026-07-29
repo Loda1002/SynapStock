@@ -21,6 +21,7 @@ from payments.ap2_mandate import OpenPaymentMandate, PaymentAuthorizer
 from payments.guard import Guard
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy
+from shared.a2a_messages import PaymentCompleted
 
 _fail = 0
 
@@ -316,6 +317,53 @@ def test_baseline_read_classification():
     check("계정미존재 신호는 True", x._is_account_not_found(Exception("could not find account")))
 
 
+def test_release_surplus():
+    """추세추종의 복리 자본(음수 spent)이 release 로 증발하지 않는지 — bug-dept BUG-03.
+
+    순서는 제품 그대로다: 매수 100 정산 → 150 에 매도 정산(on_sale_completed 가
+    credit_sale(allow_surplus=True) 를 불러 spent 를 −50 으로 내린다 = 실현이익 재투자)
+    → 재진입 매수 150 authorize → 그 결제가 온체인에서 실패해 release.
+    예전에는 release 의 0 클램프가 음수 spent 를 끌어올려, 벌어 놓은 50 USDC 가 세션이
+    끝날 때까지 한도에서 조용히 사라졌다(아무 로그도 남지 않는다)."""
+    print("\n== release — 매도 잉여(복리 자본) 원복 (BUG-03) ==")
+    mandate = OpenPaymentMandate(
+        user_pubkey=str(USER.pubkey()), allowed_asset=str(USDC),
+        budget_total_usdc=Decimal("100"), per_trade_max_usdc=Decimal("1000"),
+        allowed_symbols=["tAAPL"],
+    ).sign(USER)
+    auth = PaymentAuthorizer(mandate, agent_kp=TRADING)
+    ta = TradingAgent(TRADING, auth, Strategy(mode="trend"), 6, "solana-localnet")
+
+    auth.authorize("ord_b1", "tAAPL", Decimal("100"), str(BROKER.pubkey()))
+    auth.settle("ord_b1")
+    ta.position.apply_buy(Decimal("1"), Decimal("100"))
+    sold = PaymentCompleted(
+        order_id="ord_s1", tx_signature="sig_sell", confirmed=True,
+        delivered_asset=str(USDC), delivered_amount=150_000_000, status="settled")
+    ta.on_sale_completed(sold, "tAAPL", Decimal("1"), Decimal("150"), Decimal("150"))
+    check("매도 잉여 → spent 가 음수(복리 자본)",
+          auth.spent_usdc == Decimal("-50"), str(auth.spent_usdc))
+
+    auth.authorize("ord_b2", "tAAPL", Decimal("150"), str(BROKER.pubkey()))
+    check("재진입 올인 매수 후 spent=100", auth.spent_usdc == Decimal("100"), str(auth.spent_usdc))
+    auth.release("ord_b2")
+    check("release 가 잉여까지 되돌린다 (과거엔 0 으로 잘려 50 증발)",
+          auth.spent_usdc == Decimal("-50"), str(auth.spent_usdc))
+    check("잔여 예산도 복구", auth.remaining_usdc == Decimal("150"), str(auth.remaining_usdc))
+    again = auth.release("ord_b2")
+    check("두 번 release 해도 한 번만 되돌린다(멱등)",
+          again == Decimal(0) and auth.spent_usdc == Decimal("-50"), str(auth.spent_usdc))
+
+    # 음성 대조 — 비잉여(조건형/적립형)는 credit_sale 쪽 클램프가 그대로 살아 있어야 한다.
+    # 이쪽 0 클램프는 '순투입 한도' 정의라 의미가 있고, 이번 수정 대상이 아니다.
+    auth2 = PaymentAuthorizer(mandate, agent_kp=TRADING)
+    auth2.authorize("ord_c1", "tAAPL", Decimal("100"), str(BROKER.pubkey()))
+    auth2.settle("ord_c1")
+    auth2.credit_sale(Decimal("150"))
+    check("조건형은 매도 잉여로 한도가 늘지 않는다(순투입 한도)",
+          auth2.spent_usdc == Decimal(0), str(auth2.spent_usdc))
+
+
 def main() -> int:
     test_exact()
     test_memo()
@@ -324,6 +372,7 @@ def main() -> int:
     asyncio.run(test_buy_delivery_failure())
     asyncio.run(test_sell_payout_failure())
     test_baseline_read_classification()
+    test_release_surplus()
     print("\n결과: " + ("모든 테스트 통과" if _fail == 0 else f"{_fail}건 실패"))
     return _fail
 
