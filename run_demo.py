@@ -79,16 +79,44 @@ def explorer_tx_url(sig: str) -> str:
             f"?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899")
 
 
-async def snapshot_balances(client, trading_pk, broker_pk, usdc_mint, stock_mint) -> dict:
-    """양 지갑의 SOL·USDC·주식토큰 온체인 잔액 (검증 루틴 2단계: 교차 확인용)."""
+async def snapshot_balances(client, trading_pk, broker_pk, usdc_mint, stock_mint,
+                            user_pk=None) -> dict:
+    """지갑들의 SOL·USDC·주식토큰 온체인 잔액 (검증 루틴 2단계: 교차 확인용).
+
+    user_pk 를 주면 자금 소유자(위임자) 지갑도 함께 뜬다. 현재 제품 경로에서는 결제가 전부
+    에이전트 지갑에서 나가 이 지갑의 USDC 가 항상 0 이므로 교차검증 결과는 지금까지와
+    같다(usdc_net_out 이 합산이라 0 을 더해도 값이 안 변한다). 온체인 예산 레일을 엔진에
+    배선하면(로드맵) 신규 투입이 이 지갑에서 나가는데, 그때 이 행이 없으면 USDC 가 허공에서
+    사라진 것으로 보여 교차검증이 조용히 FAIL 로 남는다. 미리 떠 둔다.
+    """
+    wallets = [("trading", trading_pk), ("broker", broker_pk)]
+    if user_pk is not None:
+        wallets.append(("user", user_pk))
     snap: dict = {}
-    for name, pk in (("trading", trading_pk), ("broker", broker_pk)):
+    for name, pk in wallets:
         snap[name] = {
             "sol": await x.get_sol_balance(client, pk),
             "usdc": await x.get_token_balance_ui(client, pk, usdc_mint),
             "stock": await x.get_token_balance_ui(client, pk, stock_mint),
         }
     return snap
+
+
+# 구매자측 USDC 순지출을 합산할 지갑. 브로커(수취인)는 상대편이라 넣지 않는다.
+USDC_OUT_WALLETS = ("trading", "user")
+
+
+def usdc_net_out(before: dict, after: dict) -> Decimal:
+    """구매자측 USDC 순지출(온체인) = Σ(실행 전) − Σ(실행 후).
+
+    양쪽 스냅샷에 모두 있는 지갑만 더한다 — 'user' 행이 없던 시절의 아카이브를 다시
+    계산해도 KeyError 없이 같은 값이 나온다.
+    """
+    total = Decimal(0)
+    for name in USDC_OUT_WALLETS:
+        if name in before and name in after:
+            total += Decimal(before[name]["usdc"]) - Decimal(after[name]["usdc"])
+    return total
 
 
 def print_snapshot(snap: dict, symbol: str) -> None:
@@ -189,7 +217,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
             return
         client = await x.get_client(CFG.rpc_url)
         snap_before = await snapshot_balances(
-            client, trading_kp.pubkey(), broker_kp.pubkey(), usdc_mint, stock_mint)
+            client, trading_kp.pubkey(), broker_kp.pubkey(), usdc_mint, stock_mint,
+            user_pk=user_kp.pubkey())
         hr("온체인 잔액 (실행 전)")
         print_snapshot(snap_before, symbol)
 
@@ -343,7 +372,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
         # 실행 후 잔액 스냅샷 (클라이언트 닫히기 전에)
         if live and client is not None:
             snap_after = await snapshot_balances(
-                client, trading_kp.pubkey(), broker_kp.pubkey(), usdc_mint, stock_mint)
+                client, trading_kp.pubkey(), broker_kp.pubkey(), usdc_mint, stock_mint,
+                user_pk=user_kp.pubkey())
     finally:
         if client is not None:
             await client.close()
@@ -365,7 +395,7 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
                      - sum((Decimal(t["total_usdc"]) for t in sells), Decimal(0)))
         net_qty = (sum((Decimal(t["quantity"]) for t in buys), Decimal(0))
                    - sum((Decimal(t["quantity"]) for t in sells), Decimal(0)))
-        usdc_out = Decimal(snap_before["trading"]["usdc"]) - Decimal(snap_after["trading"]["usdc"])
+        usdc_out = usdc_net_out(snap_before, snap_after)
         stock_in = Decimal(snap_after["trading"]["stock"]) - Decimal(snap_before["trading"]["stock"])
         ok_usdc = usdc_out == net_spent
         ok_stock = stock_in == net_qty
@@ -413,6 +443,8 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
             "cross_check": {
                 "usdc_net_out_onchain": str(usdc_out), "usdc_net_out_expected": str(net_spent), "usdc_ok": ok_usdc,
                 "stock_net_in_onchain": str(stock_in), "stock_net_in_expected": str(net_qty), "stock_ok": ok_stock,
+                # 어느 지갑을 합산한 값인지 — 나중에 이 아카이브를 읽는 사람이 알아야 한다.
+                "usdc_wallets": [w for w in USDC_OUT_WALLETS if w in snap_before],
             },
         }
         with open(archive_path, "w", encoding="utf-8") as f:

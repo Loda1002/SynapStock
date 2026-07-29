@@ -33,7 +33,8 @@ from payments.invoice_semantics import GUARD_LLM_UNVERIFIED, InvoiceSemanticChec
 from payments.x402_http import optional_client
 from agents.broker_agent import BrokerAgent
 from agents.trading_agent import TradingAgent, Strategy, Decision
-from run_demo import _load_or_new, _load_or_create_user_key, explorer_tx_url, snapshot_balances
+from run_demo import (_load_or_new, _load_or_create_user_key, explorer_tx_url,
+                      snapshot_balances, usdc_net_out, USDC_OUT_WALLETS)
 from web import events as ev
 from web.briefing import generate_briefing_text
 from web.events import EventBus
@@ -593,7 +594,8 @@ class TradingEngine:
             try:
                 client = await x.get_client(CFG.rpc_url)
                 snap_before = await snapshot_balances(
-                    client, trading_kp.pubkey(), broker_kp.pubkey(), usdc_mint, stock_mint)
+                    client, trading_kp.pubkey(), broker_kp.pubkey(), usdc_mint, stock_mint,
+                    user_pk=user_kp.pubkey())
             except Exception as e:
                 if client is not None:
                     await client.close()
@@ -1522,7 +1524,8 @@ class TradingEngine:
             if live and self._client is not None and self._snap_before is not None:
                 snap_after = await snapshot_balances(
                     self._client, self._trading_kp.pubkey(), self._broker_kp.pubkey(),
-                    self._usdc_mint, self._stock_mint)
+                    self._usdc_mint, self._stock_mint,
+                    user_pk=self._user_kp.pubkey() if self._user_kp else None)
                 self._snap_last = snap_after
                 self.bus.emit(ev.BALANCES, {"stage": "after", "balances": snap_after})
                 archive_path, cross = self._archive(snap_after)
@@ -1588,13 +1591,15 @@ class TradingEngine:
                      - sum((Decimal(t["total_usdc"]) for t in sells), Decimal(0)))
         net_qty = (sum((Decimal(t["quantity"]) for t in buys), Decimal(0))
                    - sum((Decimal(t["quantity"]) for t in sells), Decimal(0)))
-        usdc_out = Decimal(self._snap_before["trading"]["usdc"]) - Decimal(snap_after["trading"]["usdc"])
+        usdc_out = usdc_net_out(self._snap_before, snap_after)
         stock_in = Decimal(snap_after["trading"]["stock"]) - Decimal(self._snap_before["trading"]["stock"])
         cross = {
             "usdc_net_out_onchain": str(usdc_out), "usdc_net_out_expected": str(net_spent),
             "usdc_ok": usdc_out == net_spent,
             "stock_net_in_onchain": str(stock_in), "stock_net_in_expected": str(net_qty),
             "stock_ok": stock_in == net_qty,
+            # 어느 지갑을 합산한 값인지 — 나중에 이 아카이브를 읽는 사람이 알아야 한다.
+            "usdc_wallets": [w for w in USDC_OUT_WALLETS if w in self._snap_before],
         }
 
         os.makedirs(os.path.join("artifacts", "tx"), exist_ok=True)

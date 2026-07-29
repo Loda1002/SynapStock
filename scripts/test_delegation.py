@@ -25,6 +25,7 @@
 from __future__ import annotations
 import argparse
 import asyncio
+import json
 import os
 import sys
 from decimal import Decimal
@@ -462,10 +463,94 @@ def test_source_owner() -> None:
     check("S8 expected_payer=payer 대조도 통과", ok8, reason8)
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# 섹션 5 — 교차검증 3지갑 합산 (C5 · 오프라인)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class _StubResp:
+    def __init__(self, value):
+        self.value = value
+
+
+class _StubTokenAmount:
+    def __init__(self, s):
+        self.ui_amount_string = s
+
+
+class _StubClient:
+    """snapshot_balances 가 부르는 RPC 2종만 흉내낸다 (네트워크 0)."""
+
+    async def get_balance(self, pk):
+        return _StubResp(1_000_000_000)
+
+    async def get_token_account_balance(self, ata):
+        return _StubResp(_StubTokenAmount("0"))
+
+
+def _snap(trading: str, user: str | None = None, broker: str = "500") -> dict:
+    d = {"trading": {"sol": 1.0, "usdc": trading, "stock": "0"},
+         "broker": {"sol": 1.0, "usdc": broker, "stock": "0"}}
+    if user is not None:
+        d["user"] = {"sol": 0.0, "usdc": user, "stock": "0"}
+    return d
+
+
+async def test_cross_check() -> None:
+    print("\n[5] 교차검증 3지갑 합산 — run_demo.snapshot_balances / usdc_net_out (네트워크 0)")
+    import run_demo as rd
+
+    stub, mint = _StubClient(), Pubkey.from_string(GOLDEN_MINT)
+    a, b, c = Keypair().pubkey(), Keypair().pubkey(), Keypair().pubkey()
+
+    s2 = await rd.snapshot_balances(stub, a, b, mint, mint)
+    check("X-1 user_pk 없음 → 지갑 2개 (현행과 동일)",
+          set(s2) == {"trading", "broker"}, ",".join(sorted(s2)))
+    s3 = await rd.snapshot_balances(stub, a, b, mint, mint, user_pk=c)
+    check("X-2 user_pk 지정 → 지갑 3개",
+          set(s3) == {"trading", "broker", "user"}, ",".join(sorted(s3)))
+
+    # X-3: user 키가 없는 옛 형식 — 값이 현행 공식과 같다
+    old_before, old_after = _snap("100"), _snap("90")
+    check("X-3 user 키 없음 → 현행 공식과 동일 값",
+          rd.usdc_net_out(old_before, old_after) == Decimal("10"),
+          str(rd.usdc_net_out(old_before, old_after)))
+
+    # X-4 ★ 하위호환 핵심 — user 행이 생겨도 값이 0 이면 결과가 완전히 같다.
+    #      지금 제품 경로가 정확히 이 상태다(결제가 전부 에이전트 지갑에서 나간다).
+    new_before, new_after = _snap("100", user="0"), _snap("90", user="0")
+    check("X-4 ★ user 행이 있고 값이 0 → 결과가 옛 형식과 동일",
+          rd.usdc_net_out(new_before, new_after) == rd.usdc_net_out(old_before, old_after),
+          f"{rd.usdc_net_out(new_before, new_after)} vs "
+          f"{rd.usdc_net_out(old_before, old_after)}")
+
+    # X-5: 자금이 user 위임 계정에서 나가는 경우 (온체인 예산 레일을 배선했을 때의 모습)
+    deleg_before, deleg_after = _snap("50", user="100"), _snap("50", user="90")
+    got = rd.usdc_net_out(deleg_before, deleg_after)
+    check("X-5 user 에서 10 나가고 trading 불변 → 10", got == Decimal("10"), str(got))
+
+    # ---- 음성 대조 N3 ----
+    print("\n  · 음성 대조 N3 — trading 만 보던 옛 식과 나란히")
+    old_formula = (Decimal(deleg_before["trading"]["usdc"])
+                   - Decimal(deleg_after["trading"]["usdc"]))
+    check("N3 옛 식(trading 만)은 같은 입력에서 0 을 내놓는다 (USDC 가 허공에서 사라진다)",
+          old_formula == 0, str(old_formula))
+    check("N3 새 식과 옛 식이 다르다", got != old_formula, f"새={got} vs 옛={old_formula}")
+
+    # X-6: 커밋된 옛 아카이브를 새 식으로 다시 계산해도 기록된 값과 일치한다
+    path = os.path.join(ROOT, "artifacts", "tx", "20260724_1643_solana-devnet_live_buy.json")
+    with open(path, encoding="utf-8") as f:
+        arc = json.load(f)
+    recomputed = rd.usdc_net_out(arc["balances_before"], arc["balances_after"])
+    check("X-6 옛 devnet 아카이브 재계산 == 기록된 값 (KeyError 없음)",
+          recomputed == Decimal(arc["cross_check"]["usdc_net_out_onchain"]),
+          f"{recomputed} vs 기록 {arc['cross_check']['usdc_net_out_onchain']}")
+
+
 async def main(localnet: bool) -> int:
     test_classify()
     await test_state_and_code()
     test_source_owner()
+    await test_cross_check()
     if localnet:
         await test_localnet()
     else:
