@@ -87,6 +87,7 @@ def build_transfer_transaction(
     blockhash: Hash,
     ensure_dest_ata: bool = True,
     memo: Optional[str] = None,
+    source_owner: Optional[Pubkey] = None,
 ) -> Transaction:
     """payer → dest_owner 로 `amount`(base units) SPL 토큰 전송 트랜잭션을 생성·서명한다.
 
@@ -95,8 +96,20 @@ def build_transfer_transaction(
 
     memo 가 주어지면 SPL Memo instruction 을 최앞단에 넣어 주문번호를 온체인에 박는다
     (대사 키 + 서명 dedupe 로 리플레이 방어 — 같은 주문이라도 tx 가 유일해진다).
+
+    source_owner: 자금을 꺼낼 계정의 **소유자**. 기본(None)이면 payer 자신의 ATA 에서
+        나간다 — 지금까지의 동작 그대로이고, 이 경우 생성되는 바이트가 완전히 동일하다
+        (회귀 증명은 scripts/test_delegation.py 섹션 4 의 골든 상수).
+        지정하면 출처 ATA 만 그 소유자의 것으로 바뀌고 **authority 자리에는 계속 payer 가
+        들어간다** — SPL Token 은 authority 자리에 소유자 대신 위임받은 지갑(delegate)을
+        넣도록 허용하고 계정 순서도 같다. 즉 payer 가 그 계정의 delegate 로 등록돼 있으면
+        소유자 서명 없이 payer 단독 서명으로 전송이 성립하고, 위임 한도를 넘으면 SPL Token
+        프로그램이 거절한다.
+        **이 함수는 위임 여부·잔액·한도를 검사하지 않는다** — 그건 호출측
+        (payments.delegation.read_delegation)의 일이다. 현재 제품 결제 경로는 이 인자를
+        넘기지 않는다(레일 실증용 scripts/demo_delegation.py 만 사용한다).
     """
-    src_ata = get_associated_token_address(payer.pubkey(), mint)
+    src_ata = get_associated_token_address(source_owner or payer.pubkey(), mint)
     dst_ata = get_associated_token_address(dest_owner, mint)
 
     instructions = []

@@ -372,9 +372,100 @@ async def test_localnet() -> None:
         await client.close()
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# 섹션 4 — build_transfer_transaction(source_owner=) (C1 · 오프라인)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ★ 음성 대조 N2 — 하위호환 골든 상수.
+# 이 문자열은 **C1 수정 전, 저장소 코드를 한 줄도 건드리기 전에** 현행
+# build_transfer_transaction 이 만든 payload 다. 수정한 뒤에 뽑으면 "바뀌지 않았다"는
+# 증명이 사후 조작이 된다. 고정 키·고정 blockhash·고정 memo 라 재현 가능하다.
+#   (설계 §4-2 는 Keypair.from_bytes(bytes(range(1,65))) 로 적었는데 solders 가 뒤 32바이트를
+#    파생 공개키와 대조해 ValueError 를 내므로, 결정론적 고정 키 생성만 from_seed 로 바꿨다.)
+GOLDEN_PAYER = "9C6hybhQ6Aycep9jaUnP6uL9ZYvDjUp1aSkFWPUFJtpj"
+GOLDEN_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"      # Circle devnet USDC
+GOLDEN_DEST = "So11111111111111111111111111111111111111112"
+GOLDEN_AMOUNT = 1234567
+GOLDEN_MEMO = "AT1:ord_0123456789:abcd1234"
+GOLDEN_PAYLOAD = (
+    "Ac6Fb7m3BXDx1AmuqEB90IOW1qCL7HlqaP8+7O8zJbDCx2Fqcg2d3H5zwk+kpVGhU6GC07qTUg6oSYKKY1ly"
+    "ggsBAAYJebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmRe+MpJgLj4DZlNWEcqLj+yWf+88QyxV6ak"
+    "jZgsGwgDt9mpsffhWGg1eimsX2seUCA4qxdsQxw0WMeAAOgvUGQ1AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAFSlNamSkhBk0k6HFg2jh8fDW13bySu4HkH6hAQQVEjQabiFf+q4GE+2h/Y0YYwDXaxDncGus7"
+    "VZig8AAAAAABBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKk7RCyzkSFX8TqTPQE0KC0DK1/+zQGi"
+    "2/G3eQYI3wAup4yXJY9OJInxuz0QKRSODYMLWhOZ2v8QhASOe9jb6fhZAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAADBAEAG0FUMTpvcmRfMDEyMzQ1Njc4OTphYmNkMTIzNAgGAAEFBwMGAQEGBAIHAQAKDIfW"
+    "EgAAAAAABg=="
+)
+assert len(GOLDEN_PAYLOAD) == 600, "골든 상수가 손상됐다 — 조각을 이어 붙인 길이가 다르다"
+
+
+def _golden_tx(**kw):
+    """골든 상수와 같은 고정 입력으로 트랜잭션을 만든다. kw 로 source_owner 만 바꾼다."""
+    kp = Keypair.from_seed(bytes(range(1, 33)))
+    from solders.hash import Hash
+    return kp, x.build_transfer_transaction(
+        kp, Pubkey.from_string(GOLDEN_MINT), Pubkey.from_string(GOLDEN_DEST),
+        GOLDEN_AMOUNT, DECIMALS, Hash.default(), memo=GOLDEN_MEMO, **kw)
+
+
+def _transfer_accounts(tx) -> list:
+    """tx 안 TransferChecked 의 계정 4개 [source, mint, dest, owner]."""
+    keys = list(tx.message.account_keys)
+    for ix in tx.message.instructions:
+        if keys[ix.program_id_index] != TOKEN_PROGRAM_ID:
+            continue
+        data = bytes(ix.data)
+        if data and data[0] == x._TRANSFER_CHECKED_TAG:
+            return [keys[i] for i in list(ix.accounts)[:4]]
+    raise AssertionError("TransferChecked instruction 을 찾지 못했습니다")
+
+
+def test_source_owner() -> None:
+    print("\n[4] build_transfer_transaction(source_owner=) — C1 (네트워크 0)")
+    mint = Pubkey.from_string(GOLDEN_MINT)
+    dest = Pubkey.from_string(GOLDEN_DEST)
+
+    kp, tx_default = _golden_tx()
+    check("S1 골든 상수의 고정 키가 맞다", str(kp.pubkey()) == GOLDEN_PAYER, str(kp.pubkey()))
+    check("S1 ★ 기본 경로(source_owner=None)가 수정 전 골든 payload 와 바이트 동일 (N2)",
+          x.encode_payload(tx_default) == GOLDEN_PAYLOAD,
+          "일치" if x.encode_payload(tx_default) == GOLDEN_PAYLOAD else "불일치 — 하위호환 깨짐")
+
+    _, tx_self = _golden_tx(source_owner=kp.pubkey())
+    check("S2 source_owner=payer 를 명시해도 기본과 동일",
+          x.encode_payload(tx_self) == GOLDEN_PAYLOAD)
+
+    user = Keypair()
+    _, tx_deleg = _golden_tx(source_owner=user.pubkey())
+    src, _m, _d, owner = _transfer_accounts(tx_deleg)
+    check("S3 출처 ATA == 자금 소유자(user)의 ATA",
+          src == get_associated_token_address(user.pubkey(), mint), str(src))
+    check("S4 authority(계정 idx 3)는 여전히 payer — SPL 이 그 자리에 delegate 를 받는다",
+          owner == kp.pubkey(), str(owner))
+    check("S5 서명자 1개 — 자금 소유자 서명 불필요",
+          len(tx_deleg.signatures) == 1, str(len(tx_deleg.signatures)))
+
+    keys = list(tx_deleg.message.account_keys)
+    memo_signer = next((keys[list(ix.accounts)[0]] for ix in tx_deleg.message.instructions
+                        if keys[ix.program_id_index] == x.MEMO_PROGRAM_ID), None)
+    check("S6 memo signer == payer (대사 키 귀속 불변)", memo_signer == kp.pubkey(),
+          str(memo_signer))
+
+    # S7·S8 ★ 판매자측 코드는 한 줄도 안 바꾼다 — verify_payment 는 출처 ATA 를 보지 않는다.
+    ok7, reason7, amt7 = x.verify_payment(tx_deleg, mint, dest, GOLDEN_AMOUNT,
+                                          expected_order_id="ord_0123456789")
+    check("S7 판매자 verify_payment 가 위임 출처 tx 도 통과시킨다",
+          ok7 and amt7 == GOLDEN_AMOUNT, f"{reason7} / amount={amt7}")
+    ok8, reason8, _ = x.verify_payment(tx_deleg, mint, dest, GOLDEN_AMOUNT,
+                                       expected_payer=kp.pubkey())
+    check("S8 expected_payer=payer 대조도 통과", ok8, reason8)
+
+
 async def main(localnet: bool) -> int:
     test_classify()
     await test_state_and_code()
+    test_source_owner()
     if localnet:
         await test_localnet()
     else:
