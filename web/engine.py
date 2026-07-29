@@ -779,6 +779,22 @@ class TradingEngine:
             if budget_total < spent:
                 raise EngineError(
                     f"새 예산({budget_total})이 이미 사용한 금액({spent})보다 작습니다.")
+            # ⚠ 총액 검사만으로는 부족하다(bug-dept BUG-07). 추세추종 멀티는 예산을 종목별로
+            # 쪼개 쓰는데, 한 종목이 많이 쓴 상태에서 예산을 낮추면 그 몫이 그 종목의 사용액보다
+            # 작아져 슬라이스 잔여가 음수가 된다. 음수 몫은 _total_remaining 합산에서 다른
+            # 종목의 양수와 상계되고, 각 종목의 authorize 는 제 슬라이스만 보므로 결국
+            # **세션 총 사용액이 새 예산을 넘는 매수가 승인된다**(재현: 예산 100→60 으로 낮춘 뒤
+            # 총 75 사용 = 15 초과). "한도를 낮추면 그만큼 줄어든다"는 이 제품의 헤드라인
+            # 주장이라 통과시키면 안 된다. 검사는 반드시 mandate 재서명 **앞**이다 —
+            # 뒤에서 던지면 세션 mandate 만 새 예산으로 바뀌고 종목별 auth 는 옛 몫으로 남는다.
+            slices = (self._budget_slices(self.symbols, budget_total)
+                      if is_trend and len(self.symbols) > 1 else {})
+            over = [f"{s}(몫 {slices[s]} < 이미 사용 {self.agents[s].auth.spent_usdc})"
+                    for s in slices if slices[s] < self.agents[s].auth.spent_usdc]
+            if over:
+                raise EngineError(
+                    f"새 예산({budget_total})을 종목 {len(slices)}개로 나누면 이미 사용한 금액보다 "
+                    f"작아지는 종목이 있습니다 — {' · '.join(over)}")
             eff_per_trade = CFG.max_budget_usdc if is_trend else per_trade_max
             # 세션 가드는 항상 이 mandate 하나로 검문한다(허용종목=전 종목, 건별=실효 한도).
             new_mandate = OpenPaymentMandate(
@@ -792,16 +808,14 @@ class TradingEngine:
             # 공유 가드도 새 mandate 로 정합시킨다 — 안 하면 Guard 의 한도(per_trade)·허용종목
             # 검사가 옛 mandate 를 계속 봐서 활성 서명 mandate 와 어긋난다(헤드라인 가드 정합).
             self._guard.mandate = new_mandate
-            if is_trend and len(self.symbols) > 1:
+            if slices:
                 # 추세추종 멀티 — 종목별 예산 슬라이스(새 예산/N)를 재산정하고 사용액을 이월한다.
-                n = len(self.symbols)
-                slice_budget = (budget_total / n).quantize(Decimal("0.01"))
-                for i, sym in enumerate(self.symbols):
-                    sb = budget_total - slice_budget * (n - 1) if i == n - 1 else slice_budget
+                # 몫은 위 검사와 **같은 값**을 쓴다(따로 계산하면 둘이 갈라질 수 있다).
+                for sym in self.symbols:
                     sm = OpenPaymentMandate(
                         user_pubkey=str(self._user_kp.pubkey()),
                         allowed_asset=str(self._usdc_mint),
-                        budget_total_usdc=sb, per_trade_max_usdc=eff_per_trade,
+                        budget_total_usdc=slices[sym], per_trade_max_usdc=eff_per_trade,
                         allowed_symbols=[sym]).sign(self._user_kp)
                     sa = PaymentAuthorizer(sm, agent_kp=self._trading_kp)
                     sa.spent_usdc = self.agents[sym].auth.spent_usdc   # 종목별 사용액 이월
@@ -1707,6 +1721,15 @@ class TradingEngine:
         cost = ((pos.avg_price_usdc if pos else Decimal(0)) * qty).quantize(Decimal("0.01"))
         return {"gross": gross, "net": net, "cost": cost, "unrealized": net - cost}
 
+    @staticmethod
+    def _budget_slices(symbols: List[str], budget_total: Decimal) -> Dict[str, Decimal]:
+        """추세추종 멀티의 종목별 예산 몫 — 예산/N(센트 반올림), 나머지는 마지막 종목이 받는다.
+        세션 시작 시의 초기 슬라이스와 같은 식이다(start 의 slice_budget)."""
+        n = len(symbols)
+        unit = (budget_total / n).quantize(Decimal("0.01"))
+        return {sym: (budget_total - unit * (n - 1) if i == n - 1 else unit)
+                for i, sym in enumerate(symbols)}
+
     def _session_auths(self) -> List[PaymentAuthorizer]:
         """세션에 실재하는 '구별되는' authorizer 목록. 공유 예산(단일·조건형/적립형 멀티)은
         전 종목이 같은 객체 1개를 참조하므로 중복 제거하면 1개, 추세추종 멀티는 종목별 N개."""
@@ -1719,10 +1742,14 @@ class TradingEngine:
         return out
 
     def _total_remaining(self) -> Decimal:
-        """세션 잔여 예산 — 공유는 그 auth 의 잔여, 추세추종 멀티는 종목별 슬라이스 합산."""
+        """세션 잔여 예산 — 공유는 그 auth 의 잔여, 추세추종 멀티는 종목별 슬라이스 합산.
+
+        음수 몫은 0 으로 바닥 처리한다(bug-dept BUG-07 방어) — 한 종목의 마이너스가 다른
+        종목의 양수와 상계되면 화면의 '가용 현금'·총자산이 실제로 쓸 수 있는 돈보다 커진다.
+        각 authorize 는 제 슬라이스만 보므로 음수 몫에서는 어차피 한 푼도 못 쓴다."""
         auths = self._session_auths()
         if auths:
-            return sum((a.remaining_usdc for a in auths), Decimal(0))
+            return sum((max(Decimal(0), a.remaining_usdc) for a in auths), Decimal(0))
         return self._auth.remaining_usdc if self._auth else self.budget_total
 
     def _total_spent(self) -> Decimal:

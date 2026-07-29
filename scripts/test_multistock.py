@@ -238,11 +238,65 @@ async def test_limit_change_syncs_guard() -> None:
           engine.agents["AAPL"].auth is engine._auth and engine.agents["TSLA"].auth is engine._auth)
 
 
+# ---------- 한도 인하가 종목 몫을 사용액 밑으로 밀어 총예산 집행을 깨지 않는가 (BUG-07) ----------
+async def test_limit_cut_below_symbol_spend() -> None:
+    """추세추종 멀티에서 예산을 낮출 때, 총액만 보면 AP2 총예산 집행이 깨진다.
+
+    예산 100(몫 50/50) → AAPL 45 사용 → 60 으로 인하하면 AAPL 몫이 30 이 되어 잔여 −15.
+    그 음수가 합산에서 TSLA 의 +30 과 상계돼 화면은 15 를 남았다고 말하고, 각 종목의
+    authorize 는 제 슬라이스만 보므로 TSLA 로 30 을 더 승인해 총 75 > 새 예산 60 이 된다.
+    "한도를 낮추면 그만큼 줄어든다"는 헤드라인 주장과 정면으로 어긋나는 자리다."""
+    print("\n[9] 한도 인하 — 종목 몫 < 이미 사용 (BUG-07)")
+    e = _engine()
+    e.update_limits(Decimal("100"), Decimal("50"))   # 대기 상태 → 다음 세션 기본값
+    await e.start("dry", {"type": "trend"},
+                  {"type": "replay", "symbols": ["AAPL", "TSLA"]}, autostart=False)
+    a, t = e.agents["AAPL"].auth, e.agents["TSLA"].auth
+    a.authorize("ord_a1", "AAPL", Decimal("45"), "broker")   # AAPL 몫 50 중 45 사용
+    a.settle("ord_a1")
+    e.pause()   # 실행 중 한도 변경은 긴급정지 상태에서만
+
+    raised = ""
+    try:
+        e.update_limits(Decimal("60"), Decimal("30"))
+    except EngineError as ex:
+        raised = str(ex)
+    check("종목 몫이 이미 쓴 금액보다 작아지는 인하는 거부", bool(raised), raised)
+    # 거부는 mandate 재서명 '앞'에서 나야 한다 — 뒤면 세션 mandate 만 새 예산으로 바뀌고
+    # 종목별 auth 는 옛 몫으로 남아, 화면과 집행이 서로 다른 예산을 말하게 된다.
+    check("거부 시 세션 예산 그대로(부분 적용 없음)", e.budget_total == Decimal("100"),
+          str(e.budget_total))
+    check("거부 시 세션 mandate 도 그대로",
+          e._mandate.budget_total_usdc == Decimal("100")
+          and e._guard.mandate.budget_total_usdc == Decimal("100"),
+          f"mandate {e._mandate.budget_total_usdc} / guard {e._guard.mandate.budget_total_usdc}")
+    check("거부 시 종목 슬라이스 그대로",
+          e.agents["AAPL"].auth.remaining_usdc == Decimal("5")
+          and e.agents["TSLA"].auth.remaining_usdc == Decimal("50"),
+          f"AAPL {e.agents['AAPL'].auth.remaining_usdc} / TSLA {e.agents['TSLA'].auth.remaining_usdc}")
+
+    # 대조군 — 몫이 사용액 이상으로 남는 인하는 그대로 통과해야 한다(과잉 차단 방지)
+    e.update_limits(Decimal("96"), Decimal("40"))
+    a2, t2 = e.agents["AAPL"].auth, e.agents["TSLA"].auth
+    check("[대조군] 몫이 사용액 이상이면 인하 허용 (몫 48 >= 사용 45)",
+          e.budget_total == Decimal("96") and a2.remaining_usdc == Decimal("3")
+          and t2.remaining_usdc == Decimal("48"),
+          f"예산 {e.budget_total} · AAPL {a2.remaining_usdc} · TSLA {t2.remaining_usdc}")
+    check("[대조군] 인하 후 총 사용 가능액이 새 예산을 넘지 않는다",
+          e._total_spent() + e._total_remaining() <= Decimal("96"),
+          f"사용 {e._total_spent()} + 잔여 {e._total_remaining()}")
+
+    # 방어선 — 어떤 경로로든 음수 몫이 생기면 합산에서 양수와 상계되면 안 된다
+    e.agents["AAPL"].auth.spent_usdc = Decimal("60")   # 몫 48 < 사용 60 (인위적 상태)
+    check("음수 몫은 0 으로 바닥 처리 — 다른 종목 양수와 상계되지 않는다",
+          e._total_remaining() == Decimal("48"), str(e._total_remaining()))
+
+
 async def _main() -> int:
     for t in (test_shared_budget_and_isolation, test_feed_exhaustion_isolation,
               test_all_exhausted_ends_session, test_guard_kpi_aggregation,
               test_single_symbol_backcompat, test_multi_guards,
-              test_limit_change_syncs_guard):
+              test_limit_change_syncs_guard, test_limit_cut_below_symbol_spend):
         await t()
     bad = [n for n, ok, _ in _results if not ok]
     print("\n" + "=" * 60)
