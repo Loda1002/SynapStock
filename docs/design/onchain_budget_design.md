@@ -1,4 +1,4 @@
-# 상세 설계 — 온체인 예산 집행 `A-lite` (C2 → C1 → C5 → C3)
+# 상세 설계 — 온체인 예산 집행 `A-lite` (C2 → C1 → C3 → C5)
 
 > **상태**: 설계 완료 · **착수 승인 대기.** 이 문서로 구현하지 않는다.
 > **작성** 2026-07-29 · **기준 커밋** `fc65ce4` · **제출 마감** 2026-08-03 23:59 KST
@@ -21,12 +21,22 @@
 |---|---|---|---|---|
 | 1 | **C2** 위임 모듈 | `payments/delegation.py`(신규) · `scripts/test_delegation.py`(신규) | **없음** (아무도 호출 안 함) | ✅ |
 | 2 | **C1** 출처 분리 | `payments/x402_solana.py` 1함수 | **없음** (기본값 경로 바이트 동일) | ✅ |
-| 3 | **C5** 교차검증 3지갑 | `run_demo.py` · `web/engine.py` | **아카이브 JSON 에 `user` 행 추가** (라이브만) | ✅ |
-| 4 | **C3** 증빙 스크립트 | `scripts/demo_delegation.py`(신규) | **없음** | ✅ |
+| 3 | **C3** 증빙 스크립트 | `scripts/demo_delegation.py`(신규) | **없음** | ✅ |
+| 4 | **C5** 교차검증 3지갑 | `run_demo.py` · `web/engine.py` | **아카이브 JSON 에 `user` 행 추가** (라이브만) | ✅ |
 
 합계 **약 3.5h** `[추정]`. 신규 파일 3 · 기존 파일 수정 3 · **엔진 결제 경로 수정 0줄.**
 
 **하지 않는 것(C4 이후)**: 엔진 출처 선택 · 거부 예외 처리 · `state` 필드 · 화면 · devnet 재배포.
+
+> **⚠ 순서 주의 — RFC 및 이 문서 초판의 `C2 → C1 → C5 → C3` 에서 C5 를 맨 뒤로 옮겼다(2026-07-29).**
+> 사유 둘. ①**C5 는 유일하게 제품 산출물(아카이브 JSON)을 바꾸는 커밋**이고 C3 는 C5 에
+> 의존하지 않는다 → C5 를 tip 에 두면 되돌리기가 `git revert` 한 번으로 가장 싸다.
+> ②이 작업과 **프런트 전달본 병합이 시간상 겹칠 수 있다.** 프런트는 `web/static/**` 만,
+> A-lite 는 그 밖만 건드려 **파일 교집합이 공집합**이므로 어느 쪽을 되돌려도 다른 쪽은
+> diff 에 등장하지 않는다 — 다만 되돌릴 일이 가장 많은 커밋을 맨 뒤에 두는 편이 안전하다.
+> 잃는 것: 시간이 모자라면 C5 를 못 한다. **C5 는 원래 선택 항목**이라 옳은 손실이다
+> (데모·영상에 필요 없고, C4 배선을 미리 안전하게 만들어 두는 커밋이다).
+> **§5 의 커밋별 DoD·롤백은 순서와 무관하게 그대로 유효하다.**
 
 ---
 
@@ -518,17 +528,6 @@ wsl -d Ubuntu --cd /root -- /root/.local/share/solana/install/active_release/bin
 | **다음에 넘기는 것** | C3 가 `source_owner=user` 로 실제 결제 tx 를 만든다. C4 는 여기에 인자 하나를 더 태운다 |
 | **중단 시** | 인자가 존재하지만 아무도 지정하지 않음 = 현행 동작 |
 
-### C5 — 교차검증 3지갑
-
-| | |
-|---|---|
-| **변경 파일** | `run_demo.py`(`snapshot_balances` + `usdc_net_out` 추출 + 호출 2곳 + 아카이브) · `web/engine.py`(호출 2곳 + `_archive` cross 계산) · `scripts/test_delegation.py`(섹션 5) |
-| **완료 판정** | 위 3개 + `test_leak_kpi.py`·`test_dry_sell.py`·`test_multistock.py` rc=0<br>**localnet 라이브 세션 1회**(`python run_demo.py --live --ticks 12`)에서 `usdc_ok=True`·`stock_ok=True`<br>생성된 아카이브에 `balances_before.user` 와 `cross_check.usdc_wallets` 존재 |
-| **롤백** | `git revert`. 아카이브 스키마가 되돌아가지만 **읽는 코드가 없어** 마이그레이션 불필요 |
-| **다음에 넘기는 것** | C4 가 자금을 실제로 user 지갑에 두었을 때 교차검증이 이미 맞는다 |
-| **중단 시** | 라이브 아카이브에 `user` 행이 하나 늘어난 상태. 값은 현재 항상 0 |
-| **⚠ 유일한 관측 변화** | 이 커밋만 제품 산출물(JSON)을 바꾼다. 드라이런·화면·API 는 무영향 |
-
 ### C3 — 증빙 스크립트
 
 | | |
@@ -536,10 +535,27 @@ wsl -d Ubuntu --cd /root -- /root/.local/share/solana/install/active_release/bin
 | **변경 파일** | `scripts/demo_delegation.py`(신규) — **기존 파일 0개** |
 | **완료 판정** | localnet 기동 후 `python scripts/demo_delegation.py` → rc=0<br>`artifacts/tx/*_delegation.json` 생성 · `summary.leak_usdc == "0.00"` · `summary.onchain_rejections == 3` · `wired_into_product == false`<br>터미널 출력에 ④와 ⑤가 **서로 다른 라벨**로 찍힌다 |
 | **롤백** | 파일 삭제 |
-| **중단 시** | 영상 컷·아카이브 확보 완료. **A-lite 종료 지점** |
+| **중단 시** | 영상 컷·아카이브 확보 완료. **여기까지가 A-lite 가 심사에 내놓는 산출물 전부다** — 다음 C5 는 선택 항목이라 여기서 멈춰도 잃는 것이 없다 |
+
+### C5 — 교차검증 3지갑 (선택 · 맨 뒤에 둔다)
+
+| | |
+|---|---|
+| **왜 마지막인가** | 유일하게 제품 산출물을 바꾸는 커밋이라 tip 에 두면 되돌리기가 가장 싸다(§0 순서 주의). C3 는 이 커밋에 의존하지 않는다 |
+| **변경 파일** | `run_demo.py`(`snapshot_balances` + `usdc_net_out` 추출 + 호출 2곳 + 아카이브) · `web/engine.py`(호출 2곳 + `_archive` cross 계산) · `scripts/test_delegation.py`(섹션 5) |
+| **완료 판정** | 위 3개 + `test_leak_kpi.py`·`test_dry_sell.py`·`test_multistock.py` rc=0<br>**localnet 라이브 세션 1회**(`python run_demo.py --live --ticks 12`)에서 `usdc_ok=True`·`stock_ok=True`<br>생성된 아카이브에 `balances_before.user` 와 `cross_check.usdc_wallets` 존재 |
+| **롤백** | `git revert` 1회(tip). 아카이브 스키마가 되돌아가지만 **읽는 코드가 없어** 마이그레이션 불필요. 이 커밋 뒤에 프런트 병합 커밋이 얹혀 있어도 파일 교집합이 공집합이라 충돌·되돌림 없음 |
+| **다음에 넘기는 것** | C4 가 자금을 실제로 user 지갑에 두었을 때 교차검증이 이미 맞는다 |
+| **중단 시** | 라이브 아카이브에 `user` 행이 하나 늘어난 상태. 값은 현재 항상 0 |
+| **⚠ 유일한 관측 변화** | 이 커밋만 제품 산출물(JSON)을 바꾼다. 드라이런·화면·API 는 무영향 |
 
 **하드 스톱**(RFC §6-3 유지): **8/2 00:00 이후 본 코드 변경 금지**(문서만).
 C1+C2 가 **2.5h** 안에 안 끝나면 중단하고 그 시점 커밋에서 멈춘다.
+
+**프런트 전달본이 중간에 도착하면**: 되돌리기 걱정보다 **작업트리 청결**이 실제 위험이다.
+반쯤 만든 커밋 위에 전달본을 덮지 않는다 — 진행 중이면 `git stash` → 프런트 병합을 **단독 커밋**
+(반드시 `web/static/**` 만 들어 있는지 먼저 확인) → `git stash pop`. A-lite 커밋과 프런트 커밋은
+파일이 겹치지 않으므로 어느 쪽을 `git revert` 해도 상대는 diff 에 등장하지 않는다.
 
 ---
 
@@ -836,7 +852,7 @@ A-lite 는 **approve 1 · 전송 1 · revoke 1** 이라 **약 2 USDC 면 끝난�
 | 1 | **C5 가 유일하게 제품 산출물을 바꾼다**(아카이브 JSON) — 교차검증은 우리 증빙의 무결성 증명이다 | 중 | X-4(user=0 이면 값 동일) + localnet 라이브 세션 1회 PASS 를 DoD 에 박음. 되돌리기는 `git revert` 1회 |
 | 2 | `PanicException` 이 `except Exception` 을 통과한다 `[실측 P8]` | 중 | 서명자 목록을 `approve_budget` 안에서 결정(호출자가 못 틀리게). C3 ⑥은 `owner=agent` 로 고정 |
 | 3 | 분류 라벨이 사후 조회라 경합에 취약(§3-4 한계) | 낮 | 원값을 아카이브에 남기고, 설명 안 되면 UNCLASSIFIED |
-| 4 | 시간 초과로 C3 까지 못 감 | 중 | C2·C1 만으로도 회귀 0 인 중단 지점. **영상 컷이 없어지면 축③ 보강은 `curl` 402 컷만으로 간다**(원래 계획) |
+| 4 | 시간 초과 | **낮**(순서 변경 후) | C3 가 셋째로 앞당겨져 **영상 컷·아카이브가 먼저 확보된다.** 못 하는 것은 선택 항목인 C5 다. 그마저 못 하면 C2·C1 만으로도 회귀 0 인 중단 지점이고, 축③ 보강은 `curl` 402 컷만으로 간다(원래 계획) |
 | 5 | 심사장에서 "그래서 제품에 붙어 있나요?" | **높음** | 먼저 말한다. `wired_into_product: false` · 터미널 요약 마지막 줄 · D1~D3 문안이 전부 같은 문장을 쓴다 |
 | 6 | devnet 파우셋 실패 | 낮 | §8-3 — 애초에 일정에 없다 |
 
