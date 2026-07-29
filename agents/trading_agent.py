@@ -177,7 +177,14 @@ class TradingAgent:
         return ind
 
     def _retrospective(self, price: Decimal) -> str:
-        """직전 매수/매도 회고 한 줄 — '학습하는 것처럼' 직전 행동의 결과를 프롬프트에 준다."""
+        """직전 매수/매도 회고 한 줄 — '학습하는 것처럼' 직전 행동의 결과를 프롬프트에 준다.
+
+        기록은 '판단'이 아니라 '체결'에서 한다(_record_action). 판단 시점에 적으면 이후
+        402 Guard 차단·AP2 거부·브로커 실패로 무산돼도 기록이 남아, 다음 틱 프롬프트가
+        [지표]에서는 '몇 봉 전 매수'라고 단언하고 [현재 상태]에서는 보유 0 을 말하는
+        모순된 컨텍스트가 된다(bug-dept BUG-06). Gemini 일일 한도가 소진된 세션은
+        GUARD_LLM_UNVERIFIED 로 매수마다 차단되므로, 한 번의 예외가 아니라 세션 내내
+        거짓이 굳는 자리였다."""
         a = self._last_action
         if not a:
             return "이번 세션 매수·매도 이력 없음"
@@ -218,7 +225,6 @@ class TradingAgent:
             self._bars_held = 0
         if (self.strategy.max_hold_bars > 0 and self.position.quantity > 0
                 and self._bars_held >= self.strategy.max_hold_bars):
-            self._last_action = {"action": "sell", "price": price, "bars_ago": 0}
             return Decision(
                 "sell", f"시간청산(안전레일) — {self._bars_held}봉 보유 후 자동 청산", source="rule")
 
@@ -244,8 +250,6 @@ class TradingAgent:
                 d = self._rule_gate(self._sanitize(raw), price, ind)
         else:
             d = self._decide_by_rule(symbol, price, ind)
-        if d.action in ("buy", "sell"):
-            self._last_action = {"action": d.action, "price": price, "bars_ago": 0}
         return d
 
     # B7 적립형 — 가격 판단 없이 주기(틱/분/매일 시각)마다 정액 매수 (매도 없음)
@@ -371,11 +375,9 @@ class TradingAgent:
             if self.auth.remaining_usdc <= 0:
                 return Decision("hold", f"상승세({up})지만 운용현금 소진 — 진입 보류", source="rule")
             spend = self.auth.remaining_usdc   # 올인 — 가진 현금 전액 진입
-            self._last_action = {"action": "buy", "price": price, "bars_ago": 0}
             return Decision(
                 "buy", f"상승세 진입(전량 매수) — {up} · {basis}", spend, source="rule")
         if not want_long and holding:
-            self._last_action = {"action": "sell", "price": price, "bars_ago": 0}
             return Decision(
                 "sell", f"하락세 이탈(전량 매도, 자본 보존) — {down} · {basis}", source="rule")
         state = "상승세 보유 중" if holding else "하락세 관망(현금 보유)"
@@ -569,11 +571,17 @@ class TradingAgent:
         )
         return PaymentSubmitted(order_id=required.order_id, payment=payload)
 
+    def _record_action(self, action: str, price: Decimal) -> None:
+        """회고용 직전 행동 기록 — 포지션이 실제로 움직인 순간에만 부른다(BUG-06).
+        bars_ago=0 은 '이번 봉'이고, 다음 틱의 _retrospective 가 1 로 올린다."""
+        self._last_action = {"action": action, "price": price, "bars_ago": 0}
+
     # 3) 정산 완료 반영
     def on_completed(self, completed: PaymentCompleted, quote_symbol: str,
                      quantity: Decimal, price: Decimal, total_usdc: Decimal) -> Receipt:
         if completed.status == "settled":
             self.position.apply_buy(quantity, price)
+            self._record_action("buy", price)   # 포지션이 늘어난 순간 = 회고에 적을 사실
         return Receipt(
             order_id=completed.order_id, symbol=quote_symbol, side="buy",
             quantity=quantity, total_usdc=total_usdc,
@@ -598,6 +606,9 @@ class TradingAgent:
         # 사실상 방어적 확인이고, 드라이런은 애초에 partial 경로에 오지 않는다.
         if completed.status == "settled" or (completed.status == "partial" and completed.confirmed):
             self.position.apply_sell(quantity)
+            # 회고 기록은 포지션 변동과 같은 조건에 건다 — 둘이 갈라지면 프롬프트가
+            # "몇 봉 전 매도"라고 말하면서 보유 수량은 그대로인 모순이 다시 생긴다.
+            self._record_action("sell", price)
         if completed.status == "settled":
             # 대금 환입은 실제로 받았을 때만. 추세추종(올인/올아웃)은 매도 대금 전액을
             # 운용현금으로 환입해 복리 재투자한다. 조건형/적립형은 기존대로 예산까지만.
