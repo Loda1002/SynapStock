@@ -327,3 +327,21 @@ CONTROL_TOKEN 교체(2026-07-31). 토큰 URL 을 랜딩(`/`)으로 열어 주소
 교체가 실제로 먹은 것을 검증했고, 브라우저 패널의 죽은 토큰도 지웠다. 버전 1 은 남겨 뒀다
 (서비스가 `:latest` 를 보므로 사용되지 않는다). 교체 전 `engine.status=idle` 확인(런북 §6).
 값은 `gcloud secrets versions access latest --secret=autotrader-control-token` 로 사용자가 직접 본다.
+
+## 2026-07-31 (4차) — BUG-24 · 런북 오타 · 제품명 SynapStock · public 감사
+
+- BUG-24(`5f4c1a6`): 숫자형 환경변수가 빈 값이면 임포트 단계에서 앱 전체가 죽던 것.
+  `config.env_num` 신설 — 빈 값은 기본값 복원, 잘못된 값은 변수명을 밝히며 중단.
+  `MAX_BUDGET_USDC` 만 `blank_ok=False`(서버측 상한이 조용히 10배로 풀리면 안 된다).
+  회귀 5묶음은 `test_dry_sell.py` 에(테스트 파일 23개 불변). 음성 대조 수행.
+- 런북 `deploy_cloud_run.md:35` 의 `$PROJECT_ID` 정정 — 실재하지 않는
+  `autotrader-agent-2026` → 실제 값 `synapstock`.
+- 제품명 확정(`5372d4f`): **SynapStock = 제품 · 402 Guard = 지출 승인 게이트 기능**.
+  제품명 자리(타이틀·브랜드·알림 제목·README 제목·제출명·소개서 표지)만 교체하고
+  게이트를 가리키는 자리는 전부 유지. 화면에 남은 12곳을 전수 확인.
+- CONTROL_TOKEN 버전 1 비활성화(버전 2 가 현행).
+- public 전환 안전성 감사 통과 — 275커밋 전수 스캔에서 크리덴셜 0건, 개인정보 0건,
+  방어 문구 잔존 확인. 남은 것은 사용자의 전환 조작뿐.
+- ⚠ 사용자 정정: 현재 화면은 디자인 최종본이 아니다 → 소개서 PDF·영상 촬영은 아직.
+- 다음 대화: devnet USDC 재실증 → A-lite 재검토 → 온체인 결제 확인 → 잔여 점검 →
+  그 뒤에 버그부서·심사부서.
