@@ -1251,3 +1251,48 @@ body:not(.live-mode) .col-tx { display: none; }
   background: var(--fx-chip-bg); color: var(--fx-chip-fg);
 }
 [data-card="log"] .feed li > span:not(.fx-tag) { flex: 1 1 0; min-width: 0; line-height: 20px; }
+
+/* =====================================================================
+   시안 대조 — 거래 내역 표 (Desktop - 8)
+   ===================================================================== */
+
+[data-card="trades"] table { font-size: 14px; }
+[data-card="trades"] th,
+[data-card="trades"] td {
+  padding: 14px 8px; text-align: center;
+  border-bottom: 1px solid var(--fx-line);
+  color: var(--fx-body);
+}
+[data-card="trades"] th { font-size: 12px; font-weight: 400; color: var(--fx-body); }
+[data-card="trades"] td.sym { font-weight: 400; }
+/* 시안에 '상태' 열이 없다. 지우지는 않는다 — 이 한 줄만 지우면 도로 나온다.
+   (tx 두 열은 위 .col-tx 규칙이 이미 라이브에서만 보여 준다.) */
+[data-card="trades"] th:nth-child(9),
+[data-card="trades"] td:nth-child(9) { display: none; }
+
+/* 방향 = 점 + 글자 알약. app.js addTradeRow 가 칸 안 글자를 span 으로 감싼다. */
+[data-card="trades"] td.side-buy,
+[data-card="trades"] td.side-sell { font-weight: 400; }
+.fx-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 12px; font-weight: 400; line-height: 20px;
+}
+.fx-pill::before {
+  content: ""; flex: none;
+  width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+}
+[data-card="trades"] td.side-buy  .fx-pill { background: var(--fx-buy-bg);  color: var(--fx-buy-fg); }
+[data-card="trades"] td.side-sell .fx-pill { background: var(--fx-sell-bg); color: var(--fx-sell-fg); }
+
+/* 판단 칩 — 시안 표본은 rule(중립)뿐이라 나머지는 범례 색을 그대로 따랐다(파생). */
+[data-card="trades"] td .src {
+  display: inline-block; margin: 0;
+  padding: 4px 9px; border-radius: 7px;
+  font-size: 12px; font-weight: 400; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+[data-card="trades"] td .src-gemini        { background: var(--fx-gemini-bg);   color: var(--fx-gemini-fg); }
+[data-card="trades"] td .src-rule-fallback { background: var(--fx-fallback-bg); color: var(--fx-fallback-fg); }
+[data-card="trades"] td .src-rule-gate     { background: var(--fx-gate-bg);     color: var(--fx-gate-fg); }
+[data-card="trades"] td .src-dca           { background: var(--fx-dca-bg);      color: var(--fx-dca-fg); }

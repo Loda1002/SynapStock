@@ -1132,7 +1132,11 @@
     const tr = make("tr");
     tr.appendChild(make("td", null, timeOf(t.ts)));
     tr.appendChild(make("td", "sym", t.symbol || "—"));   // 멀티: 어느 종목 체결인지
-    tr.appendChild(make("td", "side-" + t.side, t.side === "buy" ? "매수" : "매도"));
+    // 방향은 시안(Desktop - 8)에서 점 + 글자 알약이다. 칸 안 글자를 span 으로 감싸야
+    // 알약이 글자 폭에만 붙는다 — td 에 직접 그리면 칸 전체가 색칠된다.
+    const sideTd = make("td", "side-" + t.side);
+    sideTd.appendChild(make("span", "fx-pill", t.side === "buy" ? "매수" : "매도"));
+    tr.appendChild(sideTd);
     tr.appendChild(make("td", null, t.quantity));
     tr.appendChild(make("td", null, t.price_usdc));
     const feeTd = make("td", null, t.fee_usdc !== undefined ? (t.side === "buy" ? "+" : "−") + t.fee_usdc : "—");
