@@ -6,30 +6,32 @@
    어둡게 뒤집어(auto-dark) 버튼만 색이 남는 깨진 화면이 된다 — 라이트·다크
    팔레트를 모두 선언해 어느 테마에서도 의도된 색으로 보이게 한다.
 
-   Phase 3(시안 스킨): 값을 dashboard_mockup.png 기준으로 교체.
-   시안 룩 = 연한 청회색 바탕 위에 흰 카드가 부드러운 그림자로 떠 있는 형태,
-   로열블루 강조 + 초록 상승 + 큰 굵은 숫자 + 넉넉한 여백. */
+   최종 스킨(해커톤_웹디자인 Figma, Desktop - 8): 값은 전부 시안 노드에서 직접 읽었다
+   (변수·스타일이 등록돼 있지 않아 적용된 값을 노드별로 읽었다). 시안에 표본이 없어
+   유도한 값에는 "파생" 이라고 적어 두었다.
+   시안 룩 = 연보라 회색 바탕 위에 흰 카드가 테두리 없이 그림자로만 떠 있는 형태,
+   보라 강조 + 민트 상승 + 큰 굵은 숫자 + 넉넉한 여백. */
 :root {
   color-scheme: light dark;
 }
 
 :root {
-  /* 바탕 — 연한 청회색 위에 흰 카드가 뜨는 시안 룩 */
-  --bg: #edf0f7;
+  /* 바탕 — 연보라 회색 위에 흰 카드가 그림자로 뜬다 */
+  --bg: #f4f5fc;            /* 페이지 배경 (KPI 타일 배경과 같은 색) */
   --card-bg: #ffffff;
-  --text: #16203a;
-  --muted: #6b7688;
-  --border: #e6eaf1;
+  --text: #000000;          /* 시안은 제목·큰 숫자에 순수 검정을 쓴다 */
+  --muted: #8f96af;         /* 작은 보조 문구 12px */
+  --border: #e9ebf5;        /* 파생 — 시안 카드에는 테두리가 없고 그림자만 쓴다 */
 
-  /* 포인트 — 로열블루 강조 */
-  --accent: #2f56f0;
-  --danger: #ef4444;
-  --ok: #16a34a;
-  --warn: #d97706;
+  /* 포인트 */
+  --accent: #5d4ef1;        /* 로고·활성 탭·강조 문구 */
+  --danger: #ff3057;        /* 긴급정지 */
+  --ok: #00bb82;            /* 막았어요·실현이익 */
+  --warn: #d97706;          /* 파생 — 시안에 경고 글자색이 없다(칩 배경 #fff2da 만 있음) */
 
   /* 매매 방향 */
-  --buy: #16a34a;
-  --sell: #ef4444;
+  --buy: #00bb82;
+  --sell: #ff3057;
 
   /* 판단 주체 배지 */
   --badge-gemini: #7c5cff;
@@ -48,27 +50,29 @@
   --ma100: #d94f8c;
   --ma200: #3b4a66;
 
-  /* 타이포·형태 — 시안의 넉넉한 여백·큰 숫자·둥근 카드 */
-  --font: "Pretendard", system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  /* 타이포 — 시안은 숫자·라벨 Pretendard Bold, 본문 Noto Sans KR */
+  --font: "Pretendard", "Noto Sans KR", system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   --mono: Consolas, "D2Coding", monospace;
-  --radius: 16px;
-  --gap: 16px;
-  --pad: 20px;
-  --fs-base: 14px;
-  --fs-big: 34px;
+  /* 형태 — 카드 18 / 타일 14 / 버튼 10~11 */
+  --radius: 18px;
+  --gap: 24px;              /* 카드 사이 (시안 실측: 배너→본문 24, 좌우 카드 24) */
+  --pad: 24px;              /* 카드 안쪽 */
+  --fs-base: 14px;          /* 탭·버튼·표 */
+  --fs-big: 32px;           /* KPI 큰 숫자 */
   --fs-small: 12px;
 
-  /* 대시보드 좌우 여백 — 카드가 화면 끝에 붙지 않게 숨 쉴 공간을 준다.
-     넓은 화면에서만 커지고(3vw) 좁은 화면에서는 기본 여백(16px)으로 돌아간다.
-     너무 키우면 카드 13개짜리 그리드가 좁아지므로 48px 에서 멈춘다. */
-  --page-pad: clamp(16px, 3vw, 48px);
+  /* 대시보드 좌우 여백 — 최신 시안(Desktop - 8)은 콘텐츠 1098px, 좌우 171px(1440 기준).
+     "1098px 를 가운데 두고 남는 만큼이 여백" 을 그대로 식으로 옮겼다 — 1440 에서 정확히
+     171px 이 되고, 좁아지면 16px 까지 줄었다가 멈춘다.
+     max-width 로 본문을 묶지 않는 이유: .slim-bar(얇은 헤더)와 .guard-dock 은 fixed 라
+     본문 폭을 안 따라간다. 셋이 같은 --page-pad 를 보게 두어야 정렬이 맞는다. */
+  --page-pad: clamp(16px, calc((100vw - 1098px) / 2), 171px);
 
-  /* 카드 그림자 — 시안의 "떠 있는 흰 카드" 핵심 (skeleton .card/.topbar 가 참조) */
-  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+  /* 카드 그림자 — 시안 카드값 그대로. 시안 카드에는 테두리가 없고 이 그림자만 있다. */
+  --shadow: 0 4px 20px rgba(0, 0, 0, .05);
 
-  /* 마우스를 올린 카드 — 한 단계 더 떠오른 것처럼 그림자를 넓고 진하게.
-     기본 --shadow 와 같은 색 계열이라 스킨을 바꿔도 함께 따라온다. */
-  --shadow-hover: 0 2px 6px rgba(16, 24, 40, .06), 0 16px 40px rgba(16, 24, 40, .12);
+  /* 마우스를 올린 카드 — 한 단계 더 떠오른 것처럼 그림자를 넓고 진하게 (파생). */
+  --shadow-hover: 0 6px 28px rgba(0, 0, 0, .09);
   --card-lift: 3px;          /* hover 시 떠오르는 거리 (skeleton .card:hover) */
   --card-lift-speed: .18s;   /* 떠오르고 내려앉는 시간 — 도구 화면이라 짧게 */
 
@@ -87,22 +91,24 @@
   --split-ease: cubic-bezier(.2, .9, .24, 1.14);
 }
 
-/* 다크 팔레트 — OS/브라우저가 다크 모드일 때 자동 적용 */
+/* 다크 팔레트 — OS/브라우저가 다크 모드일 때 자동 적용.
+   시안에 다크가 없어 라이트에서 유도했다(저장소 기존 방침). 색상은 시안 색조를
+   유지하고 명도만 뒤집었다. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #12151c;
-    --card-bg: #1b1f27;
-    --text: #e6e9ee;
-    --muted: #9aa3ad;
-    --border: #2a3039;
+    --bg: #14151d;
+    --card-bg: #1c1e28;
+    --text: #f2f3f7;
+    --muted: #9299b3;
+    --border: #2b2e3c;
 
-    --accent: #6f8bff;
-    --danger: #ff6b6e;
-    --ok: #3ecf8e;
+    --accent: #8b7dff;
+    --danger: #ff5c7a;
+    --ok: #2fd69b;
     --warn: #f0b429;
 
-    --buy: #3ecf8e;
-    --sell: #ff6b6e;
+    --buy: #2fd69b;
+    --sell: #ff5c7a;
 
     --badge-gemini: #9d86ff;
     --badge-rule: #7d8590;
@@ -115,9 +121,9 @@
     --ma100: #f08ab5;
     --ma200: #93a6c9;
 
-    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .45);
+    --shadow: 0 4px 20px rgba(0, 0, 0, .45);
     /* 다크에서는 그림자만으로 부각이 약해 테두리 대비까지 함께 쓴다(skeleton .card:hover) */
-    --shadow-hover: 0 2px 6px rgba(0, 0, 0, .45), 0 16px 40px rgba(0, 0, 0, .65);
+    --shadow-hover: 0 6px 28px rgba(0, 0, 0, .6);
   }
 }
 

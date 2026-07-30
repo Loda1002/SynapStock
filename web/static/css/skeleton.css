@@ -1432,3 +1432,9 @@ body:not(.live-mode) .col-tx { display: none; }
 /* 마지막으로 남던 흔들림: 한도 카드의 안내 문구가 `—` 한 줄 ↔ 두 줄로 오가며 18px 씩
    움직였다. 두 줄 자리를 미리 비워 두면 문구가 바뀌어도 안 움직인다. */
 [data-card="mandate"] [data-mandate-hint] { min-height: 36px; }
+
+/* ---- Phantom 지갑 버튼은 시안 적용 대상에서 제외(사용자 지시) ----
+   버튼 색은 자체 --wallet-* 변수라 이미 테마와 무관하지만, 헤더 변형 두 개가 모서리만
+   var(--radius) 를 따라간다. 시안 팔레트에서 --radius 가 16→18 로 바뀌었으므로
+   기존 값으로 못 박아 지금 모습 그대로 유지한다. */
+.btn-wallet-sm, .btn-wallet-xs { --wallet-radius: 16px; }
