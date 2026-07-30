@@ -424,12 +424,25 @@ class Guard:
                                         "정산 결과 주문번호가 서명한 주문과 다릅니다",
                                         str(signed_order_id), str(completed.order_id))
 
+        # 기대 증가분이 0 이하이면 확인할 대상이 없다 — 예전에는 `cur - before >= 0` 이 항상
+        # 참이라, 온체인을 **한 번도 못 읽은 상태에서도** "재조회 확인 — 자산 도착"을 찍었다
+        # (bug-dept BUG-11). 402 Guard 가 검증하지 않은 것을 "확인했다"고 기록하는 자리라
+        # 금액 크기와 무관하게 닫는다. 0 수량 거래 자체는 위층에서 이미 걸러진다.
+        if expected_increase_units <= 0:
+            return self._block_delivery(
+                GUARD_DELIVERY_UNCONFIRMED,
+                "청구서가 약속한 도착 수량이 0 이하 — 확인할 대상이 없습니다(도착 확인 불가)",
+                f"+{expected_increase_units} base units", "확인 안 함")
+
         last = before_units
+        reads_ok = 0            # 온체인을 실제로 읽어 본 횟수 — '미도착'과 '재조회 실패' 구분용
         for attempt in range(retries + 1):
             try:
                 cur = await balance_reader()
             except Exception:
                 cur = last  # 재조회 실패는 '미확인'으로 취급하고 재시도
+            else:
+                reads_ok += 1
             if cur - before_units >= expected_increase_units:
                 where = f"guard.py:L{sys._getframe(0).f_lineno}"
                 return GuardResult(
@@ -440,10 +453,15 @@ class Guard:
             if attempt < retries and retry_delay_sec > 0:
                 await asyncio.sleep(retry_delay_sec)
 
+        # 사유를 갈라 적는다 — '읽어 봤는데 안 왔다'와 '읽지도 못했다'는 다른 사건이고,
+        # 뒤엣것을 앞엣것처럼 적으면 확인 불가를 확정 손실로 보고하게 된다.
+        why = ("정산 후 온체인 재조회에서 자산 미도착" if reads_ok
+               else f"온체인 재조회 자체가 실패({retries + 1}회 전부) — 도착 여부를 확인하지 못함")
         return self._block_delivery(
             GUARD_DELIVERY_UNCONFIRMED,
-            "정산 후 온체인 재조회에서 자산 미도착 — pending_delivery 보류(세션 정지)",
-            f"+{expected_increase_units} base units", f"+{last - before_units} base units")
+            f"{why} — pending_delivery 보류(세션 정지)",
+            f"+{expected_increase_units} base units",
+            f"+{last - before_units} base units" if reads_ok else "조회 실패")
 
     # ---- 내부: 차단 결과 생성 (호출 지점 라인을 런타임 캡처) ----
 

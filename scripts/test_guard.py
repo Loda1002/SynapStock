@@ -310,6 +310,50 @@ async def _delivery_cases() -> None:
     check("정산 주문번호 불일치 차단(GUARD_ORDER_MISMATCH)",
           (not r_mm.ok) and r_mm.code == GUARD_ORDER_MISMATCH, r_mm.where)
 
+    # ---- 기대 증가분 0 / 재조회 실패 (bug-dept BUG-11) ----
+    # 예전에는 `cur - before >= 0` 이 항상 참이라, 온체인을 한 번도 못 읽고도 ok=True 가
+    # 나왔다. 402 Guard 가 검증하지 않은 것을 "확인했다"고 기록하는 자리다.
+    calls = {"n": 0}
+
+    async def boom():
+        calls["n"] += 1
+        raise RuntimeError("RPC 429")
+
+    zero_done = PaymentCompleted(order_id=oid, tx_signature="sig3", confirmed=True,
+                                 delivered_asset=OTHER_MINT, delivered_amount=0, status="settled")
+    r_z = await GUARD.check_delivery(zero_done, signed_order_id=oid, balance_reader=boom,
+                                     before_units=before, expected_increase_units=0)
+    check("기대 증가분 0 은 '도착 확인'이 아니다(과거엔 ok=True)",
+          (not r_z.ok) and r_z.code == GUARD_DELIVERY_UNCONFIRMED, f"{r_z.code} · {r_z.detail}")
+    check("확인할 대상이 없다는 사유가 남는다", "확인할 대상이 없" in r_z.detail, r_z.detail)
+    check("잔액 조회를 시도조차 하지 않는다(무의미한 RPC 없음)", calls["n"] == 0, str(calls["n"]))
+
+    # 기대 증가분이 정상(>0)인데 재조회가 전부 실패한 경우 — 차단은 예전에도 됐지만
+    # 사유가 '미도착'이었다. '읽어 봤는데 안 왔다'와 '읽지도 못했다'는 다른 사건이다.
+    calls["n"] = 0
+    r_f = await GUARD.check_delivery(completed, signed_order_id=oid, balance_reader=boom,
+                                     before_units=before, expected_increase_units=inc)
+    check("재조회 전부 실패도 보류(GUARD_DELIVERY_UNCONFIRMED)",
+          (not r_f.ok) and r_f.code == GUARD_DELIVERY_UNCONFIRMED, r_f.code)
+    check("사유가 '미도착'이 아니라 '재조회 실패'로 구분된다",
+          "재조회 자체가 실패" in r_f.detail and "미도착" not in r_f.detail, r_f.detail)
+    check("실측값도 '조회 실패'로 표기(0 도착으로 위장 안 함)",
+          r_f.actual == "조회 실패", r_f.actual)
+    check("재시도는 그대로 수행(기본 3회 시도)", calls["n"] == 3, str(calls["n"]))
+
+    # [대조군] 첫 조회는 실패해도 다음 조회에서 도착이 확인되면 통과해야 한다(과잉 차단 방지)
+    seq = {"i": 0}
+
+    async def flaky():
+        seq["i"] += 1
+        if seq["i"] == 1:
+            raise RuntimeError("RPC 429")
+        return before + inc
+
+    r_fl = await GUARD.check_delivery(completed, signed_order_id=oid, balance_reader=flaky,
+                                      before_units=before, expected_increase_units=inc)
+    check("[대조군] 재조회 1회 실패 후 도착 확인되면 통과", r_fl.ok, r_fl.detail)
+
 
 def main() -> int:
     test_demand()
