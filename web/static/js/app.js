@@ -1043,13 +1043,39 @@
     capList(el.decisionFeed, MAX_FEED_ITEMS);
   }
 
+  /* 로그 본문 맨 앞의 "[태그]" — 시안(Desktop - 8)은 이것을 본문에서 떼어 회색 배지로
+     세운다. 호출부 15곳의 문구는 그대로 두고 여기서 나눈다(태그는 전부 첫머리에 있다).
+     ⚠ 긴 것부터 본다 — "402 Guard" 를 "402" 로 자르면 배지가 뜻을 잃는다.
+     태그 안에 남는 꼬리말(예: "[세션 시작]" 의 "시작")은 본문 앞으로 넘긴다 — 지우면
+     같은 태그를 쓰는 시작·종료 줄이 구분되지 않는다. */
+  const LOG_TAGS = ["402 Guard", "의미 대조", "온체인 잔액", "x402", "A2A", "AP2",
+                    "세션", "긴급정지", "브리핑", "재생", "재개", "오류"];
+  const LOG_TAG_LABEL = { "브리핑": "brief", "온체인 잔액": "온체인" };   // 시안 표기
+
+  function splitLogTag(text) {
+    const m = text.match(/^\[([^\]]+)\]\s*([\s\S]*)$/);
+    if (!m) return null;
+    const inner = m[1], rest = m[2];
+    for (const t of LOG_TAGS) {
+      if (inner.indexOf(t) !== 0) continue;
+      const tail = inner.slice(t.length).replace(/^[·\s]+/, "");
+      return { tag: LOG_TAG_LABEL[t] || t, text: (tail ? tail + " · " : "") + rest };
+    }
+    // 목록에 없는 태그 — 첫 낱말까지만 배지로 세운다(모르는 태그도 모양이 깨지지 않게).
+    const i = inner.indexOf(" ");
+    if (i < 0) return { tag: inner, text: rest };
+    return { tag: inner.slice(0, i), text: inner.slice(i + 1) + " · " + rest };
+  }
+
   /* kind="review" 를 붙인 줄만 ② 청구서 레이어의 "심사 내역 보기"에서 살아남는다.
      색(cls)으로 거르지 않는 이유: log-muted·log-danger 는 다른 이벤트도 함께 쓴다. */
   function addLog(ts, text, cls, kind) {
     const li = make("li", cls || null);
     if (kind) li.dataset.kind = kind;
     li.appendChild(make("time", null, timeOf(ts)));
-    li.appendChild(make("span", null, text));
+    const split = splitLogTag(text);
+    if (split) li.appendChild(make("span", "fx-tag", split.tag));
+    li.appendChild(make("span", null, split ? split.text : text));
     el.eventLog.prepend(li);
     capList(el.eventLog, MAX_LOG_ITEMS);
     // 필터를 켜 둔 채로 새 줄이 들어오면 "0줄" 안내를 다시 판정한다 — 비어 있던 목록이

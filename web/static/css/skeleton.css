@@ -1219,3 +1219,35 @@ body:not(.live-mode) .col-tx { display: none; }
   display: block; text-align: center; padding: 4px 2px;
   border-bottom: 1px solid var(--fx-line);
 }
+
+/* =====================================================================
+   시안 대조 — 결제 과정 로그 (Desktop - 8)
+
+   본문 맨 앞에 섞여 있던 "[태그]" 를 회색 배지로 분리한다.
+   조각을 나누는 일은 app.js splitLogTag 가 하고 여기서는 색·모양만 입힌다.
+   ===================================================================== */
+
+[data-card="log"] .feed { gap: 0; }
+/* flex-start 인 이유: 실제 로그는 시안 표본과 달리 두세 줄로 접힌다(가드 차단 줄이 특히
+   길다). center 로 두면 시각·배지가 접힌 본문 한가운데로 내려가 줄머리가 어긋난다. */
+[data-card="log"] .feed li {
+  display: flex; flex-wrap: wrap; align-items: flex-start;
+  column-gap: 9px; row-gap: 2px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--fx-line);
+  font-size: 12px; color: var(--fx-body);
+}
+[data-card="log"] .feed li:last-child { border-bottom: 0; }
+[data-card="log"] .feed time {
+  flex: none; margin: 0; font-family: inherit;
+  font-size: 12px; line-height: 20px; color: var(--muted);
+}
+/* 프로토콜 배지 — app.js 가 본문 맨 앞 "[태그]" 에서 떼어 낸다. */
+.fx-tag {
+  flex: none; white-space: nowrap;
+  margin-top: -2px;                    /* 24px 배지를 20px 첫 줄 가운데에 맞춘다 */
+  padding: 2px 7px; border-radius: 5px;
+  font-size: 12px; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+[data-card="log"] .feed li > span:not(.fx-tag) { flex: 1 1 0; min-width: 0; line-height: 20px; }
