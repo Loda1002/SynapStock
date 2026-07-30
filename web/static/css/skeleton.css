@@ -946,6 +946,10 @@ body.page-dashboard .topbar .controls [data-btn-notify] { background: #ececec; c
 /* .card h2(0,1,1)를 이겨야 해서 선택자를 둘로 쓴다 — 이 줄은 카드 제목이 아니라 날짜 라벨이다.
    (h2 인 이유는 카드 제목을 끌어 재배치하는 기능이 h2 를 손잡이로 잡기 때문이다.) */
 .fx-today > .fx-today-date { margin: 0; font-size: var(--fs-small); font-weight: 400; color: #9096ad; }
+/* 한 줄 요약 — 이 카드에서 가장 크게 읽히는 문장이다(타일 숫자보다 먼저 눈에 든다). */
+.fx-today-line { margin: 0; font-size: 24px; line-height: 34px; font-weight: 700; color: var(--text); }
+.fx-today-line .fx-em { color: var(--accent); }
+.fx-today-line .fx-ok { color: var(--ok); }
 
 .fx-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: auto; }
 .fx-tile { background: var(--bg); border-radius: 14px; padding: 16px; min-width: 0; }

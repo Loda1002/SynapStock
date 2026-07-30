@@ -77,6 +77,8 @@
     pnl: $("[data-pnl]"),
     returnPct: $("[data-return-pct]"),
     returnLabel: $("[data-return-label]"),
+    todayDate: $("[data-today-date]"),
+    todayLine: $("[data-today-line]"),
     cumBuy: $("[data-cum-buy]"),
     feeRate: $("[data-fee-rate]"),
     cumFee: $("[data-cum-fee]"),
@@ -260,6 +262,56 @@
      기준은 실현손익과 동일: 지금 전량 매도하면 받을 금액(수수료 차감) − 실효 평단 × 수량.
      서버(web/engine.py _valuation)가 같은 식으로 계산하며, 여기서는 틱 사이 갱신용으로
      같은 식을 다시 적용한다(두 곳을 함께 고쳐야 한다). */
+  /* ---------- 오늘의 결과 (한 줄 요약 + 날짜) ----------
+     시안이 카드 맨 위에 둔 문장. 값은 전부 실제 상태에서만 만든다 —
+       · 매수·매도 건수 : 거래 이벤트를 그대로 센다. 거래 표와 같은 출처이고 세션 경계도
+                         같다(engine_started 에서 0 으로 되돌린다) → 표의 줄 수와 늘 맞는다.
+       · 막은 건수      : state.guard.blocked (세션 단위 서버 값)
+       · 보유 여부      : valuation 의 주식 평가액 — 멀티 종목에서도 한 번에 맞는다
+                         (포커스 종목 포지션만 보면 다른 종목을 들고 있어도 '없다'가 된다).
+     날짜는 브라우저 시계가 아니라 **재생 중인 봉의 날짜**다. 2022 하락장을 재생하는 중이면
+     '오늘'은 그 날이고, 시세 카드가 이미 같은 날짜를 보여주고 있다. 합성 패턴 피드(개발용)
+     처럼 날짜가 없는 봉이면 날짜 없이 '오늘의 결과'만 남는다. */
+  let todayBuys = 0, todaySells = 0;
+
+  /* 날짜만 따로 두는 이유: 봉이 넘어갈 때마다(price_tick) 갱신해야 하는데, 그때마다 문장을
+     통째로 다시 만들면 매 틱 DOM 을 헛되이 갈아 끼운다. 값이 같으면 쓰지도 않는다. */
+  function renderTodayDate() {
+    if (!el.todayDate) return;
+    const last = candles.length ? candles[candles.length - 1] : null;
+    // 일봉이면 ts 가 YYYY-MM-DD, 목 틱 집계면 ISO 시각이다(drawChart 의 isDaily 와 같은 판별).
+    const day = last && last.t && !last.t.includes("T") ? last.t : null;
+    const text = (day ? day.replace(/-/g, ". ") + " · " : "") + "오늘의 결과";
+    if (el.todayDate.textContent === text) return;
+    el.todayDate.textContent = text;
+    el.todayDate.title = day
+      ? "재생 중인 봉의 날짜입니다 — 브라우저 시계가 아니라 시세 데이터의 날짜입니다."
+      : "";
+  }
+
+  function renderToday(s) {
+    renderTodayDate();
+    if (!el.todayLine) return;
+
+    if (!todayBuys && !todaySells) {
+      el.todayLine.textContent = s && s.engine && s.engine.status === "running"
+        ? "아직 이번 세션에서 체결된 거래가 없습니다."
+        : "세션을 시작하면 오늘 한 일이 한 문장으로 정리됩니다.";
+      return;
+    }
+    const blocked = num(s && s.guard && s.guard.blocked);
+    const holding = num(s && s.valuation && s.valuation.position_net_value_usdc) > 0;
+    // innerHTML 을 쓰지 않는다(이 파일의 규칙) — 값이 전부 우리가 만든 숫자여도 예외를 두지 않는다.
+    el.todayLine.replaceChildren(
+      document.createTextNode("오늘 에이전트는 "),
+      make("b", "fx-em", `${todayBuys}번 사고 ${todaySells}번 팔았고,`),
+      document.createTextNode(" "),
+      make("b", "fx-ok", blocked ? `위험한 지출 ${blocked}건을 막았어요.` : "위험한 지출은 없었어요."),
+      make("br"),
+      document.createTextNode(holding ? "지금은 주식을 들고 있습니다." : "지금은 주식을 들고 있지 않습니다.")
+    );
+  }
+
   function renderValuation(v) {
     if (!v) return;
     const u = num(v.unrealized_pnl_usdc);
@@ -605,6 +657,8 @@
       el.guardLeak.textContent = leak.toFixed(2);
       el.guardLeak.classList.toggle("neg", leak > 0);  // 유출 발생 시에만 빨강(기본 녹색)
     }
+    // '오늘의 결과' 한 줄 요약 — 위 guard·valuation 이 채워진 뒤에 부른다(둘을 읽는다).
+    renderToday(s);
 
     renderAi(s.ai);
 
@@ -1431,6 +1485,7 @@
           }
           drawChart();
           renderPriceChange(d.price);
+          renderTodayDate();   // '오늘의 결과'의 날짜는 재생 중인 봉을 따라간다
           // 평가손익 즉시 갱신은 단일 종목만 (멀티 합산은 체결 시 fetchState 로 갱신)
           if (sessionSymbols.length <= 1) renderValuation(valuationAtPrice(num(d.price)));
         }
@@ -1462,6 +1517,9 @@
         break;
       case "trade":
         addTradeRow(d);
+        // '오늘의 결과' 문장이 세는 건수 — 표와 같은 이벤트를 같은 세션 경계로 센다.
+        if (d.side === "buy") todayBuys += 1; else todaySells += 1;
+        if (lastState) renderToday(lastState);   // 유출·보유는 곧 도착할 fetchState 가 맞춘다
         notify(evt, d.side === "buy" ? "매수 체결" : "매도 체결",
           `${d.quantity} ${d.symbol} @ ${d.price_usdc} · ${d.side === "buy" ? "총" : "수령"} ${d.total_usdc} USDC` +
           (d.realized_pnl_usdc ? ` (실현 ${num(d.realized_pnl_usdc) >= 0 ? "+" : ""}${d.realized_pnl_usdc})` : ""),
@@ -1545,6 +1603,9 @@
         }
         sessionBoundary(evt.ts, `─── 새 세션 시작 · ${stText} · ${srcNote} ───`, true);
         tradesBoundary(evt.ts, `─── 새 세션 시작 (${timeOf(evt.ts)}) · 아래는 지난 세션 체결입니다 ───`);
+        // 거래 표와 같은 기준점에서 '오늘의 결과' 건수도 되돌린다(엔진이 self.trades = [] 하는 시점).
+        todayBuys = 0; todaySells = 0;
+        if (lastState) renderToday(lastState);
         addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "샌드박스"} · ${d.network} · ${d.symbol} · 시세: ${d.feed ? d.feed.label : "—"} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
         fetchState();
         break;

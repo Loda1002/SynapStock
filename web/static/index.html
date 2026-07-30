@@ -149,11 +149,14 @@
           app.js 는 시작할 때 querySelector 로 훅을 한 번만 잡는데, 같은 훅이 여러 개면
           문서에서 먼저 나오는 것을 잡는다. 뒤에 남은 옛 카드 3개는 skeleton.css 가 감춘다
           (지우지 않는 이유: 거기에만 있는 훅 몇 개를 app.js 가 계속 쓴다).
-       ⚠ 실험장에 있던 "오늘 에이전트는 N번 사고…" 한 문장은 가져오지 않았다 — 서버가 주지
-          않는 값이라 실험장에서는 mock.js 가 가짜 상태로 지어냈다. 훅 없이 옮기면 영영
-          바뀌지 않는 안내 문구만 화면에 남는다. -->
+       ⚠ 날짜·한 줄 요약은 app.js 가 채운다(renderToday). 실험장에서는 mock.js 가 가짜
+          상태로 지어냈지만 여기서는 전부 실제 값이다 — 매수·매도 건수는 거래 이벤트를
+          그대로 세고(거래 표와 같은 출처·같은 세션 경계), 막은 건수는 state.guard.blocked,
+          보유 여부는 valuation 의 주식 평가액이다. 날짜도 브라우저 시계가 아니라 재생 중인
+          봉의 날짜를 쓴다(시세 카드가 이미 같은 날짜를 보여준다). -->
   <section class="card fx-today" data-card="today">
-    <h2 class="fx-today-date">오늘의 결과</h2>
+    <h2 class="fx-today-date" data-today-date>오늘의 결과</h2>
+    <p class="fx-today-line" data-today-line>세션을 시작하면 오늘 한 일이 한 문장으로 정리됩니다.</p>
     <div class="fx-tiles">
       <div class="fx-tile">
         <div class="fx-tile-head"><span class="fx-chip fx-chip-violet" aria-hidden="true"></span>총자산</div>
@@ -166,6 +169,12 @@
         <!-- 수익률의 기준은 전략에 따라 다르다(state.pnl.basis) — 라벨은 app.js 가 바꾼다.
              고정 문구로 두면 실현 0 USDC 아래에 수익률 6.22% 가 붙어 자기모순으로 읽힌다. -->
         <p class="fx-tile-sub"><span data-return-label>수익률</span> <span data-return-pct>0</span>%</p>
+        <!-- 브로커 수수료 — 아래 pnl 카드가 화면에서 빠지면서 이 줄도 함께 사라졌던 것을
+             타일 안으로 되살린다. 이 제품의 수익모델이 슬라이드가 아니라 코드에 있다는
+             유일한 화면 근거다(3분 영상 C 구간에서 클로즈업할 줄).
+             ⚠ 훅 이름은 pnl 카드와 같은 것을 그대로 쓴다 — app.js 가 querySelector 로
+               한 번만 잡고 문서상 먼저 나오는 이 줄을 쓰므로 app.js 는 무변경이다. -->
+        <p class="fx-tile-sub" title="브로커가 가져가는 몫 — 이 제품의 수익모델 근거입니다">브로커 수수료 <span data-fee-rate>—</span> · 누적 <span data-cum-fee>0</span> USDC</p>
       </div>
       <div class="fx-tile">
         <div class="fx-tile-head"><span class="fx-chip fx-chip-blue" aria-hidden="true"></span>평가손익</div>
