@@ -42,16 +42,29 @@
 
 > # ▶ 다음 대화 = **프런트 전달본 병합 → 화면 수정 2건 → 재배포 1회**
 >
-> **⚑⚑ 전달본이 도착했다 — 그런데 이번 것은 '병합 대상'이 아니다(2026-07-30 23:19).**
-> 위치 `C:\Users\Tedd\Downloads` — `index (2).html` 46,353B · `lab.css` 50,324B ·
-> `mock.js` 40,563B · `README.md` 7,726B · `bundle.py` 6,068B.
-> **동봉된 `README.md` 가 전달서다. 대화 시작 시 그것부터 읽을 것.**
+> **⚑⚑ 전달본 배치 완료(2026-07-30) — 다음 대화의 일은 '마크업 이식'뿐이다.**
+> 배치·회귀 대조·배포 차단까지 끝났다(커밋 `8072333`). 남은 것은 시안 마크업을
+> `web/static/index.html`·`app.js` 로 옮기는 것이다.
 >
-> **정체 = `web/static/lab/` 실험장(사본)이다.** 본 화면을 건드리지 않고 배치·색·문구를
-> 실험하는 폴더이고, **같은 폴더의 `.gitignore` 가 `*` 라 저장소에 올라가지 않는다.**
-> 저장소에는 `web/static/lab` 폴더가 **아직 없다**(신규 배치). 전달서가 못박은 원칙:
-> *"확정된 것만 나중에 `web/static/css/skeleton.css` · `web/static/index.html` 로 옮깁니다."*
-> → **이번 대화의 일은 '병합'이 아니라 ①실험장 배치 + ②확정 3건 이식**이다.
+> **이미 끝난 것 (다시 하지 말 것)**
+> - `web/static/lab/` 배치 — `index.html`·`lab.css`·`mock.js`·`README.md`·`bundle.py`
+>   + `.gitignore`(`*`). **폴더가 gitignore 라 `git status`·`rg`·Grep 에 안 뜬다**
+>   (찾을 때 `rg --no-ignore` 또는 파일을 직접 연다).
+> - `web/static/css/skeleton.css` 교체 — 프런트 로컬본. **양방향 대조에서 저장소에만
+>   있는 줄 0개 = 순수 추가**(34,028B → 43,592B). 들어온 것: `.btn-wallet` 계열 +
+>   `--wallet-*` 변수 + `.wallet-icon`(PNG 알파 마스크) · `.btn-sweep` ·
+>   **`tr.past-session`/`tr.session-divider`**(거래 표 세션 경계 CSS — app.js 배선은 아직 없다).
+> - `web/static/img/phantom-icon.png`(11,844B) — 사용자가 직접 배치.
+> - `theme.css` 는 **바이트 완전 동일**이라 손대지 않았다.
+> - `.dockerignore`·`.gcloudignore` 에 `web/static/lab/` 차단 추가 — **없으면 배포 URL 의
+>   `/static/lab/index.html` 이 완전히 동작하는 목업으로 열린다**(이 대회는 목업 심사 제외).
+>   `.gcloudignore` 는 `.gitignore` 를 포함하지 않으므로 gitignore 만으로는 안 막혔다.
+> - 검증: `bundle.py` rc=0(아이콘·경로 전부 해석 · 외부 참조 0) ·
+>   **본 화면 렌더링 변화 0**(index/connect/landing 이 새 클래스를 쓰는 곳 0건 — CSS 는
+>   마크업이 올 때까지 무효다).
+>
+> **전달서는 `web/static/lab/README.md`** 다(원본은 Downloads 에도 남아 있다). 전달서 원칙:
+> *"확정된 것만 나중에 `skeleton.css`·`index.html` 로 옮깁니다."*
 >
 > **이번 라운드에 확정된 것 = AI 카드 시안 3건**(전달서 §"AI 카드 시안 맞추기 3건 — 완료")
 > ①레이어 번호를 제목 글자 속 원문자(`① 판단 레이어`)에서 **제목 앞 배지 `.ai-no`** 로
@@ -94,7 +107,34 @@
 > - 추가 훅 `data-wallet-label` — 지갑 버튼 라벨. ⚠ `wallet.js` 가 **그 요소에만** 글자를
 >   쓰므로 라벨을 이 span 밖으로 빼면 아이콘이 지워진다(전달본 주석의 경고, 그대로 따를 것).
 >
-> **▶ 프런트에 받아야 하는 것 — 참조·클래스 정의 위치를 전수 대조해 확정**
+> **▶ 이식할 것 — 실험장이 확정한 시안 마크업(다음 대화의 본 작업)**
+> `lab/index.html` 과 `lab.css` 를 대조해 **본 `index.html`·`app.js`·`skeleton.css`** 로 옮긴다.
+> 실험장 전용(`mock.js`·`data-lab-*` 4종·`.lab-bar`)은 가져가지 않는다.
+> 1. **`today`(오늘의 결과) 카드 신설** — `pnl`·`valuation`·`position` 3장을 타일 4개로 합친 것.
+>    **⚠ 소스에서 그 3장보다 앞에 둬야 한다** — `app.js` 가 같은 훅을 `querySelector` 로
+>    한 번만 잡고 문서상 먼저 나오는 것을 쓴다. 뒤에 남는 옛 카드 3장은 CSS 로 감춘다
+>    (지우면 안 된다 — 거기에만 있는 훅을 `app.js` 가 계속 쓴다).
+>    **백엔드 작업 0** — 타일 숫자가 전부 기존 훅 재사용이다. 실험장 전용은 `data-lab-today`
+>    한 줄(안내 문구)이라 그것만 빼면 된다.
+> 2. **AI 카드 3건** — `.ai-no` 배지(22×22·모서리 7·`#5D4EF1`·흰 Bold 12, 정원 아님) ·
+>    보기 버튼(오른쪽 정렬·높이 32·모서리 9·테두리 `#ECEEF7`·12 Bold·뒤에 ▾) ·
+>    두 피드를 AI 카드와 한 박스로(DOM 무변경, CSS 만).
+>    **⚠ 버튼 라벨은 `app.js:1213-1216` 의 `MORE_LABEL` 을 고쳐야 한다** — `:1244` 가 토글마다
+>    `btn.textContent` 를 다시 쓰므로 `index.html` 만 고치면 첫 클릭에 되돌아간다. 현행 값은
+>    `["판단 타임라인 보기","판단 타임라인 접기"]`·`["심사 내역 보기","심사 내역 접기"]`,
+>    시안 값은 `AI 판단 타임라인 보기`·`협상·이벤트 로그 보기`.
+>    ▾ 도 같은 이유로 버튼 안 자식이 아니라 `::after` 로 그린다.
+> 3. **상단 바·배너·그리드** — 로고+탭 4개(포트폴리오·인사이트·리포트는 갈 곳이 없어
+>    `aria-disabled` 모양만) · 402 Guard 를 떠 있는 패널에서 **본문 맨 위 보라 배너**로 ·
+>    그리드 4열 → **12열**. ⚠ `data-guard-dock`/`-panel`/`-toggle` 훅과 이름은 그대로 둔다
+>    (`app.js` 가 필수로 잡는다 — 없으면 대시보드가 죽는다).
+> 4. **지갑 버튼 마크업** — `.btn-wallet` + `.wallet-icon` + `[data-wallet-label]`.
+>    CSS·아이콘은 이미 저장소에 있다. ⚠ 라벨은 반드시 `[data-wallet-label]` **안**에 둔다 —
+>    `wallet.js` 가 그 요소에만 글자를 써서, 밖으로 빼면 아이콘이 지워진다.
+> 5. **거래 표 세션 경계** — CSS(`tr.past-session`/`tr.session-divider`)는 이미 들어와 있다.
+>    남은 것은 `app.js` 배선뿐이고, 권고안은 위 '병합 후 할 화면 작업' 1번 그대로다.
+>
+> **▶ (참고) 프런트에 받아야 했던 것 — 전부 수령 완료**
 >
 > **1) `phantom-icon.png` → `web/static/img/phantom-icon.png` (파일 1개면 된다)**
 > "아이콘 2개"는 **그림 2장이 아니라 화면 2군데 배치**다 — `index (2).html:34`(얇은 헤더)와
