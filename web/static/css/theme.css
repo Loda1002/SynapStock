@@ -120,3 +120,43 @@
     --shadow-hover: 0 2px 6px rgba(0, 0, 0, .45), 0 16px 40px rgba(0, 0, 0, .65);
   }
 }
+
+/* ---- 시안 칩 팔레트 (Desktop - 8) ----
+   시안의 배지는 "진한 배경 + 흰 글자"가 아니라 **연한 틴트 배경 + 같은 계열 진한 글자**다.
+   위쪽 --badge-* 는 전자(점·기존 배지가 계속 쓴다)라 지우지 않고, 틴트 칩용 짝을 따로 둔다.
+   값은 시안 노드에서 직접 읽은 것이고, 시안에 표본이 없는 것만 "파생"으로 적었다.
+   쓰는 곳: 판단 타임라인 범례·행, 결제 로그 태그, 거래 표 방향 알약·판단 칩. */
+:root {
+  --fx-body: #5b617a;        /* 시안 본문 회색 — 표 셀·타임라인 글자 */
+  --fx-line: #eceef7;        /* 구분선 (Line 21 / Line 30 stroke) */
+
+  --fx-chip-bg: #ececec;     --fx-chip-fg: #8f96af;   /* 중립 칩 — HOLD·프로토콜·rule */
+  --fx-gemini-bg: #edebff;   --fx-gemini-fg: #695cf4;
+  --fx-rule-bg: #f4f5fc;     --fx-rule-fg: #5b617a;   /* 범례 칩의 rule (표 칩은 중립) */
+  --fx-fallback-bg: #fff2da; --fx-fallback-fg: #ff9a00;
+  --fx-buy-bg: #dff9f1;      --fx-buy-fg: #00bb82;
+  --fx-sell-bg: #ffe8ec;     --fx-sell-fg: #ff3057;
+  /* 파생 — 시안 표본에 없는 두 출처. 기존 --badge-* 색조를 같은 틴트 문법으로 옮겼다. */
+  --fx-gate-bg: #fdeaf3;     --fx-gate-fg: #b4356b;
+  --fx-dca-bg: #e6f1ff;      --fx-dca-fg: #0f7ea8;
+
+  /* 점 색 = 판단 출처 (시안 Ellipse 6: #5D4EF1 / #8F96AF) */
+  --fx-dot-gemini: #5d4ef1;
+  --fx-dot-rule: #8f96af;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fx-body: #b9c0d6;      --fx-line: #2b2e3c;
+    --fx-chip-bg: #2b2e3c;   --fx-chip-fg: #9299b3;
+    --fx-gemini-bg: #2e2a55; --fx-gemini-fg: #b3a8ff;
+    --fx-rule-bg: #262936;   --fx-rule-fg: #b9c0d6;
+    --fx-fallback-bg: #3d3218; --fx-fallback-fg: #f0b429;
+    --fx-buy-bg: #14382e;    --fx-buy-fg: #2fd69b;
+    --fx-sell-bg: #3d1f28;   --fx-sell-fg: #ff5c7a;
+    --fx-gate-bg: #3a2030;   --fx-gate-fg: #e07aa8;
+    --fx-dca-bg: #16303d;    --fx-dca-fg: #4fb4dc;
+    --fx-dot-gemini: #8b7dff;
+    --fx-dot-rule: #9299b3;
+  }
+}

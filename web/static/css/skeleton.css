@@ -1138,3 +1138,84 @@ body.page-dashboard .topbar .controls [data-btn-notify] { background: #ececec; c
    지우지 않는 이유는 라이브의 explorer 링크가 "진짜 트랜잭션" 증거이기 때문이다.
    전환은 app.js renderState 가 <body> 에 .live-mode 를 붙였다 떼며 한다. */
 body:not(.live-mode) .col-tx { display: none; }
+
+/* =====================================================================
+   시안 대조 — AI 판단 타임라인 (Desktop - 8)
+
+   시안은 색만 다른 게 아니라 조각을 나누는 자리가 다르다.
+     · 출처 enum 글자 배지 → **왼쪽 16px 점** (점 색을 푸는 것이 제목 옆 범례 칩)
+     · `@가격` 은 줄 오른쪽 끝, 사유는 다음 줄
+   조각을 나누는 일은 app.js addDecision 이 하고(.fx-at / .fx-reason),
+   여기서는 색·모양만 입힌다. 칩 색 토큰은 theme.css 의 --fx-* 다.
+   ===================================================================== */
+
+/* ---- 제목 옆 범례 칩 ---- */
+.fx-legend {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-left: 8px; vertical-align: middle;
+}
+.fx-legend .src {
+  margin: 0; padding: 3px 8px; border-radius: 6px;
+  font-size: 12px; font-weight: 400; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+.fx-legend .src-gemini        { background: var(--fx-gemini-bg);   color: var(--fx-gemini-fg); }
+.fx-legend .src-rule          { background: var(--fx-rule-bg);     color: var(--fx-rule-fg); }
+.fx-legend .src-rule-fallback { background: var(--fx-fallback-bg); color: var(--fx-fallback-fg); }
+.fx-legend .src-rule-gate     { background: var(--fx-gate-bg);     color: var(--fx-gate-fg); }
+.fx-legend .src-dca           { background: var(--fx-dca-bg);      color: var(--fx-dca-fg); }
+
+/* ---- 줄 배치 ---- */
+[data-card="decisions"] .feed { gap: 16px; }
+[data-card="decisions"] .feed li {
+  display: flex; flex-wrap: wrap; align-items: center;
+  column-gap: 8px; row-gap: 4px;
+  padding: 0; border-bottom: 0;
+  font-size: 14px; color: var(--fx-body);
+}
+/* 출처 배지 → 왼쪽 점. 글자는 지우지 않고 감춘다(DOM 에는 enum 이 그대로 남아
+   거래표·범례와 눈으로 대조할 수 있다 — 축② 증거를 잃지 않는다). */
+[data-card="decisions"] .feed li > .src {
+  order: -1; flex: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  margin: 0 8px 0 0; padding: 0;
+  font-size: 0; color: transparent;
+  background: var(--fx-dot-rule);
+}
+[data-card="decisions"] .feed li > .src-gemini        { background: var(--fx-dot-gemini); }
+[data-card="decisions"] .feed li > .src-rule          { background: var(--fx-dot-rule); }
+[data-card="decisions"] .feed li > .src-rule-fallback { background: var(--fx-fallback-fg); }
+[data-card="decisions"] .feed li > .src-rule-gate     { background: var(--fx-gate-fg); }
+[data-card="decisions"] .feed li > .src-dca           { background: var(--fx-dca-fg); }
+
+[data-card="decisions"] .feed time {
+  flex: none; margin: 0; font-family: inherit;
+  font-size: 12px; color: var(--muted);
+}
+[data-card="decisions"] .feed .sym { flex: none; font-size: 12px; }
+[data-card="decisions"] .feed .act {
+  flex: none; margin: 0;
+  padding: 3px 9px; border-radius: 7px;
+  font-size: 12px; font-weight: 700; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+[data-card="decisions"] .feed .act-buy  { background: var(--fx-buy-bg);  color: var(--fx-buy-fg); }
+[data-card="decisions"] .feed .act-sell { background: var(--fx-sell-bg); color: var(--fx-sell-fg); }
+[data-card="decisions"] .feed .act-hold { background: var(--fx-chip-bg); color: var(--fx-chip-fg); }
+
+/* 아래 둘은 app.js addDecision 이 "@가격 — 사유" 에서 갈라 낸 조각이다. */
+.fx-at { flex: none; margin-left: auto; font-size: 14px; color: var(--fx-body); }
+/* 들여쓰기는 margin 이 아니라 padding 이다 — flex-basis 100% 에 바깥 여백을 더하면
+   그만큼 줄이 넘쳐 피드에 가로 스크롤바가 생긴다(실험장에서 실제로 생겼다). */
+.fx-reason {
+  flex: 0 0 100%; box-sizing: border-box;
+  margin: 0; padding-left: 32px;        /* 32 = 점 16 + 간격 16 */
+  font-size: 14px; line-height: 20px; color: var(--fx-body);
+}
+
+/* 세션 경계 줄은 플렉스 배치에서 빠진다(가운데 정렬이 목적인 줄이라). */
+[data-card="decisions"] .feed li.session-divider,
+[data-card="log"] .feed li.session-divider {
+  display: block; text-align: center; padding: 4px 2px;
+  border-bottom: 1px solid var(--fx-line);
+}

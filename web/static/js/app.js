@@ -1026,13 +1026,19 @@
   }
 
   // ---------- 피드 렌더 ----------
+  /* 시안(Desktop - 8)은 "@가격 — 사유" 한 덩어리를 두 조각으로 나눈다 — 가격은 줄
+     오른쪽 끝(.fx-at), 사유는 다음 줄(.fx-reason). 자리·색은 skeleton.css 가 정하고
+     여기서는 조각만 나눈다(문구는 한 글자도 바뀌지 않는다).
+     ⚠ 출처 배지(.src)는 지우지 않는다 — CSS 가 왼쪽 점으로 바꿔 그릴 뿐, DOM 에 남는
+       원문 enum 이 거래표·범례와 눈으로 대조되는 축② 증거다. */
   function addDecision(d) {
     const li = make("li");
     li.appendChild(make("time", null, timeOf(d.ts)));
     if (sessionSymbols.length > 1 && d.symbol) li.appendChild(make("span", "sym", d.symbol));
     li.appendChild(make("span", "src src-" + (d.source || "rule"), d.source));
     li.appendChild(make("span", "act act-" + d.action, d.action.toUpperCase()));
-    li.appendChild(make("span", null, `@ ${d.price} — ${d.reason}`));
+    li.appendChild(make("span", "fx-at", `@${d.price}`));
+    li.appendChild(make("p", "fx-reason", d.reason));
     el.decisionFeed.prepend(li);
     capList(el.decisionFeed, MAX_FEED_ITEMS);
   }

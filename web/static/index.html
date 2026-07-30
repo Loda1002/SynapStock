@@ -500,12 +500,18 @@
   <section class="card card-wide hidden" data-card="decisions">
     <!-- 축② 핵심 증거라 원문 enum 을 지우지 않는다 — 사람이 읽는 말을 앞에 두고,
          enum 은 아래 피드·거래표에 찍히는 것과 똑같은 배지로 남긴다(눈으로 대조 가능). -->
+    <!-- 시안(Desktop - 8 · 2003:612)은 범례를 "판단 출처: …" 문장이 아니라 칩 나열로 둔다.
+         한국어 라벨이 칩 안으로 들어가고, 이 칩 색이 각 줄 왼쪽 점 색을 풀어 준다.
+         시안 표본에는 앞의 셋만 나오지만 enum 은 다섯이라 나머지 둘도 같은 모양으로 남긴다
+         (없으면 그 색 점을 읽을 방법이 사라진다). -->
     <h2>AI 판단 타임라인
-      <span class="sub">판단 출처: AI 판단 <span class="src src-gemini">gemini</span> ·
-        규칙 <span class="src src-rule">rule</span> ·
-        AI 실패→규칙 <span class="src src-rule-fallback">rule-fallback</span> ·
-        규칙이 되돌림 <span class="src src-rule-gate">rule-gate</span> ·
-        적립 <span class="src src-dca">dca</span></span></h2>
+      <span class="fx-legend">
+        <span class="src src-gemini">Gemini · AI 판단</span>
+        <span class="src src-rule">rule · 규칙</span>
+        <span class="src src-rule-fallback">rule-fallback</span>
+        <span class="src src-rule-gate" title="규칙이 되돌림">rule-gate</span>
+        <span class="src src-dca" title="적립">dca</span>
+      </span></h2>
     <ol class="feed" data-decision-feed></ol>
   </section>
 
