@@ -1182,6 +1182,19 @@ class TradingEngine:
             "fee_bps": quote.fee_bps,
         })
 
+        # 지불액이 1단위 미만이면 수량이 0.0000 으로 내림되고 청구액도 0 이 된다. 그 0원
+        # 청구서는 가드·AP2·정산을 전부 지나 `settled` 로 남는데 예산은 줄지 않아, 남은 예산이
+        # dust 인 세션에서 **틱마다 무한 반복**됐다(bug-dept BUG-12 — 481틱 세션 실측).
+        # 여기서 끊는 이유: 아래 계층(가드·AP2)에도 하한을 넣었지만 그쪽이 먼저 잡으면
+        # 자기가 만든 잡음이 '가드 차단'·'한도 거부' KPI 로 잡혀 대표 지표가 더러워진다.
+        # HTTP 경로(web/broker_service.py)는 이미 같은 조건을 400 으로 막고 있었다 —
+        # 인프로세스 경로만 비대칭으로 열려 있던 것을 맞춘다.
+        if quote.quantity <= 0:
+            self.bus.emit(ev.ERROR, {
+                "message": f"{symbol} 매수 건너뜀 — 지불액 {decision.spend_usdc} USDC 가 1단위 "
+                           f"미만이라 견적 수량이 0 입니다(남은 예산으로는 살 수 없습니다)"})
+            return
+
         # 청구서 수령 — 기본은 인프로세스 A2A, BROKER_HTTP_URL 이 설정되면 실제 HTTP 402 왕복.
         # 어느 전송이든 아래 402 Guard 검증은 동일하게 지난다(전송이 바뀌어도 방어는 그대로).
         http = self._broker_http

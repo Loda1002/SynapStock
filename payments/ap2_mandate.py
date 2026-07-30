@@ -119,6 +119,12 @@ class PaymentAuthorizer:
         asset 이 주어지면 mandate 가 허용한 결제 자산인지 검사한다 — allowed_asset 를
         실제로 읽는 유일한 지점(결함 C: 직렬화만 되고 검증엔 안 쓰이던 죽은 필드를 살린다).
         """
+        # 하한 검사 — 예전에는 0 이하가 그냥 통과했다(bug-dept BUG-12). 수량 0 견적이 만든
+        # 0원 청구서가 여기서 승인되고 `settled` 로 남는데 spent 는 그대로라, 잔여 예산이
+        # 줄지 않아 **틱마다 무한히 반복**됐다(481틱 세션에서 실측). 정상 흐름은 엔진이
+        # 먼저 거르므로 이 검사는 발동하지 않는다 — 어느 호출자가 오든 성립시키는 방어선이다.
+        if amount_usdc <= 0:
+            raise MandateError(f"결제 금액이 0 이하입니다: {amount_usdc}")
         if asset is not None and str(asset) != str(self.open.allowed_asset):
             raise MandateError(f"허용되지 않은 결제 자산: {asset} (허용 {self.open.allowed_asset})")
         if symbol not in self.open.allowed_symbols:

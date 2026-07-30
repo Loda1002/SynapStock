@@ -309,6 +309,13 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
             print(f"        Broker 견적: {quote.quantity} {symbol} @ {quote.price_usdc}"
                   f" = {quote.subtotal_usdc} + 수수료 {quote.fee_usdc} = 총 {quote.total_usdc} USDC")
 
+            # 0 수량 견적은 결제로 만들지 않는다 — 0원 청구서가 정산까지 통과하는데 예산이
+            # 줄지 않아 틱마다 반복된다(bug-dept BUG-12). 웹 엔진·HTTP 경로와 같은 조건.
+            if quote.quantity <= 0:
+                print(f"  [건너뜀] 지불액 {decision.spend_usdc} USDC 가 1단위 미만이라 "
+                      f"견적 수량이 0 입니다 — 매수하지 않습니다")
+                continue
+
             # (A2A #1) payment-required
             required = broker.make_payment_required(quote)
             print(f"  [x402 #1 payment-required] order={required.order_id} "

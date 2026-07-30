@@ -24,6 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from agents.trading_agent import Decision  # noqa: E402
+from payments.ap2_mandate import MandateError  # noqa: E402
 from web import events as ev  # noqa: E402
 from web.engine import TradingEngine, EngineError  # noqa: E402
 from web.events import EventBus  # noqa: E402
@@ -292,11 +293,56 @@ async def test_limit_cut_below_symbol_spend() -> None:
           e._total_remaining() == Decimal("48"), str(e._total_remaining()))
 
 
+# ---------- 지불액이 1단위 미만일 때 0원 청구서를 만들지 않는가 (BUG-12) ----------
+async def test_dust_spend_no_zero_trade() -> None:
+    """`spend / (price × (1+fee))` 가 0.0001 미만이면 수량이 0.0000 으로 내림되고
+    청구액도 0 이 된다. 예전에는 그 0원 청구서가 어디에도 안 걸렸다 — Guard 는
+    '청구액 == 견적'이라 통과, AP2 는 하한이 없어 authorize(0) 통과, 정산은 settled.
+    spent 가 0 이라 잔여 예산이 줄지 않아 **틱마다 반복**됐다(481틱 세션이면 가짜 체결
+    481건이 거래 내역·아카이브에 쌓인다)."""
+    print("\n[10] dust 지불액 — 0원 청구서를 만들지 않는다 (BUG-12)")
+    engine = _engine()
+    await _start(engine, ["AAPL"])
+    a = engine.agents["AAPL"]
+    price = Decimal(a._history[-1])
+    dust = Decimal("0.01")
+    q = engine._broker.quote("AAPL", dust, price)
+    check("전제: dust 지불액이면 견적 수량이 0", q.quantity == 0, f"수량 {q.quantity} · 가격 {price}")
+
+    before_spent = a.auth.spent_usdc
+    for _ in range(3):   # 반복성이 이 결함의 핵심이라 3틱 태운다
+        await engine._buy_cycle("AAPL", a, price, Decision("buy", "forced-dust", dust))
+    check("체결이 생기지 않는다", len(engine.trades) == 0, f"체결 {len(engine.trades)}건")
+    check("포지션이 늘지 않는다", a.position.quantity == 0, str(a.position.quantity))
+    check("예산도 그대로", a.auth.spent_usdc == before_spent, str(a.auth.spent_usdc))
+    # 아래 계층에도 하한을 넣었지만 그쪽이 먼저 잡으면 자기가 만든 잡음이 대표 지표를
+    # 더럽힌다 — "시도 N건 중 M건 차단"의 분모·분자가 우리 dust 견적으로 부풀면 안 된다.
+    check("자기가 만든 잡음이 가드 KPI 에 잡히지 않는다",
+          engine.guard_block_count == 0 and engine._guard_checked == 0,
+          f"차단 {engine.guard_block_count} / 시도 {engine._guard_checked}")
+    check("AP2 거부 KPI 에도 잡히지 않는다", engine.reject_count == 0, str(engine.reject_count))
+
+    # 하한은 계층마다 독립으로 성립해야 한다 — 엔진을 우회해도 AP2 가 0원을 거부한다
+    rejected = ""
+    try:
+        a.auth.authorize("ord_zero", "AAPL", Decimal(0), "broker")
+    except MandateError as ex:
+        rejected = str(ex)
+    check("엔진을 우회해도 AP2 가 0원 승인을 거부", bool(rejected), rejected)
+
+    # [대조군] 정상 지불액은 그대로 체결된다 (과잉 차단 방지)
+    await engine._buy_cycle("AAPL", a, price, Decision("buy", "forced", Decimal("10")))
+    check("[대조군] 정상 지불액은 체결된다",
+          len(engine.trades) == 1 and a.position.quantity > 0,
+          f"체결 {len(engine.trades)}건 · 보유 {a.position.quantity}")
+
+
 async def _main() -> int:
     for t in (test_shared_budget_and_isolation, test_feed_exhaustion_isolation,
               test_all_exhausted_ends_session, test_guard_kpi_aggregation,
               test_single_symbol_backcompat, test_multi_guards,
-              test_limit_change_syncs_guard, test_limit_cut_below_symbol_spend):
+              test_limit_change_syncs_guard, test_limit_cut_below_symbol_spend,
+              test_dust_spend_no_zero_trade):
         await t()
     bad = [n for n, ok, _ in _results if not ok]
     print("\n" + "=" * 60)
