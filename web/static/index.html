@@ -200,7 +200,7 @@
        적용된다: 판단 레이어(규칙 게이트)와 청구서 레이어(의미 대조). 둘 다 AI 는 차단만 하고
        통과시키지 못한다. 이 카드는 그 두 레이어가 이번 세션에서 실제로 몇 번 일했는지 보여준다. -->
   <section class="card card-full" data-card="ai">
-    <h2>AI 판단 · 청구서 심사 <span class="sub">AI 재량은 멈추는 방향으로만 — 통과 권한은 없다</span></h2>
+    <h2><span class="ci ci-ai" aria-hidden="true"></span>AI 판단 · 청구서 심사 <span class="sub">AI 재량은 멈추는 방향으로만 — 통과 권한은 없다</span></h2>
     <p class="sub ai-brain">두뇌 <strong data-ai-brain>—</strong></p>
 
     <div class="ai-layers">
@@ -259,7 +259,7 @@
   <section class="card card-full" data-card="price">
     <div class="price-head">
       <div>
-        <h2>시세 <span class="sub" data-symbol></span>
+        <h2><span class="ci ci-price" aria-hidden="true"></span>시세 <span class="sub" data-symbol></span>
           <span class="sub hidden" data-focus-wrap>· 보기
             <select data-focus-select aria-label="차트에 표시할 종목"></select></span></h2>
         <p class="huge" data-price>—</p>
@@ -330,7 +330,7 @@
        고급 노브는 그 안에서 다시 <details data-adv> 뒤로 접힌다(값은 접혀 있어도 살아 있다 —
        세션 시작 payload 가 한 줄도 바뀌지 않는 것이 분리의 전제다). -->
   <section class="card" data-card="session">
-    <h2>세션 설정 <span class="sub">무엇을 · 어떻게 살지</span></h2>
+    <h2><span class="ci ci-session" aria-hidden="true"></span>세션 설정 <span class="sub">무엇을 · 어떻게 살지</span></h2>
     <div class="stack">
       <select data-mode-select aria-label="실행 모드"
               title="샌드박스는 온체인 전송만 빼고 협의·청구서·가드 검사·정산까지 전 과정을 그대로 재현합니다.">
@@ -446,7 +446,7 @@
        막대 → 좌우 두 지표" 라는 배치만 옮기고 flex + theme.css 토큰으로 다시 짰다.
        데이터 훅(data-budget-*)은 다섯 개 전부 그대로다 — app.js 는 한 줄도 안 바뀐다. -->
   <section class="card budget-card" data-card="budget">
-    <h2>예산 <span class="sub" title="화면에 표시만 하는 상한이 아니라, AP2 위임장에서 실제로 차감되는 값입니다">코드가 집행하는 상한</span></h2>
+    <h2><span class="ci ci-budget" aria-hidden="true"></span>예산 <span class="sub" title="화면에 표시만 하는 상한이 아니라, AP2 위임장에서 실제로 차감되는 값입니다">코드가 집행하는 상한</span></h2>
     <p class="budget-hero"><span data-budget-remaining>0</span> <span class="unit">USDC</span></p>
     <p class="budget-hero-label">남은 예산</p>
     <div class="gauge" role="progressbar"><div class="gauge-fill" data-budget-fill></div></div>
@@ -467,7 +467,7 @@
        ⚠ 지우지 않는 이유: '한도가 화면 표시가 아니라 실제로 집행된다'는 것이 이 제품의
           핵심 주장이고, 그 한도를 다시 서명해 바꿔 보이는 것이 축③ 증거다. -->
   <section class="card" data-card="mandate">
-    <h2>한도 바꾸기 <span class="sub" title="AP2 mandate 를 새 한도로 다시 서명합니다">AP2 위임장을 다시 서명합니다</span></h2>
+    <h2><span class="ci ci-mandate" aria-hidden="true"></span>한도 바꾸기 <span class="sub" title="AP2 mandate 를 새 한도로 다시 서명합니다">AP2 위임장을 다시 서명합니다</span></h2>
     <form data-mandate-form>
       <label class="field">총예산 (USDC)
         <input data-mandate-budget type="number" min="0" step="any" required>
@@ -539,7 +539,7 @@
   </section>
 
   <section class="card card-wide" data-card="briefing">
-    <h2>데일리 브리핑 <span class="sub">Gemini 요약 · 실패하면 자동 계산 요약</span></h2>
+    <h2><span class="ci ci-briefing" aria-hidden="true"></span>데일리 브리핑 <span class="sub">Gemini 요약 · 실패하면 자동 계산 요약</span></h2>
     <div class="briefing-bar">
       <button class="btn" data-btn-briefing>📋 오늘 요약</button>
       <span class="sub" data-briefing-meta
@@ -549,7 +549,7 @@
   </section>
 
   <section class="card card-full" data-card="trades">
-    <h2>거래 내역</h2>
+    <h2><span class="ci ci-trades" aria-hidden="true"></span>거래 내역</h2>
     <div class="table-wrap">
       <table>
         <thead>

@@ -912,8 +912,17 @@ body.page-dashboard .topbar .controls [data-btn-notify] { background: #ececec; c
   --ci-arrow-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v14.8'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
   --ci-arrow-dash-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke-dasharray='3 3' d='M12 4v14'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
   --ci-box:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3.4 8 4.2v8.8l-8 4.2-8-4.2V7.6Z'/%3E%3Cpath d='m4 7.6 8 4.2 8-4.2M12 11.8V20.6'/%3E%3C/svg%3E");
+  /* 카드 제목 앞 칸(.ci)이 쓰는 글리프 7종 */
+  --ci-power:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5v7'/%3E%3Cpath d='M7.2 6.8a7 7 0 1 0 9.6 0'/%3E%3C/svg%3E");
+  --ci-search:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.6' cy='10.6' r='6.4'/%3E%3Cpath d='m15.4 15.4 4.6 4.6'/%3E%3C/svg%3E");
+  --ci-candles:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3.2M8 16.8V21M16 3v4.2M16 17.8V21'/%3E%3Crect x='5.4' y='6.2' width='5.2' height='10.6' rx='1.2'/%3E%3Crect x='13.4' y='7.2' width='5.2' height='10.6' rx='1.2'/%3E%3C/svg%3E");
+  --ci-list:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h10'/%3E%3C/svg%3E");
+  --ci-gauge:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17.5a8 8 0 1 1 16 0'/%3E%3Cpath d='M12 17.5 16.2 11.8'/%3E%3C/svg%3E");
+  --ci-sliders:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5h8.9M17.5 8.5H20M4 15.5h2.5M11.1 15.5H20'/%3E%3Ccircle cx='15.2' cy='8.5' r='2.3'/%3E%3Ccircle cx='8.8' cy='15.5' r='2.3'/%3E%3C/svg%3E");
+  --ci-doc:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 3.5h7l4 4v13h-11Z'/%3E%3Cpath d='M13.5 3.5v4h4M9.5 12.5h5M9.5 16h5'/%3E%3C/svg%3E");
 }
 /* 글리프를 얹는 공통 규칙. 색은 담는 칸이 정한다(칸마다 배경 틴트가 다르다). */
+.ci::before,
 .fx-chip::before,
 .fx-logo::before,
 .fx-banner-icon::before {
@@ -936,7 +945,7 @@ body.page-dashboard .topbar .controls [data-btn-notify] { background: #ececec; c
 .fx-banner-icon::before { width: 26px; height: 26px; }
 /* 마스크를 모르는 브라우저 — 글리프만 빼고 빈 칸(시안 그대로)으로 돌아간다. */
 @supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
-  .fx-chip::before, .fx-logo::before, .fx-banner-icon::before { display: none; }
+  .ci::before, .fx-chip::before, .fx-logo::before, .fx-banner-icon::before { display: none; }
 }
 
 /* ---- 오늘의 결과 ----
@@ -1346,3 +1355,55 @@ body:not(.live-mode) .col-tx { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .tip[data-tip]::after, .tip[data-tip]::before { transition: none; }
 }
+
+/* =====================================================================
+   카드 제목 앞 26px 칸 (lab.css:284-291, 785-823)
+
+   시안은 모든 카드 제목 앞에 26px 사각형을 둔다. 아이콘을 정한 카드는 그 자리에
+   <span class="ci ci-*"> 가 들어가고, 정하지 않은 카드는 빈 연보라 사각형이 남는다.
+
+   ⚠ `.fx-today-date` 만 제외한다. 시안에서 '오늘의 결과'의 날짜 줄은 카드 제목이
+     아니라 라벨이라 사각형이 없는데, 우리 마크업에서는 h2 다(카드를 끌어 재배치하는
+     기능이 h2 를 손잡이로 잡기 때문). 빼지 않으면 날짜 앞에 사각형이 붙고 아래
+     `.fx-today > .fx-today-date`(0,2,0)를 이 규칙(0,2,1)이 눌러 글자 크기까지 바뀐다.
+   ===================================================================== */
+.grid > .card > h2:not(.fx-today-date)::before {
+  content: ""; width: 26px; height: 26px; border-radius: 8px;
+  background: var(--fx-gemini-bg);
+}
+.grid > .card > h2:not(.fx-today-date) { font-size: 15px; font-weight: 700; }
+
+/* 이 둘은 시안에서 AI 카드 안의 소제목이라 앞의 26px 사각이 없다.
+   ⚠ 선택자에 `.card` 를 함께 적는 이유는 위 규칙이 `:not()` 때문에 (0,3,2)라서다 —
+     `.grid > [data-card="…"] > h2::before`(0,2,2)로는 밀려서 사각형이 그대로 남는다. */
+.grid > .card[data-card="decisions"] > h2::before,
+.grid > .card[data-card="log"] > h2::before { content: none; }
+
+/* 제목 줄 — 아이콘 칸과 글자를 가운데로 맞춘다.
+   ⚠ inline 정렬(vertical-align)로는 안 맞는다. 26px 상자를 글꼴 베이스라인에 눈대중으로
+     걸어 두는 방식이라 글꼴·줄높이가 조금만 달라도 어긋난다. 제목을 가로 플렉스로 두면
+     두 상자의 중심선이 계산으로 맞는다. 간격 8px 은 시안 값이다.
+   ⚠ 선택자가 둘인 이유: 시세 카드의 h2 만 카드의 직계 자식이 아니라 `.price-head` 안에
+     한 겹 더 들어가 있다. 앞 선택자만 두면 그 카드 하나만 어긋난 채 남는다. */
+.grid > .card > h2:not(.fx-today-date),
+.grid .card h2:has(.ci) { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; }
+.fx-legend { margin-left: 0; }
+
+/* 아이콘이 붙은 제목에서는 빈 사각형을 끄고 이 span 이 같은 자리를 잡는다. */
+.grid > .card > h2:has(.ci)::before { content: none; }
+.ci {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  background: var(--fx-gemini-bg); color: var(--fx-gemini-fg);
+}
+.ci::before { width: 15px; height: 15px; }
+
+.ci-session  { --ci: var(--ci-power); }     /* 시안 부제가 "전원 · 한 번 켜두면 됩니다" */
+.ci-ai       { --ci: var(--ci-search); }    /* 두 레이어의 공통 동작 = 서명 전에 들여다본다 */
+.ci-price    { --ci: var(--ci-candles); }   /* 카드 안 차트와 같은 모양 */
+.ci-trades   { --ci: var(--ci-list); }
+.ci-budget   { --ci: var(--ci-gauge); }     /* 카드 본체가 게이지 막대 */
+.ci-mandate  { --ci: var(--ci-sliders); }   /* 하는 일은 값 조절 — 서명 글리프는 ci-ai 와 겹친다 */
+.ci-briefing { --ci: var(--ci-doc); }
