@@ -981,6 +981,150 @@ td.sym { font-weight: 600; }
 .fx-tile:has([data-pnl].neg) .fx-chip-mint        { --ci: var(--ci-arrow-down); }
 .fx-tile:has([data-unrealized].neg) .fx-chip-blue { --ci: var(--ci-arrow-dash-down); }
 
+/* =====================================================================
+   AI 카드 — 시안 대조 (Desktop - 8 · 2003:557). 세 가지가 달랐다.
+     ① 레이어 번호 : 제목 글자 안 원문자(①②) → 제목 **앞** 22×22 배지 (2003:565·587)
+     ② 보기 버튼   : 왼쪽 정렬 평범한 버튼 → 레이어 안 **오른쪽 끝**, 라벨 뒤 ▾ (2003:582·604)
+     ③ 두 피드     : 별도 카드 둘 → AI 카드와 **한 박스**, 사이는 구분선 하나 (2003:607)
+   ===================================================================== */
+
+/* ---- ① 레이어 번호 배지 ----
+   시안 값 그대로: 22×22 · 모서리 7 · 배경 var(--accent) · 흰 Bold 12.
+   (둥근 사각이지 정원은 아니다 — 시안 rounded 7px 을 그대로 옮겼다.)
+   배지와 제목을 같은 줄 가운데에 맞추려고 제목 자체를 가로 플렉스로 둔다 — vertical-align
+   눈대중 보정과 달리 두 상자의 중심선이 계산으로 맞는다. */
+.ai-layer h3 { display: flex; align-items: center; gap: 8px; }
+.ai-layer h3 .sub { margin-left: 0; }
+.ai-no {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 7px; background: var(--accent);
+  color: #fff; font-size: 12px; font-weight: 700; line-height: 1;
+}
+
+/* ---- ② 보기 버튼 ----
+   시안(2003:581): 레이어 폭을 다 쓰는 줄 안에서 오른쪽 끝에 붙는다.
+   버튼(2003:582): 흰 배경 · 1px 테두리 · 모서리 9 · 좌우 12 · 높이 32
+   (5 + 줄높이 20 + 5 + 테두리 2 = 32) · 라벨 12 Bold 강조색 · 라벨과 ▾ 사이 4.
+   ⚠ 라벨 글자는 app.js 의 MORE_LABEL 이 단일 출처다(토글마다 다시 쓴다) — 여기서는 모양만. */
+.ai-more { display: flex; justify-content: flex-end; margin: 4px 0 0; }
+.ai-layer .ai-more .btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--card-bg);
+  color: var(--accent); font-size: 12px; font-weight: 700; line-height: 20px;
+}
+.ai-layer .ai-more .btn:hover { border-color: var(--accent); }
+
+/* ▾ — 시안의 Polygon 1(7.794×4.5, 위를 향한 삼각형)을 9×6 상자에 담아 세로로 뒤집은 것.
+   내보낸 SVG 그대로를 마스크로 쓴다(모양은 시안 · 색만 글자색을 따라간다 — 다크에서도
+   라벨과 같은 색이 된다).
+   ⚠ 버튼 안의 자식 요소로 두면 안 된다 — app.js 의 textContent 대입에 지워진다. */
+:root {
+  --fx-caret: url("data:image/svg+xml,%3Csvg width='7.79423' height='4.5' viewBox='0 0 7.79423 4.5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.89711 0L7.79423 4.5H0L3.89711 0Z' fill='%235D4EF1'/%3E%3C/svg%3E");
+}
+.ai-layer .ai-more .btn::after {
+  content: ""; flex: none; width: 9px; height: 6px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--fx-caret); mask-image: var(--fx-caret);
+  -webkit-mask-repeat: no-repeat;      mask-repeat: no-repeat;
+  -webkit-mask-position: 50% 0;        mask-position: 50% 0;
+  -webkit-mask-size: 7.794px 4.5px;    mask-size: 7.794px 4.5px;
+  transform: scaleY(-1);
+}
+/* 마스크를 모르는 브라우저 — 삼각형이 통째로 사라지지 않게 이미지로 되돌린다(색은 시안 고정). */
+@supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+  .ai-layer .ai-more .btn::after {
+    background-color: transparent;
+    background-image: var(--fx-caret);
+    background-repeat: no-repeat; background-position: 50% 0; background-size: 7.794px 4.5px;
+  }
+}
+
+/* ---- ③ 두 피드를 AI 카드와 한 박스로 ----
+   ⚠ DOM 으로 중첩하면 안 된다 — app.js 의 cardEls() → applyLayout 이 하위까지 훑어
+   다시 .grid 직계로 끄집어낸다. 그래서 형제로 둔 채 **CSS 로만** 한 박스처럼 보이게 한다.
+     · 이음매 쪽 모서리를 펴고, 그 자리의 테두리를 투명으로(자리는 그대로 두어 1px 도 안 밀린다)
+     · 위쪽 카드와의 간격 0 (그리드 row-gap 을 음수 마진으로 되돌린다)
+     · 좌우 두 피드 사이 고랑은 왼쪽 카드가 제 배경으로 덮는다 — 시안은 그 자리가 흰색이다
+   그림자는 손대는 곳이 한 군데뿐이다. AI 카드 그림자는 아래 피드의 불투명한 배경이 덮으므로
+   그대로 두고, 피드 쪽만 **위로 안 번지는** 그림자로 바꾼다(안 그러면 이음매에 어두운 띠). */
+.grid > [data-card="ai"] { position: relative; }
+/* 고정 높이 + 안쪽 스크롤 — 줄이 쌓여도 문서 높이가 안 변해 화면이 위아래로 튀지 않는다.
+   min-height:0 이 없으면 플렉스 자식이 내용 높이 아래로 안 줄어 카드를 밀어낸다. */
+.grid > [data-card="decisions"],
+.grid > [data-card="log"] { height: 420px; }
+[data-card="decisions"],
+[data-card="log"] { display: flex; flex-direction: column; }
+[data-card="decisions"] .feed,
+[data-card="log"] .feed { height: auto; flex: 1 1 0; min-height: 0; padding-right: 12px; }
+
+.grid:has(> [data-card="decisions"]:not(.hidden)) > [data-card="ai"],
+.grid:has(> [data-card="log"]:not(.hidden)) > [data-card="ai"] {
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+/* 시안 2003:607 의 가로 구분선 — 카드 테두리가 아니라 **안쪽 여백 안**으로만 그어진다. */
+.grid:has(> [data-card="decisions"]:not(.hidden)) > [data-card="ai"]::after,
+.grid:has(> [data-card="log"]:not(.hidden)) > [data-card="ai"]::after {
+  content: ""; position: absolute; left: var(--pad); right: var(--pad); bottom: 0;
+  height: 1px; background: var(--border);
+}
+
+.grid > [data-card="decisions"]:not(.hidden),
+.grid > [data-card="log"]:not(.hidden) {
+  margin-top: calc(var(--gap) * -1);
+  border-top-color: transparent;
+  border-top-left-radius: 0; border-top-right-radius: 0;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, .05);
+}
+
+/* 좌우로 놓이는 경우(넓은 화면) — 가운데 고랑을 왼쪽 카드가 덮고, 맞닿는 테두리를 지운다. */
+@media (min-width: 1101px) {
+  .grid > [data-card="decisions"]:not(.hidden) {
+    margin-right: calc(var(--gap) * -1);
+    border-right-color: transparent;
+    border-bottom-right-radius: 0;
+  }
+  .grid > [data-card="log"]:not(.hidden) {
+    border-left-color: transparent;
+    border-bottom-left-radius: 0;
+  }
+}
+/* 위아래로 쌓이는 경우(좁은 화면) — 가운데가 이음매가 된다. */
+@media (max-width: 1100px) {
+  .grid > [data-card="decisions"]:not(.hidden) {
+    border-bottom-color: transparent;
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
+}
+
+/* 한쪽만 펼친 경우 — 반쪽짜리 박스가 매달리지 않게 아랫단을 통째로 쓴다. */
+.grid:has(> [data-card="log"].hidden) > [data-card="decisions"]:not(.hidden),
+.grid:has(> [data-card="decisions"].hidden) > [data-card="log"]:not(.hidden) {
+  grid-column: span 12;
+  margin-right: 0;
+  border-right-color: var(--border); border-left-color: var(--border);
+  border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);
+}
+
+/* 한 박스가 된 뒤에는 조각 하나만 떠오르면 어긋나 보인다 — 이 셋만 hover 부양을 끈다
+   (그림자도 평소 값으로 못 박아 둔다 — 안 그러면 마우스만 올려도 이음매가 어두워진다). */
+.grid > [data-card="ai"]:hover { translate: none; box-shadow: var(--shadow); }
+.grid > [data-card="decisions"]:not(.hidden):hover,
+.grid > [data-card="log"]:not(.hidden):hover {
+  translate: none; box-shadow: 0 8px 20px -4px rgba(0, 0, 0, .05);
+}
+
+/* 포커싱 테두리 — 기본은 카드 **바깥**에 그린다(outline-offset: 3px). 피드가 AI 카드와
+   한 박스가 된 지금은 그 선이 이웃 조각 위로 넘어와 아래 반쪽만 튀어나온 것처럼 보인다.
+   안쪽으로 당겨 박스 테두리를 따라 흐르게 한다(음수 offset 이라 모서리 반지름도 따라간다). */
+.card-focused { outline-offset: -2px; }
+
+/* :has() 를 모르는 브라우저 — 합치기만 못 하고 나머지는 그대로다(카드 셋이 따로 보인다).
+   깨진 화면이 아니라 예전 모습이라 별도 대비를 두지 않는다. */
+
 /* 거래 내역의 온체인 tx 두 열 — 라이브 세션에서만 보인다.
    샌드박스는 전송이 없어 값이 전부 "—" 라, 빈 열 두 개가 늘 화면에 남아 있었다.
    지우지 않는 이유는 라이브의 explorer 링크가 "진짜 트랜잭션" 증거이기 때문이다.

@@ -188,7 +188,9 @@
 
     <div class="ai-layers">
       <div class="ai-layer">
-        <h3>① 판단 레이어 <span class="sub">무엇을 살지</span></h3>
+        <!-- 시안(2003:565)은 번호를 제목 글자에 넣지 않고 22×22 배지로 앞에 세운다.
+             aria-hidden: 배지는 순서 표시일 뿐이라 읽어 줄 것이 없다(제목은 그대로 읽힌다). -->
+        <h3><span class="ai-no" aria-hidden="true">1</span>판단 레이어 <span class="sub">무엇을 살지</span></h3>
         <div class="kpi-row">
           <div class="kpi">
             <p class="kpi-num"><span data-ai-share>0</span><span class="unit">%</span></p>
@@ -207,12 +209,12 @@
         <p class="ai-more">
           <button class="btn btn-small" data-ai-more="decisions"
                   title="이 숫자들을 만든 판단을 한 건씩 시간순으로 펼칩니다.">
-            판단 타임라인 보기</button>
+            AI 판단 타임라인 보기</button>
         </p>
       </div>
 
       <div class="ai-layer">
-        <h3>② 청구서 레이어 <span class="sub">받은 청구서가 그 물건인지</span></h3>
+        <h3><span class="ai-no" aria-hidden="true">2</span>청구서 레이어 <span class="sub">받은 청구서가 그 물건인지</span></h3>
         <div class="kpi-row">
           <div class="kpi">
             <p class="kpi-num"><span data-ai-sem-checked>0</span></p>
@@ -231,7 +233,7 @@
         <p class="ai-more">
           <button class="btn btn-small" data-ai-more="log"
                   title="이 숫자들을 만든 청구서 심사 줄만 걸러서 펼칩니다.">
-            심사 내역 보기</button>
+            협상·이벤트 로그 보기</button>
         </p>
       </div>
     </div>
