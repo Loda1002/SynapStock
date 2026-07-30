@@ -813,7 +813,12 @@ body.page-dashboard .topbar {
 .fx-logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); flex: none; }
 .fx-brand h1 { font-size: 18px; font-weight: 700; }
 
-.fx-tabs { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
+/* overflow: hidden 인 이유 — 탭 글자는 nowrap 이라 자리가 모자라도 줄지 않고 상자 밖으로
+   넘쳐서 오른쪽 조작부 **아래로 겹쳐** 들어간다(실측: 알림 권한이 '거부' 라 라벨이
+   `🔕 브라우저가 알림을 막았습니다`(243px)로 길어질 때 42px 겹침. 기본 상태의 짧은 라벨에서는
+   겹치지 않는다). 넘치면 겹치는 대신 잘리게 한다 — 잘리는 것은 갈 곳 없는 장식용 탭이고,
+   겹치면 진짜 버튼인 긴급정지가 가려진다. */
+.fx-tabs { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
 .fx-tab {
   padding: 8px 14px; border-radius: 10px;
   font-size: 14px; font-weight: 700; color: #5b617a; white-space: nowrap;
