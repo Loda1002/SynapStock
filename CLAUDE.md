@@ -81,7 +81,62 @@
 >   landing = CTA 3곳에 `.btn-sweep`, connect = 지갑 버튼을 `.btn-wallet`+아이콘으로.
 >   ⚠ 두 파일 저장소 관례는 **LF** 인데 전달본은 CRLF 였다 — 변환해 기록해서 diff 가 6/7줄.
 >
-> **⚠ 이 2차분은 아직 배포본에 없다** — 배포는 `synapstock-00019-nld`(1차분까지)다.
+> **✅ 2차분 배포 완료 — 리비전 `synapstock-00020-7w4`.** 정적 파일 6개(`/app`·`/`·`/connect`·
+> `app.js`·`skeleton.css`·`wallet.js`) 전부 저장소와 **바이트 일치** · `/static/lab/index.html`
+> **404**(실험장 차단 유지) · 콘솔 오류 0 · 배포본에서 수수료 줄·타일 4개·배너 흐름 배치 확인.
+>
+> ---
+>
+> # ▶▶ 다음 대화 = **남은 시안 규칙 전부 이식 (lab.css 잔여 + theme.css 팔레트)**
+> **⚑ 사용자 지시(2026-07-31): "다 넣어 위치도 다 맞춰진거래."** = 실험장에 남은 시안 규칙을
+> 전부 옮긴다. 아래 6건이고, **앞의 4건은 `app.js` 렌더 함수를 고쳐야 한다** — 실험장에서는
+> `mock.js` 가 app.js 가 그린 줄을 시안 구조로 다시 짜서 넘어갔지만 본 화면에는 mock.js 가 없다.
+> **분량이 커서 새 대화·넉넉한 예산 권장.** 기준 커밋 `cf7fe7a` 이후, 배포 `synapstock-00020-7w4`.
+>
+> **⚠ lab 폴더는 gitignore 라 `rg`·Grep 에 안 뜬다** — `rg --no-ignore` 또는 파일을 직접 열 것.
+> 원본은 `web/static/lab/lab.css`(854줄) · `mock.js`(줄 재구성 로직) · `README.md`(전달서).
+>
+> 1. **판단 타임라인**(`lab.css:363-409`) — 출처 enum 배지 → **왼쪽 16px 점**, `@가격`은 오른쪽
+>    끝(`.fx-at`), 사유는 다음 줄(`.fx-reason`), 제목 옆에 범례 칩(`.fx-legend`).
+>    **`app.js addDecision` 을 고쳐야 한다** — 지금은 "@가격 — 사유"가 한 덩어리 텍스트다.
+>    `.src` 는 지우지 말 것(CSS 가 점으로 바꿀 뿐, DOM 의 enum 이 축② 증거다).
+>    범례 칩 마크업은 `lab/index.html:502-509` 그대로.
+> 2. **결제 과정 로그**(`lab.css:411-435`) — 본문 맨 앞 `[A2A 견적]` 같은 태그 → 회색 배지
+>    `.fx-tag` 로 분리. **`app.js addLog` 을 고쳐야 한다**(지금은 태그가 본문에 섞여 있다).
+> 3. **거래 내역 표**(`lab.css:444-472, 514-524`) — 셀 가운데 정렬 · 방향을 점+알약(`.fx-pill`)
+>    으로 · '상태' 열(`nth-child(9)`) 숨김 · 판단 칩 틴트. **`addTradeRow` 에서 방향 칸 글자를
+>    `<span class="fx-pill">` 로 감싸야 한다**(나머지는 CSS).
+> 4. **툴팁**(`lab.css:666-713`) — `.tip[data-tip]` 말풍선. 버튼이 `overflow:hidden` 이라
+>    버튼에 직접 못 붙이고 감싼 `.tip` span 에 붙인다. `title` → `data-tip` 으로 옮기는 일을
+>    실험장에서는 mock.js 가 했다 → **본 화면에서는 로드 시 한 번 복사하는 코드가 필요**하다
+>    (`title` 을 비우지 않으면 브라우저 기본 툴팁과 두 개가 겹쳐 뜬다).
+> 5. **카드 제목 아이콘**(`lab.css:284-291, 756-823`) — 제목 앞 26px 칸.
+>    **마크업 작업만**이라 가장 싸다: 카드 h2 에 `<span class="ci ci-*">` 를 넣고
+>    (`lab/index.html` 의 `ci-session`·`ci-ai`·`ci-price`·`ci-trades`·`ci-budget`·`ci-mandate`·
+>    `ci-briefing`), `.ci` 규칙 + 아직 안 옮긴 `--ci-*` 토큰 7종(power·search·candles·list·
+>    gauge·sliders·doc)을 `skeleton.css` 로. `--ci-shield`·`-ok`·`coins`·`arrow-*`·`box` 는 이미 있다.
+> 6. **theme.css 팔레트**(`lab.css:57-112`) — **파일을 따로 받을 필요 없다.** 시안 값이 그
+>    `:root` 블록에 라이트·다크 둘 다 들어 있다(값 출처를 Figma 노드로 밝혀 둠).
+>    ⚠ 색만 바뀌는 게 아니다: `--radius` 16→**18** · `--gap` 16→**24** · `--pad` 20→**24** ·
+>    `--fs-big` 34→**32** · `--page-pad` 를 `clamp(16px, (100vw-1098px)/2, 171px)` 로 ·
+>    글꼴에 Noto Sans KR 추가. **랜딩·연결 페이지까지 함께 바뀐다** → 세 페이지 전부 실측할 것.
+>    ⚠ `skeleton.css` 에 이미 `.btn-wallet-sm/-xs { --wallet-radius: var(--radius) }` 가 있어
+>    `--radius` 를 18 로 올리면 지갑 버튼 모서리가 따라 바뀐다. 실험장은 16px 로 못 박아
+>    두었다(`lab.css:118`) — 그 한 줄도 함께 옮길지 정할 것.
+> 7. (덤) **요동 방지**(`lab.css:474-512`) — `overflow-anchor: none` · 거래 표
+>    `.table-wrap { flex: 1 1 0 }` · `[data-mandate-hint] { min-height: 36px }`.
+>    체결마다 문서 높이가 변해 화면이 튀는 것을 막는다. CSS 만이라 싸다.
+>
+> **▶ 되풀이되는 함정 (전부 이번 라운드에 실제로 밟았다)**
+> - **`app.js` 가 라벨을 다시 쓴다** — `MORE_LABEL` 처럼 마크업만 고치면 첫 클릭에 되돌아간다.
+> - **같은 훅이 둘이면 `querySelector` 가 문서상 먼저 나오는 것을 잡는다**(today 카드가 그 원리).
+> - **전역 선택자를 그냥 옮기면 랜딩·연결 페이지로 샌다** — `.topbar`·`.brand h1` 이 실제로 샜다.
+>   `body.page-dashboard` / `.fx-*` 로 좁힐 것.
+> - **줄바꿈이 파일마다 다르다** — `index/skeleton/app` = CRLF, `landing/connect/wallet` = LF.
+>   판별은 PowerShell 바이트 스캔만 믿는다(Git Bash 는 CR 을 놓친다).
+> - **게이트**: 훅 전수 대조(현행 **127종**·누락 0) → `node --check` → dry 세션 스모크
+>   (콘솔 오류 0 · 유출 0.00) → 커밋·푸시 → 재배포(런북 §4, **`GEMINI_MODEL` 포함 필수**).
+>   ⚠ 런북 `:35` 의 `$PROJECT_ID` 는 틀렸다 — 프로젝트·서비스 모두 `synapstock`.
 >
 > **▶ 이번에 안 옮긴 lab.css 규칙 (남은 시안 작업 — 하려면 여기부터)**
 > 아래는 **`mock.js` 가 app.js 가 그린 줄을 다시 짜야** 완성되는 것들이라 통째로 뺐다.
