@@ -184,3 +184,63 @@
 - 음성 대조 수행 — 세 계층 무력화 시 `ok=True · 자산 +0 도착`, dust 3틱 → 가짜 체결 3건으로 리포트 그대로 재현.
 - 검증: 단위 23종 rc=0 · red_team rc=0(유출 0.00 · 오탐 0) · README 대표 명령 `run_demo --no-gemini --ticks 12` rc=0. 테스트 파일 수 23개 유지.
 - 잔여: '낮음' 12건 · '정보' 1건. 백엔드 5건(BUG-03·06·07·11·12)이 재배포 대기 중 — 프런트 병합 후 재배포 1회에 함께 올라간다.
+
+## 2026-07-31 — 시안 마크업 이식 5건 + 재배포 (커밋 5건 전부 푸시)
+
+실험장(`web/static/lab`)에서 확정한 시안 마크업을 본 화면(`web/static/index.html`·`app.js`·
+`skeleton.css`)으로 옮겼다. 실험장 전용(`mock.js`·`data-lab-*` 4종·`.lab-bar`)은 가져오지
+않았고, `theme.css`(색·글꼴·간격 토큰)는 프런트 전달을 기다리느라 손대지 않았다 —
+지금 화면은 **구조는 시안 · 팔레트는 저장소(로열블루)** 다.
+
+- `07be7cc` 상단 바(로고+탭 4개) · 402 Guard 를 떠 있는 패널에서 **본문 맨 위 보라 배너**로 ·
+  그리드 4열→**12열** · 지갑 버튼(`.btn-wallet`+`.wallet-icon`+`[data-wallet-label]`).
+  가드 훅(`data-guard-dock/-panel/-toggle`)은 이름·구조 그대로 두고 CSS 로만 흐름에 놓았다
+  (`position:static` → app.js 의 인라인 `top` 무효). '닫기'가 배너 안이라 접히면 함께
+  사라지므로 접혔을 때만 나타나는 손잡이 `[data-guard-reopen]` 을 신설해 app.js 가 원래
+  버튼을 대신 누르게 배선했다.
+  **⚠ `wallet.js` 를 함께 고쳐야 했다** — 저장소본은 `querySelector`(단수) + `btn.textContent`
+  대입이라 지갑 버튼을 두 자리에 두면 하나가 죽고 **아이콘 span 이 통째로 지워진다**.
+  `querySelectorAll` + `[data-wallet-label]` 대입으로 바꿨다(전달서는 이미 고쳐진 버전을
+  전제하고 있었다 — 그 버전은 저장소에 온 적이 없다).
+- `dca24c5` `today`(오늘의 결과) 카드 신설 — 손익·평가손익·포지션 3장 + 총자산을 타일 4개로.
+  **백엔드 작업 0**(타일 숫자가 전부 기존 훅 재사용). 소스에서 옛 3장보다 앞에 두어야
+  `querySelector` 가 새 카드를 잡는다. 옛 3장은 지우지 않고 CSS 로 감췄다(거기에만 있는 훅을
+  app.js 가 계속 쓴다). `DEFAULT_LAYOUT` 맨 앞 + `LAYOUT_KEY` **_v12**.
+  실험장의 "오늘 에이전트는 N번 사고…" 한 문장은 가져오지 않았다 — 서버가 주지 않는 값이라
+  `mock.js` 가 가짜 상태로 지어내던 것이다.
+- `9faf015` AI 카드 3건 — `.ai-no` 배지(22×22·모서리 7) · 보기 버튼(오른쪽 정렬·높이 32·
+  `::after` 캐럿) · 두 피드를 AI 카드와 한 박스로(DOM 무중첩, CSS 만).
+  **버튼 라벨은 `app.js` 의 `MORE_LABEL` 이 단일 출처**라 그것을 함께 고쳤다 —
+  `renderFeedToggle` 이 토글마다 `btn.textContent` 를 다시 써서 `index.html` 만 고치면
+  첫 클릭에 되돌아간다(캐럿을 `::after` 로 그리는 것도 같은 이유).
+- `a7139f4` 화면 결함 3건. ①**거래 내역 세션 경계** — `/api/state` 에 `trades` 키가 없어
+  표가 SSE 히스토리 재전송만으로 채워져 새로고침하면 지난 세션 체결이 섞여 보이던 것.
+  `engine_started` 에서 기존 행을 `.past-session` 으로 바꾸고 구분선 1줄을 넣는다(피드의
+  `sessionBoundary` 와 같은 처리). ⚠ 계획서 권고안은 '표를 비운다'였는데 프런트가 보낸 CSS
+  (`tr.session-divider`/`tr.past-session`)가 구분선 방식을 전제해 그쪽으로 갔다.
+  ②손익 수익률 라벨을 `state.pnl.basis` 로 전환(`initial-capital` → `수익률(평가 포함)`).
+  ③예산 카드 '건별 최대'가 올인일 때 한도 카드와 달라 보이는 것에 설명 `title` 추가.
+- `609f70b` **회귀 차단** — `.topbar` 규칙이 랜딩(`.topbar.landing-topbar`)으로 새고,
+  `.brand h1`(18px)이 같은 특이도의 `.auth-brand h1`(20px)을 뒤에서 덮어 connect/login 제목이
+  작아지고 있었다. `body.page-dashboard`·`.fx-brand h1` 로 좁혔다.
+
+**검증**: 단위 테스트 23종 전부 rc=0 · `node --check` 통과 · app.js 훅 **125종**(신규
+`data-guard-reopen`·`data-return-label`) 전부 `index.html` 에 존재 · 줄바꿈 유지
+(index/skeleton/app CRLF · wallet LF) · 로컬 dry 세션에서 타일 9개 값이 `/api/state` 와 일치 ·
+한 박스 이음매 세로 0 · 가로 0 실측 · 새로고침 복원 후 **구분선 위 행 수 = `counts.trades`** ·
+세 페이지 콘솔 오류 0 · 유출 0.00.
+
+**재배포 완료 — 리비전 `synapstock-00019-nld`.** 엔드포인트 12개 200 · 정적 파일 7개 저장소와
+**바이트 일치** · `/static/lab/index.html` **404**(실험장 차단 유지) · `POST /broker/orders` →
+**402**, scheme `exact` / network `solana-devnet` / asset **Circle 공식 devnet USDC**
+(`4zMMC9sr…`) / `maxAmountRequired` 9990000 · env 에 `GEMINI_MODEL=gemini-flash-latest`·
+`GEMINI_MODE=developer`·`ALLOW_LIVE_FROM_WEB=0` + 시크릿 5개 유지 · 배포본 대시보드 실측
+(배너 흐름 배치 · 타일 4 · 12열 · 탭 4 · 지갑 버튼 2 · AI 배지 1·2 · 콘솔 오류 0).
+**백엔드 5건(BUG-03·06·07·11·12)이 이 배포에 함께 올라갔다 — 배포 대기 잔여 없음.**
+
+**⚠ 이식 부수 손실 1건(사용자 판단 대기)**: `pnl` 카드를 감추면서 `브로커 수수료 0.3% ·
+누적 N USDC` 줄이 화면에서 빠졌다. 3분 영상 C 구간에서 **축① 상업성을 채울 유일한 지점**으로
+지목됐던 줄이다. 되살리려면 숨김 한 줄을 빼거나 손익 타일에 한 줄 더 붙이면 된다.
+
+**⚠ 런북 오류 발견**: `docs/deploy_cloud_run.md:35` 의 `$PROJECT_ID = "autotrader-agent-2026"`
+은 틀렸다 — 실제는 프로젝트·서비스 모두 `synapstock`(리전 `asia-northeast3`).
