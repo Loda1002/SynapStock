@@ -78,31 +78,50 @@
 > **⚠ lab 폴더는 gitignore 라 `rg`·Claude Code 의 Grep 에서 빠진다.** 찾을 때는
 > `rg --no-ignore` 를 쓰거나 파일을 직접 연다(전달서도 같은 경고를 담고 있다).
 >
-> **⚠ 프런트에 추가로 받아야 하는 것 — 참조 전수 추출로 확정(2026-07-30)**
-> `index (2).html` 의 `href`/`src` 와 `bundle.py` 가 읽는 경로를 전부 뽑아 저장소와 대조했다.
+> **⚑ 사용자 결정(2026-07-30) — 실험장의 '기능'은 안 가져온다. 디자인만 옮긴다.**
+> 프런트는 랜덤 텍스트로 화면을 채우는 실험용 페이지를 만들어 테스트했다. `mock.js`·
+> `bundle.py`·`data-lab-*` 훅 4종(`data-lab-today`·`data-lab-trades-count`·
+> `data-lab-guard-reopen`·`data-lab-dev-slot-disabled`)·실험장 조작 바는 **본 화면에 넣지
+> 않는다.** 가져오는 것은 "화면에서 보이는 것" — 뺄 것과 넣을 것뿐이다.
+> **세션 카드는 아직 미정이라 그대로 둔다**(양쪽 DOM 에 다 있고, 그리드 배치는 app.js 가 정한다).
 >
-> **필수 1건 — `web/static/img/phantom-icon.png`.**
-> `lab.css` 가 `url("../img/phantom-icon.png")` 로 쓰고, **`bundle.py:25` 가 그 파일을
-> `open(...)` 으로 직접 읽는다(방어 없음)** → 없으면 공유본 생성이 `FileNotFoundError` 로
-> 죽는다. 그런데 **저장소에는 `web/static/img/` 폴더 자체가 없고**(실측)
-> `phantom-icon` 참조가 `web/` 전체에서 **0건**이다. 프런트가 이번 라운드에 새로 넣은 자산.
+> **▶ 전달본 ↔ 저장소 실측 차이 (2026-07-30, `index (2).html` 기준)**
+> - **저장소에만 있는 훅 = 0** → **이번 전달본에는 회귀가 없다**(3회 연속이던 회귀가 처음으로 없다).
+> - 카드 차이는 **`data-card="today"`(오늘의 결과) 1개 추가**뿐. 그리드는 4열 → **12열** 재배치.
+> - **★ today 카드는 백엔드 작업이 필요 없다** — 안의 숫자가 `data-total-asset`·`data-cash`·
+>   `data-position-value2`·`data-pnl`·`data-return-pct` 등 **기존 훅 재사용**이다.
+>   실험장 전용은 `data-lab-today` 한 줄(안내 문구)뿐이라 그것만 빼면 된다.
+> - 추가 훅 `data-wallet-label` — 지갑 버튼 라벨. ⚠ `wallet.js` 가 **그 요소에만** 글자를
+>   쓰므로 라벨을 이 span 밖으로 빼면 아이콘이 지워진다(전달본 주석의 경고, 그대로 따를 것).
 >
-> **필수 아님 — `landing.html`·`connect.html` 사본.** 전달서는 "페이지는 셋"이라 적었지만
-> **`index (2).html` 은 그 둘을 링크하지 않고**(내부 링크는 `href="/"` 하나뿐)
-> `bundle.py` 도 `lab/index.html` 만 읽는다. 대시보드 실험장과 공유본은 둘 없이 완전히 돈다.
-> 랜딩·연결 화면까지 실험할 계획일 때만 받으면 된다.
+> **▶ 프런트에 받아야 하는 것 — 참조·클래스 정의 위치를 전수 대조해 확정**
 >
-> **요구할 필요 없음 — 폴더의 `.gitignore`(`*` 한 줄).** 우리가 만들면 된다.
+> **1) `phantom-icon.png` → `web/static/img/phantom-icon.png` (파일 1개면 된다)**
+> "아이콘 2개"는 **그림 2장이 아니라 화면 2군데 배치**다 — `index (2).html:34`(얇은 헤더)와
+> `:91`(본문)이 **같은 클래스 `.wallet-icon`** 을 쓴다. 전달본 전체에서 참조되는 아이콘
+> 파일명은 `phantom-icon.png` **하나뿐**(`lab.css` 3곳 · `bundle.py` 2곳).
+> ⚠ 이름 고정 — `bundle.py:25` 가 `open(.../img/phantom-icon.png)` 로 **직접 읽고**(방어 없음)
+> 없으면 공유본 생성이 `FileNotFoundError` 로 죽는다. `web/static/img/` 폴더는 **신규**다.
+> ⚠ **mask-image 로 쓰므로 알파(모양)만 사용된다** — 색은 CSS 가 입힌다. 배경 투명 PNG 필요.
 >
-> **⚠ 물어볼 값어치가 있는 것 1건**: `bundle.py:32` 주석이 *"skeleton 은 `/static/img/…`
-> 절대경로를 쓴다"* 고 적었는데 **저장소 `skeleton.css` 에는 img 참조가 0건**이다.
-> 프런트 로컬의 `skeleton.css` 가 저장소본과 다를 수 있다(= 아직 안 보낸 변경 존재 가능).
-> 코드상으로는 `.replace()` 가 못 찾으면 무해하지만, **전달본이 저장소와 다른 시점을 기준으로
-> 오는 것이 지금까지 3회 연속 회귀의 근원**이었으므로 확인하고 넘어간다.
+> **2) 프런트 로컬 `skeleton.css` 현재본 → `web/static/css/skeleton.css`**
+> **PNG 만 넣으면 화면에 아무것도 안 나온다.** 실측: `.wallet-icon`·`.btn-wallet` 의 **본체
+> 규칙이 저장소 `skeleton.css` 에 0건**이고 `--wallet-*` 변수도 **0건**이다. `lab.css` 에 있는
+> 것은 경로 되잡기(`mask-image`)와 모서리(`--wallet-radius:16px`) **오버라이드뿐**이며,
+> 주석이 *"skeleton.css:192 가 아이콘을 참조한다"* · *"`.btn-wallet` 은 손대지 않는다"* 라고
+> 적고 있다 → **지갑 버튼 디자인 전체가 프런트 로컬에만 있고 저장소에 온 적이 없다.**
 >
-> 나머지 참조는 전부 저장소에 실재한다 — `../css/skeleton.css`·`../css/theme.css`·
-> `../js/app.js`·`../js/reveal.js`·`../js/to-top.js`·`../js/wallet.js`.
-> 그 외 아이콘은 전부 `lab.css` 안에 data URI 로 심겨 있어 외부 파일이 필요 없다.
+> **3) 프런트 로컬 `theme.css` 현재본 → `web/static/css/theme.css`**
+> `lab.css:81` 이 `--radius: 18px` 로 덮으며 *"`--radius` 가 16→18 로 바뀌었으므로"* 라고
+> 적는데 **저장소 `theme.css:54` 는 아직 `16px`** 이다(실측). 토큰이 어긋나 있다.
+>
+> **선택 — `landing.html`·`connect.html`**: 랜딩·연결 화면도 디자인을 반영할 때만.
+> `index (2).html` 은 그 둘을 링크하지 않고(내부 링크는 `href="/"` 하나) `bundle.py` 도
+> `lab/index.html` 만 읽으므로, 대시보드 작업에는 없어도 된다.
+>
+> **요구할 필요 없음** — 폴더의 `.gitignore`(`*` 한 줄)는 우리가 만든다. 나머지 참조
+> (`app.js`·`reveal.js`·`to-top.js`·`wallet.js`)는 전부 저장소에 실재하고, 그 외 아이콘은
+> 전부 `lab.css` 안에 **data URI** 로 심겨 있어 외부 파일이 필요 없다.
 >
 > ## ▶ 잔여 '낮음' 12건 + '정보' 1건 — 훑어본 결과 (2026-07-30, 사용자 요청)
 > **프런트 작업이 먼저다. 아래는 그 다음 순서이고, 이번엔 손대지 않았다.**
