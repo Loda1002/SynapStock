@@ -320,3 +320,10 @@
 `.fx-tabs { overflow: hidden }`). 알림 권한이 '거부' 일 때만 나타나는 결함이고 시안 팔레트
 이전부터 있었다(옛 --page-pad 로 재면 16px). 재배포 후 최종 리비전 `synapstock-00022-2xl`,
 겹침 -68px 로 해소 · 정적 파일 6개 저장소와 일치 · 실험장 404 · env 유지 · 콘솔 오류 0.
+
+CONTROL_TOKEN 교체(2026-07-31). 토큰 URL 을 랜딩(`/`)으로 열어 주소창에 `#token=` 이 남는
+바람에 값이 대화 기록으로 샜다 → Secret Manager `autotrader-control-token` 버전 2 를 추가하고
+리비전 `synapstock-00023-92g` 로 반영. 옛 토큰으로 `POST /api/engine/start` 를 쳐서 401 을 확인해
+교체가 실제로 먹은 것을 검증했고, 브라우저 패널의 죽은 토큰도 지웠다. 버전 1 은 남겨 뒀다
+(서비스가 `:latest` 를 보므로 사용되지 않는다). 교체 전 `engine.status=idle` 확인(런북 §6).
+값은 `gcloud secrets versions access latest --secret=autotrader-control-token` 로 사용자가 직접 본다.

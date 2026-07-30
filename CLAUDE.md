@@ -89,6 +89,22 @@
 > `/app#token=…` 로 한 번 열어 localStorage 에 심어야 한다. **반드시 `/app` 경로여야 한다** —
 > `/`(랜딩)로 열면 `app.js` 를 안 실어서 토큰이 저장되지 않고 주소창에 그대로 남는다(실제로 겪었다).
 >
+> **⚠⚠ `CONTROL_TOKEN` 을 2026-07-31 에 교체했다 — 예전에 쓰던 토큰은 더 이상 안 먹는다.**
+> 위 함정 때문에 토큰이 주소창에 남아 대화 기록으로 새어서 회전시켰다. 시크릿
+> `autotrader-control-token` **버전 2** 가 현행이고(버전 1 은 남겨 뒀다 — 지우지 않았지만
+> 서비스가 `:latest` 를 보므로 사용되지 않는다), 리비전 **`synapstock-00023-92g`** 부터 적용된다.
+> 값 확인은 이 명령으로 **사용자가 직접** 한다(Claude 는 시크릿 값을 읽지 않는다):
+> ```powershell
+> gcloud secrets versions access latest --secret=autotrader-control-token --project=synapstock
+> ```
+> ⚠ 시크릿을 또 교체하면 **새 리비전을 만들어야 반영된다**(env 주입은 인스턴스 시작 때 값을
+> 읽는다). 빌드 없이 끝내는 방법:
+> `gcloud run services update synapstock --region asia-northeast3 --update-secrets "CONTROL_TOKEN=autotrader-control-token:latest"`
+> ⚠ 값을 넣을 때 **줄바꿈이 붙으면 안 된다** — 서버 비교가 헤더 값과 정확히 일치해야 한다
+> (파일로 넣을 때 `WriteAllText` 로 32바이트를 그대로 쓴다. 파이프로 넘기면 `\r\n` 이 붙는다).
+> ⚠ **세션이 도는 중에는 리비전을 바꾸지 않는다**(런북 §6). 교체 전 `/api/state` 의
+> `engine.status` 가 `idle` 인지 확인했다.
+>
 > **▶ [수정] 상단 바 탭이 긴급정지 버튼을 42px 가리던 것**(`f3dde4e`, `.fx-tabs { overflow: hidden }`).
 > 탭 글자가 nowrap 이라 자리가 모자라도 줄지 않고 상자 밖으로 넘쳐 조작부 **아래로 겹쳤다**.
 > 발생 조건은 **알림 권한이 '거부' 일 때뿐**이다(그때만 라벨이 `🔕 브라우저가 알림을 막았습니다`
