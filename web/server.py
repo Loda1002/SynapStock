@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from config import CFG
+from config import CFG, env_num
 from web.auth import SESSION_COOKIE, AuthError, WalletAuth
 from web.broker_service import router as broker_router
 from web.engine import TradingEngine, EngineError
@@ -507,7 +507,9 @@ def main() -> None:
     import argparse
     import uvicorn
     # 포트 우선순위: --port 인자 > PORT 환경변수(Cloud Run 관례) > .env WEB_PORT
-    default_port = int(os.environ.get("PORT", CFG.web_port))
+    # env_num 을 쓰는 이유는 config 의 숫자 필드와 같다 — PORT= 처럼 빈 값이 들어오면
+    # int("") 가 터져 서버가 뜨지 않는데, 그 트레이스백에는 어느 변수가 문제인지 안 나온다.
+    default_port = env_num("PORT", str(CFG.web_port), int)
     ap = argparse.ArgumentParser(description="402 Guard 대시보드 서버")
     ap.add_argument("--port", type=int, default=default_port,
                     help=f"포트 (기본 {default_port}) — 8000 점유 시 --port 8010 등")

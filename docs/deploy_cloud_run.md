@@ -30,11 +30,17 @@ gcloud auth login
 
 브라우저가 열리면 GCP $300 크레딧을 받은 구글 계정으로 로그인.
 
+⚠ **이 프로젝트는 이미 만들어져 있다 — 아래 `gcloud projects create` 는 처음 세팅할 때만이다.**
+실제 값은 **프로젝트·서비스 모두 `synapstock`**, 리전 `asia-northeast3` 이다(2026-07-31 실측).
+재배포만 할 것이라면 §4 로 바로 간다. 예전 문서에는 여기가 `autotrader-agent-2026` 으로
+적혀 있었는데 **실재하지 않는 값**이라, 그대로 따라 하면 엉뚱한 새 프로젝트를 만들게 된다.
+
 ```powershell
-# 프로젝트 ID 는 전역 유일해야 한다 — 뒤에 숫자 등을 붙여 조정
-$PROJECT_ID = "autotrader-agent-2026"
+# 프로젝트 ID 는 전역 유일해야 한다 — 새로 만들 때만 다른 이름을 쓴다
+$PROJECT_ID = "synapstock"
 $REGION = "asia-northeast3"   # 서울
 
+# 이미 있는 프로젝트를 쓰는 경우엔 create 를 건너뛰고 아래 한 줄만 실행한다
 gcloud projects create $PROJECT_ID
 gcloud config set project $PROJECT_ID
 ```

@@ -36,32 +36,59 @@ def _get(key: str, default: str = "") -> str:
     return os.environ.get(key, default)
 
 
+def env_num(key: str, default: str, cast, *, blank_ok: bool = True):
+    """숫자형 환경변수 — 빈 값은 기본값으로 보고, 못 읽는 값은 변수명을 밝히며 멈춘다.
+
+    `_get` 만 쓰면 '키는 있는데 값이 빈 문자열'일 때 기본값이 아니라 "" 가 돌아와
+    `Decimal("")`·`int("")` 가 터지고, config 를 임포트하는 **모든 진입점**(web.server·
+    run_demo·scripts/*)이 부팅 전에 죽는다. 이 저장소의 `.env.example` 자체가 여러 키를
+    `KEY=` 형태로 쓰고 python-dotenv 가 그것을 "" 로 주입하므로 실제로 밟을 수 있는 길이다.
+    Cloud Run 도 `--set-env-vars` 안에 숫자 값을 콤마로 나열하므로 오타 하나면 같은 상태가
+    되고, 그게 심사용 URL 이다.
+
+    빈 값은 기본값으로 되돌리되, 진짜 잘못 쓴 값(예: `BUDGET_USDC=abc`)은 조용히 넘기지 않고
+    **어느 변수가 문제인지 밝히며** 멈춘다 — 예전에는 `decimal.InvalidOperation` 트레이스백만
+    남아서 배포 로그만 보고는 원인 변수를 찾을 수 없었다.
+
+    ⚠ `blank_ok=False` 는 "빈 값도 오류"라는 뜻이고, **조용히 헐거워지면 안 되는 값**에만 쓴다.
+    배포가 `MAX_BUDGET_USDC=1000` 으로 낮춰 둔 서버측 상한이 빈 값일 때 기본값 10000 으로
+    되돌아가면, 런북이 설명한 통제가 10배 헐거워진 채 아무 경고 없이 기동한다.
+    """
+    raw = os.environ.get(key, default)
+    if blank_ok and not raw.strip():
+        raw = default
+    try:
+        return cast(raw)
+    except (ValueError, ArithmeticError):
+        raise SystemExit(f"환경변수 {key} 값이 잘못됐습니다: {raw!r} (숫자를 기대합니다)")
+
+
 @dataclass(frozen=True)
 class Config:
     rpc_url: str = _get("SOLANA_RPC_URL", "https://api.devnet.solana.com")
     network: str = _get("SOLANA_NETWORK", "solana-devnet")
 
     usdc_mint: str = _get("USDC_MINT", "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU")
-    usdc_decimals: int = int(_get("USDC_DECIMALS", "6"))
+    usdc_decimals: int = env_num("USDC_DECIMALS", "6", int)
 
     stock_symbol: str = _get("STOCK_SYMBOL", "tAAPL")
     stock_mint: str = _get("STOCK_MINT", "")
-    stock_decimals: int = int(_get("STOCK_DECIMALS", "6"))
+    stock_decimals: int = env_num("STOCK_DECIMALS", "6", int)
     # 멀티 종목(동시 매수) — 콤마 구분 티커 목록(예: "AAPL,TSLA,NVDA"). 빈값이면 단일 폴백.
     # 범위(사용자 확정): 드라이 + 대시보드 + 백테스트. 라이브 온체인 멀티는 제외(종목별 민트 필요).
     # 웹 세션은 UI/API 가 넘긴 symbols 가 우선하고, 이 값은 .env 기본 목록이다.
     stock_symbols_env: str = _get("STOCK_SYMBOLS", "")
 
-    budget_usdc: Decimal = Decimal(_get("BUDGET_USDC", "100"))
-    per_trade_max_usdc: Decimal = Decimal(_get("PER_TRADE_MAX_USDC", "50"))
+    budget_usdc: Decimal = env_num("BUDGET_USDC", "100", Decimal)
+    per_trade_max_usdc: Decimal = env_num("PER_TRADE_MAX_USDC", "50", Decimal)
 
     # 시간 기반 청산(안전레일) — 조건형 세션에서 포지션을 이 봉 수 이상 보유하면 자동 청산.
     # 검증 실측(scripts/explore_strategy.py)에서 꼬리 위험을 크게 줄여 채택. 0=비활성.
-    max_hold_bars: int = int(_get("MAX_HOLD_BARS", "10"))
+    max_hold_bars: int = env_num("MAX_HOLD_BARS", "10", int)
 
     # A8 브로커 수수료 (bps, 30 = 0.3%) — 소개서 수익모델 수치와 일치시킬 것
     # ※ 0.1%(10) 인하안은 제출 전 재검토 (docs/feature_spec.md 미결정 메모)
-    broker_fee_bps: int = int(_get("BROKER_FEE_BPS", "30"))
+    broker_fee_bps: int = env_num("BROKER_FEE_BPS", "30", int)
 
     wallet_dir: str = _get("WALLET_DIR", "secrets")
     # Cloud Run 대안 주입 경로 — Secret Manager 파일 마운트 대신 환경변수로 키페어 JSON.
@@ -76,7 +103,7 @@ class Config:
     # 로컬 개발은 미설정(빈값) = 무인증이라 기존 흐름이 그대로 유지된다.
     control_token: str = _get("CONTROL_TOKEN", "")
     # 서버측 한도 상한 — 외부에서 예산을 무한대로 올리는 것을 기계적으로 차단
-    max_budget_usdc: Decimal = Decimal(_get("MAX_BUDGET_USDC", "10000"))
+    max_budget_usdc: Decimal = env_num("MAX_BUDGET_USDC", "10000", Decimal, blank_ok=False)
     # 웹에서 라이브(온체인) 세션 시작 허용 여부 — 기본 차단, 시연 직전에만 켠다.
     # (기본 "0": config.py:72 주석·web/engine.py 이중 안전장치 에러·배포 런북과 일치.
     #  웹 UI 에서 라이브 데모 시 ALLOW_LIVE_FROM_WEB=1 로 명시적으로 연다. BUG-04)
@@ -92,7 +119,7 @@ class Config:
     replay_file: str = _get("REPLAY_FILE", "")          # CSV 직접 지정 시 우선 (기본 data/market/)
     replay_start: str = _get("REPLAY_START", "")        # 재생 시작일 YYYY-MM-DD (빈값=워밍업 직후부터)
     replay_end: str = _get("REPLAY_END", "")            # 재생 종료일 (빈값=마지막 봉까지)
-    replay_warmup: int = int(_get("REPLAY_WARMUP", "20"))  # 지표 워밍업 봉 수 (MA20 기준)
+    replay_warmup: int = env_num("REPLAY_WARMUP", "20", int)  # 지표 워밍업 봉 수 (MA20 기준)
 
     # Gemini (무료 티어) — 키가 있으면 매매 판단을 Gemini 가 수행, 없으면 규칙 기반
     gemini_api_key: str = _get("GEMINI_API_KEY", "")
@@ -118,9 +145,9 @@ class Config:
     broker_http_url: str = _get("BROKER_HTTP_URL", "")
 
     # 웹 대시보드 (web/server.py)
-    web_port: int = int(_get("WEB_PORT", "8000"))
+    web_port: int = env_num("WEB_PORT", "8000", int)
     # 시세 틱 간격(초) — Gemini 무료 티어 분당 호출 제한을 고려한 기본값
-    web_tick_interval_sec: float = float(_get("WEB_TICK_INTERVAL_SEC", "8"))
+    web_tick_interval_sec: float = env_num("WEB_TICK_INTERVAL_SEC", "8", float)
     # B2 데일리 브리핑 자동 생성 시각(HH:MM, 서버 로컬) — 장 마감 시각, 하루 1회
     daily_briefing_time: str = _get("DAILY_BRIEFING_TIME", "16:00")
 

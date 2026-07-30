@@ -145,12 +145,74 @@ async def test_configured_mint_wins() -> None:
     check("자리표시로 덮이지 않음", engine._stock_mint != eng.DRY_STOCK_MINT)
 
 
+
+# ---------------------------------------------------------------------------
+# BUG-24 회귀 — 숫자형 환경변수가 빈 값이어도 임포트가 죽지 않아야 한다.
+#
+# 이 파일에 두는 이유: 위 매도 레그 결함과 **같은 계열**이다 — 로컬 .env 에는 값이 있어
+# 안 드러나고 배포 환경변수에서만 터지는 결함이다. config 는 임포트 시점에 필드를
+# 평가하므로 같은 프로세스에서는 검사할 수 없다 → 자식 프로세스를 띄워 확인한다.
+# ---------------------------------------------------------------------------
+
+def _run_import(env_overrides: dict, code: str = "import config"):
+    """수정된 환경변수로 자식 파이썬을 띄워 (반환코드, stderr) 를 준다."""
+    import subprocess
+    env = dict(os.environ)
+    env.update(env_overrides)
+    # .env 가 값을 되살리지는 않는다 — load_dotenv 는 override=False 라 이미 있는 키를
+    # 건드리지 않고, 빈 문자열도 '있는 키'다(그래서 이 결함이 실제로 재현된다).
+    r = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env,
+                       capture_output=True, text=True, errors="replace")
+    return r.returncode, (r.stderr or "")
+
+
+def test_blank_numeric_env_boots():
+    """빈 값이면 기본값으로 되돌아가고 앱이 뜬다 (예전에는 여기서 전부 죽었다)."""
+    for key in ("BUDGET_USDC", "PER_TRADE_MAX_USDC", "MAX_HOLD_BARS",
+                "BROKER_FEE_BPS", "USDC_DECIMALS", "WEB_TICK_INTERVAL_SEC"):
+        rc, err = _run_import({key: ""})
+        check(f"BUG-24 빈 값 {key} 에서도 임포트 성공", rc == 0, f"rc={rc} {err[-160:]}")
+
+
+def test_blank_numeric_env_uses_default():
+    """되돌아간 값이 '기본값' 이어야 한다 — 0 이나 빈 Decimal 로 새면 안 된다."""
+    rc, err = _run_import(
+        {"BUDGET_USDC": ""},
+        "import config, sys; sys.exit(0 if str(config.CFG.budget_usdc) == '100' else 3)")
+    check("BUG-24 빈 값은 기본값(100)으로 복원", rc == 0, f"rc={rc} {err[-160:]}")
+
+
+def test_bad_numeric_env_names_the_variable():
+    """진짜 잘못 쓴 값은 조용히 넘기지 않고 '어느 변수'인지 밝히며 멈춘다."""
+    rc, err = _run_import({"BUDGET_USDC": "abc"})
+    check("BUG-24 잘못된 값은 중단", rc != 0, f"rc={rc}")
+    check("BUG-24 오류 문구에 변수명이 있다", "BUDGET_USDC" in err, err[-200:])
+    check("BUG-24 예전의 불친절한 예외가 아니다", "InvalidOperation" not in err, err[-200:])
+
+
+def test_max_budget_blank_still_fails():
+    """⚠ 서버측 상한만은 빈 값도 오류 — 조용히 10000 으로 헐거워지면 안 된다."""
+    rc, err = _run_import({"MAX_BUDGET_USDC": ""})
+    check("BUG-24 MAX_BUDGET_USDC 빈 값은 중단(상한이 조용히 풀리지 않음)", rc != 0, f"rc={rc}")
+    check("BUG-24 그 오류도 변수명을 밝힌다", "MAX_BUDGET_USDC" in err, err[-200:])
+
+
+def test_server_port_blank_boots():
+    """PORT 빈 값 — Cloud Run 진입점이 같은 이유로 죽지 않아야 한다."""
+    rc, err = _run_import({"PORT": ""}, "import web.server")
+    check("BUG-24 빈 PORT 에서도 web.server 임포트 성공", rc == 0, f"rc={rc} {err[-160:]}")
+
 async def main() -> int:
     try:
         await test_regression_reproduces()
         await test_dry_sell_works_without_stock_mint()
         await test_live_still_fails_fast()
         await test_configured_mint_wins()
+        test_blank_numeric_env_boots()
+        test_blank_numeric_env_uses_default()
+        test_bad_numeric_env_names_the_variable()
+        test_max_budget_blank_still_fails()
+        test_server_port_blank_boots()
     finally:
         eng.CFG = REAL_CFG   # 다른 테스트에 영향 주지 않도록 원복
 
