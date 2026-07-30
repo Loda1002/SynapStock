@@ -99,12 +99,17 @@
 >
 > **▶ 사용자 몫 (이 대화에서 못 하는 것)**
 > - **GitHub public 전환** — 실측: 아직 `PRIVATE`.
-> - **저장소 이름 `SolanaAgent` → `SynapStock`**(사용자 결정). GitHub 설정에서 직접.
->   바꾼 뒤 README·소개서·제출 폼의 링크를 새 URL 로 맞춰야 한다(GitHub 리다이렉트는 되지만
->   제출 문안에 옛 이름이 남는다).
-> - **⚠ 재배포 1회 필요** — 이번 대화의 SynapStock 개명·BUG-24 가 배포본에 **미반영**이다
->   (배포본은 `synapstock-00023-92g`). 런북 §4 한 줄 명령(**`GEMINI_MODEL` 포함 필수**).
->   위 3번(라이브 세션)을 할 거면 그때 함께 묶는 것이 싸다.
+> - ~~저장소 이름 변경~~ **✅ 완료 — `Loda1002/SynapStock`**(2026-07-31, `gh repo rename`).
+>   로컬 원격 주소와 `submission.md`·`handoff.md` 링크도 함께 맞췄다. 옛 URL 은 GitHub 가
+>   리다이렉트한다. ⚠ **아직 `PRIVATE`** — public 전환은 남아 있다.
+> - ~~재배포~~ **✅ 완료 — 리비전 `synapstock-00024-gbg`**(2026-07-31). 개명·BUG-24 반영본이다.
+>   실측: 엔드포인트 12개 200 · 정적 파일 6개 저장소와 일치 · `/static/lab/index.html` 404 ·
+>   env 유지(`GEMINI_MODEL`·`ALLOW_LIVE_FROM_WEB`·`MAX_BUDGET_USDC`) ·
+>   `POST /broker/orders` → 402(asset = Circle 공식 devnet USDC) ·
+>   **FastAPI 문서 제목이 `SynapStock — 402 Guard(…)`** = BUG-24 반영본이 실제로 기동한 증거 ·
+>   화면에서 제품명 SynapStock / 가드 배너·'402 Guard 요약 다시 보기'는 기능명 그대로 ·
+>   시안 토큰(radius 18 · gap 24 · fs-big 32) · 범례 칩 5 · 아이콘 7 · 툴팁 2 · 지갑 16px ·
+>   상태 열 숨김 · 상단 바 겹침 -68(해소) · 가로 넘침 0 · 콘솔 오류 0.
 >
 > ---
 >

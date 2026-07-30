@@ -21,7 +21,8 @@
 
 ## 1. 지금 저장소 상태
 
-- 브랜치 `main`, 워킹트리 clean, 원격 동기화됨 (https://github.com/Loda1002/SolanaAgent, **private**)
+- 브랜치 `main`, 워킹트리 clean, 원격 동기화됨 (https://github.com/Loda1002/SynapStock, **private**)
+  ⚠ 저장소 이름은 2026-07-31 에 `SolanaAgent` → `SynapStock` 으로 바뀌었다(옛 URL 은 GitHub 가 리다이렉트한다).
 - 테스트 4종 전부 통과: `scripts/test_dca_schedule.py` · `test_gemini_parse.py` ·
   `test_indicators.py` · `test_store.py` (실행: `.venv/Scripts/python.exe -m scripts.<이름>`)
 - `python run_demo.py` (드라이런) 정상 · 웹 대시보드 정상(브라우저 검증: 콘솔 에러 0, 카드 11개,

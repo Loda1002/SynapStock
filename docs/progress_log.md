@@ -345,3 +345,13 @@ CONTROL_TOKEN 교체(2026-07-31). 토큰 URL 을 랜딩(`/`)으로 열어 주소
 - ⚠ 사용자 정정: 현재 화면은 디자인 최종본이 아니다 → 소개서 PDF·영상 촬영은 아직.
 - 다음 대화: devnet USDC 재실증 → A-lite 재검토 → 온체인 결제 확인 → 잔여 점검 →
   그 뒤에 버그부서·심사부서.
+
+재배포 완료 — 리비전 `synapstock-00024-gbg`(SynapStock 개명 + BUG-24 반영).
+엔드포인트 12개 200 · 정적 파일 6개 저장소와 일치 · 실험장 404 · env 유지 ·
+`POST /broker/orders` → 402(Circle 공식 devnet USDC) · FastAPI 문서 제목이
+`SynapStock — 402 Guard(…)` 로 바뀐 것이 새 코드가 실제로 기동한 증거 ·
+화면 제품명 SynapStock / 가드 문구는 402 Guard 그대로 · 콘솔 오류 0.
+
+GitHub 저장소 이름 변경 완료 — `Loda1002/SolanaAgent` → `Loda1002/SynapStock`
+(`gh repo rename`). 로컬 원격 주소와 submission.md·handoff.md 링크도 함께 맞췄다.
+옛 URL 은 GitHub 가 리다이렉트한다. ⚠ 아직 PRIVATE — public 전환은 남아 있다.

@@ -168,7 +168,7 @@
   (`docs/reports/agentfabric_benchmark.md:99-111` 프레이밍 교체 · 수익모델 단가 숫자)이다.
   ※ 제출 요건은 PDF 이므로 형식 변환 전까지는 요건 미충족으로 센다.
 
-## 4. GitHub Repo — 링크: https://github.com/Loda1002/SolanaAgent
+## 4. GitHub Repo — 링크: https://github.com/Loda1002/SynapStock
 - 현재 **private** → 제출 직전 **public 전환 필수**.
 - README에 실행 가이드(설치·localnet 풀사이클·데모 스크립트) 최신화 필요. 상태: README 초안 있음, 최종 점검 예정.
 
