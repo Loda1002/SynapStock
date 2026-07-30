@@ -27,7 +27,12 @@
         서명은 <strong>지갑 소유 증명</strong>일 뿐입니다. 자금이 이동하지 않고, 트랜잭션도
         아닙니다. 거래 권한은 이후 <strong>AP2 위임장</strong>이 정한 한도 안에서만 열립니다.
       </p>
-      <button class="btn auth-submit" type="button" data-connect-btn>Phantom 으로 연결</button>
+      <!-- 대시보드 헤더와 같은 버튼(.btn-wallet, skeleton.css). 이 페이지의 라벨은 JS 가
+           건드리지 않으므로(disabled 만 토글) 아이콘·글자가 그대로 남는다. -->
+      <button class="btn-wallet auth-submit" type="button" data-connect-btn>
+        <span class="wallet-icon" aria-hidden="true"></span>
+        <span>Phantom 지갑 연결</span>
+      </button>
       <p class="sub auth-result hidden" data-connect-msg aria-live="polite"></p>
       <p class="sub" data-no-provider hidden>
         지갑이 감지되지 않았습니다 —
