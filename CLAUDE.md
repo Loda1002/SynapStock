@@ -97,8 +97,13 @@
 >   상태 열 · CLAUDE.md 내부 노트 배너 · `competition_research` "인용 금지").
 >   **→ 남은 것은 사용자의 전환 조작뿐이다.**
 >
-> **▶ 사용자 몫 (이 대화에서 못 하는 것)**
-> - **GitHub public 전환** — 실측: 아직 `PRIVATE`.
+> **▶ 사용자 몫 — ✅ 전부 처리됨(2026-07-31). 남은 것은 아래 '다음 대화' 4건뿐이다.**
+> - ~~GitHub public 전환~~ **✅ 완료 — `Loda1002/SynapStock` 이 PUBLIC**(`gh repo edit`).
+>   익명 접근으로 확인했다(API 200 · raw README 200). 전환 직전에 감사 이후 커밋 3건까지
+>   재스캔해 크리덴셜 0건을 확인했다.
+>   ⚠ **GitHub 라이선스 배지가 안 뜬다**(`spdx_id: NOASSERTION`). `LICENSE` 가 표준 MIT
+>   본문 뒤에 Alpha Vantage 데이터 예외 고지를 함께 담고 있어 분류기가 못 읽는 것이다.
+>   내용은 정확하므로 급하지 않지만, 배지를 띄우려면 고지를 `NOTICE` 파일로 분리하면 된다.
 > - ~~저장소 이름 변경~~ **✅ 완료 — `Loda1002/SynapStock`**(2026-07-31, `gh repo rename`).
 >   로컬 원격 주소와 `submission.md`·`handoff.md` 링크도 함께 맞췄다. 옛 URL 은 GitHub 가
 >   리다이렉트한다. ⚠ **아직 `PRIVATE`** — public 전환은 남아 있다.

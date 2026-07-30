@@ -355,3 +355,8 @@ CONTROL_TOKEN 교체(2026-07-31). 토큰 URL 을 랜딩(`/`)으로 열어 주소
 GitHub 저장소 이름 변경 완료 — `Loda1002/SolanaAgent` → `Loda1002/SynapStock`
 (`gh repo rename`). 로컬 원격 주소와 submission.md·handoff.md 링크도 함께 맞췄다.
 옛 URL 은 GitHub 가 리다이렉트한다. ⚠ 아직 PRIVATE — public 전환은 남아 있다.
+
+GitHub 저장소 public 전환 완료 — `Loda1002/SynapStock` (PUBLIC). 전환 직전 재스캔에서
+크리덴셜 0건 재확인, 익명 접근(API·raw README)으로 실제 공개를 검증했다.
+⚠ 라이선스 배지가 안 뜬다(NOASSERTION) — LICENSE 가 MIT 본문 뒤에 Alpha Vantage 데이터
+예외 고지를 함께 담고 있어서다. 내용은 정확하고, 배지를 원하면 NOTICE 로 분리하면 된다.
