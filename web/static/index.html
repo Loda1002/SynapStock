@@ -68,7 +68,11 @@
     <button class="btn btn-resume hidden" data-btn-resume>▶ 매매 재개</button>
     <!-- 라벨에서 '차단됨'을 뺐다 — 같은 화면에 '가드 차단' KPI 가 있어서 가드가 막은 것으로
          읽힌다. 상태별 문구는 app.js NOTIFY_LABEL 이 단일 출처다. -->
-    <button class="btn btn-sweep" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림 받기</button>
+    <!-- .tip 으로 감싸는 이유: 이 버튼은 색이 차오르는 모션 때문에 overflow:hidden 이라
+         말풍선을 버튼에 직접 붙이면 잘린다. 내용은 app.js wireTips 가 title 에서 옮긴다. -->
+    <span class="tip">
+      <button class="btn btn-sweep" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림 받기</button>
+    </span>
     <!-- 연결된 지갑의 온체인 잔액. 세션 모드(샌드박스/라이브)와 무관하게 체인을 직접 읽는다.
          미연결이거나 조회 실패면 통째로 감춘다 — 헤더에 빈 칸이 남지 않게. -->
     <span class="badge hidden" data-wallet-balance></span>
@@ -78,10 +82,12 @@
          [data-wallet-status] 를 있을 때만 갱신하므로 깨지지 않는다.
          ⚠ 라벨은 반드시 [data-wallet-label] 안에 둔다 — wallet.js 가 그 요소에만 글자를
            쓰므로, 밖으로 빼면 아이콘이 지워진다. -->
-    <button class="btn-wallet btn-wallet-sm" type="button" data-wallet-connect>
-      <span class="wallet-icon" aria-hidden="true"></span>
-      <span data-wallet-label>Phantom 지갑 연결</span>
-    </button>
+    <span class="tip">
+      <button class="btn-wallet btn-wallet-sm" type="button" data-wallet-connect>
+        <span class="wallet-icon" aria-hidden="true"></span>
+        <span data-wallet-label>Phantom 지갑 연결</span>
+      </button>
+    </span>
   </div>
 </header>
 

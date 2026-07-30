@@ -1219,6 +1219,33 @@
       : "누르면 브라우저 알림 권한을 요청합니다 (탭이 백그라운드일 때만 알림)";
   }
 
+  /* ---------- 툴팁 (알림 · 지갑 연결) ----------
+     둘 다 설명을 `title` 로 달고 있다. 브라우저 기본 툴팁은 모양을 정할 수 없고 뜨는 데도
+     한참 걸려서, 같은 글을 감싼 `.tip` 의 `data-tip` 으로 옮기고 `title` 은 비운다
+     (남겨 두면 우리 말풍선과 브라우저 것이 두 개 겹쳐 뜬다). 모양은 skeleton.css.
+     ⚠ 한 번 옮겨 두는 것으로는 안 된다 — renderNotifyBtn 과 wallet.js 의 render 가
+       상태가 바뀔 때마다 title 을 다시 쓴다. 그래서 그 요소를 지켜보다 다시 옮긴다.
+       우리가 title 을 비우는 것이 또 감시에 걸리지만 그때는 옮길 글이 없어 바로 끝난다. */
+  function syncTip(btn) {
+    const wrap = btn.parentNode;
+    if (!wrap || !wrap.classList || !wrap.classList.contains("tip")) return;
+    if (!btn.title) return;
+    wrap.setAttribute("data-tip", btn.title);
+    btn.title = "";
+  }
+
+  function wireTips() {
+    // 얇은 헤더(.slim-bar)의 지갑 버튼은 감싸지 않는다 — 시안에 없는 자리이고,
+    // 감싸지 않은 버튼은 syncTip 이 그냥 지나가므로 기본 툴팁이 그대로 남는다.
+    for (const sel of ["[data-btn-notify]", ".topbar [data-wallet-connect]"]) {
+      const btn = document.querySelector(sel);
+      if (!btn) continue;
+      syncTip(btn);
+      new MutationObserver(() => syncTip(btn))
+        .observe(btn, { attributes: true, attributeFilter: ["title"] });
+    }
+  }
+
   function toast(title, body, cls) {
     const t = make("div", "toast" + (cls ? " toast-" + cls : ""));
     t.appendChild(make("strong", null, title));
@@ -1995,6 +2022,7 @@
   renderLogFilter();
   initCardDrag();
   renderNotifyBtn();
+  wireTips();
   fetchState();
   fetchHistory();
   connect();
