@@ -782,6 +782,18 @@ td.sym { font-weight: 600; }
 .grid > [data-card="budget"],
 .grid > [data-card="mandate"],
 .grid > [data-card="briefing"] { grid-column: span 4; }
+/* 시안은 '오늘의 결과' 8 + 세션 설정 4 로 첫 줄을 채운다. 우리 세션 설정 카드는 그리드가
+   아니라 개발자 서랍에 살아서(app.js) 옆자리가 비므로 12칸을 다 쓴다 — 타일 4개가
+   그만큼 넓어질 뿐 구성은 시안 그대로다. */
+.grid > [data-card="today"] { grid-column: span 12; }
+
+/* 시안에 없는 카드 — DOM 에는 남긴다(app.js 가 훅을 계속 쓴다), 화면에서만 뺀다.
+   pnl·valuation·position 은 '오늘의 결과' 타일 4개로 합쳐졌다.
+   ⚠ 지우면 안 된다: 여기에만 있는 훅(data-cum-buy·data-fee-rate·data-cum-fee·
+     data-position-value·data-onchain-row/-usdc)에 app.js 가 계속 값을 쓴다. */
+.grid > [data-card="pnl"],
+.grid > [data-card="valuation"],
+.grid > [data-card="position"] { display: none !important; }
 
 @media (max-width: 1100px) {
   .grid > [data-card] { grid-column: span 12 !important; }
@@ -890,8 +902,15 @@ td.sym { font-weight: 600; }
 :root {
   --ci-shield:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z'/%3E%3C/svg%3E");
   --ci-shield-ok: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z'/%3E%3Cpath d='m8.8 11.9 2.3 2.3 4.3-4.4'/%3E%3C/svg%3E");
+  --ci-coins:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='7' rx='7' ry='2.8'/%3E%3Cpath d='M5 7v4.6c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V7'/%3E%3Cpath d='M5 11.6v4.6c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-4.6'/%3E%3C/svg%3E");
+  --ci-arrow-up:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V5.2'/%3E%3Cpath d='m6.4 10.8 5.6-5.6 5.6 5.6'/%3E%3C/svg%3E");
+  --ci-arrow-dash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke-dasharray='3 3' d='M12 20V6'/%3E%3Cpath d='m6.4 10.8 5.6-5.6 5.6 5.6'/%3E%3C/svg%3E");
+  --ci-arrow-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v14.8'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
+  --ci-arrow-dash-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke-dasharray='3 3' d='M12 4v14'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
+  --ci-box:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3.4 8 4.2v8.8l-8 4.2-8-4.2V7.6Z'/%3E%3Cpath d='m4 7.6 8 4.2 8-4.2M12 11.8V20.6'/%3E%3C/svg%3E");
 }
 /* 글리프를 얹는 공통 규칙. 색은 담는 칸이 정한다(칸마다 배경 틴트가 다르다). */
+.fx-chip::before,
 .fx-logo::before,
 .fx-banner-icon::before {
   content: ""; display: block;
@@ -913,8 +932,54 @@ td.sym { font-weight: 600; }
 .fx-banner-icon::before { width: 26px; height: 26px; }
 /* 마스크를 모르는 브라우저 — 글리프만 빼고 빈 칸(시안 그대로)으로 돌아간다. */
 @supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
-  .fx-logo::before, .fx-banner-icon::before { display: none; }
+  .fx-chip::before, .fx-logo::before, .fx-banner-icon::before { display: none; }
 }
+
+/* ---- 오늘의 결과 ----
+   손익(실현)·평가손익·포지션 카드 3개 + 총자산을 타일 4개로 합친 카드. 숫자를 채우는
+   훅은 옛 카드들이 쓰던 것과 같은 것들이라 백엔드·app.js 는 한 줄도 바뀌지 않는다. */
+.fx-today { display: flex; flex-direction: column; gap: 32px; }
+/* .card h2(0,1,1)를 이겨야 해서 선택자를 둘로 쓴다 — 이 줄은 카드 제목이 아니라 날짜 라벨이다.
+   (h2 인 이유는 카드 제목을 끌어 재배치하는 기능이 h2 를 손잡이로 잡기 때문이다.) */
+.fx-today > .fx-today-date { margin: 0; font-size: var(--fs-small); font-weight: 400; color: #9096ad; }
+
+.fx-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: auto; }
+.fx-tile { background: var(--bg); border-radius: 14px; padding: 16px; min-width: 0; }
+.fx-tile-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--fs-small); font-weight: 700; color: #5b617a; white-space: nowrap;
+}
+.fx-chip {
+  width: 30px; height: 30px; border-radius: 8px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.fx-chip::before { width: 17px; height: 17px; }
+/* 배경 틴트는 이미 색이 나뉘어 있으므로 글리프는 같은 계열 진한 색으로 얹는다. */
+.fx-chip-violet { background: #edebff; color: var(--accent);         --ci: var(--ci-coins); }      /* 총자산 = 쌓인 것 */
+.fx-chip-mint   { background: #dff9f1; color: var(--ok);             --ci: var(--ci-arrow-up); }   /* 실현 = 확정된 방향 */
+.fx-chip-blue   { background: #e6f1ff; color: var(--badge-dca);      --ci: var(--ci-arrow-dash); } /* 평가 = 아직 확정 아님 */
+.fx-chip-amber  { background: #fff2da; color: var(--badge-fallback); --ci: var(--ci-box); }        /* 포지션 = 들고 있는 것 */
+
+/* 숫자는 자르지 않는다 — 시안 값(100.00)보다 자릿수가 긴 실제 값이 들어오면 타일 폭을
+   넘는데, 잘라 버리면 금액을 못 읽는다. 단위가 다음 줄로 내려간다. */
+.fx-tile-num {
+  margin: 8px 0 0; font-size: var(--fs-big); font-weight: 700; color: var(--text);
+  line-height: 1.15; overflow-wrap: anywhere;
+}
+.fx-tile-num .unit { font-size: var(--fs-small); font-weight: 400; color: var(--muted); }
+.fx-num-ok { color: var(--ok); }
+.fx-tile-sub { margin: 8px 0 0; font-size: var(--fs-small); color: var(--muted); }
+
+/* 손익 두 칸은 부호를 따라 화살표가 뒤집힌다. app.js 가 값 span 에 pos/neg 를 찍어 주므로
+   (el.pnl.className · el.unrealized.className) 그것만 보면 되고 자바스크립트를 더 두지 않는다.
+   ⚠ 색까지 함께 바꾼다 — 방향만 뒤집으면 초록 아래 화살표가 되어 옆 숫자(빨강)와 어긋난다.
+   값이 0 일 때는 지금까지의 모습(위 화살표) 그대로 둔다 — 손실이 아니기 때문이다. */
+.fx-tile:has([data-pnl].neg) .fx-chip-mint,
+.fx-tile:has([data-unrealized].neg) .fx-chip-blue {
+  background: #ffe8ec; color: var(--danger);
+}
+.fx-tile:has([data-pnl].neg) .fx-chip-mint        { --ci: var(--ci-arrow-down); }
+.fx-tile:has([data-unrealized].neg) .fx-chip-blue { --ci: var(--ci-arrow-dash-down); }
 
 /* 거래 내역의 온체인 tx 두 열 — 라이브 세션에서만 보인다.
    샌드박스는 전송이 없어 값이 전부 "—" 라, 빈 열 두 개가 늘 화면에 남아 있었다.

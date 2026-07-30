@@ -1751,7 +1751,7 @@
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
   /* ⚠ DEFAULT_LAYOUT 을 바꾸면 이 키도 반드시 올린다. 안 올리면 이미 방문한 적 있는
      브라우저(= 촬영용 브라우저 포함)가 localStorage 에 저장된 옛 배치를 계속 쓴다. */
-  const LAYOUT_KEY = "autotrader_layout_v11";  // v11: 한도 바꾸기는 사용자 화면으로 복귀 · 지난 세션은 개발자 서랍으로 — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v12";  // v12: 시안의 '오늘의 결과' 카드 신설(손익·평가손익·포지션 3장을 대체) — 기존 저장 배치 리셋
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
@@ -1763,10 +1763,13 @@
   // v9 에서 session 이 이 배열을 떠났다 — 세션 설정 카드는 그리드가 아니라 개발자 서랍에 산다.
   // (배열에 남아 있어도 applyLayout 이 그리드 안에서만 카드를 찾으므로 무해하지만, 배치의
   //  단일 출처가 이 배열이라는 약속을 지키려면 여기 없는 편이 맞다.)
-  // (decisions·log 는 기본 접힘이라 눈에 보이는 순서는 pnl→valuation→position→ai→price.)
+  // (decisions·log 는 기본 접힘이라 눈에 보이는 순서는 today→ai→price.)
   // v10 에서 mandate 가 빠졌다가 v11 에서 돌아왔다 — 한도를 정하는 것은 개발용 조작이
   // 아니라 사용자의 일이다. 자리는 예산 카드 바로 뒤 = "지금 한도" 옆에서 "한도 바꾸기".
-  const DEFAULT_LAYOUT = ["pnl", "valuation", "position", "ai",
+  // v12 에서 today('오늘의 결과')가 맨 앞에 들어왔다. pnl·valuation·position 은 그 타일
+  // 4개로 합쳐져 화면에서 빠지지만(skeleton.css) 배열에는 남긴다 — 훅이 살아 있는 카드라
+  // 배치 계산에서 빠지면 applyLayout 이 매번 맨 뒤로 밀어 넣는다.
+  const DEFAULT_LAYOUT = ["today", "pnl", "valuation", "position", "ai",
                           "decisions", "log",
                           "price", "symbols",
                           "trades", "budget", "mandate", "briefing"];
