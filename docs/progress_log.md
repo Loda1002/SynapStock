@@ -305,3 +305,8 @@
 검증: 훅 128종 누락 0 · `node --check` 통과 · 대시보드/랜딩/연결 세 페이지 실측(라이트·다크) ·
 콘솔 오류 0 · dry 세션 유출 0.00 · 줄바꿈 관례 유지(landing LF · 나머지 CRLF).
 남은 일은 재배포 1회(배포본은 아직 `synapstock-00020-7w4`).
+
+재배포 완료 — 리비전 `synapstock-00021-jk2`. 엔드포인트 12개 200 · 정적 파일 6개 저장소와 일치 ·
+`/static/lab/index.html` 404(실험장 차단 유지) · env 에 `GEMINI_MODEL=gemini-flash-latest` 유지 ·
+`POST /broker/orders` → 402 + accepts[](asset = Circle 공식 devnet USDC) · 배포본 대시보드에서
+시안 토큰·범례 칩·아이콘 7개·툴팁·지갑 버튼 16px 확인 · 콘솔 오류 0.

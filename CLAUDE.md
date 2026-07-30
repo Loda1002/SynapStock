@@ -78,11 +78,17 @@
 > ③ **시세 카드 제목만 14px 이다** — h2 가 `.price-head` 안에 한 겹 더 들어가 있어
 >    `.grid > .card > h2` 에 안 걸린다. **실험장도 같은 값이라 그대로 두었다**(고치려면 한 줄).
 >
-> **▶ 남은 일 = 재배포 1회.** 이번 7건은 전부 정적 파일(`index.html`·`app.js`·`skeleton.css`·
-> `theme.css`·`landing.html`)이라 **백엔드 변경 0**이다. 배포본은 아직 `synapstock-00020-7w4`
-> (= 이 7건이 빠진 상태). 런북 `docs/deploy_cloud_run.md` §4 한 줄 명령
-> (**`GEMINI_MODEL=gemini-flash-latest` 포함 필수** — `--set-env-vars` 가 기존 env 를 전부
-> 덮어쓴다). ⚠ 런북 `:35` 의 `$PROJECT_ID` 는 틀렸다 — 프로젝트·서비스 모두 `synapstock`.
+> **✅ 재배포 완료 — 리비전 `synapstock-00021-jk2`** (2026-07-31, 런북 §4 한 줄 명령 그대로).
+> 이번 7건은 전부 정적 파일이라 **백엔드 변경 0**이었다.
+> 실측: 엔드포인트 **12개 200** · 정적 파일 6개(`/app`·`app.js`·`skeleton.css`·`theme.css`·
+> `/`·`/connect`) **전부 저장소와 일치** · `/static/lab/index.html` **404**(실험장 차단 유지) ·
+> env 에 **`GEMINI_MODEL=gemini-flash-latest` 유지**(`GEMINI_MODE=developer`·
+> `ALLOW_LIVE_FROM_WEB=0`, 시크릿 5개) · `POST /broker/orders` → **402 + accepts[]**
+> (scheme `exact` / network `solana-devnet` / asset **Circle 공식 devnet USDC** `4zMMC9sr…`) ·
+> 배포본 대시보드에서 **radius 18 · gap 24 · pad 24 · fs-big 32 · page-pad 식 · 범례 칩 5개 ·
+> 아이콘 7개**(6개는 그리드, `ci-session` 은 개발자 서랍 — `?lab=0` 기본이라 정상) ·
+> **툴팁 래퍼 2개 다 `data-tip` 채워짐 · 지갑 버튼 16px 유지 · '상태' 열 숨김 · 콘솔 오류 0.**
+> ⚠ 런북 `:35` 의 `$PROJECT_ID` 는 틀렸다 — 프로젝트·서비스 모두 `synapstock`(문서만 고치면 된다).
 >
 > ---
 >
