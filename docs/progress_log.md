@@ -283,3 +283,25 @@
 6번(theme.css 팔레트)은 `lab.css:57-112` 에 시안 값이 라이트·다크 다 있어 파일을 더 받을
 필요가 없다 — 다만 `--radius`·`--gap`·`--pad`·`--fs-big`·`--page-pad` 가 함께 바뀌어
 랜딩·연결 페이지까지 영향을 받는다. 상세는 CLAUDE.md 최상단 "다음 대화" 블록.
+
+## 2026-07-31 (3차) — 남은 시안 규칙 7건 전부 이식
+
+실험장(`web/static/lab/`)에 남아 있던 시안 규칙을 본 화면으로 전부 옮겼다. 커밋 7건
+(`449833c`·`b17446b`·`6bf9980`·`afd4998`·`06c3169`·`fff4dc8`·`1e7d369`) 전부 푸시.
+백엔드 변경 0 — 손댄 파일은 `index.html`·`app.js`·`skeleton.css`·`theme.css`·`landing.html` 뿐이다.
+
+- 판단 타임라인: `addDecision` 이 "@가격 — 사유"를 `.fx-at`·`.fx-reason` 으로 나눠 그린다.
+  출처 배지는 DOM 에 남기고 CSS 가 16px 점으로 바꾼다(축② 증거 유지). 범례는 칩 5개.
+- 결제 로그: `splitLogTag` 로 본문 앞 `[태그]` 를 회색 배지로 분리(호출부 15곳 무변경).
+- 거래 표: 방향을 점+알약(`.fx-pill`)으로, 셀 가운데 정렬, '상태' 열 숨김, 판단 칩 틴트.
+- 툴팁: `.tip[data-tip]` 말풍선. `title`→`data-tip` 이동은 한 번으로 부족해
+  `MutationObserver` 로 따라가게 했다(app.js·wallet.js 가 상태마다 title 을 다시 쓴다).
+- 카드 제목 아이콘: 제목 7곳에 `span.ci` + 글리프 토큰 7종.
+- 요동 방지: 거래 표 `flex:1 1 0` · `overflow-anchor:none` · 한도 안내 `min-height:36px`.
+  세션 중 문서 높이 변화 0회를 100ms×120회 표본으로 확인.
+- theme.css: 시안 팔레트 + `--radius:18`·`--gap:24`·`--pad:24`·`--fs-big:32`·`--page-pad` 식.
+  지갑 버튼은 시안 제외 지시라 `--wallet-radius: 16px` 로 못 박았다.
+
+검증: 훅 128종 누락 0 · `node --check` 통과 · 대시보드/랜딩/연결 세 페이지 실측(라이트·다크) ·
+콘솔 오류 0 · dry 세션 유출 0.00 · 줄바꿈 관례 유지(landing LF · 나머지 CRLF).
+남은 일은 재배포 1회(배포본은 아직 `synapstock-00020-7w4`).
