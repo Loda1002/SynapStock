@@ -10,3 +10,6 @@ __pycache__/
 test-ledger/
 artifacts/
 .claude/
+# ⚠ 프런트 디자인 실험장 — 업로드하지 않는다(.dockerignore 와 같은 이유).
+# mock.js 가 화면을 통째로 가짜로 만들어서, 배포 URL 에 실리면 목업이 하나 열린다.
+web/static/lab/

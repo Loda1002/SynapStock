@@ -64,6 +64,145 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .btn-back { white-space: nowrap; }
 .btn-emergency { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 700; }
 .btn-resume { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 700; }
+
+/* ---- 색이 차오르는 hover (지갑 버튼과 같은 모션을 평범한 버튼에 얹는 변형) ----
+   .btn / .btn-primary 위에 클래스 하나만 더 붙이면 된다. 안쪽 마크업을 요구하지 않으므로
+   app.js 가 textContent 로 라벨을 통째로 갈아끼우는 버튼(🔔 알림 받기)에도 그대로 쓸 수 있다.
+   ⚠ .btn 에 직접 걸지 않는다 — 이 저장소의 버튼 대부분이 .btn 이라 전부 따라 움직인다.
+
+   기본 채움색은 연한 하늘색 #bae6ff(색상환 약 202°)이고, 글자는 같은 파랑 계열을 깊게 내린
+   #0a4c7a(약 205°)다 — 색상은 맞추고 명도만 벌린 짝이라 대비가 세면서도 색이 튀지 않는다.
+   ⚠ 엄밀히 말하면 이 하늘색의 보색은 파랑이 아니라 22° 부근의 주황이다. 파랑 계열로 해
+     달라는 요청이라 '보색'을 '충분히 대비되는 색'으로 읽고 같은 계열의 짙은 파랑을 골랐다.
+     밝기를 안 벌리면(연한 파랑 위 연한 파랑) 글자가 바탕에 묻혀 읽을 수 없다.
+   명암비는 #bae6ff 위에서 약 6.8:1 로 본문 기준(4.5:1)을 넉넉히 넘긴다.
+   두 값 모두 고정색이라 라이트·다크 어느 테마에서도 같은 대비로 보인다. */
+.btn-sweep {
+  --sweep-bg: #bae6ff;
+  --sweep-fg: #0a4c7a;
+  position: relative; overflow: hidden; z-index: 1;
+  transition: color .5s, border-color .5s;
+}
+.btn-sweep::before {
+  content: ""; position: absolute; z-index: -1;
+  top: 100%; left: 100%;
+  width: 150%; height: 150%; border-radius: 50%;
+  background: var(--sweep-bg);
+  transition: all .7s;
+}
+.btn-sweep:hover { color: var(--sweep-fg); border-color: var(--sweep-bg); }
+.btn-sweep:hover::before { top: -25%; left: -25%; }
+
+/* 이미 강조색으로 칠해진 주 버튼은 뒤집으면 색이 튄다 — 같은 계열에서 한 단계 가라앉은
+   남색이 차오르게 해 '눌리는 느낌'만 준다. 글자는 계속 흰색이라 읽기가 흔들리지 않는다.
+   앞줄은 color-mix 를 모르는 브라우저용 고정값이다. */
+.btn-primary.btn-sweep {
+  --sweep-bg: #1c3490;
+  --sweep-bg: color-mix(in srgb, var(--accent) 60%, #0a1020);
+  --sweep-fg: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-sweep, .btn-sweep::before { transition: none; }
+}
+
+/* ---- 지갑 연동 버튼 (index.html 헤더 · connect.html 공용) ----
+   Uiverse 의 clickme(모양·그림자·둥근 모서리)를 바탕으로 하고, 색이 차오르는 방식만
+   hoverme 로 바꿨다 — 왼쪽에서 밀고 들어오는 사각형 대신 오른쪽 아래에서 원이 부풀어
+   올라 버튼을 덮는다.
+   ⚠ 원본 두 파일은 전역 `button { }` 선택자라 그대로 링크하면 화면의 모든 버튼을 덮어쓰고
+      다크 모드가 깨진다. 그래서 클래스(.btn-wallet)로 좁혀 여기에 옮겨 적었다.
+   색은 팬텀 브랜드 고정값이라 theme.css 토큰을 쓰지 않는다 — 스킨이 바뀌어도 로고 색은
+   그대로여야 한다(8/2 시안이 theme.css 를 덮어써도 이 버튼은 영향을 받지 않는다). */
+.btn-wallet {
+  --wallet-bg: #e2dffe;
+  --wallet-fg: #3c315b;
+  --wallet-bg-hover: #3c315b;
+  --wallet-fg-hover: #fffdf8;
+  --wallet-icon: #ab9ff2;         /* Phantom Icon Purple — 로고 원본 색 그대로 */
+  --wallet-icon-hover: #fffdf8;   /* Phantom Icon White */
+
+  /* 크기는 변수로만 잡는다 — 같은 버튼이 세 자리(로그인 화면·대시보드 헤더·얇은 헤더)에
+     서로 다른 크기로 들어가는데, 아래 변형(.btn-wallet-sm/-xs)이 이 값들만 갈아끼우면 된다.
+     모양·모션·색은 한 벌로 유지되므로 나중에 고칠 곳이 한 군데다. */
+  --wallet-pad-y: 15px; --wallet-pad-x: 25px;
+  --wallet-fs: 17px; --wallet-gap: 10px; --wallet-radius: 15px;
+  --wallet-icon-w: 24px; --wallet-icon-h: 20px;
+
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--wallet-gap);
+  padding: var(--wallet-pad-y) var(--wallet-pad-x);
+  border: unset; border-radius: var(--wallet-radius);
+  background: var(--wallet-bg); color: var(--wallet-fg);
+  font-family: inherit; font-size: var(--wallet-fs); font-weight: 1000; line-height: 1.2;
+  position: relative; overflow: hidden; z-index: 1; cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, .27);
+  transition: color .5s;
+}
+
+/* 대시보드 헤더용 — 옆의 긴급정지(.btn, 실측 33.6px)보다 한 단계만 크게 잡는다(38px).
+   높이 = 위아래 여백 10+10 + 글줄 상자 18(15px × 1.2). 아이콘(17px)은 글줄보다 낮아 높이를 안 밀어낸다.
+   모서리는 이웃 버튼과 같은 var(--radius) 를 쓰고, 그림자도 이 크기에 맞게 줄인다
+   (원본 그림자는 50px 짜리 버튼 기준이라 여기서는 혼자 뜬 것처럼 보인다). */
+.btn-wallet-sm {
+  --wallet-pad-y: 10px; --wallet-pad-x: 16px;
+  --wallet-fs: 15px; --wallet-gap: 8px; --wallet-radius: var(--radius);
+  --wallet-icon-w: 20px; --wallet-icon-h: 17px;
+  box-shadow: 2px 4px 12px -3px rgba(0, 0, 0, .22);
+}
+
+/* 얇은 헤더용 — 옆의 긴급정지(.btn.btn-small, 실측 22.4px)와 **같은 높이**로 맞춘다.
+   높이 = 4+4 + 글줄 상자 14.4(12px × 1.2) = 22.4px. */
+.btn-wallet-xs {
+  --wallet-pad-y: 4px; --wallet-pad-x: 10px;
+  --wallet-fs: 12px; --wallet-gap: 6px; --wallet-radius: var(--radius);
+  --wallet-icon-w: 14px; --wallet-icon-h: 12px;
+  box-shadow: 1px 2px 8px -2px rgba(0, 0, 0, .2);
+}
+
+/* 차오르는 원 — 평소엔 오른쪽 아래 바깥에 숨어 있다가 좌상단으로 올라오며 버튼을 덮는다.
+   z-index:-1 은 "버튼 자신의 배경 위, 글자 아래"를 뜻한다(원본 두 파일이 쓰는 방식 그대로).
+   버튼이 stacking context 라서 원이 바깥으로 새지 않고, overflow:hidden 이 둥근 모서리로 잘라 준다.
+   ⚠ 크기를 원본처럼 픽셀로 고정하면 안 된다. 원본(200×150)은 8em 짜리 버튼에 맞춰 계산된
+     값이라, 글자가 들어가 더 넓어진 이 버튼에서는 **왼쪽 위 모서리가 안 덮여** 원래 색이
+     쐐기 모양으로 남는다. 그래서 버튼 크기에 비례시킨다 —
+     150% 크기를 -25% 에 놓으면 타원의 중심이 버튼 중심과 겹치고, 네 모서리가 전부
+     타원 안에 들어온다(모서리 판정식 (0.5/0.75)² + (0.5/0.75)² = 0.89 < 1). */
+.btn-wallet::before {
+  content: ""; position: absolute; z-index: -1;
+  top: 100%; left: 100%;
+  width: 150%; height: 150%; border-radius: 50%;
+  background: var(--wallet-bg-hover);
+  transition: all .7s;
+}
+.btn-wallet:hover { color: var(--wallet-fg-hover); }
+.btn-wallet:hover::before { top: -25%; left: -25%; }
+.btn-wallet:active::before { background: #2b2340; transition: background 0s; }
+/* 연결 중에는 눌러도 반응하지 않으므로 색도 차오르지 않게 원을 제자리에 묶어 둔다 */
+.btn-wallet:disabled { opacity: .55; cursor: not-allowed; }
+.btn-wallet:disabled::before, .btn-wallet:disabled:hover::before { top: 100%; left: 100%; }
+
+/* 팬텀 로고 — 원본 PNG 의 알파를 마스크로 쓰고 색은 background-color 가 준다. 그래서 이미지
+   한 장으로 보라(기본)·흰색(hover) 두 상태를 다 만든다(파일을 두 벌 두지 않는다).
+   눈은 원본에서 뚫려 있어(알파 0) 버튼 배경이 그대로 비친다 — 원이 지나가면 눈 색도 함께 바뀐다. */
+.wallet-icon {
+  width: var(--wallet-icon-w, 24px); height: var(--wallet-icon-h, 20px); flex: none;
+  background-color: var(--wallet-icon);
+  -webkit-mask: url("/static/img/phantom-icon.png") center / contain no-repeat;
+  mask: url("/static/img/phantom-icon.png") center / contain no-repeat;
+  transition: background-color .5s;
+}
+.btn-wallet:hover .wallet-icon { background-color: var(--wallet-icon-hover); }
+/* mask 를 모르는 브라우저에서는 네모가 통째로 칠해지므로, 그때만 원본 이미지를 그대로 쓴다
+   (색 전환은 없어지지만 로고는 제대로 보인다). */
+@supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+  .wallet-icon { background: url("/static/img/phantom-icon.png") center / contain no-repeat; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-wallet, .btn-wallet::before, .wallet-icon { transition: none; }
+}
 select {
   padding: 6px 8px; border-radius: var(--radius); border: 1px solid var(--border);
   background: var(--card-bg); color: var(--text); font-size: var(--fs-base);
@@ -369,6 +508,15 @@ td a { color: var(--accent); }
 .side-buy { color: var(--buy); font-weight: 700; }
 .side-sell { color: var(--sell); font-weight: 700; }
 .empty-row td { color: var(--muted); text-align: center; padding: 18px; }
+/* 거래 내역 표의 세션 경계 — 피드(.feed li.session-divider / .past-session)와 같은 처리.
+   표는 상태 스냅샷으로 복원되지 않고 SSE 히스토리 재전송만으로 채워져서, 새로고침하면
+   지난 세션 체결이 현재 세션 것처럼 섞여 보였다. */
+tr.past-session { opacity: .45; }
+tr.session-divider td {
+  color: var(--muted); font-weight: 600; text-align: center; letter-spacing: .5px;
+  /* 구분선 문구는 길다 — nowrap 이면 표 전체가 가로로 늘어나 스크롤이 생긴다. */
+  white-space: normal;
+}
 
 /* ---- 푸터 ---- */
 .foot {
@@ -553,6 +701,10 @@ td a { color: var(--accent); }
 }
 .auth-notice a { color: var(--accent); }
 .auth-submit { width: 100%; margin-top: 4px; }
+/* 지갑 버튼만 카드 폭을 꽉 채우지 않고 양쪽을 조금 들인다 — 위 안내 상자와 끝을 맞추면
+   버튼이 상자의 일부처럼 읽혀서, 한 단계 좁혀 "누르는 것"으로 떼어 놓는다.
+   inline-flex 인 채로 폭을 줄이면 왼쪽으로 붙으므로, 블록으로 바꿔 좌우 여백을 auto 로 맞춘다. */
+.btn-wallet.auth-submit { display: flex; width: 88%; margin-left: auto; margin-right: auto; }
 .auth-result { margin-top: 8px; }
 .auth-back { text-align: center; margin-top: var(--gap); }
 .auth-back a { color: var(--accent); text-decoration: none; }
