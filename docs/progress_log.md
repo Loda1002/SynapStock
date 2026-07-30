@@ -310,3 +310,13 @@
 `/static/lab/index.html` 404(실험장 차단 유지) · env 에 `GEMINI_MODEL=gemini-flash-latest` 유지 ·
 `POST /broker/orders` → 402 + accepts[](asset = Circle 공식 devnet USDC) · 배포본 대시보드에서
 시안 토큰·범례 칩·아이콘 7개·툴팁·지갑 버튼 16px 확인 · 콘솔 오류 0.
+
+배포 URL 라이브 세션 1회 완주(샌드박스·추세추종·80봉): 가드 시도 3 · 차단 0 · 유출 0.00 ·
+실현 +17.25 USDC(23.06%) · Firestore 저장 · 서버 counts.trades=3 = 화면 표 3줄 · 콘솔 오류 0.
+⚠ 배포본은 CONTROL_TOKEN 게이트라 `/app#token=…` 로 한 번 열어야 세션을 켤 수 있다
+(런북 §6-1). `/`(랜딩)로 열면 app.js 를 안 실어 토큰이 저장되지 않는다.
+
+그 과정에서 상단 바 탭이 긴급정지 버튼을 42px 가리는 것을 발견해 수정(`f3dde4e`,
+`.fx-tabs { overflow: hidden }`). 알림 권한이 '거부' 일 때만 나타나는 결함이고 시안 팔레트
+이전부터 있었다(옛 --page-pad 로 재면 16px). 재배포 후 최종 리비전 `synapstock-00022-2xl`,
+겹침 -68px 로 해소 · 정적 파일 6개 저장소와 일치 · 실험장 404 · env 유지 · 콘솔 오류 0.
