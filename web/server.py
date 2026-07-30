@@ -84,7 +84,7 @@ class StrictBody(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-app = FastAPI(title="402 Guard — 에이전트 지출 승인 게이트", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="SynapStock — 402 Guard(에이전트 지출 승인 게이트)", version="0.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # 브로커 x402 자원 서버(G5) — POST /broker/orders · GET /.well-known/x402.
 # 로컬 시연은 별도 프로세스(python -m web.broker_service --port 8402)로 띄우지만,
@@ -128,7 +128,7 @@ async def _not_found(request: Request, exc):
     if wants_json:
         return JSONResponse({"detail": getattr(exc, "detail", "Not Found")}, status_code=404)
     body = (
-        "<!doctype html><meta charset='utf-8'><title>404 — 402 Guard</title>"
+        "<!doctype html><meta charset='utf-8'><title>404 — SynapStock</title>"
         "<style>body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#0f1115;"
         "color:#e6e8ee;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}"
         "a{color:#7ee2b8}code{color:#9aa4b2}</style>"
@@ -510,7 +510,7 @@ def main() -> None:
     # env_num 을 쓰는 이유는 config 의 숫자 필드와 같다 — PORT= 처럼 빈 값이 들어오면
     # int("") 가 터져 서버가 뜨지 않는데, 그 트레이스백에는 어느 변수가 문제인지 안 나온다.
     default_port = env_num("PORT", str(CFG.web_port), int)
-    ap = argparse.ArgumentParser(description="402 Guard 대시보드 서버")
+    ap = argparse.ArgumentParser(description="SynapStock 대시보드 서버")
     ap.add_argument("--port", type=int, default=default_port,
                     help=f"포트 (기본 {default_port}) — 8000 점유 시 --port 8010 등")
     args = ap.parse_args()

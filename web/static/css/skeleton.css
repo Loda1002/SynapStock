@@ -936,7 +936,7 @@ body.page-dashboard .topbar .controls [data-btn-notify] { background: #ececec; c
   -webkit-mask: var(--ci) center / contain no-repeat;
           mask: var(--ci) center / contain no-repeat;
 }
-/* 제품 이름이 402 Guard 라 방패를 쓴다. 배너는 같은 방패에 체크를 더한다
+/* 제품(SynapStock)의 핵심 기능이 402 Guard 라 방패를 쓴다. 배너는 같은 방패에 체크를 더한다
    (로고는 정체성, 배너가 말하는 것은 "막았어요" 라는 결과다). */
 .fx-logo {
   display: inline-flex; align-items: center; justify-content: center;

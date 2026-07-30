@@ -4,7 +4,10 @@
 > 빠짐없이 채우기 위한 **작업 대상 목록 + 초안**이다. 개발이 끝나면 각 항목의 DRAFT를
 > 확정본으로 교체하고, 구글폼/유튜브/PDF에 그대로 옮긴다.
 >
-> 제출명 = **402 Guard** ("AutoTrader"를 제목 첫 단어로 두지 않는다 — [`docs/differentiation.md`](differentiation.md)).
+> 제출명 = **SynapStock** (2026-07-31 확정). "AutoTrader"를 제목 첫 단어로 두지 않는다는
+> 원칙은 그대로다 — [`docs/differentiation.md`](differentiation.md).
+> **이름 규칙: SynapStock = 제품, 402 Guard = 그 안의 지출 승인 게이트.** 아래 본문에서
+> "402 Guard" 로 적힌 곳은 전부 그 게이트를 가리키므로 그대로 두면 된다.
 
 ---
 
