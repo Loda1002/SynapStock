@@ -76,6 +76,7 @@
     budgetPerTrade: $("[data-budget-per-trade]"),
     pnl: $("[data-pnl]"),
     returnPct: $("[data-return-pct]"),
+    returnLabel: $("[data-return-label]"),
     cumBuy: $("[data-cum-buy]"),
     feeRate: $("[data-fee-rate]"),
     cumFee: $("[data-cum-fee]"),
@@ -555,11 +556,26 @@
     el.budgetTotal.textContent = s.budget.total_usdc;
     el.budgetRemaining.textContent = s.budget.remaining_usdc;
     el.budgetPerTrade.textContent = s.budget.all_in ? "전량(올인)" : s.budget.per_trade_max_usdc;
+    /* 올인이면 이 칸과 '한도 바꾸기' 카드의 건별 최대가 서로 다른 값을 말한다 — 둘 다 사실이다
+       (추세추종이 건별 한도를 쓰지 않고 덮어쓴다). 화면에서 어긋나 보이는 자리라 설명을 붙인다. */
+    el.budgetPerTrade.title = s.budget.all_in
+      ? "추세추종은 신호가 뜨면 전량 매매합니다 — 건별 한도를 쓰지 않으므로 '한도 바꾸기' 카드의 건별 최대 값과 달라 보입니다. 총예산 상한은 그대로 집행됩니다."
+      : "AP2 위임장이 집행하는 건별 상한입니다.";
 
     const pnl = num(s.pnl.realized_usdc);
     el.pnl.textContent = (pnl > 0 ? "+" : "") + s.pnl.realized_usdc;
     el.pnl.className = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "";
     el.returnPct.textContent = s.pnl.return_pct;
+    /* 수익률의 기준이 전략에 따라 다르다(engine.py state_snapshot 의 pnl.basis) —
+       조건형은 실현손익/누적매수(순수 실현), 추세추종은 초기자본 대비 총자산(평가 포함)이다.
+       라벨을 고정해 두면 실현 0 USDC 바로 아래에 수익률 6.22% 가 붙어 자기모순으로 읽힌다. */
+    if (el.returnLabel) {
+      const withValuation = s.pnl.basis === "initial-capital";
+      el.returnLabel.textContent = withValuation ? "수익률(평가 포함)" : "수익률";
+      el.returnLabel.title = withValuation
+        ? "초기 자본 대비 총자산(가용 예산 + 보유 주식 평가액) 기준입니다 — 아직 팔지 않은 평가손익이 함께 들어갑니다."
+        : "실현손익 ÷ 누적 매수액 기준입니다 — 실제로 팔아서 확정한 금액만 셉니다.";
+    }
     el.cumBuy.textContent = s.pnl.cum_buy_usdc;
     if (s.fees) {
       el.feeRate.textContent = feePct + "%";
@@ -1002,6 +1018,26 @@
     }
     capList(el.decisionFeed, MAX_FEED_ITEMS);
     capList(el.eventLog, MAX_LOG_ITEMS);
+  }
+
+  /* 거래 내역 표의 세션 경계 — 위 피드(sessionBoundary)와 같은 처리다.
+     ⚠ 이 표는 /api/state 에 trades 키가 없어 SSE 히스토리 재전송(?since=0)만으로 채워진다.
+       그래서 새로고침하면 지난 세션 체결이 현재 세션 것처럼 섞여 보였다(실측: 서버가
+       counts.trades=1 인데 표는 2줄, 하나는 45초 전에 끝난 다른 세션 것).
+     ⚠ isFresh(페이지 연 시각)로 거르면 안 된다 — 히스토리에는 현재 세션 거래도 실려 오므로
+       (새로고침 복원 경로) 걸러 내면 서버 3건인데 표가 0줄이 된다.
+     기준점은 engine_started 다 — 엔진이 self.trades = [] 하는 바로 그 시점이라 구분선
+     아래(=이번 세션) 줄 수가 counts.trades 와 정확히 맞는다. 이벤트 버퍼가 넘쳐
+     engine_started 가 밀려나면 그보다 오래된 지난 세션 거래도 함께 밀려난다. */
+  function tradesBoundary(ts, text) {
+    // 아직 체결이 한 건도 없으면(빈 안내행만 있으면) 그을 경계가 없다
+    if (!el.tradesBody.children.length || el.tradesBody.querySelector(".empty-row")) return;
+    for (const tr of el.tradesBody.children) tr.classList.add("past-session");
+    const tr = make("tr", "session-divider");
+    const td = make("td", "", text);
+    td.colSpan = 11;   // 시각·종목·방향·수량·단가·수수료·총액·판단·상태·결제tx·전달tx
+    tr.appendChild(td);
+    el.tradesBody.prepend(tr);
   }
 
   function addTradeRow(t) {
@@ -1508,6 +1544,7 @@
           srcNote = "판단 출처 gemini / rule";
         }
         sessionBoundary(evt.ts, `─── 새 세션 시작 · ${stText} · ${srcNote} ───`, true);
+        tradesBoundary(evt.ts, `─── 새 세션 시작 (${timeOf(evt.ts)}) · 아래는 지난 세션 체결입니다 ───`);
         addLog(evt.ts, `[세션 시작] ${d.mode === "live" ? "라이브" : "샌드박스"} · ${d.network} · ${d.symbol} · 시세: ${d.feed ? d.feed.label : "—"} · 전략: ${stText} · 판단: ${d.brain} · AP2 mandate 서명검증 ${d.mandate_verified ? "OK" : "FAIL"}`, "log-ok");
         fetchState();
         break;

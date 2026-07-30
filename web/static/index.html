@@ -163,7 +163,9 @@
       <div class="fx-tile">
         <div class="fx-tile-head"><span class="fx-chip fx-chip-mint" aria-hidden="true"></span>손익 (실현)</div>
         <p class="fx-tile-num fx-num-ok"><span data-pnl>0</span> <span class="unit">USDC</span></p>
-        <p class="fx-tile-sub">수익률 <span data-return-pct>0</span>%</p>
+        <!-- 수익률의 기준은 전략에 따라 다르다(state.pnl.basis) — 라벨은 app.js 가 바꾼다.
+             고정 문구로 두면 실현 0 USDC 아래에 수익률 6.22% 가 붙어 자기모순으로 읽힌다. -->
+        <p class="fx-tile-sub"><span data-return-label>수익률</span> <span data-return-pct>0</span>%</p>
       </div>
       <div class="fx-tile">
         <div class="fx-tile-head"><span class="fx-chip fx-chip-blue" aria-hidden="true"></span>평가손익</div>
