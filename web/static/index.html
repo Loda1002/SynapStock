@@ -18,27 +18,39 @@
      여러 사이트의 헤더처럼 제목(왼쪽) + 지갑 연결·긴급정지(오른쪽)만 남긴다.
      fixed 라 나타나고 사라져도 문서 높이가 변하지 않는다(화면이 튀지 않음).
      긴급정지·재개는 아래 제목 블록의 진짜 버튼을 대신 눌러 주는 역할이라 로직이 한 벌로 유지된다.
-     지갑만 링크인 이유: wallet.js 는 [data-wallet-connect] 를 하나만 배선하므로(querySelector)
-     여기에 같은 버튼을 하나 더 두면 라벨이 "지갑 연결"에 굳은 채 눌러도 반응하지 않는다.
-     연결/해제 상태가 모두 있는 /connect 로 보내면 그런 어긋난 상태가 아예 생기지 않는다. -->
+     지갑은 예전엔 /connect 로 보내는 링크였다 — wallet.js 가 [data-wallet-connect] 를 하나만
+     배선해서(querySelector) 여기에 같은 버튼을 두면 눌러도 반응하지 않았기 때문이다.
+     이제 wallet.js 가 querySelectorAll 로 전부 배선하므로(연결 중에는 양쪽을 함께 잠근다)
+     제목 블록과 같은 진짜 버튼을 둔다 — 크기만 얇은 헤더에 맞춘 .btn-wallet-xs 다. -->
 <div class="slim-bar" data-slim-bar>
   <a class="slim-brand" href="/" title="402 Guard 소개 페이지로">402 Guard</a>
   <div class="slim-actions">
-    <a class="btn btn-small" href="/connect"
-       title="지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다">지갑 연결</a>
+    <button class="btn-wallet btn-wallet-xs" type="button" data-wallet-connect
+            title="지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다">
+      <span class="wallet-icon" aria-hidden="true"></span>
+      <span data-wallet-label>Phantom 지갑 연결</span>
+    </button>
     <button class="btn btn-small btn-emergency" data-slim-pause>🛑 긴급정지</button>
     <button class="btn btn-small btn-resume hidden" data-slim-resume>▶ 매매 재개</button>
   </div>
 </div>
 
 <header class="topbar">
-  <!-- 소개 페이지(랜딩)로 복귀. 백엔드가 라우트를 전환해 / = landing.html, /app = 이 대시보드다.
-       (전환 전 임시 주소였던 /static/landing.html 도 정적 서빙으로 계속 열리긴 한다.) -->
-  <a class="btn btn-back" href="/" title="402 Guard 소개 페이지로 돌아갑니다">← 소개</a>
-  <div class="brand">
+  <!-- 시안(Desktop - 8) 상단 바: 로고 + 탭 4개 + 오른쪽 조작부.
+       ⚠ 포트폴리오·인사이트·리포트는 우리에게 없는 화면이라 눌러도 갈 곳이 없다.
+          시안 배치를 그대로 보기 위해 모양만 두었다(aria-disabled).
+       ⚠ 원래 있던 '← 소개' 링크와 태그라인은 시안에 없어서 뺐다. 랜딩으로 가는 길은
+          얇은 헤더의 브랜드 링크에 그대로 살아 있다. -->
+  <div class="brand fx-brand">
+    <span class="fx-logo" aria-hidden="true"></span>
     <h1>402 Guard</h1>
-    <p class="tagline" title="A2A(에이전트 간 협의) · AP2(한도 위임) · x402(정산) on Solana">AI 에이전트에게 지갑을 맡기기 위한 승인 게이트</p>
   </div>
+  <nav class="fx-tabs" aria-label="섹션">
+    <span class="fx-tab is-active">대시보드</span>
+    <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">포트폴리오</span>
+    <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">인사이트</span>
+    <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">리포트</span>
+  </nav>
   <!-- 진단 배지 4개(네트워크·엔진 상태·판단 모듈·시세 피드)는 개발자 서랍으로 옮겼다 —
        관람자에게는 읽을 이유가 없는 계기판 값이고, 배너가 그것들로 차 있으면 제품명이 묻힌다.
        DOM 에서 지우지는 않는다(app.js 가 매 갱신마다 값을 쓰므로 없애면 null 참조로 죽는다).
@@ -49,18 +61,27 @@
   <div class="controls">
     <!-- 가드 알림창 접기/펴기는 제목칸 오른쪽 아래에 붙은 탭(.guard-tab)이 담당한다 —
          그 탭은 스크롤해도 제목칸을 따라다녀서 여기 버튼을 따로 둘 필요가 없다. -->
-    <button class="btn btn-emergency" data-btn-pause>🛑 긴급정지</button>
+    <!-- 🛑 를 뺐다 — 시안(2003:831, 9×9)대로 라벨 앞에 점을 하나 그리는데 이모지까지 있으면
+         동그라미가 둘로 보인다. 시안에는 점 하나뿐이다. 얇은 헤더(.slim-bar)의 같은 버튼은
+         점을 안 그리므로 이모지를 그대로 둔다. -->
+    <button class="btn btn-emergency" data-btn-pause>긴급정지</button>
     <button class="btn btn-resume hidden" data-btn-resume>▶ 매매 재개</button>
     <!-- 라벨에서 '차단됨'을 뺐다 — 같은 화면에 '가드 차단' KPI 가 있어서 가드가 막은 것으로
          읽힌다. 상태별 문구는 app.js NOTIFY_LABEL 이 단일 출처다. -->
-    <button class="btn" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림 받기</button>
-    <!-- 지갑 연결 = 로그인. 서명은 소유 증명일 뿐이고 자금은 움직이지 않는다(web/auth.py).
-         wallet.js 가 이 두 훅을 찾아 자동으로 배선한다(연결/해제 라벨 전환 포함). -->
-    <span class="badge" data-wallet-status title="지갑 미연결">미연결</span>
+    <button class="btn btn-sweep" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림 받기</button>
     <!-- 연결된 지갑의 온체인 잔액. 세션 모드(샌드박스/라이브)와 무관하게 체인을 직접 읽는다.
          미연결이거나 조회 실패면 통째로 감춘다 — 헤더에 빈 칸이 남지 않게. -->
     <span class="badge hidden" data-wallet-balance></span>
-    <button class="btn" type="button" data-wallet-connect>지갑 연결</button>
+    <!-- 지갑 연결 = 로그인. 서명은 소유 증명일 뿐이고 자금은 움직이지 않는다(web/auth.py).
+         '미연결' 배지 + '지갑 연결' 버튼 두 개였던 것을 이 버튼 하나로 합쳤다 — 연결되면
+         라벨이 주소로 바뀌고, 누르면 해제된다(안내는 title). 배지를 지워도 wallet.js 는
+         [data-wallet-status] 를 있을 때만 갱신하므로 깨지지 않는다.
+         ⚠ 라벨은 반드시 [data-wallet-label] 안에 둔다 — wallet.js 가 그 요소에만 글자를
+           쓰므로, 밖으로 빼면 아이콘이 지워진다. -->
+    <button class="btn-wallet btn-wallet-sm" type="button" data-wallet-connect>
+      <span class="wallet-icon" aria-hidden="true"></span>
+      <span data-wallet-label>Phantom 지갑 연결</span>
+    </button>
   </div>
 </header>
 
@@ -71,38 +92,48 @@
      fixed 라 본문 배치를 밀지 않는다. 세로 위치는 app.js 가 "지금 보이는 제목칸"
      — 맨 위에서는 제목 블록, 스크롤 중에는 얇은 헤더 — 바로 아래로 맞춘다.
      데이터 출처: GET /api/state 의 state.guard. -->
-<div class="guard-dock" data-guard-dock>
-  <section class="guard-panel" id="guard-panel" data-guard-panel aria-live="polite">
-    <h2>402 Guard <span class="sub"
-        title="사람이 화면을 지켜보지 않아도 되도록, 에이전트가 서명하기 직전에 청구서를 대조합니다. 숫자는 모두 이번 세션 기준입니다.">서명 직전에 청구서를 대조합니다</span></h2>
-    <div class="kpi-row">
-      <div class="kpi">
-        <p class="kpi-num"><span data-guard-attempts>0</span></p>
-        <p class="sub">지출 시도</p>
-      </div>
-      <div class="kpi">
-        <p class="kpi-num"><span data-guard-blocked>0</span></p>
-        <!-- 레그별 분해 — 매수/매도 양 레그 대칭이 이 제품의 차별점이라 지표에서도 보여준다.
-             '검사 불가'는 악성 청구서를 판정으로 막은 것이 아니라 의미 대조를 못 해서
-             보류한 건수다(Gemini 쿼터 소진·응답 실패). 두 사건을 같은 칸에 합치지 않는다. -->
-        <p class="sub" title="받은 청구서가 합의한 견적과 다르면 서명 전에 막습니다 (수취인·자산·종목·금액·주문번호 등 8종 검사)">가드 차단 <span data-guard-legs></span><span data-guard-unverified></span></p>
-      </div>
-      <div class="kpi">
-        <p class="kpi-num"><span data-guard-ap2>0</span></p>
-        <p class="sub" title="AP2 위임장의 총예산·건별 한도를 넘어서 거부된 건수">한도 거부</p>
-      </div>
-      <div class="kpi kpi-hero">
-        <p class="kpi-num"><span data-guard-leak>0.00</span> <span class="unit">USDC</span></p>
-        <p class="sub" title="가드를 통과했는데도 엉뚱한 곳으로 나간 금액 — 목표는 0.00 입니다">유출 (목표 0.00)</p>
-      </div>
+<!-- 시안(Desktop - 8)에서는 이 KPI 들이 떠 있는 패널이 아니라 본문 맨 위 보라색 배너다.
+     ⚠ 훅 이름(data-guard-*)과 감싸는 요소(data-guard-dock / -panel / -toggle)는 그대로 둔다 —
+        app.js 가 이 셋을 필수로 잡고(없으면 대시보드가 죽는다) 스크롤마다 dock 의 top 을 쓴다.
+        skeleton 의 .fx-banner-wrap 이 position:static 으로 바꿔 두어서 그 인라인 top 은
+        무시되고 흐름에 놓인다.
+     ⚠ 같은 훅은 문서에 한 번만 둘 수 있다(app.js 가 querySelector 로 첫 개만 잡는다).
+        그래서 '가드 차단'은 제목 문장에만 넣고 아래 줄에서는 뺐다. -->
+<div class="guard-dock fx-banner-wrap" data-guard-dock>
+  <section class="guard-panel fx-banner" id="guard-panel" data-guard-panel aria-live="polite">
+    <span class="fx-banner-icon" aria-hidden="true"></span>
+    <div class="fx-banner-body">
+      <h2 class="fx-banner-title">자리를 비운 사이, 위험한 지출 <span class="fx-banner-hl" data-guard-blocked>0</span>건을 막았어요</h2>
+      <p class="fx-banner-sub">
+        <span class="fx-dot" aria-hidden="true"></span>
+        <span class="fx-banner-leak">새어나간 돈 <span data-guard-leak>0.00</span> USDC</span>
+        <span> · 지출 시도 <span data-guard-attempts>0</span></span>
+        <span> · 한도 거부 <span data-guard-ap2>0</span></span>
+        <span class="fx-banner-legs" data-guard-legs></span><span class="fx-banner-legs" data-guard-unverified></span>
+      </p>
+      <!-- 가드가 막은 건의 상세 한 줄. 시안에는 없어서 화면에서는 감추지만(skeleton
+           .fx-banner-hit) DOM 에는 남긴다 — app.js 가 여기에 글자를 쓴다. 차단 사유를
+           읽는 길은 시안이 정한 그대로 '자세히 보기' → 결제 과정 로그다. -->
+      <p class="guard-hit fx-banner-hit hidden" data-guard-hit>
+        <span class="guard-hit-text" data-guard-hit-text></span>
+      </p>
     </div>
-    <p class="guard-hit hidden" data-guard-hit>
-      <span class="guard-hit-text" data-guard-hit-text></span>
-      <button class="btn btn-small" data-guard-hit-more>자세히 보기</button>
-    </p>
+    <div class="fx-banner-actions">
+      <button class="fx-banner-btn" data-guard-hit-more>자세히 보기 <span aria-hidden="true">→</span></button>
+      <button class="guard-tab fx-banner-close" data-guard-toggle aria-expanded="true" aria-controls="guard-panel"
+              title="접기">닫기</button>
+    </div>
   </section>
-  <button class="guard-tab" data-guard-toggle aria-expanded="true" aria-controls="guard-panel"
-          title="접기">🛡 가드 요약 <span class="chev" aria-hidden="true">▼</span></button>
+  <!-- 닫기를 누르면 패널이 접히는데, 그 '닫기' 버튼이 패널 안에 있어서 같이 사라진다
+       = 다시 열 방법이 없다. 접혔을 때만 나타나는 손잡이를 패널 밖에 하나 둔다.
+       원래 버튼은 그대로 두고 이 손잡이는 그것을 대신 눌러 준다(app.js) — 열고 닫는
+       경로가 한 벌로 유지된다. 표시 여부는 skeleton 의 :has() 규칙이 정한다. -->
+  <button type="button" class="fx-banner-reopen" data-guard-reopen
+          aria-controls="guard-panel" title="402 Guard 요약 다시 열기">
+    <span class="fx-banner-reopen-dot" aria-hidden="true"></span>
+    402 Guard 요약 다시 보기
+    <span class="fx-banner-reopen-chev" aria-hidden="true">▾</span>
+  </button>
 </div>
 
 <!-- 카드(모듈) 그리드 — 모든 기능은 data-card 모듈로 분리되어 있고,

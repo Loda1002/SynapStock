@@ -757,6 +757,165 @@ td.sym { font-weight: 600; }
 /* 서랍에 카드가 둘 이상 들어오므로 사이를 띄운다(카드 껍데기를 벗겨 붙어 보이던 자리) */
 .dev-drawer .card + .card { margin-top: var(--gap); padding-top: var(--gap); border-top: 1px solid var(--border); }
 
+/* =====================================================================
+   시안 배치 (Figma 해커톤_웹디자인 · Desktop - 8)
+
+   실험장(web/static/lab)에서 확정한 규칙을 그대로 옮긴 것이다. 값은 전부 시안 노드에서
+   직접 읽었고, 시안에 표본이 없는 것만 "파생"으로 적었다.
+   ⚠ 색·글꼴·간격 토큰(theme.css)은 아직 손대지 않았다 — 프런트가 theme.css 를 보내면
+     그때 한 번에 맞춘다. 그래서 여기 하드코딩된 색(배너 보라·탭 틴트)은 시안 값 그대로이고,
+     var(--accent) 를 쓰는 자리는 저장소 팔레트(로열블루)를 따른다.
+   ⚠ 이 블록은 파일 맨 뒤에 둔다 — .guard-dock / .guard-tab 을 같은 특이도로 덮어써야 한다.
+   ===================================================================== */
+
+/* ---- 그리드: 4열 → 12열 ----
+   시안 실측 비율을 12열로 옮기면 딱 떨어진다.
+   카드는 전부 .grid 의 직계 자식으로 둔다 — app.js 의 applyLayout 이 순서를 다시 매기면서
+   grid 바로 아래로 붙이기 때문에, 행 래퍼로 감싸면 도로 끄집어내진다. */
+.grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.grid > [data-card] { grid-column: span 12; }      /* 기본값 — .card-full/.card-wide 를 덮는다 */
+.grid > [data-card="ai"]       { grid-column: span 12; }
+.grid > [data-card="decisions"],
+.grid > [data-card="log"],
+.grid > [data-card="price"],
+.grid > [data-card="trades"]   { grid-column: span 6; }
+.grid > [data-card="budget"],
+.grid > [data-card="mandate"],
+.grid > [data-card="briefing"] { grid-column: span 4; }
+
+@media (max-width: 1100px) {
+  .grid > [data-card] { grid-column: span 12 !important; }
+}
+
+/* ---- 상단 바 ---- */
+.topbar {
+  padding: 0 26px; min-height: 66px; gap: 34px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .06); border: 0;
+  flex-wrap: nowrap;
+}
+.fx-brand { display: flex; align-items: center; gap: 11px; flex: none; }
+.fx-logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); flex: none; }
+.brand h1 { font-size: 18px; font-weight: 700; }
+
+.fx-tabs { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.fx-tab {
+  padding: 8px 14px; border-radius: 10px;
+  font-size: 14px; font-weight: 700; color: #5b617a; white-space: nowrap;
+}
+.fx-tab.is-active { background: #edebff; color: var(--accent); }
+.fx-tab[aria-disabled="true"] { opacity: .75; cursor: not-allowed; }
+
+.topbar .controls { gap: 10px; flex-wrap: nowrap; }
+/* 긴급정지·알림은 시안의 알약 칩 모양으로. 지갑 버튼은 제외한다(브랜드 색 고정). */
+.topbar .controls .btn {
+  padding: 10px 15px; border-radius: 11px; border: 0;
+  font-size: 14px; font-weight: 700; white-space: nowrap;
+}
+.topbar .controls .btn-emergency { background: #ffe8ec; color: var(--danger); }
+.topbar .controls .btn-emergency::before {
+  content: ""; display: inline-block; vertical-align: -1px;
+  width: 9px; height: 9px; margin-right: 6px; border-radius: 50%;
+  background: var(--danger); opacity: .35;
+}
+.topbar .controls [data-btn-notify] { background: #ececec; color: var(--text); }
+
+/* ---- 402 Guard 배너 (시안: 본문 맨 위 보라색 가로 바) ----
+   app.js 는 여전히 이걸 '떠 있는 dock' 으로 취급해 스크롤마다 인라인 top 을 쓴다.
+   position:static 이면 top 은 아무 효과가 없어서 그대로 흐름에 놓인다. */
+.fx-banner-wrap {
+  position: static; width: auto; right: auto; top: auto;
+  display: block; margin-bottom: var(--gap);
+}
+.fx-banner {
+  display: flex; align-items: center; gap: 22px;
+  padding: 20px 24px; border: 0; border-radius: var(--radius);
+  background: linear-gradient(90deg, #6d5cf9 0%, #8f6efd 100%);
+  box-shadow: 0 10px 30px rgba(91, 79, 233, .28);
+  max-height: 200px;
+}
+.fx-banner-icon { width: 48px; height: 48px; border-radius: 14px; background: #8a7afc; flex: none; }
+.fx-banner-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.fx-banner-title { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
+.fx-banner-hl { color: #ffe167; }
+.fx-banner-sub { margin: 0; font-size: 12px; color: #fff; display: flex; align-items: center; flex-wrap: wrap; }
+.fx-banner-sub .fx-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: .8;
+  margin-right: 6px; flex: none;
+}
+.fx-banner-leak { color: #a4ffe5; }
+.fx-banner-legs { opacity: .85; }
+/* 차단 상세 한 줄은 시안에 없다 — 배너 높이를 못 박는 요소라 화면에서 뺀다.
+   DOM 에는 남긴다(app.js 가 여기에 글자를 쓴다). 차단 사유를 읽는 길은 시안이 정한
+   그대로 '자세히 보기' → 결제 과정 로그다. 위 .guard-hit{display:flex} 가 .hidden 을
+   이기므로 여기서 확실히 눌러 둔다. */
+.fx-banner-hit { display: none !important; }
+.fx-banner-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+
+.fx-banner-btn, .fx-banner-close {
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  padding: 11px 17px; border: 0; border-radius: 11px; white-space: nowrap;
+}
+.fx-banner-btn { background: #fff; color: #483ace; }
+.fx-banner-close { background: #a284ff; color: #fff; position: static; }
+
+/* ---- 접힌 배너를 다시 여는 손잡이 ----
+   평소에는 없는 셈 치고, 패널이 접혔을 때만 그 자리에 나타난다. 배너와 같은 자리·같은
+   보라색이라 열고 닫아도 아래 카드들이 밀리지 않는다. */
+.fx-banner-reopen { display: none; }
+.fx-banner-wrap:has(.guard-panel.is-collapsed) .fx-banner-reopen {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 12px 20px;
+  border: 0; border-radius: var(--radius);
+  background: linear-gradient(90deg, #6d5cf9 0%, #8f6efd 100%);
+  box-shadow: 0 6px 18px rgba(91, 79, 233, .22);
+  font: inherit; font-size: 14px; font-weight: 700; color: #fff;
+  cursor: pointer;
+}
+.fx-banner-reopen-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffe167; flex: none; }
+.fx-banner-reopen-chev { margin-left: auto; }
+.fx-banner-wrap:has(.guard-panel.is-collapsed) .fx-banner-reopen:hover {
+  box-shadow: 0 8px 22px rgba(91, 79, 233, .34);
+}
+/* :has() 를 모르는 브라우저에서는 손잡이가 안 뜬다 — 그때만 늘 보이게 되돌린다
+   (닫아도 다시 열 수 있는 길이 사라지지 않게). */
+@supports not selector(:has(*)) {
+  .fx-banner-reopen { display: flex; }
+}
+
+/* ---- 아이콘 글리프 ----
+   시안(Desktop - 8)의 `Rectangle 16~22` 는 안이 빈 사각형이다(벡터 자식 0개). 글리프는
+   우리가 정했다 — 24×24 격자, 굵기 2, 둥근 끝의 선 아이콘 한 벌.
+   SVG 를 **마스크**로 쓰고 색은 글자색(currentColor)이 준다 → 다크 모드에서 토큰만 바뀌면
+   아이콘도 따라온다. 데이터 URI 라 외부 요청이 0건이다. */
+:root {
+  --ci-shield:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z'/%3E%3C/svg%3E");
+  --ci-shield-ok: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z'/%3E%3Cpath d='m8.8 11.9 2.3 2.3 4.3-4.4'/%3E%3C/svg%3E");
+}
+/* 글리프를 얹는 공통 규칙. 색은 담는 칸이 정한다(칸마다 배경 틴트가 다르다). */
+.fx-logo::before,
+.fx-banner-icon::before {
+  content: ""; display: block;
+  background-color: currentColor;
+  -webkit-mask: var(--ci) center / contain no-repeat;
+          mask: var(--ci) center / contain no-repeat;
+}
+/* 제품 이름이 402 Guard 라 방패를 쓴다. 배너는 같은 방패에 체크를 더한다
+   (로고는 정체성, 배너가 말하는 것은 "막았어요" 라는 결과다). */
+.fx-logo {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; --ci: var(--ci-shield);
+}
+.fx-logo::before { width: 19px; height: 19px; }
+.fx-banner-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; --ci: var(--ci-shield-ok);
+}
+.fx-banner-icon::before { width: 26px; height: 26px; }
+/* 마스크를 모르는 브라우저 — 글리프만 빼고 빈 칸(시안 그대로)으로 돌아간다. */
+@supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+  .fx-logo::before, .fx-banner-icon::before { display: none; }
+}
+
 /* 거래 내역의 온체인 tx 두 열 — 라이브 세션에서만 보인다.
    샌드박스는 전송이 없어 값이 전부 "—" 라, 빈 열 두 개가 늘 화면에 남아 있었다.
    지우지 않는 이유는 라이브의 explorer 링크가 "진짜 트랜잭션" 증거이기 때문이다.

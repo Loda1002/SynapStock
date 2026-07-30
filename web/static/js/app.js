@@ -124,6 +124,7 @@
     guardHit: $("[data-guard-hit]"),
     guardHitText: $("[data-guard-hit-text]"),
     guardHitMore: $("[data-guard-hit-more]"),
+    guardReopen: $("[data-guard-reopen]"),
     aiMoreBtns: Array.from(document.querySelectorAll("[data-ai-more]")),
     logFilterNote: $("[data-log-filter-note]"),
     logFilterClear: $("[data-log-filter-clear]"),
@@ -1139,6 +1140,13 @@
   el.guardTab.addEventListener("click", () => {
     setGuardPanel(el.guardPanel.classList.contains("is-collapsed"));
   });
+
+  /* 접힌 배너를 다시 여는 손잡이 — '닫기' 버튼이 배너 **안**에 있어서 접히면 함께 사라진다.
+     패널 밖의 이 손잡이가 그 버튼을 대신 눌러 준다(상태를 따로 만들지 않는다 = 열고 닫는
+     경로가 한 벌). 보이고 숨는 것은 skeleton 의 :has(.is-collapsed) 규칙이 정한다. */
+  if (el.guardReopen) {
+    el.guardReopen.addEventListener("click", () => el.guardTab.click());
+  }
 
   // 늘 펴진 채로 시작한다. 첫 적용은 애니메이션 없이 — 페이지를 열자마자 패널이 움직이면
   // 깜빡임처럼 느껴진다.

@@ -190,20 +190,39 @@
   }
 
   // ---- 대시보드 헤더용 위젯 ----
-  // [data-wallet-connect] 버튼 + [data-wallet-status] 텍스트가 있는 페이지에서 자동 배선된다.
+  // [data-wallet-connect] 버튼이 있는 페이지에서 자동 배선된다.
+  // ⚠ querySelectorAll 이다 — 시안에서 같은 버튼이 두 자리(제목 블록·얇은 헤더)에 있다.
+  //   하나만 배선하던 시절에는 나머지 하나가 "지갑 연결"에 굳은 채 눌러도 반응하지 않았다.
+  // ⚠ 라벨은 버튼이 아니라 [data-wallet-label] 안에 쓴다. 버튼에 직접 textContent 를 대입하면
+  //   옆에 있는 아이콘 span(.wallet-icon)까지 함께 지워진다. 그 span 이 없는 버튼(옛 마크업)
+  //   에서는 예전처럼 버튼 자신에 쓴다.
+  // [data-wallet-status] 는 있을 때만 갱신한다 — 시안은 이 배지를 버튼 라벨에 합쳤다.
   function mountHeader() {
-    var btn = document.querySelector("[data-wallet-connect]");
+    var btns = Array.prototype.slice.call(document.querySelectorAll("[data-wallet-connect]"));
     var status = document.querySelector("[data-wallet-status]");
-    if (!btn) return;
+    if (!btns.length) return;
 
     var connected = false;
     var refreshBalance = mountBalance(document);
     var balanceTimer = null;
 
+    function labelOf(btn) { return btn.querySelector("[data-wallet-label]") || btn; }
+    function setBusy(on) { btns.forEach(function (b) { b.disabled = on; }); }
+
     function render(pubkey) {
       connected = !!pubkey;
-      btn.textContent = connected ? "연결 해제" : "지갑 연결";
-      btn.classList.toggle("is-connected", connected);
+      btns.forEach(function (b) {
+        var lab = labelOf(b);
+        // 라벨 span 이 있으면 연결 후 주소를 그대로 보여준다(배지를 합쳤으므로).
+        // 없으면 옛 동작 그대로 — 버튼 하나가 곧 라벨이라 무엇을 하는 버튼인지를 적는다.
+        lab.textContent = lab === b
+          ? (connected ? "연결 해제" : "지갑 연결")
+          : (connected ? shortKey(pubkey) : "Phantom 지갑 연결");
+        b.classList.toggle("is-connected", connected);
+        b.title = connected
+          ? "연결됨 " + pubkey + " — 누르면 해제합니다"
+          : "지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다";
+      });
       if (status) {
         status.textContent = connected ? shortKey(pubkey) : "미연결";
         status.title = connected ? pubkey : "지갑을 연결하면 이 세션의 위임자로 기록됩니다";
@@ -214,26 +233,28 @@
       if (connected) balanceTimer = setInterval(refreshBalance, 60000);
     }
 
-    btn.addEventListener("click", async function () {
-      btn.disabled = true;
-      try {
-        if (connected) {
-          await logout();
-          render("");
-        } else {
-          render(await connect());
-        }
-      } catch (err) {
-        if (!isUserRejection(err)) {
-          if (err.code === "NO_PROVIDER") {
-            if (confirm(err.message + "\n\n설치 페이지를 여시겠습니까?")) global.open(PHANTOM_URL, "_blank");
+    btns.forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        setBusy(true);
+        try {
+          if (connected) {
+            await logout();
+            render("");
           } else {
-            alert("지갑 연결 실패: " + err.message);
+            render(await connect());
           }
+        } catch (err) {
+          if (!isUserRejection(err)) {
+            if (err.code === "NO_PROVIDER") {
+              if (confirm(err.message + "\n\n설치 페이지를 여시겠습니까?")) global.open(PHANTOM_URL, "_blank");
+            } else {
+              alert("지갑 연결 실패: " + err.message);
+            }
+          }
+        } finally {
+          setBusy(false);
         }
-      } finally {
-        btn.disabled = false;
-      }
+      });
     });
 
     me().then(function (s) { render(s.connected ? s.pubkey : ""); }).catch(function () { render(""); });
