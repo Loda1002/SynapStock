@@ -10,6 +10,11 @@ test-ledger/
 
 # env
 .env
+# ⚠ .env 백업도 반드시 막는다 — `.env` 한 줄만으로는 `.env.backup-…` 이 안 걸려서,
+#   setup_devnet 이 .env 를 덮어쓰기 전에 떠 둔 백업(= API 키가 그대로 든 파일)이
+#   저장소 안에 무방비로 남는다. 2026-07-31 devnet 라운드에서 실제로 걸렸다.
+.env.*
+!.env.example
 .venv/
 __pycache__/
 *.pyc
