@@ -121,7 +121,7 @@
 >    ⑤ `.venv\\Scripts\\python.exe run_demo.py --live`
 >    ⚠ `setup_devnet.py:191` 이 **마지막에 `.env` 를 덮어쓴다**(USDC_MINT·STOCK_MINT 줄) —
 >    ①의 백업이 그래서 필요하다. 07-29 라운드는 임시 지갑 경로로 우회했다.
-> 2. ~~**A-lite(온체인 예산 레일) 재검토**~~ **✅ 완료 (2026-07-31, 커밋 `4a0b0b0`) — 전부 재현됨.**
+> 2. ~~**A-lite(온체인 예산 레일) 재검토**~~ **✅ 완료 (2026-07-31, 커밋 `df7dd20`) — 전부 재현됨.**
 >    `payments/delegation.py` · `scripts/demo_delegation.py` 는 **코드 무변경**이고, 07-29 이후
 >    회귀가 없음을 실행으로 확인했다. **아직 제품 미배선**(`wired_into_product: false`)이라는
 >    경계도 그대로다 — "402 Guard 의 예산이 온체인에서 집행된다"는 여전히 **거짓**이고,
