@@ -477,9 +477,12 @@
                 <li><code>artifacts/tx/</code> JSON 의 교차검증 블록 → 랜딩으로 마무리</li>
                 <li>저장소 주소와 라이브 URL(<b>토큰 없는 순수 URL</b>)</li>
               </ul>
-              <div class="proof"><b>⚠ explorer 화면은 조건부입니다</b> — <code>artifacts/tx/</code> 의 devnet 파일은 1건뿐이고 그 결제 통화가 <b>구매자 지갑이 민트 권한을 쥔 테스트 토큰</b>입니다. explorer 를 비추면 심사위원이 민트 권한 한 줄을 보게 됩니다.<br>
-              → <b>A안</b> Circle 공식 USDC 재실증을 촬영 앞으로 당겼다면 explorer 를 비춥니다.<br>
-              → <b>B안</b> 아니라면 explorer 대신 <b>아카이브 JSON + 고지 자막</b>으로 갑니다.</div>
+              <div class="proof"><b>✅ explorer 를 비춥니다 — 조건부가 아닙니다(2026-07-31 해소).</b> Circle 공식 USDC 재실증이 끝났습니다. 아래 서명 하나가 <b>축③·④ 를 한 화면에 담습니다</b> — Memo 로 결박된 x402 주문번호와 Circle 공식 USDC 전송이 같은 트랜잭션에 있습니다.<br>
+              → 비출 서명(배포 URL 라이브 세션 <code>20260731_160230_live</code> 의 매수 ① 레그):<br>
+              <code>3XeVWKF9XvyDrCvh7hsodNEay6McAqjCZ5Ypp7X4tT73AFXgKWB2tpnbaZaxC1tfZzw2FcCiasQ6Njt8RZbKL6E3</code><br>
+              → 그 화면에서 짚을 두 줄: <b>Memo <code>AT1:ord_5406404512:3uR12Hbb</code></b> · <b>transferChecked 19.99 USDC</b>(민트 <code>4zMMC9sr…</code> = Circle 공식, 발행 권한이 우리 지갑이 아님). <code>err=null</code>·<code>finalized</code>.<br>
+              → <b>⚠ 옛 증빙 <code>20260724_1643_*</code> 은 절대 비추지 않습니다</b> — 그 결제 통화는 구매자 지갑이 민트 권한을 쥔 테스트 토큰입니다.<br>
+              → <b>구매 대상 주식(tAAPL)은 여전히 자체 발행</b>이므로, 주식 전달 tx 를 비출 때는 고지 자막을 함께 겁니다(정직성 서사와 일관).</div>
             </div>
           </div>
         </section>
@@ -516,7 +519,8 @@
 
       <footer>
         장면 배분 A 18 · B 15 · C 35 · <b>X 12</b> · D 25 · E 35 · F 25 · G 15 = 180초. 3분을 넘기면 <b>G → C</b> 순으로 줄이고, <b>E(공격 2 — 물건)는 절대 자르지 않습니다</b> — 심사 축② 의 유일한 영상 근거입니다. <b>X 도 자르지 않습니다</b> — 축③ 이 주축인 유일한 장면입니다.<br>
-        근거: docs/submission.md §6(정본) · docs/differentiation.md §1·§3 · scripts/red_team.py 실측(2026-07-28) · artifacts/tx/20260724_1643_solana-devnet_live_buy.json · artifacts/tx/20260729_1243_solana-localnet_delegation.json(X 구간)
+        근거: docs/submission.md §6(정본) · docs/differentiation.md §1·§3 · scripts/red_team.py 실측(2026-07-28) · artifacts/tx/20260731_1508_solana-devnet_live_buy.json(Circle 공식 민트 재실증) · artifacts/tx/20260731_1603_solana-devnet_web_session_onchain_verify.json(G 구간 explorer 서명) · artifacts/tx/20260731_1438_solana-localnet_delegation.json(X 구간)<br>
+        <b>⚠ 인용 금지</b>: artifacts/tx/20260724_1643_* (자체발행 민트) — 2026-08-01 교체.
       </footer>
     </div>
   </div>

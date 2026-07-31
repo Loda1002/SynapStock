@@ -38,7 +38,7 @@
 | **매수·매도 풀사이클** | USDC⇄주식토큰 양방향 온체인 정산, 전후 잔액 RPC 교차검증 | `agents/broker_agent.py` | ✅ 순변화 PASS |
 | **거부 4종 데모** | 건별한도 초과·mandate 위변조·금액 부족·미허용 종목 | `scripts/demo_rejections.py` | ✅ |
 | **온체인 예산 레일 (A-lite)** | SPL Token 위임으로 예산 상한을 체인이 집행. 한도 초과·회수 후 결제를 체인이 거절하고, **같은 에러 코드(0x1)인 잔액 부족과 구분해** 라벨링한다(구분하지 않으면 지갑이 빈 것을 '한도 집행'으로 광고하게 된다). 에이전트는 자기 한도를 못 올린다 | `payments/delegation.py`, `scripts/demo_delegation.py` | ⚠ **제품 미배선** — 독립 증빙 전용(엔진 결제 경로 무변경). localnet 아카이브 1건 · 단위 23종 |
-| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ **10건 — localnet 9 · devnet 1** (`20260724_1643_solana-devnet_live_buy.json` = 온체인 tx 10건). 그중 1건은 매매 세션이 아니라 **온체인 예산 레일** 증빙(`*_delegation.json`, `wired_into_product:false`). 별도로 HTTP 402 실 TCP 왕복 로그 1건 `artifacts/x402_http/` |
+| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ **14파일 — localnet 10 · devnet 2 · 배포 세션 RPC 사후 검증본 1 · 거부 데모 로그 1**(비JSON). devnet 대표 증빙은 `20260731_1508_solana-devnet_live_buy.json`(Circle 공식 민트) — ⚠ 옛 `20260724_1643_*` 은 자체발행 민트라 **인용 금지**. localnet 10건 중 2건은 매매 세션이 아니라 **온체인 예산 레일** 증빙(`*_delegation.json`, `wired_into_product:false`). 별도로 HTTP 402 실 TCP 왕복 로그 1건 `artifacts/x402_http/` |
 
 ### 1-2. AI 판단 (Gemini)
 
@@ -56,7 +56,7 @@
 | 기능 | 설명 | 위치 | 상태 |
 |---|---|---|---|
 | **실시간 대시보드** | SSE 스트림, 새로고침 시 Last-Event-ID로 복원 | `web/server.py`, `web/events.py` | ✅ |
-| **카드 모듈 14개** | session·symbols·pnl·valuation·position·**ai**·decisions·log·price·trades·budget·mandate·briefing·**history**. 제목 드래그 재배치 + localStorage + 배치 초기화 | `web/static/` | ✅ 배치는 `DEFAULT_LAYOUT` 배열(`LAYOUT_KEY` _v7). 402 Guard KPI 는 카드가 아니라 떠 있는 패널(`.guard-dock`) |
+| **카드 모듈 15개** | **today**·session·symbols·pnl·valuation·position·**ai**·decisions·log·price·trades·budget·mandate·briefing·**history**. 제목 드래그 재배치 + localStorage + 배치 초기화 | `web/static/` | ✅ 배치는 `DEFAULT_LAYOUT` 배열(`LAYOUT_KEY` **_v12**). `today`(오늘의 결과) 신설 후 `pnl`·`valuation`·`position` 3장은 CSS 로 감춰 두었다(훅을 `app.js` 가 계속 쓰므로 지우지 않는다). 402 Guard KPI 는 카드가 아니라 본문 맨 위 배너(`.guard-dock`) |
 | **지난 세션 이력** | Firestore 에 저장된 실행 기록을 표로 — 세션·모드(드라이런/라이브)·종목·틱·체결·Gemini 비율·시작시각. 세션이 끝나면(실행→대기 전환) 자동 갱신 | `GET /api/history/sessions` · `app.js` `fetchHistory` | ✅ 배포본 실측 10건 렌더 |
 | **가드 정지 사유 표시** | 402 Guard 가 세션을 멈추면 주체(사용자/402 Guard)와 **왜 멈췄는지**를 배지·활동 로그에 남긴다 | `engine.pause(reason=)` · `PAUSE_ACTOR_LABEL` | ✅ 매수·매도 양 레그 검증 |
 | **캔들차트** | SVG 직접 렌더(외부 CDN 0), 양봉·음봉·MA선·현재가선·범례 | `app.js` | ✅ |
@@ -152,5 +152,5 @@
 |---|---|---|---|
 | ① 혁신성·UX | 직관적·새로운 UX, 기존 문제 해결 | 402 Guard 재포지셔닝, 공격 콘솔, 첫 화면 KPI(수익률 아님). 2026-07-28 보강: 소개서에 **경쟁 지도 1장**(AgentFabric·Circle Agent Wallets·Kyvern, "우리가 확인한 범위에서" 한정) + 수익모델 3단 단가(전부 '가정' 명시) | **중** — 2026-07-27 부서 판정. 사유가 "상업성 정량 근거 0건" 하나로 특정됐고 그 부분은 채웠다. 재평가는 8/2 judge-dept 재실행 |
 | ② AI 활용도 | Gemini/Google Cloud AI 스택(에이전트 프레임워크 포함) | Gemini 실호출 3지점(판단·**청구서 의미 대조**·브리핑). AI 재량은 두 레이어 모두 **차단만** 가능. 481봉 대표본 실측 + 규칙 게이트 발동 로그 2건 | **강**(2026-07-27 심사 부서) |
-| ③ 기술·인프라 연동 | USDC·Solana Pay·pay.sh 등, AP2·A2A·x402 등 | 자체 x402 + AP2 + A2A(**병렬 예시라 정합**). devnet tx 를 공용 RPC 로 재조회해 Memo·금액 일치 확인. 라이브 URL 이 실제 402+accepts[] 응답 | **강** — 단 증빙의 결제 통화가 테스트 민트(Circle 공식 민트 재실증 필요) |
-| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx 10건**(`artifacts/tx/20260724_1643_*`, err=null·교차검증 일치) · **테스트 23종 통과** · red_team `rc=0` · 라이브 URL 리비전 `synapstock-00014-hft` | **강** — 단 devnet 증빙 1건뿐이고 배포 URL 발생 온체인 tx 0건 |
+| ③ 기술·인프라 연동 | USDC·Solana Pay·pay.sh 등, AP2·A2A·x402 등 | 자체 x402 + AP2 + A2A(**병렬 예시라 정합**). devnet tx 를 공용 RPC 로 재조회해 Memo·금액 일치 확인. 라이브 URL 이 실제 402+accepts[] 응답. **결제 통화 = Circle 공식 devnet USDC**(`4zMMC9sr…`, `mintAuthority` 가 우리 지갑 아님 — 2026-07-31 재실증) | **강** — pay.sh·Solana Pay 미연동이나 킥오프 전사가 병렬 예시로 확정해 정합 |
+| ④ 실제 구동 | 로컬넷/테스트넷/데브넷 라이브 트랜잭션 | localnet 풀사이클 + **devnet 온체인 tx**(`artifacts/tx/20260731_1508_*` 체결 3건 전부 settled·교차검증 PASS) + **배포 URL 라이브 세션 1건**(`20260731_160230_live` — 온체인 tx 3건 확정·Memo 결박·`19.99 == 19.99`, 증빙 `artifacts/tx/20260731_1603_*_onchain_verify.json`) · **테스트 23종 통과** · red_team `rc=0` · 라이브 URL 리비전 `synapstock-00028-b7n` | **강** — 단 배포본이 `ALLOW_LIVE_FROM_WEB=0` 이라 심사위원이 URL 에서 직접 온체인 결제를 일으키지는 못한다(기록 조회·아카이브로 입증) |

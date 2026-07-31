@@ -115,16 +115,22 @@ Network · Merchant Payment Processor 에 배정합니다. 그런데 **self-cust
    회수하지 못하며, `scripts/red_team.py` 리포트가 두 계층을 **분리해서** 출력합니다.
 5. 구매 대상은 **자체 발행 토큰**입니다 — devnet 에 실물 토큰화 주식이 존재하지 않기
    때문입니다. 민트 상수와 스왑 경로 2곳 교체로 실물 전환됩니다.
-6. **결제 통화도 마찬가지입니다.** 현재 저장소의 devnet 증빙
-   (`artifacts/tx/20260724_1643_solana-devnet_live_buy.json`)에서 오간 'USDC' 는 민트
-   `8L9feSSChJHXEF58etFL1zsTzWiggqRdWFwqLM6vgH4u` 이고, **그 발행 권한은 구매자 지갑
-   자신**입니다(당시 `setup_devnet` 이 테스트 민트를 만들어 `.env` 를 덮어썼습니다).
-   즉 그 트랜잭션은 "자기가 찍은 돈으로 지불"한 것이고, 저희가 먼저 밝힙니다.
-   현재 코드의 기본값은 **Circle 공식 devnet USDC**(`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`,
-   `config.py:44`)이며 `setup_devnet` 은 자체발행 민트를 감지하면 중단합니다. 배포본이
-   402 로 광고하는 asset 도 이 공식 민트입니다. **공식 민트로 정산한 온체인 증빙은
-   재실증 대기 중**이며, 그 전까지 축③ 문구는 "USDC 인터페이스(SPL 6 decimals) 호환"까지가
-   정확한 표현입니다.
+6. **결제 통화는 Circle 공식 민트로 재실증했습니다(2026-07-31).** 증빙
+   `artifacts/tx/20260731_1508_solana-devnet_live_buy.json` 에서 오간 USDC 는 민트
+   `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` 이고, 그 `mintAuthority` 는
+   `GrNg1XM2ctzeE2mXxXCfhcTUbejM8Z4z4wNVTy2FjMEz` 로 **저희 지갑 중 어느 것도 아닙니다.**
+   체결 3건(매수 2 · 매도 1) 전부 `settled`, 교차검증 PASS(USDC 순지출 `-0.8` == 체결
+   순합계 `-0.80`). 배포 URL 에서 돌린 라이브 세션 증빙도 따로 있습니다 —
+   `artifacts/tx/20260731_1603_solana-devnet_web_session_onchain_verify.json`
+   (온체인 tx 3건 전부 확정, x402 주문번호가 Memo 로 결박, 교차검증 `19.99 == 19.99`).
+   코드 기본값도 이 공식 민트이고(`config.py:71`) `setup_devnet` 은 자체발행 민트를 감지하면
+   중단하며, 배포본이 402 로 광고하는 asset 도 같습니다.
+   ⚠ **옛 증빙 `artifacts/tx/20260724_1643_solana-devnet_live_buy.json` 은 인용하지 마십시오** —
+   그때의 'USDC' 는 민트 `8L9feSSChJHXEF58etFL1zsTzWiggqRdWFwqLM6vgH4u` 이고 **발행 권한이
+   구매자 지갑 자신**이었습니다(당시 `setup_devnet` 이 테스트 민트를 만들어 `.env` 를
+   덮어썼습니다). 즉 "자기가 찍은 돈으로 지불"한 것이며, 파일을 지우지 않고 남겨 둔 채
+   저희가 먼저 밝힙니다. **구매 대상 주식(tAAPL)은 위 5번대로 여전히 자체 발행입니다** —
+   결제 통화와 달리 이쪽은 devnet 에 실물이 없어서이고, 바뀐 것이 없습니다.
 
 ## 아직 안 붙은 것 (다음 단계)
 
@@ -385,7 +391,20 @@ python scripts/collect_evidence.py
 - **devnet 라이브 검증 통과(2026-07-24)**: 공용 RPC(api.devnet.solana.com)에서 실데이터 재생
   (AAPL) 라이브 — 매수 4 + 매도 1 = 온체인 tx 10건 전부 확정, explorer(cluster=devnet) 조회 가능,
   교차검증 PASS(실현 +4.9 USDC 온체인 반영), 증빙
-  `artifacts/tx/20260724_1643_solana-devnet_live_buy.json`
+  `artifacts/tx/20260724_1643_solana-devnet_live_buy.json`.
+  ⚠ **이때의 결제 통화는 자체발행 테스트 민트였습니다**(위 '정직한 한계' 6번). 공식 민트
+  증빙은 아래 07-31 두 항목입니다 — 인용은 그쪽을 쓰십시오.
+- **devnet 재실증 — Circle 공식 USDC(2026-07-31)**: 실데이터 재생 라이브 — 체결 3건
+  (매수 2 · 매도 1) 전부 `settled`, 교차검증 PASS(USDC 순지출 `-0.8` == `-0.80`),
+  결제 통화가 Circle 공식 devnet USDC(`4zMMC9sr…`, `mintAuthority` = 저희 지갑 아님).
+  증빙 `artifacts/tx/20260731_1508_solana-devnet_live_buy.json`
+- **배포 URL 라이브 세션(2026-07-31)**: Cloud Run 배포본에서 세션 `20260731_160230_live`
+  완주 — 온체인 tx 3건 전부 확정(`err=null`), 매수 레그마다 x402 주문번호가 Memo 로 결박
+  (`AT1:ord_…`), 교차검증 `19.99 == 19.99`. 증빙
+  `artifacts/tx/20260731_1603_solana-devnet_web_session_onchain_verify.json`.
+  ※ 엔진이 컨테이너에 쓴 아카이브는 Cloud Run tmpfs 라 리비전 교체로 사라지므로, 저장소에는
+  **RPC 사후 검증본**을 남겼습니다. 같은 교차검증 값이 Firestore 에도 엔진 손으로 남아
+  `GET /api/history/sessions` 로 조회됩니다.
 - **웹 대시보드 라이브 검증 통과(2026-07-23)**: 브라우저에서 라이브 세션 — 매수 4건 + 매도 1건
   전부 온체인 확정(실현손익 +7 USDC 온체인 반영), 긴급정지/재개 동작, 교차검증 PASS,
   `artifacts/tx/20260723_1220_solana-localnet_web_session.json` 아카이브
