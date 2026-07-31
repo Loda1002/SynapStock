@@ -205,12 +205,49 @@ async def test_next_session_starts_after_finalize() -> None:
     await engine._finalize()   # 뒷정리 — 남은 세션을 닫아 둔다
 
 
+def test_archive_path_does_not_clobber() -> None:
+    """같은 분에 끝난 두 세션의 증빙 파일이 서로를 덮어쓰지 않는다 — L1 회귀.
+
+    예전 파일명은 분 단위(%Y%m%d_%H%M)라, 41초 간격으로 두 세션을 돌리면 파일이 1개만
+    남고 앞 세션의 payment_tx 가 사라졌다. 잃는 것이 온체인 tx 증빙이라 재촬영 중에
+    조용히 일어나면 되돌릴 방법이 없다."""
+    _p("\n== 아카이브 파일명 — 같은 분의 두 세션이 덮어쓰지 않는가 (L1) ==")
+    import tempfile
+    from datetime import datetime as _dt
+    from web.engine import _archive_path
+
+    t1 = _dt(2026, 7, 31, 16, 3, 10)
+    t2 = _dt(2026, 7, 31, 16, 3, 51)          # 41초 뒤 — 옛 형식이면 같은 이름
+    check("같은 분·다른 초 → 다른 파일명",
+          _archive_path(t1, "solana-devnet") != _archive_path(t2, "solana-devnet"),
+          _archive_path(t1, "solana-devnet"))
+    check("초가 파일명에 들어간다", "160310" in _archive_path(t1, "solana-devnet"),
+          _archive_path(t1, "solana-devnet"))
+
+    # 같은 '초'까지 겹쳐도 기존 파일을 덮어쓰지 않는다
+    with tempfile.TemporaryDirectory() as tmp:
+        cwd = os.getcwd()
+        try:
+            os.chdir(tmp)
+            os.makedirs(os.path.join("artifacts", "tx"), exist_ok=True)
+            p1 = _archive_path(t1, "solana-devnet")
+            with open(p1, "w", encoding="utf-8") as f:
+                f.write('{"payment_tx": "세션 #1 증빙"}')
+            p2 = _archive_path(t1, "solana-devnet")   # 같은 초로 한 번 더
+            check("같은 초여도 기존 파일을 비켜 간다", p1 != p2, f"{p1} / {p2}")
+            with open(p1, encoding="utf-8") as f:
+                check("세션 #1 증빙이 살아 있다", "세션 #1 증빙" in f.read())
+        finally:
+            os.chdir(cwd)
+
+
 async def main() -> int:
     _p("=" * 74)
     _p("BUG-09 회귀 — 세션 마무리가 다음 세션을 덮어쓰지 않는가")
     _p("=" * 74)
     await test_finalize_does_not_release_next_session()
     await test_next_session_starts_after_finalize()
+    test_archive_path_does_not_clobber()
 
     ok = sum(1 for _, c, _ in _results if c)
     n = len(_results)

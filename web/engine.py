@@ -85,6 +85,28 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
+def _archive_path(ts: datetime, network: str) -> str:
+    """artifacts/tx/ 증빙 파일 경로. 초까지 넣고, 그래도 겹치면 덮어쓰지 않는다.
+
+    예전에는 분 단위(%Y%m%d_%H%M)라 **같은 분에 끝난 두 세션이 한 파일이 됐다** — 나중
+    세션이 앞 세션의 payment_tx 를 통째로 지운다. 잃는 것이 온체인 tx 증빙이고, 재촬영처럼
+    세션을 연달아 도는 상황에서 실제로 일어난다. 같은 파일의 session_id(:662)는 이미
+    초를 포함하고 있었으니 그쪽에 맞춘 것이다.
+
+    파일명만 바꾼다 — session_id 형식은 화면 라벨·Firestore 문서 키가 함께 걸려 있어
+    건드리지 않는다(BUG-21 보류 결정). 이 경로를 파싱하는 소비자는 없다(collect_evidence
+    는 파일 내용만 읽는다).
+    """
+    base = os.path.join("artifacts", "tx")
+    stamp = ts.strftime("%Y%m%d_%H%M%S")
+    path = os.path.join(base, f"{stamp}_{network}_web_session.json")
+    n = 2
+    while os.path.exists(path):     # 같은 초 충돌 — 덮어쓰느니 이름을 늘린다
+        path = os.path.join(base, f"{stamp}-{n}_{network}_web_session.json")
+        n += 1
+    return path
+
+
 class EngineError(Exception):
     """엔진 조작 오류 — API 레이어에서 4xx 로 변환된다."""
 
@@ -1676,8 +1698,7 @@ class TradingEngine:
         }
 
         os.makedirs(os.path.join("artifacts", "tx"), exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M")
-        path = os.path.join("artifacts", "tx", f"{ts}_{CFG.network}_web_session.json")
+        path = _archive_path(datetime.now(), CFG.network)
         archive = {
             "generated_at": datetime.now().isoformat(timespec="seconds"),
             "source": "web-dashboard",
