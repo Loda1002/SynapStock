@@ -541,9 +541,9 @@
       <div class="cols cols-2" style="margin-top:6mm; height:auto">
         <div class="box ok">
           <span class="tag">Solana devnet 라이브</span>
-          <h3>5거래 전부 확정 · 잔액 교차검증 일치</h3>
-          <p>매수 4건·매도 1건이 실제 트랜잭션으로 확정됐고, <b>구매자 지갑 USDC +4.9 · 브로커 −4.9 · 주식 순변화 0</b>이 기대치와 정확히 일치했습니다. 각 거래의 결제·전달 서명과 explorer 링크를 파일로 보관합니다.</p>
-          <p style="margin-top:2mm; font-size:11.5px; color:var(--ink-3)">⚠ 이 세션의 결제 통화는 <b>구매자 지갑이 민트 권한을 쥔 테스트 토큰</b>입니다(devnet). Circle 공식 USDC 민트로의 재실증은 진행 중이며, 저희가 먼저 밝힙니다.</p>
+          <h3>Circle 공식 USDC로 정산 · 잔액 교차검증 일치</h3>
+          <p>배포 URL에서 돌린 라이브 세션의 <b>온체인 트랜잭션 3건이 전부 확정</b>됐고, 매수 레그마다 <b>x402 주문번호가 Memo로 체인에 결박</b>돼 있습니다. 잔액 대조도 기대치와 정확히 일치했습니다(USDC 19.99 · 주식 0.0711). 서명과 explorer 링크를 파일로 보관합니다.</p>
+          <p style="margin-top:2mm; font-size:11.5px; color:var(--ink-3)">결제 통화는 <b>Circle 공식 devnet USDC</b>이고 <b>발행 권한은 저희 것이 아닙니다.</b> ⚠ 다만 <b>구매 대상 주식은 자체 발행</b>입니다 — devnet에 실물 토큰화 주식이 없기 때문이며, 저희가 먼저 밝힙니다.</p>
         </div>
         <div class="box">
           <span class="tag">검증 자동화</span>
@@ -708,7 +708,7 @@
           <ul class="plain" style="margin-top:2mm">
             <li><b>실물 토큰화 주식</b> 메인넷에는 이미 존재합니다. 민트 상수와 스왑 경로 두 곳을 교체하면 같은 게이트가 실물 위에서 돕니다.</li>
             <li><b>매도 레그 표준화</b> 매수는 이미 표준 402로 왕복합니다. 자산이 반대로 흐르는 환매도 같은 규격 위에 올리는 것이 다음 과제입니다.</li>
-            <li><b>Circle 공식 USDC 재실증</b> devnet 증빙을 공식 민트로 다시 남기는 것이 가장 먼저입니다. 코드 기본값은 이미 공식 민트이고, 자체 발행 민트를 감지하면 중단하도록 해 뒀습니다.</li>
+            <li><b>온체인 예산 집행 배선</b> 한도를 체인이 강제하는 레일은 이미 실증했습니다(SPL 위임). 남은 것은 그 레일을 제품 결제 경로에 연결하는 일이고, 증빙 파일이 <span class="mono">wired_into_product: false</span> 로 그 경계를 표시하고 있습니다.</li>
             <li><b>규제</b> 자산을 대신 보관하지 않는 자기수탁 도구 구조를 유지합니다. 토큰화 주식은 증권으로 취급되며 국내 제도는 2027년 시행 예정입니다.</li>
           </ul>
         </div>
