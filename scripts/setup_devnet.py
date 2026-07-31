@@ -328,8 +328,11 @@ async def main(self_mint_usdc: bool = False) -> None:
             # MAX_BUDGET_USDC 는 update_limits 의 상한 검사에만 쓰인다(세션 시작을 clamp 하지 않음).
             print(f"  ⚠ 파우셋 한도가 낮습니다. 아래를 잔여({left}) 이하로 맞추세요:")
             print(f"     .env  BUDGET_USDC · PER_TRADE_MAX_USDC")
-            print(f"     건별 지출은 코드 상수입니다 — run_demo.py spend_per_trade_usdc,"
-                  f" web/engine.py DEFAULT_RULES['spend_per_trade'] (기본 30)")
+            # 웹 세션의 1회 매수는 예산 대비 비율(web/engine.SPEND_PCT)이라 예산만 맞추면
+            # 따라온다. 그 상수를 여기서 읽지는 않는다 — web.engine 을 임포트하면 엔진·에이전트
+            # 의존이 통째로 딸려 와서, 네트워크 준비 스크립트가 앱 전체에 묶인다.
+            print(f"     웹 세션의 1회 매수는 예산 대비 비율이라 예산만 맞추면 따라옵니다.")
+            print(f"     CLI 는 `python run_demo.py --live --spend <USDC>` 로 지정합니다.")
 
     write_env(usdc_mint, stock_mint)
     print("\n완료. 이제 `python run_demo.py --live` 로 실제 devnet 매수를 실행할 수 있습니다.")

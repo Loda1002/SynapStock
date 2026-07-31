@@ -26,7 +26,7 @@ sys.path.insert(0, ROOT)
 from agents.trading_agent import Decision  # noqa: E402
 from payments.ap2_mandate import MandateError  # noqa: E402
 from web import events as ev  # noqa: E402
-from web.engine import TradingEngine, EngineError  # noqa: E402
+from web.engine import TradingEngine, EngineError, DEFAULT_RULES  # noqa: E402
 from web.events import EventBus  # noqa: E402
 from web.store import BaseStore  # noqa: E402
 
@@ -161,8 +161,12 @@ async def test_single_symbol_backcompat() -> None:
     check("per_symbol 항목 1개", list(snap["per_symbol"].keys()) == ["AAPL"])
     check("top-level price == per_symbol[AAPL].price(포커스=단일)",
           snap["price"]["current"] == snap["per_symbol"]["AAPL"]["price"]["current"])
-    check("단일 spend 분할 없음(30 그대로)",
-          snap["strategy"]["spend_per_symbol_usdc"] == "30")
+    # ⚠ 문자열이 아니라 값으로 비교한다. 이 검사의 뜻은 "단일 종목이면 나누지 않는다" 이지
+    # "문자열이 정확히 '30' 이다" 가 아니다. 1회 매수가 예산 대비 비율이 되면서(2026-07-31)
+    # 표기가 `30` → `30.00` 으로 바뀌었을 뿐 값은 같은데, 문자열 비교라 여기서 걸렸다.
+    check("단일 spend 분할 없음(예산 100 의 30% = 30 그대로)",
+          Decimal(snap["strategy"]["spend_per_symbol_usdc"]) == Decimal("30"),
+          f"spend_per_symbol={snap['strategy']['spend_per_symbol_usdc']}")
 
 
 # ---------- 방어: 멀티 spend 분할 + 추세추종/라이브 멀티 거부 ----------
@@ -337,12 +341,59 @@ async def test_dust_spend_no_zero_trade() -> None:
           f"체결 {len(engine.trades)}건 · 보유 {a.position.quantity}")
 
 
+# ---------- 1회 매수 = 예산 대비 비율 (2026-07-31) ----------
+async def test_spend_follows_budget() -> None:
+    """1회 매수 금액이 절대 상수가 아니라 **예산 × SPEND_PCT%** 여야 한다.
+
+    옛 동작(절대 상수 30)의 문제: 예산이 20 USDC 면 30 은 예산의 150% 라 한 건도 못 산다.
+    devnet 재실증에서 실제로 걸렸다(파우셋 한도가 주소당 20 USDC).
+    근거는 docs/reports/strategy_validation.md 부록 — 비율은 예산에 대해 불변임을 실측했다.
+    """
+    print("\n[10] 1회 매수 = 예산 대비 비율")
+    e = TradingEngine.__new__(TradingEngine)   # 계산만 확인 — 세션을 만들지 않는다
+
+    # 기본 예산에서는 옛 상수와 같은 값이어야 한다 = 이 변경으로 동작이 바뀌지 않는다
+    e.budget_total = Decimal("100")
+    check("예산 100 → 30 (옛 상수와 동일 = 동작 무변경)",
+          e._spend_per_trade() == Decimal("30.00"), f"{e._spend_per_trade()}")
+
+    # 예산이 바뀌면 따라와야 한다 (이게 이 변경의 목적)
+    for budget, want in (("50", "15.00"), ("200", "60.00"), ("20", "6.00"), ("18", "5.40")):
+        e.budget_total = Decimal(budget)
+        check(f"예산 {budget} → {want}",
+              e._spend_per_trade() == Decimal(want), f"{e._spend_per_trade()}")
+
+    # 화면에 나가는 값이 엔진이 쓰는 값과 같아야 한다 — 고정 문자열을 내보내면
+    # 화면은 '30 USDC 어치 매수'인데 엔진은 6 을 쓰는 어긋남이 생긴다.
+    e.budget_total = Decimal("20")
+    r = e._rules_snapshot()
+    check("rules.spend_per_trade 가 계산된 실제 값",
+          Decimal(r["spend_per_trade"]) == Decimal("6.00"), f"{r['spend_per_trade']}")
+    check("rules 에 고정 spend 문자열이 남아 있지 않다",
+          "spend_per_trade" not in DEFAULT_RULES)
+
+    # 센트 미만은 내린다 — 올리면 마지막 매수가 예산을 1센트 넘겨 AP2 가 거부한다
+    e.budget_total = Decimal("0.35")
+    check("센트 미만 내림 (0.35 의 30% = 0.105 → 0.10)",
+          e._spend_per_trade() == Decimal("0.10"), f"{e._spend_per_trade()}")
+
+    # ⚠ 예산이 아주 작으면 0 이 된다. 0 이면 수량이 0.0000 으로 내림돼 청구액도 0 이 되고
+    # 모든 계층을 통과해 가짜 체결이 쌓인다(BUG-12 와 같은 자리) → 세션 시작에서 끊는다.
+    e2 = _engine()
+    e2.update_limits(Decimal("0.03"), Decimal("0.03"))   # 대기 상태 → 다음 세션 기본값으로 저장
+    try:
+        await _start(e2, ["AAPL"])
+        check("예산이 너무 작으면 세션 시작을 막는다", False, "EngineError 가 안 났다")
+    except EngineError as ex:
+        check("예산이 너무 작으면 세션 시작을 막는다", "0 이 됩니다" in str(ex), str(ex)[:80])
+
+
 async def _main() -> int:
     for t in (test_shared_budget_and_isolation, test_feed_exhaustion_isolation,
               test_all_exhausted_ends_session, test_guard_kpi_aggregation,
               test_single_symbol_backcompat, test_multi_guards,
               test_limit_change_syncs_guard, test_limit_cut_below_symbol_spend,
-              test_dust_spend_no_zero_trade):
+              test_dust_spend_no_zero_trade, test_spend_follows_budget):
         await t()
     bad = [n for n, ok, _ in _results if not ok]
     print("\n" + "=" * 60)

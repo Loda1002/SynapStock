@@ -17,7 +17,7 @@ import json
 import os
 import re
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_DOWN
 from typing import Any, Dict, List, Optional
 
 from solders.hash import Hash
@@ -43,7 +43,20 @@ from web.store import BaseStore, jsonable
 # 데모 규칙 기본값 — 지표 기준 (매수: MA5 −%, 매도: 평단 +%).
 # 2026-07-25 전략 고도화: 검증(scripts/explore_strategy.py) 최고 수익·최저 꼬리위험 조합으로
 # dip3/profit5 채택(분산 포트폴리오 흑자율 85.8%·평균 2.11%). 시간청산은 CFG.max_hold_bars.
-DEFAULT_RULES = {"buy_dip_pct": "3", "take_profit_pct": "5", "spend_per_trade": "30"}
+DEFAULT_RULES = {"buy_dip_pct": "3", "take_profit_pct": "5"}
+
+# 1회 매수 금액은 절대값이 아니라 **예산 대비 비율**이다(2026-07-31 확정 —
+# docs/reports/strategy_validation.md 부록의 백테스트 144회).
+#   · 절대값(옛 30)이면 예산이 바뀌어도 노출도가 안 따라온다. devnet 처럼 예산이 20 USDC 면
+#     30 은 예산의 150% 라 **한 건도 못 산다**(실제로 걸려서 run_demo 에 --spend 를 만들었다).
+#   · 비율은 예산에 대해 불변임을 실측했다 — 같은 비율에서 예산 50/100/200 의 수익률 편차가
+#     20% 이상 구간에서 0.01~0.20%p 다.
+#   · 30% 는 시험한 6단계(5·10·20·30·40·50%) 중 평균 수익률(4.55%)·초과수익(8.87%p)·
+#     위험조정(0.256) 모두 1위였고, **기본 예산 100 에서 옛 상수 30 과 같은 값**이라
+#     지금까지의 동작·문서 수치가 하나도 바뀌지 않는다.
+#   ⚠ 이 값은 '최적해'가 아니라 노출도 다이얼이다 — 상승장은 클수록, 하락장은 작을수록
+#     유리해서 장세를 알아야 정해진다. 표본 6데이터셋이라 30% 가 최적이라고 주장하지 않는다.
+SPEND_PCT = Decimal("30")
 
 MAX_DECISIONS = 500   # A6 타임라인 메모리 상한
 MAX_PRICE_POINTS = 120
@@ -521,7 +534,13 @@ class TradingEngine:
         # 1회 매수 금액은 종목 수로 나눈다 — 한 종목이 예산을 독식하지 않게(검증 포트폴리오와 동형).
         # 단일(N=1)이면 나눗셈이 항등이라 기존 동작 그대로. 적립형 회당 금액도 동일하게 분할한다.
         cent = Decimal("0.01")
-        base_spend = Decimal(DEFAULT_RULES["spend_per_trade"])
+        base_spend = self._spend_per_trade()
+        # ⚠ 예산이 아주 작으면 비율 계산이 0 으로 내려앉는다. 0 이면 수량이 0.0000 으로
+        # 내림돼 청구액도 0 이 되고, 그 상태로 모든 계층을 통과해 **가짜 체결**이 쌓인다
+        # (BUG-12 와 같은 자리). 여기서 끊어야 가드·AP2 의 KPI 가 더러워지지 않는다.
+        if base_spend <= 0:
+            raise EngineError(
+                f"예산 {self.budget_total} USDC 의 {SPEND_PCT}% 가 0 이 됩니다 — 예산을 올리세요.")
         spend_per_symbol = (base_spend / n).quantize(cent) if n > 1 else base_spend
         per_symbol_dca = (dca_amount / n).quantize(cent) if n > 1 else dca_amount
         if strat_type == "dca" and per_symbol_dca <= 0:
@@ -693,7 +712,7 @@ class TradingEngine:
             "budget_total_usdc": str(self.budget_total),
             "per_trade_max_usdc": str(self.per_trade_max),
             "fee_bps": CFG.broker_fee_bps,
-            "rules": DEFAULT_RULES,
+            "rules": self._rules_snapshot(),
             "strategy": self.strategy_info,
             "mandate_verified": mandate.verify(),
             "wallets": {"user": str(user_kp.pubkey()), "trading": str(trading_kp.pubkey()), "broker": str(broker_kp.pubkey())},
@@ -745,6 +764,21 @@ class TradingEngine:
         return self.state_snapshot()
 
     # ---------- A3 한도 설정 (새 mandate 재서명) ----------
+
+    def _spend_per_trade(self, budget: Optional[Decimal] = None) -> Decimal:
+        """1회 매수 금액 = 예산 × SPEND_PCT%. 센트 미만은 내린다(올림하면 마지막 매수가
+        예산을 1센트 넘겨 AP2 가 거부한다). 인자를 주면 그 예산 기준으로 계산한다 —
+        한도 변경이 적용되기 **전에** 새 값을 미리 재는 데 쓴다."""
+        b = self.budget_total if budget is None else budget
+        return (b * SPEND_PCT / Decimal(100)).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+
+    def _rules_snapshot(self) -> Dict[str, str]:
+        """화면·이벤트로 나가는 규칙 묶음. spend_per_trade 는 **계산된 실제 값**이다 —
+        고정 문자열을 내보내면 화면이 '30 USDC 어치 매수'라고 하는데 엔진은 다른 금액을
+        쓰는 어긋남이 생긴다(이 저장소가 반복해서 밟은 부류의 결함)."""
+        return {**DEFAULT_RULES,
+                "spend_pct": str(SPEND_PCT),
+                "spend_per_trade": str(self._spend_per_trade())}
 
     def update_limits(self, budget_total: Decimal, per_trade_max: Decimal,
                       actor: str = "human") -> Dict[str, Any]:
@@ -828,6 +862,18 @@ class TradingEngine:
                 for a in self.agents.values():   # 모든 종목 에이전트가 새 공유 auth 를 쓴다
                     a.auth = new_auth
             self._session_per_trade = eff_per_trade
+            # 1회 매수 금액이 예산 대비 비율이므로 예산이 바뀌면 함께 다시 잰다.
+            # 안 하면 세션 중 예산을 내려도 지출은 옛 예산 기준으로 남아, 화면이 말하는
+            # 금액(_rules_snapshot 은 새 예산으로 계산한다)과 엔진이 쓰는 금액이 갈라진다.
+            # ⚠ 종목 수로 나누는 것은 시작 때와 같은 규칙이다(한 종목이 독식하지 않게).
+            new_spend = self._spend_per_trade(budget_total)
+            if new_spend > 0:
+                cent = Decimal("0.01")
+                ns = len(self.symbols)
+                per_sym = (new_spend / ns).quantize(cent) if ns > 1 else new_spend
+                if per_sym > 0:
+                    for a in self.agents.values():
+                        a.strategy.spend_per_trade_usdc = per_sym
             applied = "immediate"
 
         self.budget_total = budget_total
@@ -1907,7 +1953,7 @@ class TradingEngine:
                 "fee_bps": CFG.broker_fee_bps,
                 "cum_fee_usdc": str(self.total_fees),
             },
-            "rules": DEFAULT_RULES,
+            "rules": self._rules_snapshot(),
             "strategy": getattr(self, "strategy_info", None) or {"type": "condition"},
             "last_briefing": self.last_briefing,  # B2 최근 브리핑 (새로고침 복원용)
             "counts": {"trades": len(self.trades), "decisions": len(self.decisions)},
