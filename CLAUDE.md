@@ -173,8 +173,30 @@
 >    화면은 "30 USDC 어치 매수"인데 엔진은 6 을 쓰는 어긋남이 생긴다(이 저장소가 반복해서
 >    밟은 부류). `DEFAULT_RULES` 에서 `spend_per_trade` 를 아예 뺐다.
 >    ⚠ CLI(`run_demo`)는 비율이 아니라 **`--spend` 옵션**이다(커밋 `70b1749`, 기본 30 불변).
-> 3. **온체인 결제 확인** — 배포본 세션 기록 **13건 전부 `mode=dry`**(2026-07-31 재실측,
->    리비전 `00025-xvl` 기준으로도 그대로다). 라이브
+> 3. **온체인 결제 확인** — ⚑ **준비는 전부 끝났다. 남은 것은 세션 시작 클릭뿐이다.**
+>    **리비전 `synapstock-00026-jnr`** 에 `ALLOW_LIVE_FROM_WEB=1` · `STOCK_MINT=37HxYLoz…` ·
+>    `BUDGET_USDC=20` · `PER_TRADE_MAX_USDC=10` 을 주입해 두었다(실측: 화면 예산 20 · 한도 10 ·
+>    1회 매수 6.00 · 지갑 20.8 USDC · SOL 충분 · 토큰 없는 시작은 **401**).
+>    ⚠⚠ **이 상태는 임시다** — 세션이 끝나면 `ALLOW_LIVE_FROM_WEB=0` 과 예산 100/50 으로
+>    되돌려야 한다(안 되돌리면 심사 URL 의 샌드박스 예산이 20 으로 남는다). 되돌리기는
+>    빌드 없이 1분이다:
+>    `gcloud run services update synapstock --region asia-northeast3 --project synapstock --update-env-vars "ALLOW_LIVE_FROM_WEB=0,BUDGET_USDC=100,PER_TRADE_MAX_USDC=50"`
+>
+>    **▶ 실행 절차 (2026-07-31 실측으로 확정한 순서)**
+>    ① 토큰: `gcloud secrets versions access latest --secret=autotrader-control-token --project=synapstock`
+>    ② **`/app?lab=1#token=<토큰>`** 으로 연다.
+>       ⚠⚠ **`?lab=1` 을 빠뜨리면 개발자 서랍이 안 나와 세션 설정에 닿을 수 없다.**
+>       2026-07-31 에 사용자가 실제로 여기서 막혔다("개발자 서랍이 없어졌다"). 서랍이
+>       사라진 것이 아니라 **기본이 꺼짐**이고 `?lab=1` 이 켠다(`autotrader_lab` localStorage).
+>       ⚠ 경로는 반드시 **`/app`** — `/`(랜딩)는 `app.js` 를 안 실어 토큰이 저장되지 않는다.
+>       ⚠ 둘 다 주소창에서 지워지고 localStorage 로 옮겨진다(정상 동작이다).
+>    ③ 오른쪽 `개발자` 탭 → 세션 설정 카드 → **실행 모드만 `라이브 — 실제 온체인 결제`** 로.
+>       **나머지는 기본값 그대로 둔다** — 기본이 `추세추종 + 상승장 일봉` 이고 추세추종은
+>       **Gemini 를 안 쓴다**(쿼터 소진과 무관하게 항상 동작). 조건형으로 바꾸면 쿼터가
+>       소진돼 있을 때 설계대로 매수가 전건 보류돼 **온체인 증빙이 0건**이 된다.
+>    ④ 세션이 도는 중에는 **어떤 `gcloud run services update` 도 하지 않는다**(런북 §6).
+>
+>    **▶ 착수 전 실측(2026-07-31)**: 세션 기록 **13건 전부 `mode=dry`**. 라이브
 >    (온체인) 세션이 배포 URL 에서 1건도 없다. 1번이 끝난 뒤 `ALLOW_LIVE_FROM_WEB=1` 로
 >    잠깐 열고 되돌리는 절차. ⚠ **세션이 도는 중에는 어떤 `gcloud run services update` 도
 >    하지 않는다**(런북 §6) — env 주입은 세션 시작 전에 끝낸다.
