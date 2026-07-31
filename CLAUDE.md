@@ -40,6 +40,64 @@
 
 ## 현재 상태 (2026-07-31 갱신)
 
+> # ▶▶▶▶▶ [✅ 완료 — 2026-07-31] **버그 수정 라운드 9건 — 승인 범위 전부 소진. 커밋 9건 푸시**
+> **`docs/next_session_bugfix.md` 의 A·B·C·D 를 전부 끝냈다. 다시 하지 말 것.**
+> 매 건 `구현 → 음성 대조 → 검증 → 커밋 → 푸시` 를 완주했고, **게이트는 9회 전부 통과**
+> (테스트 **23종 rc=0** · **파일 수 23 불변** · red_team rc=0 · **유출 0.00 · 오탐 0** ·
+> `payments/guard.py` 무수정 = **하드 검사 8종 카운트 불변**).
+>
+> | 커밋 | 건 | 무엇을 고쳤나 |
+> |---|---|---|
+> | `f6a4ab2` | **M5**+L7 | `x402_http.py:148` 에 `ValueError` 추가 — 무인증 `POST /broker/orders` 가 형식 오류에 **500(비JSON) → 400**. 함께 `PaymentPayload.from_dict` 타입 검증(`network={}`·`serializedTransaction=123`·`x402Version=1.5` 가 통과하던 것) |
+> | `424dc54` | **M2** | `broker_agent.py:204` 지급 실패인데 `delivered_amount` 에 전액 → `settled` 일 때만. 매도 레그에 없던 `reason` 도 대칭 추가 |
+> | `f8b86da` | **M3** | `get_token_balance_ui` 가 RPC 실패를 `'0'` 으로 삼키던 것 → 형제 함수와 동일 규칙. 호출부 3곳 처리 |
+> | `7f7f3d0` | **L1** | 아카이브 파일명 분 → **초** + 같은 초 충돌 시 비켜 가기(`_archive_path`) |
+> | `d0de607` | **M8** | `update_limits` 의 `if new_spend > 0:` 부분 적용 → 재서명 **앞**에서 거부 |
+> | `aaf5a26` | **L11** | `brain=rule`·추세·적립식 세션인데 브리핑이 Gemini 호출하던 것 |
+> | `5fd77cd` | **M6** | `restore_from_store` 가 상한·`is_finite` 를 우회하던 것 → 클램프+로그 |
+> | `a1ba48a` | **BUG-20** | `update_limits` 가 `_reservations` 를 안 옮겨 실패 결제 예산이 묶이던 것 |
+> | `31c29bd` | **BUG-15·18·19** | NaN·0 이 검사를 통과하던 3건을 한 커밋으로 |
+>
+> **▶ 음성 대조로 실측한 값 (이 라운드에서 직접 재현한 것만 적는다)**
+> · M5 `x402Version="abc"` 가 `ValueError` 로 그대로 튀어나가고, 타입 3종은 402 까지 도달
+> · M2 지급 실패인데 `delivered_amount=31940000` · `reason=''`
+> · M3 RPC 장애인데 스냅샷 `'0'` · 교차검증 **`usdc_ok=True`**(온체인을 한 줄도 못 읽었는데)
+> · L1 `16:03:10` 과 `16:03:51` 이 **같은 파일명**
+> · M8 예산 0.01 인하 시 **화면 `0.00` vs 엔진 `30.00`**
+> · L11 옛 호출부에서 rule·trend·dca **세 세션 전부** `use_gemini=True`
+> · M6 `999999`·`Infinity`·`NaN` 이 그대로 복원
+> · BUG-20 `release()` 가 `0` 반환 · 사용액 30 이 세션 끝까지 묶임
+> · BUG-15·18·19 `ZeroDivisionError` · `tick_interval=nan` · `InvalidOperation`(500)·Infinity 세션 시작
+>
+> **⚠ 다음 세션이 알아야 할 사실 4건**
+> ① **M6 의 도달 경로는 실재하지 않았다** — 브리프 지시대로 착수 전에 확인했다. 배포
+>    Firestore(project `synapstock`·prefix `autotrader`)에 **`autotrader_state` 컬렉션 자체가
+>    없고** `defaults` 문서도 없다(컬렉션은 `briefings`·`sessions`·`trades` 3개뿐). 즉 그 커밋은
+>    활성 결함 수정이 아니라 **방어**다. 한도를 한 번이라도 저장한 뒤 상한을 더 낮추면 성립한다.
+> ② **BUG-15 는 0 피벗이 하나뿐이면 재현되지 않는다** — 정렬 후 첫 원소는 비교 대상이 없어
+>    나눗셈에 도달하지 않는다. 0 뒤에 다른 피벗이 있어야 터진다(회귀 입력을 그렇게 고쳤다).
+> ③ **⚠⚠ 런북 §4 의 `--set-env-vars` 가 배포 현행과 어긋난다.** 명령에 `STOCK_MINT`·
+>    `STOCK_SYMBOL`·`BUDGET_USDC`·`PER_TRADE_MAX_USDC` 4개가 **없는데 배포본에는 있다.**
+>    `--set-env-vars` 는 전부 덮어쓰므로 **런북을 그대로 복붙하면 `STOCK_MINT` 가 지워진다**
+>    (나머지 3개는 `config.py` 기본값과 같아 무해: `tAAPL`·100·50. `STOCK_MINT` 기본값만 `""`).
+>    이번 배포는 4개를 직접 넣어 현행 상태를 보존했다. **런북 §4 를 고쳐야 한다(미착수).**
+> ④ **`delivered_amount` 를 읽는 다운스트림은 없다**(M2 안전성 근거). 소비처는 x402 정산
+>    페이로드 직렬화뿐이고, `check_delivery` 의 `expected_increase_units` 는 `quote` 에서 따로
+>    온다(`engine.py:1455`). `on_sale_completed` 도 이 값을 안 읽는다.
+>
+> **⚠ 제외 결정은 그대로 유지된다 — 다시 꺼내지 말 것.** **M4**(`x402_solana.py` 확정 판정
+> fail-open) · **M1**(`broker_agent.py:81` 매도 대금 하한) · **BUG-13**(견적 산식) 셋 다
+> 결제 판정·견적을 바꿔 소개서 인용 백테스트 수치와 devnet 증빙 재현이 흔들린다.
+> BUG-21·22·23·16·17·25 도 제외(사유는 `docs/next_session_bugfix.md` §D 표).
+> **M7 은 결함이 아니다**(개발용 합성 패턴 피드 한정 · 심사 경로 영향 0).
+>
+> **▶ 다음 = 심사 부서** (사용자 결정대로 수정이 끝난 뒤). 새 대화에서
+> `Workflow({scriptPath: ".claude/workflows/judge-dept.js"})` — 착수 전에
+> `docs/next_session_bugfix.md` 와 `docs/reports/bug_latest.md` 를 함께 넘겨 부서가
+> "이미 닫힌 것"을 결함으로 세지 않게 한다.
+>
+> ---
+>
 > # ▶▶▶▶ [✅ 완료 — 2026-07-31] **버그 부서 실행 · 확정 20건 · 리포트 서술 2건 정정**
 > **다음 대화 = 수정 착수. 읽을 것은 [`docs/next_session_bugfix.md`](docs/next_session_bugfix.md)
 > 하나뿐이다** — 수정 명세·제외 대상·검증 게이트가 자족적으로 들어 있다.

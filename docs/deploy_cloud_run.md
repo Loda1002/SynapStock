@@ -150,8 +150,16 @@ gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --filt
 `--source .` 이 엉뚱한 폴더를 통째로 업로드하는 사고**를 막는 안전장치다.
 
 ```powershell
-if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가 아닙니다. 현재 위치: $(Get-Location)" } else { gcloud run deploy synapstock --project $PROJECT_ID --source . --region $REGION --allow-unauthenticated --min-instances 1 --max-instances 1 --no-cpu-throttling --concurrency 300 --cpu 1 --memory 1Gi --timeout 3600 --set-env-vars "FIRESTORE_ENABLED=1,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com,ALLOW_LIVE_FROM_WEB=0,MAX_BUDGET_USDC=1000,GEMINI_MODE=developer,GEMINI_MODEL=gemini-flash-latest" --set-secrets "TRADING_KEYPAIR_JSON=autotrader-trading-wallet:latest,BROKER_KEYPAIR_JSON=autotrader-broker-wallet:latest,USER_KEYPAIR_JSON=autotrader-user-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest,CONTROL_TOKEN=autotrader-control-token:latest" }
+if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가 아닙니다. 현재 위치: $(Get-Location)" } else { gcloud run deploy synapstock --project $PROJECT_ID --source . --region $REGION --allow-unauthenticated --min-instances 1 --max-instances 1 --no-cpu-throttling --concurrency 300 --cpu 1 --memory 1Gi --timeout 3600 --set-env-vars "FIRESTORE_ENABLED=1,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com,ALLOW_LIVE_FROM_WEB=0,MAX_BUDGET_USDC=1000,GEMINI_MODE=developer,GEMINI_MODEL=gemini-flash-latest,STOCK_MINT=37HxYLozTuzRDi1bqkqY1gKghzxbZHG8cWH1pwvAfJRG,STOCK_SYMBOL=tAAPL,BUDGET_USDC=100,PER_TRADE_MAX_USDC=50" --set-secrets "TRADING_KEYPAIR_JSON=autotrader-trading-wallet:latest,BROKER_KEYPAIR_JSON=autotrader-broker-wallet:latest,USER_KEYPAIR_JSON=autotrader-user-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest,CONTROL_TOKEN=autotrader-control-token:latest" }
 ```
+
+> ⚠ **`STOCK_MINT` 이하 4개는 2026-07-31 에 추가됐다 — 빼면 안 된다.** 그 전까지 이 명령에는
+> 없었는데 **배포본에는 있었다**(devnet 재실증·라이브 세션 라운드에서 주입). `--set-env-vars` 는
+> 없는 변수를 지우므로, 옛 명령을 그대로 복붙하면 **`STOCK_MINT` 이 사라진다.**
+> `STOCK_SYMBOL`·`BUDGET_USDC`·`PER_TRADE_MAX_USDC` 는 `config.py` 기본값과 같아(`tAAPL`·100·50)
+> 지워져도 값이 안 바뀌지만, **`STOCK_MINT` 만 기본값이 `""`** 라 실제로 달라진다.
+> ⚠ 이 4개는 **배포 현행 상태를 그대로 적어 둔 것**이다 — devnet 민트를 다시 발행하거나
+> 예산 기본값을 바꾸면 이 줄도 함께 고쳐야 한다(안 고치면 다음 재배포가 옛 값으로 되돌린다).
 
 끝나면 `Service URL: https://synapstock-....run.app` 이 출력된다 — **이게 라이브 배포 URL(가산점 항목)**.
 
