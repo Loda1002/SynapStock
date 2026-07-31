@@ -69,3 +69,6 @@ docs/reports/_bugscan_*.json
 # 데이터 부서(data-dept) 품질표면 스냅샷 — 재실행마다 쌓이는 중간 산출물(collect_dataquality 로 재생성 가능).
 # 리포트(docs/reports/data_*.md)만 커밋한다.
 docs/reports/_dataquality_*.json
+
+# 프런트 전달본 원본 - 참고용 보관, 커밋하지 않는다 (CLAUDE.md 방침)
+docs/design/incoming/
