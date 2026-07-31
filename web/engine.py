@@ -14,6 +14,7 @@ A2 긴급정지: trading_enabled 플래그 — 끄면 신규 판단·결제가 �
 from __future__ import annotations
 import asyncio
 import json
+import math
 import os
 import re
 from datetime import datetime
@@ -470,6 +471,11 @@ class TradingEngine:
         except (ValueError, InvalidOperation):
             raise EngineError("적립식 파라미터가 숫자 형식이 아닙니다.")
         if strat_type == "dca":
+            # Decimal("NaN")·Decimal("Infinity") 는 InvalidOperation 없이 만들어져 위 try 를
+            # 빠져나온다. 그다음 NaN 은 아래 비교 자체가 InvalidOperation 을 던져 **500** 이
+            # 되고(사용자는 원인을 못 본다), Infinity 는 `<= 0` 을 통과해 세션이 시작된다.
+            if not dca_amount.is_finite():
+                raise EngineError("적립식 회당 금액이 유효한 숫자가 아닙니다.")
             if dca_amount <= 0:
                 raise EngineError("적립식 회당 금액은 0보다 커야 합니다.")
             if dca_unit == "ticks" and dca_every < 1:
@@ -749,6 +755,11 @@ class TradingEngine:
         try:
             _ti = float(_ti)
         except (TypeError, ValueError):
+            _ti = CFG.web_tick_interval_sec
+        if not math.isfinite(_ti):
+            # NaN 은 min/max 비교가 전부 False 라 **클램프를 그대로 통과한다.** 그러면
+            # asyncio.sleep(nan) 이 즉시 돌아와 틱 루프가 폭주한다(재생 피드를 순식간에
+            # 소진하고 CPU 를 태운다). Infinity 는 60 으로 잘리지만 같은 자리에서 끊는다.
             _ti = CFG.web_tick_interval_sec
         self.tick_interval = min(max(_ti, 0.05), 60.0)
         self.last_archive_path = ""

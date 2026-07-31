@@ -15,6 +15,7 @@
 from __future__ import annotations
 import asyncio
 import dataclasses
+import math
 import os
 import sys
 from decimal import Decimal
@@ -202,6 +203,53 @@ def test_server_port_blank_boots():
     rc, err = _run_import({"PORT": ""}, "import web.server")
     check("BUG-24 빈 PORT 에서도 web.server 임포트 성공", rc == 0, f"rc={rc} {err[-160:]}")
 
+async def test_nan_session_params_rejected() -> None:
+    """NaN·Infinity 가 세션 파라미터 검사를 통과하지 않는다 — BUG-18·BUG-19.
+
+    둘 다 같은 계열이다: NaN 은 비교 연산이 전부 False(또는 InvalidOperation)라서
+    '안전 범위로 클램프' · '0보다 큰가' 같은 검사를 **그냥 통과한다**.
+      · BUG-18 틱 간격 NaN → min/max 클램프를 통과해 asyncio.sleep(nan) 이 즉시 돌아오고
+        틱 루프가 폭주한다(재생 피드를 순식간에 소진하고 CPU 를 태운다).
+      · BUG-19 적립식 회당 금액 NaN → `<= 0` 비교가 InvalidOperation 을 던져 500 이 되고,
+        Infinity 는 그 비교를 통과해 세션이 실제로 시작된다.
+    """
+    print("\n[6] NaN·Infinity 세션 파라미터 (BUG-18·19)")
+    eng.CFG = REAL_CFG
+
+    # BUG-18 — 틱 간격
+    for label, val in (("NaN", float("nan")), ("Infinity", float("inf"))):
+        e = _engine()
+        await e.start("dry", {"type": "condition", "brain": "rule"},
+                      {"type": "replay", "dataset": "daily", "symbols": ["AAPL"]},
+                      autostart=False, tick_interval_sec=val)
+        ok = math.isfinite(e.tick_interval) and 0.05 <= e.tick_interval <= 60.0
+        check(f"BUG-18 틱 간격 {label} 은 안전 범위로 대체", ok, str(e.tick_interval))
+
+    # [대조군] 정상 값은 지금까지와 똑같이 그대로 쓰인다
+    e = _engine()
+    await e.start("dry", {"type": "condition", "brain": "rule"},
+                  {"type": "replay", "dataset": "daily", "symbols": ["AAPL"]},
+                  autostart=False, tick_interval_sec=0.3)
+    check("[대조군] 정상 틱 간격은 그대로", e.tick_interval == 0.3, str(e.tick_interval))
+
+    # BUG-19 — 적립식 회당 금액
+    for label, val in (("NaN", "NaN"), ("Infinity", "Infinity")):
+        e = _engine()
+        raised = ""
+        try:
+            await e.start("dry",
+                          {"type": "dca", "dca_unit": "ticks", "dca_every_ticks": 1,
+                           "dca_amount_usdc": val},
+                          {"type": "replay", "dataset": "daily", "symbols": ["AAPL"]},
+                          autostart=False)
+        except EngineError as ex:
+            raised = str(ex)
+        except Exception as ex:                      # InvalidOperation 등 = 500 으로 새는 경로
+            raised = f"[{type(ex).__name__}] {ex}"
+        check(f"BUG-19 적립식 금액 {label} 은 EngineError 로 거부",
+              "유효한 숫자가 아닙니다" in raised, raised or "거부되지 않음(세션 시작됨)")
+
+
 async def main() -> int:
     try:
         await test_regression_reproduces()
@@ -213,6 +261,7 @@ async def main() -> int:
         test_bad_numeric_env_names_the_variable()
         test_max_budget_blank_still_fails()
         test_server_port_blank_boots()
+        await test_nan_session_params_rejected()
     finally:
         eng.CFG = REAL_CFG   # 다른 테스트에 영향 주지 않도록 원복
 

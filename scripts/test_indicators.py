@@ -96,6 +96,30 @@ def main() -> int:
     bad += check("저항 110 (2회 터치)", (sr["resistance"], sr["resistance_touches"]), (D("110"), 2))
     bad += check("지지 반등 이벤트", [e["name"] for e in sr["events"]], ["지지 반등"])
 
+    # ⑤-1 가격 0 인 봉이 피벗이 돼도 죽지 않는다 (BUG-15)
+    # _cluster_levels 의 묶음 판정이 기준가로 나누는 상대오차라, 피벗 가격 0 이 들어오면
+    # ZeroDivisionError 로 ta_summary 가 통째로 죽는다 — 시세 CSV 의 0 행 하나에 판단
+    # 계층 전체가 멈춘다. 0 은 지지·저항 '가격대'로서도 의미가 없으므로 버린다.
+    # ⚠ 0 피벗이 **하나뿐이면** 나눗셈에 도달하지 않는다(첫 원소는 비교 대상이 없다).
+    #   0 이 정렬 후 맨 앞에 오고 그 뒤에 다른 피벗이 있어야 재현된다.
+    try:
+        bad += check("0 기준가로 나누지 않는다 (BUG-15 직접)",
+                     ta._cluster_levels([0.0, 5.0]), [(5.0, 1)])
+    except ZeroDivisionError as e:
+        bad += check("0 기준가로 나누지 않는다 (BUG-15 직접)", f"ZeroDivisionError: {e}", True)
+    try:
+        # 저점 피벗 0(idx5) + 저점 피벗 5(idx15) + 고점 피벗 10(idx10)
+        zero = flat_bars([10, 9, 8, 7, 6, 0, 6, 7, 8, 9,
+                          10, 9, 8, 7, 6, 5, 6, 7, 8, 9, 10])
+        got = ta.support_resistance(zero, D(7))
+        bad += check("가격 0 봉이 피벗이어도 크래시 없음 (BUG-15)", isinstance(got, dict), True)
+    except ZeroDivisionError as e:
+        bad += check("가격 0 봉이 피벗이어도 크래시 없음 (BUG-15)",
+                     f"ZeroDivisionError: {e}", True)
+    # [대조군] 정상 가격만 있으면 지금까지와 똑같이 묶인다
+    bad += check("[대조군] 정상 가격 묶기 불변",
+                 ta._cluster_levels([100.0, 100.05, 110.0]), [(100.025, 2), (110.0, 1)])
+
     # ⑥ 이중천장(M형) — 매도 100
     m_top = [100, 102, 104, 106, 108, 110, 108, 106, 104, 106,
              108, 110.2, 108, 106, 104, 103, 102]

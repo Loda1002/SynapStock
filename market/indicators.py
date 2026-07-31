@@ -22,6 +22,7 @@
 ※ 이 계산은 사용자가 정의한 규칙의 실행이며 투자 조언이 아니다(데모용).
 """
 from __future__ import annotations
+import math
 from decimal import Decimal
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -129,9 +130,14 @@ def find_pivots(bars: Sequence, strength: int = PIVOT_STRENGTH,
 
 
 def _cluster_levels(prices: List[float]) -> List[Tuple[float, int]]:
-    """피벗 가격들을 LEVEL_TOL 안에서 묶어 (가격대 평균, 터치 수) 목록으로."""
+    """피벗 가격들을 LEVEL_TOL 안에서 묶어 (가격대 평균, 터치 수) 목록으로.
+
+    0 이하·비유한 가격은 버린다 — 묶음 판정이 기준가로 나누는 상대오차라, 피벗 가격이
+    0 이면 ZeroDivisionError 로 ta_summary 가 통째로 죽는다(시세 CSV 의 0 행 하나에
+    판단 계층 전체가 멈춘다). 가격 0 은 지지·저항 '가격대'로서도 의미가 없다.
+    """
     out: List[Tuple[float, int]] = []
-    for p in sorted(prices):
+    for p in sorted(x for x in prices if math.isfinite(x) and x > 0):
         if out and abs(p - out[-1][0]) / out[-1][0] <= LEVEL_TOL:
             avg, n = out[-1]
             out[-1] = ((avg * n + p) / (n + 1), n + 1)
