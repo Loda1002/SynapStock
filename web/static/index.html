@@ -71,7 +71,9 @@
     <!-- .tip 으로 감싸는 이유: 이 버튼은 색이 차오르는 모션 때문에 overflow:hidden 이라
          말풍선을 버튼에 직접 붙이면 잘린다. 내용은 app.js wireTips 가 title 에서 옮긴다. -->
     <span class="tip">
-      <button class="btn btn-sweep" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">🔔 알림 받기</button>
+      <!-- 앞의 종은 skeleton.css 가 그린다(::after + order:-1) — app.js 가 라벨을
+           textContent 로 다시 쓰므로 자식 요소로 두면 지워진다. -->
+      <button class="btn btn-sweep" data-btn-notify title="체결·거부·정지 이벤트를 브라우저 알림으로 (탭이 백그라운드일 때)">알림 받기</button>
     </span>
     <!-- 연결된 지갑의 온체인 잔액. 세션 모드(샌드박스/라이브)와 무관하게 체인을 직접 읽는다.
          미연결이거나 조회 실패면 통째로 감춘다 — 헤더에 빈 칸이 남지 않게. -->
@@ -539,7 +541,10 @@
   </section>
 
   <section class="card card-wide" data-card="briefing">
-    <h2><span class="ci ci-briefing" aria-hidden="true"></span>데일리 브리핑 <span class="sub">Gemini 요약 · 실패하면 자동 계산 요약</span></h2>
+    <!-- 시안(2003:906): 머리줄 · 생성 시각 알약 · 본문. `📋 오늘 요약` 버튼은 시안에 없어
+         skeleton.css 가 감춘다(⚠ DOM 에서 지우면 app.js 가 null 참조로 죽는다). -->
+    <h2><span class="ci ci-briefing" aria-hidden="true"></span>데일리 브리핑
+      <span class="sub" title="Gemini 가 요약합니다. 실패하면 자동 계산 요약으로 대체됩니다.">Gemini 자동</span></h2>
     <div class="briefing-bar">
       <button class="btn" data-btn-briefing>📋 오늘 요약</button>
       <span class="sub" data-briefing-meta
@@ -633,18 +638,59 @@
   </aside>
 </div>
 
-<!-- A4 거래 알림 — 인앱 토스트 스택 (우하단) -->
+<!-- A4 거래 알림 — 인앱 토스트 스택 (우상단, 위에서 아래로 쌓인다 — skeleton.css) -->
 <div class="toasts" data-toasts aria-live="polite"></div>
 
+<!-- 오른쪽 아래 플로팅 버튼 — uiverse.io/icochran10/shaggy-quail-31 을 옮겼다.
+     원본은 Tailwind 유틸리티만 쓴 컴포넌트라 클래스를 우리 이름으로 바꾸고 값은
+     skeleton.css 로 옮겨 적었다. 하드코딩 색만 테마 토큰으로 바꿨다 — 원본 색을 그대로 두면
+     다크 모드에서 흰 카드가 그대로 남는다.
+     ⚠ 원본은 **왼쪽 기준**이라 세로 레일이 왼쪽이고 버튼이 오른쪽으로 늘어난다. 오른쪽 아래에
+        두려고 거울상으로 뒤집었다 — 레일은 오른쪽, 늘어나는 방향은 왼쪽, 아이콘은 오른쪽 끝 고정.
+     ⚠ 긴급정지는 제목칸의 진짜 버튼([data-btn-pause])을 대신 눌러 준다(app.js) — 확인 절차·
+        API 호출이 한 벌로 유지된다. 얇은 헤더의 버튼과 같은 방식이다.
+     ⚠ '메뉴'는 아직 누를 곳이 정해지지 않아 배선하지 않았다(모양만). -->
+<ul class="fab-stack" data-fab-stack>
+  <li class="fab-item">
+    <button class="fab-btn fab-btn-stop" type="button" data-fab-pause>
+      <!-- 접혀 있을 때 보이는 칸이 곧 버튼의 얼굴이다. -->
+      <span class="fab-icon fab-icon-stop" aria-hidden="true">STOP</span>
+      <!-- 바깥 span 은 0fr→1fr 로 늘어나는 칸, 안쪽 span 이 잘리는 실제 글자다(skeleton.css) -->
+      <span class="fab-label"><span>긴급정지</span></span>
+    </button>
+  </li>
+  <li class="fab-item">
+    <button class="fab-btn fab-btn-menu" type="button" data-fab-menu>
+      <span class="fab-icon fab-icon-menu" aria-hidden="true">
+        <!-- 가로줄 세 줄(Heroicons bars-3) — 원본이 쓰는 아이콘 묶음과 같은 것이다. -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+        </svg>
+      </span>
+      <span class="fab-label"><span>메뉴</span></span>
+    </button>
+  </li>
+</ul>
+
 <!-- 맨 위로 — 스크롤을 내리기 전에는 보이지 않는다(숨김이 CSS 기본값, js/to-top.js 가 벗긴다).
-     같은 우하단의 토스트 스택은 이 버튼 높이만큼 위로 띄워 두었다(skeleton.css .toasts).
-     글자 "맨 위로"는 CSS(.to-top::before)가 그리므로 aria-label 로 읽을 이름을 따로 준다. -->
+     시안대로 화면 아래 가운데에 뜨고, 마우스를 올리면 화살표가 벨트처럼 아래에서 위로 흐른다.
+     그러려면 화살표가 최소 두 개 필요하다 — 하나가 위로 빠져나가는 동안 다음 하나가 아래에서
+     올라와야 끊기지 않는다. 둘을 .to-top-track 에 담아 트랙째로 밀어 올리고, 원 밖으로 나간
+     부분은 .to-top 의 overflow:hidden 이 잘라 낸다(skeleton.css).
+     화면에 글자가 없으므로 읽을 이름은 aria-label 이 준다. -->
 <button class="to-top" type="button" data-to-top aria-label="맨 위로">
-  <svg class="to-top-icon" viewBox="0 0 384 512" aria-hidden="true">
-    <path
-      d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"
-    ></path>
-  </svg>
+  <span class="to-top-track" aria-hidden="true">
+    <svg class="to-top-icon" viewBox="0 0 384 512">
+      <path
+        d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"
+      ></path>
+    </svg>
+    <svg class="to-top-icon" viewBox="0 0 384 512">
+      <path
+        d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"
+      ></path>
+    </svg>
+  </span>
 </button>
 
 <script src="/static/js/wallet.js"></script>

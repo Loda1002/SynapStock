@@ -371,6 +371,47 @@ input[type="number"], input[type="text"], input[type="time"] {
   gap: var(--gap); flex-wrap: wrap;
 }
 .huge { font-size: calc(var(--fs-big) * 1.6); font-weight: 700; margin: 2px 0; line-height: 1.1; }
+
+/* ---- 등락 배지 (시안 2003:849) ----
+   시안은 큰 숫자 **오른쪽에 붙는 알약**이고 방향은 글자가 아니라 도형이다. 전에는 숫자
+   아랫줄에 맨 글자로 `▲ +7.20 USDC (+4.00%)` 만 있었다(색만 초록·빨강).
+   조각 나누기는 app.js 의 renderPriceChange 가 한다 — 여기서는 자리와 모양만 정한다. */
+[data-card="price"] .price-head > div {
+  display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px;
+}
+[data-card="price"] .price-head > div > h2 { flex: 1 0 100%; }   /* 제목이 한 줄을 통째로 */
+[data-card="price"] .price-head > div > .huge { margin: 0; }
+[data-card="price"] .price-head > div > .sub {
+  margin: 0; display: inline-flex; align-items: center; gap: 10px;
+}
+/* 기준 문구(`세션 시작가 대비`)는 시안에 없다. 지우지 않고 알약 툴팁으로 내린다
+   — app.js 가 매 갱신마다 이 칸에 값을 쓰므로 DOM 은 남긴다. */
+[data-change-basis] { display: none; }
+
+/* 알약 — 높이 30 · 좌우 여백 11 · 삼각형과 글자 사이 6 · 글자 12 */
+[data-price-change] {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 11px; border-radius: 20px;
+  font-size: 12px; line-height: 20px;
+}
+/* 삼각형(2003:851 — 7.794×6.5). 내보낸 SVG 대신 같은 크기 상자를 잘라 만든다.
+   ⚠ 오를 때 위 · 내릴 때 아래로 **꼭짓점만 뒤집는다** — 회전(rotate)으로 뒤집으면
+   밑변이 위로 가면서 글자와의 시각 중심이 어긋난다. */
+[data-price-change]::before {
+  content: ""; flex: none; width: 7.794px; height: 6.5px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+/* 색은 시안에 이미 있는 매수·매도 칩 짝을 그대로 쓴다(새 색을 만들지 않는다). */
+[data-price-change].pos { background: var(--fx-buy-bg);  color: var(--fx-buy-fg); }
+[data-price-change].neg { background: var(--fx-sell-bg); color: var(--fx-sell-fg); }
+[data-price-change].neg::before { clip-path: polygon(50% 100%, 100% 0, 0 0); }
+/* 아직 값이 없거나(—) 보합이면 알약을 만들지 않는다 — 회색 알약이 떠 있으면
+   "무언가 일어났다"로 읽힌다. */
+[data-price-change]:not(.pos):not(.neg) {
+  background: none; padding: 0; height: auto; color: var(--muted);
+}
+[data-price-change]:not(.pos):not(.neg)::before { display: none; }
 /* 차트 아래 한 줄 — 조작부·범례·집계 정보. 그래프 위에 두면 가드 요약 패널이 가린다. */
 .chart-legend {
   display: flex; flex-wrap: wrap; align-items: center;
@@ -524,23 +565,67 @@ tr.session-divider td {
   display: flex; gap: var(--gap); flex-wrap: wrap; justify-content: space-between;
 }
 
-/* ---- B2 데일리 브리핑 ---- */
+/* ---- B2 데일리 브리핑 (시안 2003:906) ----
+   카드 껍데기(흰 배경 · 모서리 18 · 그림자 · 여백 24)는 이미 시안 값이라 손댈 것이 없다.
+   다른 것은 **덩어리 사이 간격 16** 하나뿐이라 세로 플렉스로 잡는다(제목·알약·본문이 각자
+   margin 을 들고 있어 8/8 로 어긋나 있었다).
+   align-items 를 시작에 붙여야 알약이 제 글자만큼만 넓어진다(시안 실측 146px = 내용 폭). */
+[data-card="briefing"] {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+}
+[data-card="briefing"] > h2,
+[data-card="briefing"] .briefing-text { margin: 0; }
+
+/* 시안에는 `📋 오늘 요약` 버튼이 없다. ⚠ DOM 에서 지우면 안 된다 — app.js 가
+   [data-btn-briefing] 을 잡아 클릭을 물린다(없으면 null 참조). 화면에서만 뺀다.
+   감싸고 있던 .briefing-bar 도 상자를 없앤다(display: contents) — 남겨 두면 그 줄이
+   알약(36)보다 높아져 위아래 간격이 16 이 아니라 18 로 벌어진다. */
+[data-card="briefing"] [data-btn-briefing] { display: none; }
 .briefing-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-card="briefing"] .briefing-bar { display: contents; }
+
+/* 생성 시각 알약(2003:911) — 배경은 페이지 바탕과 같은 색이라 새 토큰을 만들지 않는다. */
+[data-briefing-meta] {
+  /* ⚠ 이 span 은 `.sub` 라 `margin: 2px 0` 을 물려받는다. 플렉스에서는 그 여백이 간격에
+     그대로 더해져 16 이 18 로 벌어진다(실측). 그래서 0 으로 지운다. */
+  margin: 0;
+  padding: 8px 11px; border-radius: 8px;
+  background: var(--bg); color: var(--muted);
+  font-size: 12px; line-height: 20px;
+}
+
+/* 본문(2003:913) — 14/26 회색. 상한·스크롤은 그대로 둔다(실제 브리핑은 시안보다 길 수 있다). */
 .briefing-text {
   margin: 8px 0 0; max-height: 220px; overflow-y: auto;
   overscroll-behavior: contain; white-space: pre-wrap; word-break: break-word;
 }
+[data-card="briefing"] .briefing-text {
+  color: var(--fx-body); font-size: 14px; line-height: 26px;
+}
 .briefing-text:empty { display: none; }
 
-/* ---- A4 거래 알림 토스트 (우하단 스택, 자동 소멸) ---- */
+/* ---- A4 거래 알림 토스트 (우상단 스택, 위에서 아래로 쌓임, 자동 소멸) ----
+   app.js 는 새 토스트를 뒤에 붙이고(appendChild) 넘치면 맨 앞을 지운다 — 그래서 위를
+   기준으로 잡기만 하면 오래된 것이 위 · 새 것이 아래가 되고 지워지는 것도 맨 위부터다.
+   자바스크립트는 손대지 않는다.
+
+   ⚠ 화면 위에는 늘 머리글이 하나 있다 — 스크롤 전에는 제목칸(.topbar), 스크롤하면 얇은
+   헤더(.slim-bar)다. 토스트는 z-index 100 이고 얇은 헤더는 55 라 그냥 두면 토스트가
+   머리글을 덮는다. 그래서 지금 보이는 머리글 바로 아래로 내려 보낸다.
+   **상태는 둘뿐이다** — app.js 의 syncHeaderUI 가 제목칸이 화면 위로 *완전히* 사라진
+   뒤에야(`bar.bottom <= 0`) 얇은 헤더를 내리므로 둘이 동시에 보이는 구간이 없다.
+   높이는 실측값이다(제목칸 66 · 얇은 헤더 39). 여유는 8px 만 둔다.
+   ⚠ 66px 은 제목칸이 한 줄일 때다 — 화면이 좁아 flex-wrap 으로 두 줄이 되면 다시 재야 한다. */
 .toasts {
-  position: fixed; right: var(--gap); bottom: var(--gap); z-index: 100;
+  position: fixed; right: var(--gap); top: calc(var(--gap) + 66px + 8px); z-index: 100;
   display: flex; flex-direction: column; gap: 8px; max-width: 340px;
-  /* 같은 우하단에 "맨 위로" 버튼(.to-top, 50px)이 떠 있어서 그 높이만큼 띄운다.
-     겹치면 토스트가 버튼을 덮어 스크롤 중에 버튼을 누를 수 없다. */
-  padding-bottom: calc(50px + var(--gap));
-  pointer-events: none;   /* 비어 있는 여백이 버튼 클릭을 가로채지 않게 */
+  /* 칸 하나하나가 제 글 길이만큼만 넓어진다. 기본값(stretch)이면 flex 가 모든 토스트를
+     **가장 긴 것에 맞춰** 늘려서 짧은 알림도 긴 알림과 같은 폭이 된다. */
+  align-items: flex-end;
+  pointer-events: none;   /* 비어 있는 여백이 아래 요소의 클릭을 가로채지 않게 */
 }
+/* 얇은 헤더가 내려와 있으면 그 아래로 (39 + 8) */
+.slim-bar.is-shown ~ .toasts { top: calc(39px + 8px); }
 .toast { pointer-events: auto; }
 .toast {
   background: var(--card-bg); border: 1px solid var(--border);
@@ -558,21 +643,26 @@ tr.session-divider td {
 }
 
 /* ---- "맨 위로" 버튼 (landing.html · index.html 공용) ----
-   Uiverse 의 goback 컴포넌트를 옮겼다 — 평소엔 화살표만 있는 원이고, 마우스를 올리면
-   가로로 늘어나면서 화살표가 위로 빠져나가고 그 자리에 글자가 올라온다.
-   원본과 다른 점 두 가지:
-   · 클래스 이름을 .button → .to-top 으로 바꿨다(.button 은 이 저장소의 다른 버튼과 부딪힌다).
-   · 하드코딩 색(검정 원·보라 링) 대신 테마 변수를 쓴다 — 다크 모드에서 색이 따로 놀지 않게.
-   숨김이 기본값이라 js/to-top.js 가 없거나 실패해도 화면에 이상한 버튼이 남지 않는다. */
+   시안: 화면 아래 **가운데**에 뜨는 40px 원. 글자는 없고, 마우스를 올리면 화살표가
+   컨베이어 벨트처럼 아래에서 위로 끊김 없이 흐른다.
+   (원래는 Uiverse 의 goback — 가로로 늘어나며 "맨 위로" 글자가 올라오는 모양이었다.)
+   숨김이 기본값이라 js/to-top.js 가 없거나 실패해도 화면에 이상한 버튼이 남지 않는다.
+
+   ⚠ 가운데맞춤에 `left: 50% + translate` 를 쓰면 안 된다 — translate 는 아래 등장·퇴장
+   모션이 이미 쓰고 있어서(`translate: 0 12px`) 가운데맞춤이 그 모션을 지운다.
+   left·right 를 0 으로 펴고 `margin-inline: auto` 로 잡으면 translate 를 비워 둘 수 있다. */
 .to-top {
-  position: fixed; right: var(--gap); bottom: var(--gap); z-index: 101;
-  width: 50px; height: 50px; border-radius: 50%;
+  position: fixed; left: 0; right: 0; bottom: var(--gap); margin-inline: auto;
+  z-index: 101;
+  /* ⚠ 아래 벨트 값 셋이 이 높이에 묶여 있다 — 화살표 간격 = 높이 − 화살표(16) ·
+     트랙 top = (높이 − 16) / 2 · 한 주기 = 높이. 크기를 바꾸면 셋 다 함께 고친다. */
+  width: 40px; height: 40px; border-radius: 50%;
   border: none; background: var(--accent);
   display: flex; align-items: center; justify-content: center;
-  font-weight: 600; cursor: pointer; overflow: hidden;
+  cursor: pointer; overflow: hidden;
   box-shadow: 0 0 0 4px rgba(47, 86, 240, .22), var(--shadow);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow);
-  transition: width .3s, border-radius .3s, filter .3s,
+  transition: filter .3s, scale .2s var(--stagger-ease),
               opacity .22s var(--stagger-ease), translate .22s var(--stagger-ease),
               visibility .22s;
   /* 스크롤을 내리기 전에는 없는 셈 친다 — visibility 까지 꺼야 투명한 버튼이 클릭을 먹지 않는다.
@@ -583,21 +673,140 @@ tr.session-divider td {
   opacity: 0; visibility: hidden; translate: 0 12px;
 }
 .to-top.is-shown { opacity: 1; visibility: visible; translate: none; }
-.to-top:hover { width: 116px; border-radius: 50px; filter: brightness(1.08); }
+/* 글자가 없으니 가로로 늘릴 이유도 없다 — 늘 원이고 아주 살짝만 커진다. */
+.to-top:hover { filter: brightness(1.08); scale: 1.06; }
 
-.to-top-icon { width: 12px; transition: transform .3s; }
+.to-top-icon { width: 12px; }        /* viewBox 384×512 → 실제 12×16 */
 .to-top-icon path { fill: #fff; }
-.to-top:hover .to-top-icon { transform: translateY(-200%); }
 
-/* 화살표가 위로 빠져나간 자리에 올라오는 글자. 평소에는 글자 크기가 0 이라 원 안이 비어 있다. */
-.to-top::before {
-  position: absolute; bottom: -20px; content: "맨 위로";
-  color: #fff; font-size: 0;
+/* ---- 화살표 벨트 ----
+   화살표(12×16) 둘을 트랙에 담고 간격을 24 로 두면 화살표 top 끼리 정확히 40px,
+   곧 버튼 높이만큼 떨어진다. 그래서 트랙을 40px 밀어 올리는 한 주기 동안
+   ①앞 화살표가 원 위쪽 끝에 닿는 순간 ②다음 화살표가 아래쪽 끝에 걸린다
+   = "앞이 나가는 순간 다음이 나오기 시작" 이 간격만으로 성립한다.
+   주기가 끝나면 둘째가 첫째의 처음 자리에 정확히 겹치므로 이음매가 없다.
+   원 밖으로 나간 부분은 .to-top 의 overflow: hidden 이 잘라 낸다.
+   top: 12px = (40 − 16) / 2 → 평소에는 화살표 하나가 원 한가운데 서 있다. */
+.to-top-track {
+  position: absolute; top: 12px; left: 0; right: 0;          /* (40 − 16) / 2 */
+  display: flex; flex-direction: column; align-items: center; gap: 24px;  /* 40 − 16 */
 }
-.to-top:hover::before { bottom: unset; font-size: 13px; transition: font-size .3s; }
+@keyframes to-top-belt {
+  from { translate: 0 0; }
+  to   { translate: 0 -40px; }       /* 한 주기 = 버튼 높이 */
+}
+.to-top:hover .to-top-track { animation: to-top-belt .9s linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .to-top, .to-top-icon { transition: none; }
+  .to-top { transition: none; }
+  .to-top:hover { scale: none; }
+  .to-top:hover .to-top-track { animation: none; }
+}
+
+/* ---- 오른쪽 아래 플로팅 버튼 (index.html) ----
+   uiverse.io/icochran10/shaggy-quail-31 의 거울상. 원본 값 그대로: 모서리 8 · 간격 4 ·
+   duration-500 · active:scale-95. 바꾼 것은 둘뿐이다 —
+   ①방향(왼쪽 기준 → 오른쪽 기준 거울상) ②색(하드코딩 → 테마 토큰, 다크 모드 대응).
+
+   ⚠ 펼친 폭은 원본처럼 고정(256)이 아니라 **제 문구 길이만큼**이다. 원본이 256인 것은
+   버튼 안에 알림 목록·설정 패널이 들어가기 때문인데 여기는 라벨 한 줄뿐이라 왼쪽이 텅 빈 채
+   길어 보인다.
+   ⚠ `width: 56px → max-content` 로는 안 된다 — CSS 는 픽셀과 내재 크기 사이를 이어 주지
+   못해서 전환이 늘어나지 않고 **툭 뛴다**(원본의 유일한 모션이 사라진다). 그래서 폭 대신
+   원본이 제 펼침 패널에 쓰는 방법을 그대로 빌린다 — 격자 칸을 `0fr → 1fr` 로 전환한다.
+   fr 은 전환이 되고, 부모가 max-content 면 1fr 이 곧 '글자가 차지하는 만큼'이라
+   **문구가 길어지면 박스도 저절로 길어진다.** */
+.fab-stack {
+  position: fixed; right: var(--gap); bottom: var(--gap); z-index: 101;
+  list-style: none; margin: 0;
+  width: max-content;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  /* 원본의 세로 레일(border-l + pl-1)을 오른쪽으로 옮긴 것 */
+  border-right: 1px solid var(--border);
+  padding: 0 4px 0 0;
+  /* 펼쳐진 버튼 왼쪽의 빈 자리가 화면을 가리지 않게 — 칸 자체는 클릭을 통과시킨다 */
+  pointer-events: none;
+}
+/* 바탕을 절반만 비친다. 앞줄은 color-mix 를 모르는 브라우저용이다(그쪽은 불투명하게 남는다).
+   ⚠ 아이콘 칸(STOP·메뉴)은 제 배경을 따로 들고 있어 그대로 진하다 — 판만 비친다. */
+.fab-item {
+  pointer-events: auto;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+  border-right: 1px solid transparent;
+  background: var(--card-bg);
+  background: color-mix(in srgb, var(--card-bg) 50%, transparent);
+  transition: border-color .5s, box-shadow .5s;
+}
+/* 원본의 hover / has-[:focus] — 키보드로 왔을 때도 같이 펼친다 */
+.fab-item:hover, .fab-item:has(:focus-visible) {
+  border-right-color: var(--border);
+  box-shadow: var(--shadow-hover);
+}
+
+/* 격자 두 칸 = [늘어나는 라벨][아이콘]. 순서를 명시로 뒤집었기 때문에 마크업이 아이콘 먼저여도
+   화면에서는 아이콘이 오른쪽 끝에 고정되고 라벨이 그 왼쪽에서 나온다(거울상의 핵심).
+   여백을 아예 두지 않는다 — 접혀 있을 때는 **아이콘 칸(36×36)이 곧 버튼**이다. */
+.fab-btn {
+  display: grid; grid-template-columns: 0fr auto; align-items: center;
+  padding: 0;
+  border: 0; background: none; cursor: pointer;
+  font: inherit; text-align: right;
+  transition: scale .15s;
+}
+/* ⚠ 펼침 전환(.5s)을 **호버 규칙 안에만** 둔다. 기본 규칙에 두면 커서가 나갈 때도 같은
+   전환이 거꾸로 돌아 아이콘이 한 번 더 튕긴다. 여기에 두면 들어올 때만 전환이 존재하고,
+   나갈 때는 규칙이 떨어져 나가며 곧바로 제자리로 접힌다.
+   튕김의 정체: 전환 중 라벨 칸은 `0.3fr` 처럼 **1보다 작은 값**을 지나는데, 그때 fr 칸은
+   남는 자리를 제 비율만큼만 먹고 나머지가 격자 오른쪽에 남는다 → 칸들이 왼쪽으로 몰렸다
+   제자리로 온다. (아예 안 튕기게 하려면 `justify-content: end` 한 줄이면 되지만,
+   지시가 "들어올 때 한 번만" 이라 그대로 둔다.) */
+.fab-item:hover .fab-btn,
+.fab-item:has(:focus-visible) .fab-btn {
+  grid-template-columns: 1fr auto;
+  transition: grid-template-columns .5s, scale .15s;
+}
+.fab-btn:active { scale: .95; }
+/* ⚠ 두 칸 모두 행을 못박는다. 마크업 순서가 [아이콘, 라벨]인데 아이콘을 2열에 두면 자동
+   배치가 뒤로만 흐르는 성질 때문에 1열인 라벨이 **다음 줄로 밀린다**(높이가 36 → 73 이 된다). */
+.fab-icon {
+  grid-row: 1; grid-column: 2;
+  display: grid; place-items: center;
+  /* size-6(24) + p-1(4×2) + border-2(2×2) = 36 — 원본과 같은 바깥 크기 */
+  width: 36px; height: 36px;
+  border: 2px solid; border-radius: 8px;
+}
+.fab-icon svg { width: 24px; height: 24px; }
+/* 바깥 span 은 0 까지 줄어드는 칸이고(그래서 min-width:0 + overflow:hidden),
+   안쪽 span 이 잘려 나가는 실제 글자다. 아이콘과의 간격(원본 gap-2.5 = 10)도 안쪽에 넣는다 —
+   격자 gap 으로 두면 접혔을 때 그 10px 이 남아 원이 어정쩡하게 넓어진다. */
+.fab-label { grid-row: 1; grid-column: 1; min-width: 0; overflow: hidden; }
+/* 왼쪽 12 = 펼쳤을 때 글자가 벽에 붙지 않게 · 오른쪽 10 = 아이콘과의 간격.
+   둘 다 잘려 나가는 칸 안에 있어서 접히면 여백까지 같이 사라진다. */
+.fab-label > span {
+  display: block; white-space: nowrap; font-weight: 600;
+  padding: 0 10px 0 12px;
+}
+
+/* ① 긴급정지 — 빨간 바탕에 STOP. 글자는 칸(안쪽 28px)에 들어가도록 줄였다. */
+.fab-btn-stop { color: var(--danger); }
+.fab-icon-stop {
+  background: var(--danger); border-color: var(--danger); color: #fff;
+  font-size: 11px; font-weight: 800; letter-spacing: .2px; line-height: 1;
+}
+
+/* ② 메뉴 — 원본 2번 버튼(파랑)의 자리. 색만 강조색 계열로 바꿔 두 버튼이 한 벌로 읽히게 한다.
+   앞줄은 color-mix 를 모르는 브라우저용 고정값이다. */
+.fab-btn-menu { color: var(--accent); }
+.fab-icon-menu {
+  background: #e7ecfd; border-color: #b9c6f9; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--card-bg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab-item, .fab-btn { transition: none; }
 }
 
 /* ---- 얇은 헤더 (index.html) ----
@@ -925,6 +1134,10 @@ body.page-dashboard .topbar .controls [data-btn-notify] { background: #ececec; c
   --ci-gauge:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17.5a8 8 0 1 1 16 0'/%3E%3Cpath d='M12 17.5 16.2 11.8'/%3E%3C/svg%3E");
   --ci-sliders:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5h8.9M17.5 8.5H20M4 15.5h2.5M11.1 15.5H20'/%3E%3Ccircle cx='15.2' cy='8.5' r='2.3'/%3E%3Ccircle cx='8.8' cy='15.5' r='2.3'/%3E%3C/svg%3E");
   --ci-doc:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 3.5h7l4 4v13h-11Z'/%3E%3Cpath d='M13.5 3.5v4h4M9.5 12.5h5M9.5 16h5'/%3E%3C/svg%3E");
+  /* 알림 버튼(켜짐 / 꺼짐·차단·미지원)의 종.
+     꺼짐은 같은 종에 작대기 하나 — 마스크라 겹치는 부분이 하나로 합쳐져 '그어진' 모양이 된다. */
+  --ci-bell:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8.8a6 6 0 1 0-12 0c0 5.2-2 6.7-2 6.7h16s-2-1.5-2-6.7'/%3E%3Cpath d='M10.3 19a2 2 0 0 0 3.4 0'/%3E%3C/svg%3E");
+  --ci-bell-off:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8.8a6 6 0 1 0-12 0c0 5.2-2 6.7-2 6.7h16s-2-1.5-2-6.7'/%3E%3Cpath d='M10.3 19a2 2 0 0 0 3.4 0'/%3E%3Cpath d='M3.6 3.6 20.4 20.4'/%3E%3C/svg%3E");
 }
 /* 글리프를 얹는 공통 규칙. 색은 담는 칸이 정한다(칸마다 배경 틴트가 다르다). */
 .ci::before,
@@ -948,10 +1161,44 @@ body.page-dashboard .topbar .controls [data-btn-notify] { background: #ececec; c
   color: #fff; --ci: var(--ci-shield-ok);
 }
 .fx-banner-icon::before { width: 26px; height: 26px; }
+
+/* 알림 켜기/끄기 버튼 앞의 종.
+   ⚠ 버튼 안의 자식 요소로 두면 지워진다 — renderNotifyBtn 이 상태가 바뀔 때마다 라벨을
+   `textContent` 로 통째로 다시 쓴다(AI 카드의 ▾ 와 같은 함정). 그래서 가상 요소로 그린다.
+   ⚠ `::before` 는 못 쓴다 — 이 버튼은 `.btn-sweep` 이라 차오르는 원이 그 자리를 이미 쓰고
+   있다. 그래서 `::after` 로 그리고 `order: -1` 로 글자 앞에 세운다(버튼을 flex 로 바꾼다).
+   그 원은 `position: absolute` 라 flex 자식이 되지 않으므로 배치가 흔들리지 않는다.
+   ⚠ 크기 17px 은 눈대중이 아니라 **글자에 맞춘 값**이다 — 9배 확대 실측에서 종의 잉크가 83,
+   글자의 잉크가 92 라 종만 9% 짧아 작고 높게 읽혔다(15 × 92/83 ≒ 17). */
+[data-btn-notify] {
+  display: inline-flex; align-items: center; gap: 6px;
+  --bell: var(--ci-bell-off);
+  /* 차오르는 원의 색 = 시안의 아이콘 칸과 같은 연보라.
+     ⚠ 글자색(--sweep-fg)은 위의 짙은 파랑 그대로 뒀다 — 지시가 바탕색 하나였다.
+     연보라 위에서 대비는 충분하지만 계열이 달라진다(보라로 맞추려면 여기 한 줄). */
+  --sweep-bg: #EDEBFF;
+}
+[data-btn-notify].is-notify-on { --bell: var(--ci-bell); }
+[data-btn-notify]::after {
+  content: ""; order: -1; flex: none;
+  width: 17px; height: 17px;
+  background-color: currentColor;
+  -webkit-mask: var(--bell) center / contain no-repeat;
+          mask: var(--bell) center / contain no-repeat;
+}
+
 /* 마스크를 모르는 브라우저 — 글리프만 빼고 빈 칸(시안 그대로)으로 돌아간다. */
 @supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
-  .ci::before, .fx-chip::before, .fx-logo::before, .fx-banner-icon::before { display: none; }
+  .ci::before, .fx-chip::before, .fx-logo::before, .fx-banner-icon::before,
+  [data-btn-notify]::after { display: none; }
 }
+
+/* 얇은 헤더의 작은 긴급정지 버튼은 화면에서 뺀다(시안).
+   ⚠ DOM 에서 지우면 안 된다 — app.js 가 [data-slim-pause] 를 한 번 잡아 두고 갱신마다
+   classList.toggle / disabled 를 부른다. 없으면 null 참조로 대시보드가 통째로 죽는다.
+   ⚠ 짝인 '▶ 매매 재개'([data-slim-resume])는 그대로 뒀다 — 지시가 긴급정지 하나였고,
+   정지 상태에서 스크롤을 내렸을 때 되돌릴 길이 화면에 하나는 있어야 한다. */
+[data-slim-pause] { display: none; }
 
 /* ---- 오늘의 결과 ----
    손익(실현)·평가손익·포지션 카드 3개 + 총자산을 타일 4개로 합친 카드. 숫자를 채우는

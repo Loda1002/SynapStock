@@ -121,6 +121,7 @@
     slimBar: $("[data-slim-bar]"),
     slimPause: $("[data-slim-pause]"),
     slimResume: $("[data-slim-resume]"),
+    fabPause: $("[data-fab-pause]"),
     guardDock: $("[data-guard-dock]"),
     guardPanel: $("[data-guard-panel]"),
     guardTab: $("[data-guard-toggle]"),
@@ -1014,15 +1015,26 @@
     });
   }
 
+  /* 시안(2003:849)은 큰 숫자 오른쪽에 붙는 알약이고, **방향은 글자가 아니라 도형**이다.
+     그래서 여기서는 숫자만 쓰고 화살표는 skeleton.css 가 clip-path 삼각형으로 그린다
+     (▲▼ 를 남겨 두면 삼각형과 겹쳐 화살표가 둘로 보인다).
+     단위 USDC 도 뺀다 — 바로 위 큰 숫자가 이미 `123.45 USDC` 라 같은 말이 두 번이다.
+     기준 문구(`세션 시작가 대비`)는 시안에 없어 화면에서는 감추고 알약 툴팁으로 내린다. */
   function renderPriceChange(current) {
     const p = num(current);
     // 등락 기준: 실데이터 재생 = 전일(직전 봉) 종가, 목 시세 = 세션 시작가
     const base = changeBasis === "prev-close" ? prevClose : sessionOpen;
-    if (!base || !p) { el.priceChange.textContent = "—"; el.priceChange.className = ""; return; }
+    if (!base || !p) {
+      el.priceChange.textContent = "—";
+      el.priceChange.className = "";
+      el.priceChange.title = "";
+      return;
+    }
     const diff = p - base, pct = (diff / base) * 100;
     el.priceChange.textContent =
-      `${diff >= 0 ? "▲ +" : "▼ "}${diff.toFixed(2)} USDC (${diff >= 0 ? "+" : ""}${pct.toFixed(2)}%)`;
+      `${diff >= 0 ? "+" : ""}${diff.toFixed(2)} (${diff >= 0 ? "+" : ""}${pct.toFixed(2)}%)`;
     el.priceChange.className = diff > 0 ? "pos" : diff < 0 ? "neg" : "";
+    el.priceChange.title = `${el.changeBasis.textContent} · 단위 USDC`;
   }
 
   // ---------- 피드 렌더 ----------
@@ -1178,9 +1190,14 @@
      ② 폴백 사유 — 서버가 본문에서 분리해 `fallback_detail` 로 따로 내려준다(web/briefing.py).
         raw 예외 문자열이라 **본문·메타에 찍지 않고 title 에만** 넣는다. */
   function renderBriefing(b) {
-    el.briefingMeta.textContent =
-      `${timeOf(b.ts)} 생성 · ${TRIGGER_LABEL[b.trigger] || b.trigger} · 출처 ${b.source === "gemini" ? "Gemini" : "자동 계산 요약"}`;
+    const trigger = TRIGGER_LABEL[b.trigger] || b.trigger;
+    const source = b.source === "gemini" ? "Gemini" : "자동 계산 요약";
+    /* 시안(2003:911)의 알약은 `17:58:14 생성 · Gemini` 두 토막이다. 무엇이 브리핑을
+       만들었는지(자동/수동)는 지우지 않고 아래 title 로 내린다 — 알약이 길어지면
+       카드 안에서 두 줄로 접힌다. */
+    el.briefingMeta.textContent = `${timeOf(b.ts)} 생성 · ${source}`;
     el.briefingMeta.title = [
+      `${trigger} · 출처 ${source}`,
       b.fallback_detail ? `AI 요약 실패 사유: ${b.fallback_detail}` : "",
       b.archive ? `저장 ${b.archive}` : "",
     ].filter(Boolean).join("\n");
@@ -1203,15 +1220,21 @@
   const notifyEnabled = () => notifyState() === "on";
 
   /* ⚠ '차단됨'을 쓰지 않는다 — 같은 화면에 '가드 차단' KPI 가 있어서, 브라우저가 알림을
-     막은 것을 402 Guard 가 무언가를 막은 것으로 읽는다(실제 오독 지점). */
+     막은 것을 402 Guard 가 무언가를 막은 것으로 읽는다(실제 오독 지점).
+     ⚠ 앞의 🔔·🔕 이모지는 뺐다 — 시안대로 skeleton.css 가 종을 그리므로 그대로 두면
+     종이 두 개가 된다(글자 이모지 + 아이콘). 문구 자체는 한 글자도 바꾸지 않았다. */
   const NOTIFY_LABEL = {
-    on: "🔔 알림 켜짐", off: "🔔 알림 받기",
-    denied: "🔕 브라우저가 알림을 막았습니다", unsupported: "🔕 이 브라우저는 알림 미지원",
+    on: "알림 켜짐", off: "알림 받기",
+    denied: "브라우저가 알림을 막았습니다", unsupported: "이 브라우저는 알림 미지원",
   };
 
   function renderNotifyBtn() {
     const st = notifyState();
     el.btnNotify.textContent = NOTIFY_LABEL[st];
+    /* 종 아이콘 갈아끼우기(skeleton.css 의 --bell). 꺼짐·차단·미지원은 전부 작대기 그은 종이다.
+       ⚠ 클래스로 두는 이유는 위 textContent 가 라벨을 통째로 다시 쓰기 때문이다 —
+       아이콘을 자식 요소로 두면 이 줄에서 지워진다. */
+    el.btnNotify.classList.toggle("is-notify-on", st === "on");
     el.btnNotify.title =
       st === "denied" ? DENY_HELP
       : st === "unsupported" ? "이 브라우저는 Web Notification 을 지원하지 않습니다 — 인앱 토스트만 표시됩니다."
@@ -1342,6 +1365,10 @@
   // 얇은 헤더의 버튼은 진짜 버튼을 대신 눌러 준다 — 확인 절차·API 호출이 한 벌로 유지된다.
   el.slimPause.addEventListener("click", () => el.btnPause.click());
   el.slimResume.addEventListener("click", () => el.btnResume.click());
+  /* 오른쪽 아래 플로팅 긴급정지도 같은 방식이다 — 여기서 상태를 새로 만들면 화면과 엔진이
+     따로 논다. 세션이 안 돌 때 진짜 버튼은 disabled 라 click() 이 아무 일도 하지 않는다.
+     ⚠ '메뉴'([data-fab-menu])는 누를 곳이 아직 정해지지 않아 배선하지 않았다. */
+  el.fabPause.addEventListener("click", () => el.btnPause.click());
 
   /* 특정 카드로 화면을 옮긴다. 도착 지점에서는 얇은 헤더가 내려와 있고(스크롤한 상태)
      알림창이 내려와 있으면 그것까지 화면 위를 덮으므로, 둘의 높이를 합쳐 비워 둔다.
