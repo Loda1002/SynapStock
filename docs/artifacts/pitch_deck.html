@@ -695,7 +695,7 @@
           <ul class="plain" style="margin-top:2mm">
             <li><b>수익률</b> 강한 상승장에서는 매수후보유를 이기지 못합니다(+4.90% 대 +30.19%). 저희는 알파를 팔지 않습니다.</li>
             <li><b>자산</b> devnet에는 토큰화 주식이 존재하지 않아 자체 발행 토큰으로 시연합니다.</li>
-            <li><b>결제 통화</b> devnet 증빙 1건의 'USDC' 는 <b>구매자 지갑이 민트 권한을 쥔 테스트 토큰</b>입니다. explorer 에서 민트 권한 한 줄만 봐도 드러나는 사실이라, 지적당하기 전에 저희가 적습니다. Circle 공식 민트로의 재실증이 다음 과제입니다.</li>
+            <li><b>결제 통화</b> 초기 devnet 증빙의 'USDC' 는 구매자 지갑이 민트 권한을 쥔 테스트 토큰이었습니다. 지적당하기 전에 밝히고, <b>2026-07-31 Circle 공식 민트로 재실증했습니다</b> — 발행 권한은 저희 것이 아닙니다.</li>
             <li><b>규격</b> 표준 402 응답은 <b>매수 레그만</b>입니다. 매도(환매)는 자산이 반대로 흐르는 구조라 A2A 메시지로 남겨 뒀고, 이 사실을 규격 문서에 미구현으로 명시해 공개합니다.</li>
             <li><b>AI 기여</b> 수익 기여는 중립이며, 낙폭 축소에서만 유의미합니다.</li>
           </ul>
@@ -729,7 +729,7 @@
         <ul class="plain" style="margin-top:2mm">
           <li><b>언어·런타임</b> Python 3.10 / 3.11</li>
           <li><b>AI</b> Google Gemini API (무료 티어) — 판단·브리핑, 실패 시 규칙 대체</li>
-          <li><b>블록체인</b> Solana devnet · localnet, USDC(SPL) — <b>devnet 증빙 1건은 자체 발행 테스트 민트</b>, 자체 발행 토큰화 주식</li>
+          <li><b>블록체인</b> Solana devnet · localnet, <b>Circle 공식 devnet USDC</b>(SPL) — 주식만 자체 발행</li>
           <li><b>프로토콜</b> 자체 x402 정산 + AP2 위임 + A2A 협의 + <b>402 Guard</b></li>
           <li><b>웹</b> FastAPI + SSE, 외부 라이브러리 없는 정적 대시보드</li>
           <li><b>인프라</b> Google Cloud Run, Firestore, Secret Manager</li>

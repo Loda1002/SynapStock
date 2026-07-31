@@ -56,8 +56,11 @@
    `XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp`(Token-2022) 온체인 확인, Jupiter 견적이 Pyth
    가격과 0.4% 이내 일치. 같은 민트를 devnet 조회하면 `null`. → **현 자체발행 토큰 설계 유지가 정답.**
    단 permanentDelegate·pausable 등 발행사 사후 통제권 상주 → **"퍼미션리스" 단정 금지.**
-5. **직전 Solana x402 해커톤 수상작 16개 중 AI 트레이딩 봇 0건.** 이긴 것은 인프라·마켓플레이스·
-   신뢰 레이어·개발자 도구. → 포지셔닝 전환이 필수 ([`docs/differentiation.md`](differentiation.md)).
+5. ~~**직전 Solana x402 해커톤 수상작 16개 중 AI 트레이딩 봇 0건.**~~ **⚠ 이 명제는 2026-07-27
+   조사에서 반증됐다 — 출처 미확인 + 반례 3건**(Peaks·Clawpump·Agent Arc). **제출물 어디에도
+   인용하지 않는다**([`docs/reports/competition_research_reconcile.md`](reports/competition_research_reconcile.md)).
+   정확한 명제는 *"단일 전략 봇 언어로 말하면 떨어진다"* 이고, **매매 기능을 숨길 필요는 없다.**
+   포지셔닝 전환 결론 자체는 유지된다 ([`docs/differentiation.md`](differentiation.md)).
 6. 규제: 토큰화 주식=증권(SEC 2026-01-28), 한국 제도 시행 2027-02-04, 자동매매는 반드시
    **self-custody 도구**(사용자 지갑·사용자 한도·즉시 정지)로 설명. "우리가 돈을 굴린다" 금지.
 

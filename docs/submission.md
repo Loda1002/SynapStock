@@ -134,11 +134,15 @@
   못하며 리포트가 그 숫자를 따로 표시합니다.
 - 구매 대상은 **자체 발행 토큰**입니다 — devnet 에 실물 토큰화 주식이 존재하지 않기 때문입니다.
   민트 상수와 스왑 경로 2곳 교체로 실물 전환됩니다.
-- **결제 통화(USDC)도 현재 증빙에서는 자체 발행이었습니다.** 2026-07-24 devnet 아카이브의
-  민트 `8L9feSS…` 는 발행 권한이 구매자 지갑 자신입니다 — "자기가 찍은 돈으로 지불"이라는
-  반문이 성립하며, 저희가 먼저 밝힙니다. 코드 기본값은 이미 Circle 공식 민트(`4zMMC9sr…`)이고
-  `setup_devnet` 이 자체발행 민트를 감지하면 중단합니다. **공식 민트 재실증 전까지는
-  "USDC 인터페이스(SPL 6 decimals) 호환"까지가 정확한 표현입니다.**
+- **결제 통화(USDC)는 Circle 공식 민트로 재실증했습니다(2026-07-31).** 증빙
+  `artifacts/tx/20260731_1508_solana-devnet_live_buy.json` 의 민트는 `4zMMC9sr…` 이고
+  `mintAuthority` 가 **저희 지갑 중 어느 것도 아닙니다.** 배포 URL 라이브 세션 증빙도 별도로
+  있습니다(`20260731_1603_*_onchain_verify.json`).
+  ⚠ 다만 **2026-07-24 아카이브(`8L9feSS…`)는 발행 권한이 구매자 지갑 자신**이었습니다 —
+  "자기가 찍은 돈으로 지불"이 성립하던 증빙이고, 파일을 지우지 않은 채 저희가 먼저 밝힙니다.
+  **인용은 07-31 증빙으로만 하십시오.**
+- **구매 대상 주식(tAAPL)은 여전히 자체 발행입니다** — 결제 통화와 달리 이쪽은 devnet 에
+  실물 토큰화 주식이 없어서이고, 바뀐 것이 없습니다.
 - **AI 가 수익을 올린다고 말하지 않습니다.** 실측상 중립(약간 열위)이고, 그 사실을 우리가
   먼저 공개합니다.
 
@@ -154,7 +158,8 @@
 - **자율성 축 우위:** Google Cloud 데모조차 "사람이 승인하면 버튼 클릭과 다를 게 없다"고
   자평했다. 우리는 **사람이 미리 서명한 정책(mandate)을 코드가 매 건 강제**해, 사람을 부르지
   않고도 안전한 자율 결제를 만든다(pay.sh 의 "매 건 생체인증"보다 더 자율적).
-- **심사 4축 매핑:** ①혁신성·UX(검증·가드레일 레이어 신설 + 공격 콘솔 + 수익률 아닌 KPI)
+- **심사 4축 매핑:** ①혁신성·UX·상업성(검증·가드레일 레이어 신설 + 공격 재현 CLI
+  `scripts/red_team.py --attacker` + 수익률 아닌 KPI)
   ②AI 활용도(Gemini 판단은 한도를 못 넘음 — AI가 무엇을 판단하든 게이트가 상수) ③기술·인프라
   (자체 x402+AP2+A2A+USDC+Memo 대사) ④실제 구동(localnet 풀사이클 교차검증 PASS). 상세 근거는
   [`docs/differentiation.md`](differentiation.md) §7.
@@ -163,14 +168,21 @@
 - 발표 장표 형태 PDF 1개. 포함 필수: 타겟 고객·문제 → 솔루션(402 Guard) → 아키텍처(A2A+AP2+x402)
   → 데모 스크린샷/KPI → 수익모델 → 로드맵(민트 상수·스왑 경로 2곳 교체로 실물 전환).
 - 제작 수단 후보: 마크다운→PDF, 또는 슬라이드 도구. (개발 마무리 주에 착수)
-- 상태: **내용 초안 있음 / PDF 미출력**. `docs/artifacts/pitch_deck.html` 이 실물로 존재하며
-  타겟 고객·문제·수익모델·아키텍처가 들어 있다. 남은 작업은 **HTML → PDF 출력**과 카피 정정
-  (`docs/reports/agentfabric_benchmark.md:99-111` 프레이밍 교체 · 수익모델 단가 숫자)이다.
+- 상태: **내용 확정 / PDF 미출력**. `docs/artifacts/pitch_deck.html` 14장이 실물로 존재하고
+  타겟 고객·문제·수익모델(3단 단가, 전부 '가정' 명시)·아키텍처·경쟁 지도가 들어 있다.
+  카피 정정은 완료됐다. **남은 작업 2건**:
+  ① 09장 데모 슬라이드의 **스크린샷 자리표시자 2개**를 실제 캡처로 교체
+     (`pitch_deck.html:571` 가드 배너가 보이는 대시보드 · `:577` `red_team --report` 차단 매트릭스)
+  ② **HTML → PDF 출력** — 배율 100% · **배경 그래픽 켜기**.
+     ⚠ `.shot { background: none }` 때문에 **자리표시자 상태로 인쇄하면 점선 박스만 남는다** →
+     반드시 ①을 먼저 한다.
   ※ 제출 요건은 PDF 이므로 형식 변환 전까지는 요건 미충족으로 센다.
 
 ## 4. GitHub Repo — 링크: https://github.com/Loda1002/SynapStock
-- 현재 **private** → 제출 직전 **public 전환 필수**.
-- README에 실행 가이드(설치·localnet 풀사이클·데모 스크립트) 최신화 필요. 상태: README 초안 있음, 최종 점검 예정.
+- **PUBLIC 전환 완료(2026-07-31)** · 라이선스 **MIT**(`LICENSE` + 제3자 데이터 고지 `NOTICE` 분리,
+  GitHub API `spdx_id: MIT` 확인). 전환 직전 275커밋 전수 blob 스캔에서 크리덴셜 0건.
+- README 실행 가이드(설치·localnet 풀사이클·데모 스크립트) 최신화 완료. 2026-08-01 에 devnet
+  증빙 인용을 Circle 공식 민트 재실증본으로 교체했다.
 
 ## 5. 주요 기술 스택 (확정본 — 2026-07-27)
 - 언어/런타임: **Python 3.10/3.11** (빌드 스텝 없는 vanilla JS 프론트 — 외부 CDN 의존 0)
@@ -178,14 +190,14 @@
   의미 대조**(차단 전용). 호출 실패 시 판단은 규칙 폴백, 의미 대조는 매수 보류·매도 진행.
   ※ 무료 티어 일일 한도는 **모델별로 따로** 계산된다(`GEMINI_MODEL` 로 갈아탈 수 있음).
 - 블록체인: **Solana** (개발 localnet / 시연·제출 devnet), **USDC(SPL 6 decimals)** — 배포본이
-  402 로 광고하는 asset 은 Circle 공식 devnet 민트이나, **현재 온체인 증빙 1건은 테스트 민트로
-  정산된 것**이라 공식 민트 재실증 전까지는 "USDC 인터페이스 호환"으로 읽어 주십시오(§2 정직한 경계선).
-  주식 토큰은 자체발행(devnet 에 실물 토큰화 주식 부재)
+  402 로 광고하는 asset 도, **2026-07-31 온체인 증빙의 정산 통화도 Circle 공식 devnet 민트**
+  (`4zMMC9sr…`, 발행 권한이 우리 지갑 아님)입니다. 주식 토큰은 자체발행(devnet 에 실물
+  토큰화 주식 부재 — §2 정직한 경계선)
 - 결제 프로토콜 스택: **자체 x402 정산(v1 와이어) + AP2 mandate 위임 모델을 ed25519 로 재구성
   + A2A 3단계 협의** + **402 Guard(서명 직전 승인 게이트)**
 - 인증: **지갑 서명 로그인** — SIWS 서식 메시지 + ed25519 검증(추가 의존성 0, `solders`)
 - 라이브러리: `solana-py 0.38`, `solders`, `spl-token`, `google-genai`
-- 웹: **FastAPI + SSE**, 정적 JS 대시보드(카드 모듈 14종, 드래그 재배치)
+- 웹: **FastAPI + SSE**, 정적 JS 대시보드(카드 모듈 15종, 드래그 재배치)
 - 인프라/배포: **Google Cloud Run**(Dockerfile), **Firestore**(영속화), **Secret Manager**(지갑키)
 - 데이터/전략: ReplayPriceFeed(실데이터 일봉·인트라바 합성), `market/indicators.py`(TA),
   백테스트 러너(매수후보유 벤치마크 포함)
@@ -223,9 +235,14 @@
 "x402 는 파는 쪽을 보호합니다"(부정확) · "세계 최초"(부재 증명에는 한정어 필수) ·
 **"예산이 온체인에서 집행됩니다"**(배선 전 — X 구간은 레일 실증이고 엔진 결제 경로는 무변경).
 
-- ⚠ **G 구간의 explorer 화면은 조건부다.** `artifacts/tx/` 의 devnet 파일은 1건뿐이고 그
-  결제 통화가 **구매자 지갑이 민트 권한을 쥔 테스트 토큰**이다. Circle 공식 USDC 재실증이
-  1차 촬영보다 뒤라면 explorer 를 비추지 말고 **아카이브 JSON + 고지 자막**으로 대체한다.
+- ✅ **G 구간의 explorer 화면은 더 이상 조건부가 아니다(2026-07-31 재실증으로 해소).**
+  비출 서명은 배포 URL 라이브 세션 `20260731_160230_live` 의 매수 ① 레그다 —
+  `3XeVWKF9XvyDrCvh7hsodNEay6McAqjCZ5Ypp7X4tT73AFXgKWB2tpnbaZaxC1tfZzw2FcCiasQ6Njt8RZbKL6E3`
+  (`finalized` · `err=null`). 그 한 화면에 **Memo `AT1:ord_5406404512:3uR12Hbb`** 와
+  **transferChecked 19.99 USDC**(민트 `4zMMC9sr…` = Circle 공식, 발행 권한이 우리 지갑 아님)가
+  함께 보여 **축③·④ 를 동시에 담는다.**
+  ⚠ **옛 `20260724_1643_*` 은 절대 비추지 않는다**(결제 통화가 자체발행 테스트 민트).
+  주식 전달 tx 를 비출 때는 **tAAPL 자체발행 고지 자막**을 함께 건다 — 이건 여전히 사실이다.
   (X 구간 ②컷은 localnet 증빙이라 이 논란이 없다 — 심사 평가 네트워크가 Devnet·Localnet
   둘 다이고, SPL Token 프로그램 주소는 두 네트워크에서 같다.)
 - 촬영용 대본 `docs/artifacts/demo_script.html`(타이머 포함)의 **저장소본은 이 큐시트와
@@ -234,17 +251,22 @@
   문서가 정본이다.
 - 상태: **큐시트 확정 · 촬영 미착수**.
 
-## 7. 라이브 데모 URL — 대기(Cloud Run 배포 후 확정)
-- [`docs/deploy_cloud_run.md`](deploy_cloud_run.md) 런북대로 사용자가 배포 후 URL 확보.
-- 심사 기간 내내 접근 가능해야 함(max-instances 1 + no-cpu-throttling 전제).
+## 7. 라이브 데모 URL — 확정
+- [`docs/deploy_cloud_run.md`](deploy_cloud_run.md) 런북대로 배포. 심사 기간 내내 접근 가능해야
+  함(max-instances 1 + no-cpu-throttling 전제).
 - 상태: **배포됨** — <https://synapstock-766888967498.asia-northeast3.run.app>
-  (리비전 `synapstock-00007-g6f`, 2026-07-27 20:0x 재배포·검증).
-  실측: `/`·`/app`·`/connect`·`/login`·`/static/js/wallet.js`·`/.well-known/x402` 전부 200,
-  `/api/state` 의 `ai.invoice_semantics` 블록 방출, `/api/auth/me` 정상 —
-  **AI 카드·지갑 연결·의미 대조가 모두 반영된 현행 버전이다.**
-- ⚠ 단 배포본에서 발생한 **온체인 트랜잭션은 0건**이다(세션 전부 `mode=dry`).
-  심사위원이 URL 에서 볼 수 있는 것은 402 청구서·서명 전 차단까지이고,
-  온체인 정산 증빙은 `artifacts/tx/` 아카이브로 **분리해서** 말해야 한다.
+  (현행 리비전 `synapstock-00028-b7n`, 2026-07-31 재배포·검증).
+  실측: 엔드포인트 200, `/api/state` 의 `ai.invoice_semantics` 블록 방출, `persistence=firestore`,
+  본문 있는 `POST /broker/orders` → **402 + accepts[]**(asset = Circle 공식 devnet USDC),
+  깨진 `X-PAYMENT` 헤더 → **400 + JSON**(M5 수정 반영본).
+- ✅ **배포본에서 발생한 온체인 트랜잭션이 있다** — 세션 `20260731_160230_live`(`mode=live` ·
+  `solana-devnet` · 체결 3건)에서 **온체인 tx 3건 전부 확정**, 매수 레그마다 x402 주문번호가
+  Memo 로 결박. `GET /api/history/sessions` 로 조회되고 교차검증 `19.99 == 19.99`.
+- ⚠ 다만 배포본은 `ALLOW_LIVE_FROM_WEB=0` 이라 **심사위원이 URL 에서 직접 온체인 결제를
+  일으키지는 못한다**(의도된 통제). URL 에서 직접 보는 것은 402 청구서·서명 전 차단·기록
+  조회까지이고, 온체인 정산은 위 세션 기록과 `artifacts/tx/` 아카이브가 진다.
+- ⚠ **세션 이력 14건 전부 `gemini_decisions=0`** — 라이브 URL 만 여는 심사위원에게는 축②
+  증거가 0 으로 보인다. `brain=gemini` dry 세션 1회로 닫힌다(체크리스트 참조).
 
 ---
 
@@ -256,19 +278,23 @@
 - [x] 데모 영상 **큐시트 확정**(§6, 180초 초 단위 배분)
 - [ ] PDF 장표 제작·업로드 ← **남은 최대 작업**
 - [ ] 데모 영상 촬영·업로드(3분 이내, 유튜브 링크)
-- [ ] GitHub **public 전환** + README 실행 가이드 재현 검증
-- [x] 라이브 URL 재배포 — 리비전 `synapstock-00007-g6f`(2026-07-27), 6개 엔드포인트 200 실측
+- [x] GitHub **public 전환**(2026-07-31, 라이선스 MIT 인식 확인) + README 실행 가이드 재현 검증
+- [x] 라이브 URL 재배포 — 현행 리비전 `synapstock-00028-b7n`(2026-07-31, M5 반영본)
 - [x] `GEMINI_MODE=developer` + 쿼터 남은 `GEMINI_MODEL=gemini-flash-latest` 배포 env 포함
-- [ ] **Circle 공식 devnet USDC 로 온체인 재실증** ← 심사 부서가 지목한 **최대 단일 구멍**
-      (현 증빙의 결제 통화가 구매자 지갑이 민트 권한을 쥔 테스트 토큰. §2 에 먼저 밝혀 뒀다)
-- [ ] 그 재실증을 **배포 URL 에서** 수행해 `mode=live` 세션 1건을 남기기(현재 12/12 dry)
+- [x] **Circle 공식 devnet USDC 로 온체인 재실증**(2026-07-31) — 증빙
+      `artifacts/tx/20260731_1508_solana-devnet_live_buy.json`, 체결 3건 전부 settled·교차검증 PASS
+- [x] 그 재실증을 **배포 URL 에서** 수행해 `mode=live` 세션 1건 남김 —
+      `20260731_160230_live`(온체인 tx 3건 확정 · Memo 결박 · `19.99 == 19.99`)
+- [ ] **배포 URL 에서 `brain=gemini` dry 세션 1회** — 현재 세션 이력 14건 전부
+      `gemini_decisions=0` 이라, 라이브 URL 만 여는 심사위원에게 축② 증거가 0 으로 보인다
+      (2026-08-01 심사 부서가 지목한 축② 최대 갭)
 - [ ] (재확인 권장) 데모 영상 길이 상한·제출 세부 규격·마감 시각을 디스코드 공지로 대조
 
 ### 남은 작업 우선순위 (탈락 확률 순)
 
-1. **PDF 장표** — 없으면 제출 자체가 성립하지 않는다.
-2. **데모 영상** — 동일.
-3. **저장소 public 전환** — 동일. (전환 전 `.env`·`secrets/` 미커밋 재확인)
-4. **라이브 URL 재배포** — 가산점 항목이지만 현 배포본이 구버전이라 오히려 감점 요인이다.
-5. 나머지 카피 정정(`differentiation.md` · `pitch_deck.html` · `FEATURES.md`) — 소개서가
-   §2 확정본을 쓰므로 급하지 않다.
+1. **PDF 장표** — 없으면 제출 자체가 성립하지 않는다. 09장 스크린샷 2개 → PDF 출력 순서.
+2. **데모 영상** — 동일. G 구간 explorer 서명은 위 §6 에 못박아 두었다.
+3. **배포 URL `brain=gemini` dry 세션 1회** — 축② 라이브 증거가 지금 0 이다(값싸고 효과 큼).
+4. ~~저장소 public 전환~~ · ~~라이브 URL 재배포~~ · ~~Circle 공식 민트 재실증~~ — 전부 완료.
+5. 나머지 카피 정정 — 2026-08-01 에 README·FEATURES·submission·demo_script 를 07-31 재실증
+   기준으로 갱신했다. 잔여는 `pitch_deck.html` 뿐이며 소개서가 §2 확정본을 쓰므로 급하지 않다.
