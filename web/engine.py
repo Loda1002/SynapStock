@@ -350,6 +350,46 @@ class TradingEngine:
 
         asyncio.create_task(run())
 
+    def _restore_limits(self, d: Dict[str, Any]) -> None:
+        """저장된 한도를 복원하되 update_limits 와 같은 불변식을 태운다.
+
+        예전에는 값을 그대로 대입했다 — 검사가 update_limits 에만 있어서, 같은 값을
+        사용자가 넣으면 거부되는데 부팅 복원으로는 통과했다. 배포가 MAX_BUDGET_USDC 를
+        10000 -> 1000 으로 낮췄으므로, 상한이 높던 시절에 저장된 문서가 남아 있으면
+        부팅 한 번으로 현재 상한을 넘긴 예산이 살아나고 그 값으로 실제 mandate 가
+        서명된다. Infinity 가 저장돼 있으면 start() 가 InvalidOperation 으로 죽는다.
+        복원은 사용자 조작이 아니라 자동 경로라, 조용히 통과하면 아무도 모른다.
+
+        초과분은 거부가 아니라 **상한으로 클램프**한다 — 통째로 버리면 .env 기본값으로
+        되돌아가는데 그것도 사용자가 마지막으로 정한 값은 아니다. 가장 가까운 합법값으로
+        내리고 로그를 남기는 편이 맞다. 반대로 형식 자체가 이상하면(숫자 아님·NaN·
+        Infinity) 클램프할 기준이 없으므로 무시하고 .env 기본값을 쓴다.
+
+        ⚠ 콘솔 print 는 cp949(한국어 Windows)에서도 안전하게 ASCII 구두점만 쓴다.
+        """
+        try:
+            budget = Decimal(str(d["budget_total_usdc"]))
+            per_trade = Decimal(str(d["per_trade_max_usdc"]))
+        except (KeyError, InvalidOperation):
+            return   # 필드 없거나 형식 이상 — .env 기본값 유지
+        # Infinity·NaN 은 InvalidOperation 을 던지지 않고 만들어진다(update_limits 와 같은 함정).
+        if (not budget.is_finite() or not per_trade.is_finite()
+                or budget <= 0 or per_trade <= 0):
+            print(f"[store] 저장된 한도가 유효한 숫자가 아니라 무시합니다: "
+                  f"{d.get('budget_total_usdc')}/{d.get('per_trade_max_usdc')}")
+            return
+        fixed = []
+        if budget > CFG.max_budget_usdc:
+            fixed.append(f"예산 {budget} -> {CFG.max_budget_usdc}")
+            budget = CFG.max_budget_usdc
+        if per_trade > budget:
+            fixed.append(f"건별 한도 {per_trade} -> {budget}")
+            per_trade = budget
+        if fixed:
+            print("[store] 저장된 한도가 현재 상한을 넘어 조정했습니다: " + ", ".join(fixed))
+        self.budget_total = budget
+        self.per_trade_max = per_trade
+
     async def restore_from_store(self) -> None:
         """서버 부팅 시 1회 — 한도 기본값·최근 브리핑을 Firestore 에서 복원한다.
         (세션·거래 이력은 /api/history 로 조회 — 현재 세션 화면과 섞지 않는다)"""
@@ -359,11 +399,7 @@ class TradingEngine:
             await asyncio.wait_for(self.store.ping(), timeout=10)
             d = await self.store.load_defaults()
             if d:
-                try:
-                    self.budget_total = Decimal(str(d["budget_total_usdc"]))
-                    self.per_trade_max = Decimal(str(d["per_trade_max_usdc"]))
-                except (KeyError, InvalidOperation):
-                    pass  # 필드 없거나 형식 이상 — .env 기본값 유지
+                self._restore_limits(d)
             b = await self.store.load_last_briefing()
             if b:
                 self.last_briefing = {

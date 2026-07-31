@@ -15,6 +15,7 @@ import asyncio
 from datetime import datetime
 from decimal import Decimal
 
+from config import CFG
 from web.engine import TradingEngine
 from web.events import EventBus
 from web.store import BaseStore, jsonable
@@ -130,6 +131,37 @@ async def main_async() -> int:
     bad += check("state_snapshot 에 persistence 블록",
                  snap["persistence"]["enabled"] is True
                  and snap["persistence"]["backend"] == "fake")
+
+    # ③-1 복원이 상한·불변식을 우회하지 않는가 (M6)
+    # 같은 값을 update_limits 로 넣으면 정상 거부되는데, 복원은 검사 없이 대입했다.
+    # 배포가 MAX_BUDGET_USDC 를 10000 -> 1000 으로 낮췄으므로, 상한이 높던 시절에
+    # 저장된 문서가 남아 있으면 부팅 한 번으로 현재 상한을 넘긴 예산이 살아난다.
+    over = TradingEngine(EventBus(), FakeStore(
+        defaults={"budget_total_usdc": "999999", "per_trade_max_usdc": "999999"}))
+    await over.restore_from_store()
+    bad += check("복원 한도가 서버 상한을 넘지 않는다 (M6)",
+                 over.budget_total <= CFG.max_budget_usdc, f"budget={over.budget_total}")
+    bad += check("복원 건별 한도 <= 예산 (M6)",
+                 over.per_trade_max <= over.budget_total,
+                 f"{over.per_trade_max}/{over.budget_total}")
+
+    inf = TradingEngine(EventBus(), FakeStore(
+        defaults={"budget_total_usdc": "Infinity", "per_trade_max_usdc": "1"}))
+    await inf.restore_from_store()
+    bad += check("Infinity 는 복원되지 않는다 (start() 크래시 방지)",
+                 inf.budget_total.is_finite(), str(inf.budget_total))
+    nan = TradingEngine(EventBus(), FakeStore(
+        defaults={"budget_total_usdc": "NaN", "per_trade_max_usdc": "1"}))
+    await nan.restore_from_store()
+    bad += check("NaN 도 복원되지 않는다", nan.budget_total.is_finite(), str(nan.budget_total))
+
+    # [대조군] 상한 안쪽의 정상 값은 지금까지와 똑같이 그대로 복원된다 (과잉 차단 방지)
+    okr = TradingEngine(EventBus(), FakeStore(
+        defaults={"budget_total_usdc": "77", "per_trade_max_usdc": "33"}))
+    await okr.restore_from_store()
+    bad += check("[대조군] 정상 값은 그대로 복원",
+                 okr.budget_total == Decimal("77") and okr.per_trade_max == Decimal("33"),
+                 f"{okr.budget_total}/{okr.per_trade_max}")
 
     # ④ 저장 실패 내성 — 스토어가 죽어도 세션은 정상 완주, ERROR 이벤트 1회
     class BrokenStore(FakeStore):
