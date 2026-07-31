@@ -230,6 +230,11 @@ async def test_sell_payout_failure():
           c_fail.status == "partial", f"status={c_fail.status}")
     check("지급 실패면 delivery_tx 비어있음", c_fail.delivery_tx_signature == "",
           c_fail.delivery_tx_signature)
+    # 매수 레그(:185)의 매도 대칭 — 일어나지 않은 인도를 증빙 아카이브에 싣지 않는다.
+    check("보내지도 않은 대금을 delivered_amount 에 싣지 않는다",
+          c_fail.delivered_amount == 0, str(c_fail.delivered_amount))
+    check("partial 매도에 미지급 사유가 남는다",
+          "대금 미지급" in c_fail.reason, c_fail.reason or "<빈 reason>")
 
     # 주식 confirmed + 지급 confirmed → settled
     required2 = bk.make_stock_required(sq)
@@ -237,6 +242,9 @@ async def test_sell_payout_failure():
     c_ok = await bk.settle_sale(submitted2, required2.requirements, sq.total_usdc,
                                 live=True, client=FakeClient([True, True]))
     check("주식수령·지급확정 → settled", c_ok.status == "settled", f"status={c_ok.status}")
+    check("[대조군] 정상 지급이면 대금이 실린다", c_ok.delivered_amount > 0,
+          str(c_ok.delivered_amount))
+    check("[대조군] 정상 매도는 사유가 비어 있다", c_ok.reason == "", c_ok.reason)
 
     # 주식 미확정 → failed (지급 시도 자체 없음, 손실 없음)
     required3 = bk.make_stock_required(sq)

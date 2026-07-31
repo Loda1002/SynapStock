@@ -201,9 +201,15 @@ class BrokerAgent:
             tx_signature=stock_sig,               # 판매자가 보낸 주식 전송 tx
             confirmed=confirmed,
             delivered_asset=str(self.usdc_mint),  # 브로커가 지급한 자산
-            delivered_amount=payout_amount,
+            # 지급하지도 않은 대금을 실어 보내지 않는다 — 미지급이면 0.
+            # 매수 레그(:289)의 매도 대칭이다. 이 값은 증빙 아카이브(artifacts/tx/)에
+            # 그대로 남으므로, 전액을 적으면 status=partial 과 서로를 반박하는 파일이
+            # 공개 저장소에 쌓인다(축④는 이력 기반 심사다).
+            delivered_amount=(payout_amount if status == "settled" else 0),
             delivery_tx_signature=payout_sig,     # USDC 지급 tx
             status=status,
+            reason=("" if status != "partial"
+                    else "주식은 수령했으나 USDC 지급 tx 가 확정되지 않았습니다 (대금 미지급)"),
         )
 
     # 3) 결제 검증 + 정산 + 주식 전달
