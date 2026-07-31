@@ -295,19 +295,22 @@
 
 <!-- 증빙 링크 — 심사위원이 화면을 믿을 필요 없이 직접 확인할 수 있는 곳만 건다.
      대회 규칙 3(목업 심사 제외, "화면이 아니라 진짜 트랜잭션")에 대한 우리 쪽 답이다.
-     ⚠ 아래 devnet 결제 tx 의 결제 통화는 저희 지갑이 민트 권한을 쥔 테스트 토큰이다 —
-     그 사실을 링크 옆에 우리가 먼저 적는다(README·submission 과 같은 고지). -->
+     링크한 tx = 배포 URL 라이브 세션 20260731_160230_live 의 매수 ① 레그.
+     실재 확인: artifacts/tx/20260731_1603_solana-devnet_web_session_onchain_verify.json
+     (signature·memo·err=null·transferChecked 19.99 전부 그 파일에 있다).
+     ⚠ 옛 링크 3MvYmppz… 로 되돌리지 말 것 — 그건 결제 통화가 자체발행 테스트 민트였다.
+     지금 링크는 Circle 공식 devnet USDC 라 "자기가 찍은 돈으로 지불"이 성립하지 않는다. -->
 <footer class="foot landing-foot">
   <span>402 Guard · A2A · AP2 · x402 on Solana</span>
   <span>
     직접 확인:
     <a class="nav-link" href="/.well-known/x402" style="color:var(--accent)">x402 디스커버리</a> ·
     <a class="nav-link" style="color:var(--accent)" target="_blank" rel="noopener"
-       href="https://explorer.solana.com/tx/3MvYmppzWhnrTebVRrek2jE91upNrXvsRrigCrHsJ2MGRvpossxPwEvpEEqrqi49ZW8fZFJgfTTUDJsRjg38tyfi?cluster=devnet"
-       title="devnet 결제 트랜잭션 — 로그의 Memo 'AT1:주문번호:위임장서명' 이 결제와 주문의 온체인 바인딩입니다">devnet 결제 tx</a> ·
+       href="https://explorer.solana.com/tx/3XeVWKF9XvyDrCvh7hsodNEay6McAqjCZ5Ypp7X4tT73AFXgKWB2tpnbaZaxC1tfZzw2FcCiasQ6Njt8RZbKL6E3?cluster=devnet"
+       title="devnet 결제 트랜잭션 — Memo 'AT1:ord_5406404512:3uR12Hbb' 이 결제와 주문의 온체인 바인딩입니다">devnet 결제 tx</a> ·
     <a class="nav-link" href="/app" style="color:var(--accent)">대시보드</a>
   </span>
-  <span class="sub">devnet 증빙의 결제 통화는 저희가 발행한 테스트 토큰입니다(Circle 공식 민트 재실증 예정).</span>
+  <span class="sub">결제 통화는 Circle 공식 devnet USDC 입니다(발행 권한은 저희 것이 아닙니다). 사는 대상인 주식 토큰만 자체 발행입니다.</span>
 </footer>
 
 <!-- 맨 위로 — 스크롤을 내리기 전에는 보이지 않는다(숨김이 CSS 기본값, js/to-top.js 가 벗긴다).
