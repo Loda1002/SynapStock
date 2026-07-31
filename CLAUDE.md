@@ -40,6 +40,39 @@
 
 ## 현재 상태 (2026-08-01 갱신)
 
+> # ★ 새 대화가 할 일 = **배포 URL `brain=gemini` dry 세션 1회 (축② 라이브 증거 확보)**
+> **이것 하나가 지금 남은 유일한 '지금 할 수 있는' 작업이다.** 나머지는 전부 디자인 최종본
+> 대기(촬영·PDF)이거나 사용자 몫(디스코드 트랙 명칭 확인)이다.
+>
+> **왜**: 배포 세션 이력 **14건 전부 `gemini_decisions=0`** → 라이브 URL 만 여는 심사위원에게
+> 축② 증거가 **화면·API 어디에도 0 으로 보인다.** 디자인과 무관하고 값싸다.
+>
+> **⚠ 착수 전에 반드시 — 쿼터를 먼저 확인한다.** 2026-08-01 실측으로 `gemini-flash-latest` 가
+> **일일 20건 소진**이었다. 그 상태로 열면 매수가 전건 보류돼 **`gemini_decisions=0` 세션이 하나
+> 더 쌓여 갭이 나빠진다.** 확인 명령(1분):
+> ```powershell
+> $env:PYTHONIOENCODING='utf-8'; $env:GEMINI_MODEL='gemini-flash-lite-latest'; .\.venv\Scripts\python.exe run_demo.py --ticks 6
+> ```
+> 틱 6 이 **`[gemini]`** 면 통과(`[rule-fallback]` + '한도 소진' 이면 그 모델도 막힌 것).
+>
+> **▶ 순서**
+> ① 위 프로브로 쓸 모델 확정(현재 유력 = `gemini-flash-lite-latest` · 500건/일)
+> ② 배포 env 교체 — ⚠ **`--update-env-vars`**(부분 갱신). `--set-env-vars` 는 나머지를 지운다:
+>    `gcloud run services update synapstock --region asia-northeast3 --project synapstock --update-env-vars "GEMINI_MODEL=gemini-flash-lite-latest"`
+> ③ **[사용자 몫]** 토큰 확인 → **실제 브라우저**로 `/app?lab=1#token=<토큰>` (⚠ 반드시 `/app` ·
+>    내부 브라우저는 `alert()` 를 자동 무시해 401 이 '무반응'으로 보인다) → 개발자 탭 →
+>    **전략을 'AI 판단(condition)'** 으로 (기본값 추세추종은 Gemini 를 안 쓴다) → 60~80봉 시작.
+>    ⚠ **`CONTROL_TOKEN` 값은 Claude 가 읽지 않는다**(저장소 규칙).
+> ④ 완주 후 `GET /api/history/sessions` 에서 **`gemini_share_pct > 0`** 와
+>    **`invoice_semantics{enabled:true, checked>0, llm_calls>0}`** 확인.
+> ⑤ 실측치를 `docs/axis2_ai_narrative.md` 에 기록(지금은 red_team 14/1 이 유일한 실측이다).
+>    `GEMINI_MODEL` 을 되돌릴지는 선택 — 되돌리면 다시 20건/일 제약으로 돌아간다.
+> ⚠ **세션이 도는 중에는 어떤 `gcloud run services update` 도 하지 않는다**(런북 §6).
+>
+> **읽고 시작할 것**: 이 블록 → `docs/reports/judging_latest.md`(축별 갭·TODO) → 런북 §6-1.
+>
+> ---
+>
 > # ▶▶▶▶▶▶ [✅ 완료 — 2026-08-01] **심사 부서 실행 + 심사 노출 문서 최신화 + 게시본 재발행**
 > **커밋 3건 푸시: `f568d51`(리포트) · `c6ca807`·`8dbb4ca`(문서 정정). 다시 하지 말 것.**
 >
@@ -86,12 +119,16 @@
 > 따라간 것 · 의도된 변경). ⚠ 소개서는 `.frame` 이 `overflow:hidden` 이라 편집하면 조용히
 > 잘린다 — 이번에도 **14장 전부 넘침 0** 을 브라우저로 실측하고 올렸다.
 >
-> **⏸⏸ 사용자 결정(2026-08-01) — 디자인 종속 항목은 전부 보류다.**
-> 화면이 계속 수정되고 있어 **지금 하면 디자인이 오는 즉시 다시 해야 한다.**
-> · **보류**: 소개서 **09장 스크린샷 2개 → PDF 출력** · **영상 중 화면이 나오는 구간 A·C·F·G**
-> · **보류 아님(지금 해도 안전)**: 문서 · 백엔드 · 온체인 증빙 · **터미널 컷 D·E·X**
->   (디자인이 늦어지면 이 세 구간을 먼저 확보해 두는 것이 안전하다)
-> 구간별 판정은 `docs/artifacts/demo_script.html` 머리말과 `docs/submission.md` 체크리스트에 박아 뒀다.
+> **⏸⏸ 사용자 결정(2026-08-01) — 촬영·PDF 는 전부 마지막에 한 번에 한다.**
+> · **보류**: 소개서 **09장 스크린샷 2개 → PDF 출력** · **영상 8장면 전부**
+> · **⚠ 갱신**: 처음에는 터미널 컷 **D·E·X 를 먼저 확보하자**고 적었으나, **사용자가
+>   "마지막에 한 번에 한다"로 결정**했다(2026-08-01). **분할 촬영을 다시 제안하지 말 것.**
+> · **보류 아님**: 문서 · 백엔드 · 온체인 증빙 — 디자인이 바뀌어도 그대로다.
+> 판정은 `docs/artifacts/demo_script.html` 머리말과 `docs/submission.md` 체크리스트에 박아 뒀다.
+>
+> **⚠ 이 결정의 알려진 위험(사용자가 인지하고 택한 것 — 다시 설득하지 말 것)**: 디자인 최종본이
+> **8/2~8/3 도착 예정**인데 마감이 **8/3 23:59** 라, 스크린샷·PDF·영상 8장면이 전부 마지막
+> 창 하나에 몰린다. 그 창이 밀리면 대체 경로가 없다.
 >
 > **▶ 리포트가 지목한 잔여 TODO 4건 — ✅ 전부 소진(2026-08-01). 다시 하지 말 것.**
 > · `red_team --report --live-llm` 1회 → **`artifacts/red_team/20260801_red_team_live_llm.txt`**
