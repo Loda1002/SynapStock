@@ -319,13 +319,20 @@ async def get_sol_balance(client, pubkey: Pubkey) -> float:
 
 
 async def get_token_balance_ui(client, owner: Pubkey, mint: Pubkey) -> str:
-    """소유자 ATA 의 토큰 잔액(UI 단위 문자열). ATA 미존재 시 '0'."""
+    """소유자 ATA 의 토큰 잔액(UI 단위 문자열). ATA 미존재(진짜 0)일 때만 '0' 을 반환한다.
+
+    형제 함수 get_token_balance_base 와 같은 규칙이다 — '읽어 봤는데 0' 과 '읽지도 못했다'는
+    다른 사실이고, 후자를 '0' 으로 적으면 그 값이 증빙 아카이브의 balances_before/after 로
+    들어가 교차검증이 온체인을 한 줄도 못 읽은 채 PASS 를 찍는다(run_demo.snapshot_balances).
+    429/타임아웃/연결 실패 등 '불명' 오류는 상위로 전파하고, 호출측이 '판정 불가'로 기록한다."""
     ata = get_associated_token_address(owner, mint)
     try:
         resp = await rpc_retry(lambda: client.get_token_account_balance(ata), label="토큰잔액")
         return resp.value.ui_amount_string
-    except Exception:
-        return "0"
+    except Exception as e:
+        if _is_account_not_found(e):
+            return "0"      # ATA 미존재 = 진짜 잔액 0
+        raise               # 불명 실패 → 전파
 
 
 async def get_token_balance_base(client, owner: Pubkey, mint: Pubkey) -> int:

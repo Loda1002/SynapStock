@@ -89,6 +89,20 @@ async def snapshot_balances(client, trading_pk, broker_pk, usdc_mint, stock_mint
     배선하면(로드맵) 신규 투입이 이 지갑에서 나가는데, 그때 이 행이 없으면 USDC 가 허공에서
     사라진 것으로 보여 교차검증이 조용히 FAIL 로 남는다. 미리 떠 둔다.
     """
+    async def _bal(pk, mint):
+        """읽히면 UI 문자열, 불명 실패면 None(JSON null).
+
+        '읽어 봤는데 0' 과 '읽지도 못했다'는 다른 사실이다 — 후자를 "0" 으로 적으면 이
+        스냅샷이 그대로 증빙 아카이브가 되어, 온체인을 한 줄도 못 읽은 실행이 교차검증
+        PASS 로 남는다(BUG-11 때 확립한 원칙과 같다). 아래 usdc_net_out 이 None 을 보면
+        판정 자체를 포기한다.
+        """
+        try:
+            return await x.get_token_balance_ui(client, pk, mint)
+        except Exception as e:
+            print(f"    [경고] 잔액 조회 실패 — '모름'으로 기록합니다: {type(e).__name__}: {e}")
+            return None
+
     wallets = [("trading", trading_pk), ("broker", broker_pk)]
     if user_pk is not None:
         wallets.append(("user", user_pk))
@@ -96,8 +110,8 @@ async def snapshot_balances(client, trading_pk, broker_pk, usdc_mint, stock_mint
     for name, pk in wallets:
         snap[name] = {
             "sol": await x.get_sol_balance(client, pk),
-            "usdc": await x.get_token_balance_ui(client, pk, usdc_mint),
-            "stock": await x.get_token_balance_ui(client, pk, stock_mint),
+            "usdc": await _bal(pk, usdc_mint),
+            "stock": await _bal(pk, stock_mint),
         }
     return snap
 
@@ -106,22 +120,39 @@ async def snapshot_balances(client, trading_pk, broker_pk, usdc_mint, stock_mint
 USDC_OUT_WALLETS = ("trading", "user")
 
 
-def usdc_net_out(before: dict, after: dict) -> Decimal:
-    """구매자측 USDC 순지출(온체인) = Σ(실행 전) − Σ(실행 후).
+def usdc_net_out(before: dict, after: dict):
+    """구매자측 USDC 순지출(온체인) = Σ(실행 전) − Σ(실행 후). 하나라도 '모름'이면 None.
 
     양쪽 스냅샷에 모두 있는 지갑만 더한다 — 'user' 행이 없던 시절의 아카이브를 다시
     계산해도 KeyError 없이 같은 값이 나온다.
+
+    합산에 쓰는 값이 하나라도 None(조회 실패)이면 **합계를 만들지 않는다**. 모르는 값을
+    0 으로 두고 더하면 "온체인 순지출 0" 이라는 사실이 아닌 숫자가 나오고, 그게 아카이브의
+    cross_check 에 PASS 로 박힌다.
     """
     total = Decimal(0)
     for name in USDC_OUT_WALLETS:
         if name in before and name in after:
-            total += Decimal(before[name]["usdc"]) - Decimal(after[name]["usdc"])
+            b, a = before[name]["usdc"], after[name]["usdc"]
+            if b is None or a is None:
+                return None
+            total += Decimal(b) - Decimal(a)
     return total
+
+
+def _net_stock_in(before: dict, after: dict):
+    """구매자 주식 순증감(온체인). 위와 같은 이유로 '모름'이면 None."""
+    b, a = before["trading"]["stock"], after["trading"]["stock"]
+    if b is None or a is None:
+        return None
+    return Decimal(a) - Decimal(b)
 
 
 def print_snapshot(snap: dict, symbol: str) -> None:
     for name, b in snap.items():
-        print(f"  {name:7s}: {b['sol']:.4f} SOL / {b['usdc']} USDC / {b['stock']} {symbol}")
+        usdc = "모름(조회 실패)" if b["usdc"] is None else b["usdc"]
+        stock = "모름(조회 실패)" if b["stock"] is None else b["stock"]
+        print(f"  {name:7s}: {b['sol']:.4f} SOL / {usdc} USDC / {stock} {symbol}")
 
 
 async def main(live: bool, ticks: int, use_gemini: bool = True,
@@ -408,12 +439,15 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
         net_qty = (sum((Decimal(t["quantity"]) for t in buys), Decimal(0))
                    - sum((Decimal(t["quantity"]) for t in sells), Decimal(0)))
         usdc_out = usdc_net_out(snap_before, snap_after)
-        stock_in = Decimal(snap_after["trading"]["stock"]) - Decimal(snap_before["trading"]["stock"])
-        ok_usdc = usdc_out == net_spent
-        ok_stock = stock_in == net_qty
+        stock_in = _net_stock_in(snap_before, snap_after)
+        # None = 온체인을 못 읽었다. 그때는 PASS/FAIL 어느 쪽도 주장하지 않는다 —
+        # 모름을 0 으로 두고 비교하면 '아무것도 확인 못 한 실행'이 PASS 로 남는다.
+        ok_usdc = None if usdc_out is None else usdc_out == net_spent
+        ok_stock = None if stock_in is None else stock_in == net_qty
+        verdict = lambda ok: "판정 불가(온체인 조회 실패)" if ok is None else ("PASS" if ok else "FAIL")
         print(f"  구매자 USDC 순지출(온체인) {usdc_out} == 체결 순합계 {net_spent} "
-              f"(매수 {len(buys)}건 − 매도 {len(sells)}건) : {'PASS' if ok_usdc else 'FAIL'}")
-        print(f"  구매자 주식 순증감(온체인) {stock_in} == 체결 순수량 {net_qty} : {'PASS' if ok_stock else 'FAIL'}")
+              f"(매수 {len(buys)}건 − 매도 {len(sells)}건) : {verdict(ok_usdc)}")
+        print(f"  구매자 주식 순증감(온체인) {stock_in} == 체결 순수량 {net_qty} : {verdict(ok_stock)}")
 
         os.makedirs(os.path.join("artifacts", "tx"), exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M")
@@ -453,8 +487,11 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
             "balances_after": snap_after,
             "trades": trades,
             "cross_check": {
-                "usdc_net_out_onchain": str(usdc_out), "usdc_net_out_expected": str(net_spent), "usdc_ok": ok_usdc,
-                "stock_net_in_onchain": str(stock_in), "stock_net_in_expected": str(net_qty), "stock_ok": ok_stock,
+                # null = 온체인 조회 실패로 '판정 불가'. false(불일치)와 구분해야 한다.
+                "usdc_net_out_onchain": None if usdc_out is None else str(usdc_out),
+                "usdc_net_out_expected": str(net_spent), "usdc_ok": ok_usdc,
+                "stock_net_in_onchain": None if stock_in is None else str(stock_in),
+                "stock_net_in_expected": str(net_qty), "stock_ok": ok_stock,
                 # 어느 지갑을 합산한 값인지 — 나중에 이 아카이브를 읽는 사람이 알아야 한다.
                 "usdc_wallets": [w for w in USDC_OUT_WALLETS if w in snap_before],
             },

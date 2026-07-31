@@ -90,6 +90,23 @@ def explorer(sig: str, rpc_url: str, network: str) -> str:
             f"?cluster=custom&customUrl={quote(rpc_url, safe='')}")
 
 
+async def _balance_ui(client, owner: Pubkey, mint: Pubkey):
+    """참고용 잔액 표시. 읽히면 UI 문자열, 불명 실패면 None.
+
+    get_token_balance_ui 는 '읽지도 못했다'를 0 으로 삼키지 않고 전파한다(M3). 이 데모의
+    증명 대상은 위임 한도이지 잔액이 아니므로, 조회가 흔들려도 데모를 죽이지 않되
+    **모르는 값을 0 으로 적지도 않는다**."""
+    try:
+        return await x.get_token_balance_ui(client, owner, mint)
+    except Exception as e:
+        print(f"    (잔액 조회 실패 — '모름'으로 표시합니다: {type(e).__name__})")
+        return None
+
+
+def _shown(bal) -> str:
+    return "모름(조회 실패)" if bal is None else bal
+
+
 def ui(base_units: int, decimals: int) -> str:
     return f"{from_base_units(base_units, decimals):.6f}"
 
@@ -233,11 +250,14 @@ async def main() -> int:
             self_minted = True
 
         start = await read_delegation(client, user.pubkey(), mint)
-        agent_usdc = await x.get_token_balance_ui(client, agent.pubkey(), mint)
+        agent_usdc = await _balance_ui(client, agent.pubkey(), mint)
         print(f"  user (자금 소유자) : {user.pubkey()}   USDC {ui(start.balance, decimals)}")
         # 문구를 잔액과 무관하게 박아 두면 지갑을 재사용하는 --devnet 실행에서 화면이 거짓말한다.
-        print(f"  agent(거래 실행자) : {agent.pubkey()}   USDC {agent_usdc}"
-              + ("   <- 이 지갑에는 결제할 돈이 없다" if Decimal(agent_usdc or 0) == 0
+        # 조회 자체가 실패했으면 '돈이 없다'도 단언할 수 없다 — 모름은 모름으로 적는다.
+        print(f"  agent(거래 실행자) : {agent.pubkey()}   USDC {_shown(agent_usdc)}"
+              + ("   (잔액을 확인하지 못했다 — 아래 결제는 어차피 전부 user 계정에서 나간다)"
+                 if agent_usdc is None else
+                 "   <- 이 지갑에는 결제할 돈이 없다" if Decimal(agent_usdc) == 0
                  else "   (이 잔액은 결제에 쓰지 않는다 — 아래 결제는 전부 user 계정에서 나간다)"))
         print(f"  broker(수취인)     : {broker.pubkey()}")
         print(f"  민트               : {mint}"
@@ -287,13 +307,13 @@ async def main() -> int:
             print(f"  [실패] 정상 결제가 거절됐습니다: {res}")
             return 1
         st3 = await read_delegation(client, user.pubkey(), mint)
-        broker_bal = await x.get_token_balance_ui(client, broker.pubkey(), mint)
+        broker_bal = await _balance_ui(client, broker.pubkey(), mint)
         print(f"  tx         : {res}")
         print(f"  explorer   : {explorer(str(res), rpc_url, network)}")
         print(f"  계정 상태  : 잔액 {ui(bal_before, decimals)} -> {ui(st3.balance, decimals)}"
               f" ·  delegatedAmount {ui(st.delegated_amount, decimals)}"
               f" -> {ui(st3.delegated_amount, decimals)}")
-        print(f"  수취인 잔액: {broker_bal}")
+        print(f"  수취인 잔액: {_shown(broker_bal)}")
         print(f"  ※ 한도를 깎은 것은 우리 코드가 아닙니다. SPL Token 프로그램이 깎았습니다.")
         steps.append({"step": "transfer", "ok": True, "signature": str(res),
                       "explorer": explorer(str(res), rpc_url, network),

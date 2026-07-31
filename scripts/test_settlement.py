@@ -280,8 +280,9 @@ async def test_sell_payout_failure():
 
 
 class _Amt:
-    def __init__(self, amount):
+    def __init__(self, amount, ui_amount_string=None):
         self.amount = amount
+        self.ui_amount_string = ui_amount_string if ui_amount_string is not None else amount
 
 
 class _RaiseClient:
@@ -291,10 +292,16 @@ class _RaiseClient:
     async def get_token_account_balance(self, ata):
         raise self._exc
 
+    async def get_balance(self, pk):      # SOL 은 정상 — 토큰 조회만 죽는 상황을 만든다
+        return _V(1_000_000_000)
+
 
 class _OkClient:
     async def get_token_account_balance(self, ata):
-        return _V(_Amt("5000000"))
+        return _V(_Amt("5000000", "5"))
+
+    async def get_balance(self, pk):
+        return _V(1_000_000_000)
 
 
 def test_baseline_read_classification():
@@ -323,6 +330,50 @@ def test_baseline_read_classification():
     check("429 는 계정미존재 아님(전파)",
           not x._is_account_not_found(Exception("HTTP 429 Too Many Requests")))
     check("계정미존재 신호는 True", x._is_account_not_found(Exception("could not find account")))
+
+    # ---- UI 쪽도 같은 규칙이어야 한다 (M3) ----
+    # 이 함수는 증빙 아카이브의 balances_before/after 를 만든다. 예전엔 except: return "0"
+    # 이라, 온체인을 한 줄도 못 읽은 실행이 '잔액 0' 으로 기록되고 교차검증이 PASS 를 찍었다.
+    nf_ui = asyncio.run(x.get_token_balance_ui(
+        _RaiseClient(Exception("Invalid param: could not find account")), owner, mint))
+    check("[ui] 계정 미존재 → '0'", nf_ui == "0", repr(nf_ui))
+    raised_ui = False
+    try:
+        asyncio.run(x.get_token_balance_ui(
+            _RaiseClient(Exception("connection reset - unknown transport failure")), owner, mint))
+    except Exception:
+        raised_ui = True
+    check("[ui] 불명 오류 → 전파(0 삼킴 금지)", raised_ui)
+    check("[ui][대조군] 정상 조회 → UI 문자열",
+          asyncio.run(x.get_token_balance_ui(_OkClient(), owner, mint)) == "5")
+
+
+def test_snapshot_unknown_is_not_zero():
+    """온체인을 못 읽은 실행이 교차검증 PASS 로 남지 않는다 (M3 다운스트림).
+
+    '읽어 봤는데 0' 과 '읽지도 못했다'는 다른 사실이다(BUG-11 에서 확립한 원칙).
+    모름을 0 으로 적으면 usdc_net_out 이 0 을 내고, 체결이 0건인 실행과 구별되지 않아
+    아무것도 확인하지 못한 실행이 'PASS' 로 증빙에 박힌다."""
+    print("\n== snapshot_balances — '모름'을 0 으로 적지 않는다 (M3) ==")
+    import run_demo
+    owner2, mint2 = Keypair().pubkey(), Keypair().pubkey()
+
+    down = _RaiseClient(Exception("connection reset - unknown transport failure"))
+    snap = asyncio.run(run_demo.snapshot_balances(down, owner2, owner2, mint2, mint2))
+    check("조회 실패는 None 으로 기록(0 아님)", snap["trading"]["usdc"] is None,
+          repr(snap["trading"]["usdc"]))
+    check("스냅샷 자체는 죽지 않는다(SOL 은 정상)", snap["trading"]["sol"] == 1.0,
+          str(snap["trading"]["sol"]))
+    check("usdc_net_out 은 합계를 만들지 않는다",
+          run_demo.usdc_net_out(snap, snap) is None, repr(run_demo.usdc_net_out(snap, snap)))
+    check("stock 순증감도 판정 불가", run_demo._net_stock_in(snap, snap) is None)
+
+    # [대조군] 정상 조회면 지금까지와 똑같이 숫자가 나오고 PASS/FAIL 을 판정한다
+    ok_snap = asyncio.run(run_demo.snapshot_balances(_OkClient(), owner2, owner2, mint2, mint2))
+    check("[대조군] 정상 조회는 UI 값", ok_snap["trading"]["usdc"] == "5",
+          repr(ok_snap["trading"]["usdc"]))
+    check("[대조군] 정상 조회는 합계 계산",
+          run_demo.usdc_net_out(ok_snap, ok_snap) == Decimal("0"))
 
 
 def test_release_surplus():
@@ -380,6 +431,7 @@ def main() -> int:
     asyncio.run(test_buy_delivery_failure())
     asyncio.run(test_sell_payout_failure())
     test_baseline_read_classification()
+    test_snapshot_unknown_is_not_zero()
     test_release_surplus()
     print("\n결과: " + ("모든 테스트 통과" if _fail == 0 else f"{_fail}건 실패"))
     return _fail
