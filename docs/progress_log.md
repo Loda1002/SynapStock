@@ -373,3 +373,21 @@ GitHub 저장소 public 전환 완료 — `Loda1002/SynapStock` (PUBLIC). 전환
 devnet 재실증 착수 전 상태를 온체인으로 실측했다: 자체발행 민트의 발행 권한이 구매자(trading)
 지갑이고, Circle 공식 USDC 계정은 세 지갑 모두 없으며, SOL 은 충분(trading 14.49 / broker 5.49)
 하다. 남은 것은 Circle 파우셋 수령(사용자)과 건별 지출 상수 조정이다.
+
+## 2026-07-31 (2) — devnet USDC 재실증 (Circle 공식 민트) · A-lite 재검토
+
+**축③·④ 공통의 최대 단일 구멍이 닫혔다.** 새 증빙
+`artifacts/tx/20260731_1508_solana-devnet_live_buy.json` 의 USDC 민트가 Circle 공식
+`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` 이고, RPC 재확인 결과 그 민트의 발행 권한은
+우리 지갑이 아니다(`GrNg1XM2ctzeE2mXxXCfhcTUbejM8Z4z4wNVTy2FjMEz`). 체결 3건(매수 2·매도 1)
+전부 settled, 교차검증 PASS. 주식(tAAPL)은 devnet 에 실물이 없어 여전히 자체발행이고 그건
+이미 고지된 정당한 제약이다. 옛 증빙 20260724_1643 은 자체발행 결제라 영상·소개서에 쓰지 않는다.
+
+건별 지출은 상수를 낮추는 대신 `run_demo --spend` 옵션을 달았다(기본 30 불변) — 상수를 낮추면
+README 대표 명령과 문서에 인용된 수치를 전부 재검증해야 한다.
+
+A-lite 는 코드 무변경으로 재현됐다: localnet 검증기 기동 후 test_delegation 58/58,
+demo_delegation rc=0, 새 증빙 20260731_1438. 한도 초과와 잔액 부족이 둘 다 0x1 인데
+classify_rejection 이 갈라내는 핵심 명제가 그대로 산다.
+
+부수로 .env 백업이 gitignore 에 안 걸리던 것을 막았다(`.env.*` + `!.env.example`).
