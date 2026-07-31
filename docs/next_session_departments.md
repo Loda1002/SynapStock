@@ -5,32 +5,31 @@
 
 ## 0. 착수 조건 (먼저 확인)
 
-부서를 돌리기 전에 **아래 3개가 전부 ✅ 여야 한다.** 사용자 지시가
+부서를 돌리기 전에 **아래 3개가 전부 ✅ 다 — 착수 조건이 충족됐다.** 사용자 지시가
 *"버그부서·심사부서 돌리기 전에 완벽하게 검토해야 된다"* 였다.
 
 | # | 항목 | 상태 |
 |---|---|---|
 | 1 | devnet USDC 재실증 (Circle 공식 민트) | ✅ `artifacts/tx/20260731_1508_solana-devnet_live_buy.json` |
 | 2 | A-lite(온체인 예산 레일) 재검토 | ✅ 58/58 · `artifacts/tx/20260731_1438_solana-localnet_delegation.json` |
-| 3 | **배포본 라이브(온체인) 세션 1건** | ⬜ **여기부터 확인** — `/api/history/sessions` 에 `mode=live` 가 1건이라도 있으면 ✅ |
+| 3 | **배포본 라이브(온체인) 세션 1건** | ✅ `20260731_160230_live` · 검증본 `artifacts/tx/20260731_1603_..._onchain_verify.json` |
 
 ```powershell
 $h = Invoke-RestMethod "https://synapstock-766888967498.asia-northeast3.run.app/api/history/sessions"
 $h.sessions | Group-Object mode | ForEach-Object { $_.Name + " : " + $_.Count + "건" }
 ```
 
-### ⚠ 3번이 아직 ⬜ 면 부서보다 먼저 이것부터
+### (참고) 3번을 다시 해야 할 때만 읽는다 — 이미 ✅ 다
 
 절차·함정은 `CLAUDE.md` 의 "▶▶ 다음 대화" 3번에 전부 적혀 있다. 요약:
 `/app?lab=1#token=<토큰>` 으로 **실제 브라우저(Chrome)** 에서 열고, 실행 모드만
 `라이브` 로 바꿔 시작한다. **Claude 내부 브라우저는 `alert()` 을 자동 무시**해서
 401 사유가 안 보이므로 쓰지 않는다.
 
-### ⚠⚠ 3번이 끝났으면 **반드시** 임시 env 를 되돌린다
+### ✅ 임시 env 원복 완료 — 리비전 `synapstock-00027-jgk` (다시 열었을 때만 필요)
 
-지금 배포본(`synapstock-00026-jnr`)은 **라이브가 열려 있고 예산이 20** 이다.
-안 되돌리면 심사 URL 의 샌드박스 예산이 20 으로 남고 라이브가 계속 열려 있다.
-빌드 없이 1분:
+**이미 되돌렸다** — 현행 `synapstock-00027-jgk` 는 `ALLOW_LIVE_FROM_WEB=0` · 예산 100 · 건별 50 이고
+라이브 시작이 401 로 잠긴 것을 실측했다. 아래는 **다시 열었을 때 되돌리는** 명령이다(빌드 없이 1분):
 
 ```powershell
 gcloud run services update synapstock --region asia-northeast3 --project synapstock --update-env-vars "ALLOW_LIVE_FROM_WEB=0,BUDGET_USDC=100,PER_TRADE_MAX_USDC=50"
