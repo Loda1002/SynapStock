@@ -19,24 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
---------------------------------------------------------------------------------
-NOTICE — third-party data included in this repository
-
-The MIT license above covers the source code of this project. It does NOT
-grant rights to third-party data bundled for reproducibility:
-
-  data/market/*.csv
-      US equity daily bars retrieved from Alpha Vantage
-      (https://www.alphavantage.co, TIME_SERIES_DAILY).
-      Included solely so that demos, backtests and judging can replay the exact
-      same price series offline. This is not a redistribution offering: the
-      files are provided for demonstration and evaluation of this project only,
-      and remain subject to Alpha Vantage's own terms of service. Anyone
-      wanting this data for another purpose should obtain it from the source
-      (a free API key works — see scripts/fetch_market_data.py).
-
-No production funds are involved anywhere in this project: it runs on Solana
-localnet and devnet only, and the tokenized equities it trades are test mints
-created by scripts/setup_devnet.py because no tokenized equity exists on devnet.
-Nothing here is investment advice or an offer of any financial service.
