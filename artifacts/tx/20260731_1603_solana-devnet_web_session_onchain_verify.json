@@ -1,6 +1,7 @@
 {
   "generated_at": "2026-07-31T16:20:00+09:00",
   "kind": "onchain-verification",
+  "network": "solana-devnet",
   "note": "배포 URL 에서 실행한 라이브(온체인) 세션을 RPC 로 사후 검증한 기록. 엔진이 컨테이너 안에 쓴 아카이브(artifacts/tx/20260731_1603_solana-devnet_web_session.json)는 Cloud Run tmpfs 라 리비전이 바뀌면 사라지므로, 저장소에는 이 검증본을 남긴다. 세션 요약 자체는 Firestore 에 영속화돼 있고 GET /api/history/sessions 로 재확인할 수 있다.",
 
   "source": {

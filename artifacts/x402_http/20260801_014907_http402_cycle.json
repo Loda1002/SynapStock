@@ -1,0 +1,187 @@
+{
+  "generated_at": "2026-08-01T01:49:07",
+  "source": "scripts/demo_http402.py",
+  "transport": "http-402 (real TCP socket, uvicorn)",
+  "mode": "dry",
+  "network": "solana-devnet",
+  "broker_url": "http://127.0.0.1:8402",
+  "broker_pubkey": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm",
+  "usdc_mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  "fee_bps": 30,
+  "order": {
+    "symbol": "AAPL",
+    "spend_usdc": "10",
+    "price_usdc": "200"
+  },
+  "summary": {
+    "challenge_402": true,
+    "settled_200": true,
+    "replay_blocked_402": true,
+    "attack_blocked": true,
+    "leak_usdc": "0"
+  },
+  "transcript": [
+    {
+      "step": "discovery",
+      "request": {
+        "method": "GET",
+        "path": "/.well-known/x402"
+      },
+      "response": {
+        "status_code": 200,
+        "reason": "OK",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "x402Version": 1,
+          "resources": [
+            {
+              "resource": "/broker/orders",
+              "methods": [
+                "POST"
+              ],
+              "scheme": "exact",
+              "network": "solana-devnet",
+              "asset": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+              "assetDecimals": 6,
+              "payTo": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm",
+              "feeBps": 30,
+              "maxTimeoutSeconds": 120,
+              "description": "토큰화 주식 매수 — exact 결제 확인 후 주식 토큰을 전달한다"
+            }
+          ],
+          "notImplemented": [
+            "매도(환매) 레그는 A2A 인프로세스 — 402 challenge 모델과 방향이 반대",
+            "facilitator 미사용 — 판매자가 직접 검증·정산한다"
+          ]
+        }
+      }
+    },
+    {
+      "step": "payment-required",
+      "request": {
+        "method": "POST",
+        "path": "/broker/orders",
+        "body": {
+          "symbol": "AAPL",
+          "spend_usdc": "10",
+          "price_usdc": "200"
+        }
+      },
+      "response": {
+        "status_code": 402,
+        "reason": "Payment Required",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "application/json"
+        },
+        "body": {
+          "x402Version": 1,
+          "error": "payment required",
+          "accepts": [
+            {
+              "scheme": "exact",
+              "network": "solana-devnet",
+              "maxAmountRequired": "9990000",
+              "resource": "http://127.0.0.1:8402/broker/orders/ord_5e7e932e6a",
+              "description": "STOCK:AAPL x0.0498 (fee 0.03 USDC incl.)",
+              "mimeType": "application/json",
+              "payTo": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm",
+              "maxTimeoutSeconds": 120,
+              "asset": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+              "extra": {
+                "decimals": 6,
+                "orderId": "ord_5e7e932e6a",
+                "symbol": "AAPL",
+                "quantity": "0.0498",
+                "priceUsdc": "200",
+                "memoFormat": "AT1:{orderId}:{mandateSig8}"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "guard-check",
+      "result": {
+        "ok": true,
+        "code": "OK",
+        "detail": "청구서 하드 검사 8종 통과 (주문번호·자산·종목·수취인·단위·금액·의도상한·건별한도)",
+        "where": "guard.py:L224",
+        "expected": "9990000",
+        "actual": "9990000"
+      },
+      "my_quote": {
+        "quantity": "0.0498",
+        "total_usdc": "9.99"
+      }
+    },
+    {
+      "step": "payment-submitted",
+      "request": {
+        "method": "POST",
+        "path": "/broker/orders",
+        "headers": {
+          "X-PAYMENT": "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoic29sYW5hLWRldm5ldCIsInBheWxvYWQiOnsic2VyaWFsaXplZFRyYW5zYWN0aW9uIjoiQVU1THFpMFBkSG5VVWZWWWEvM1VvbjkwNXQ1MVJDdU9WSjgxNy9Fd05jZDNtSk80KzZQcGx2VHpIL3VvUE9PeWtRTmlhd1JFTnZ3QkJ3N2NGOUxadUFvQkFBWUpMdkVTMlZjYnVQZ3hIZW1PaTN3bG0zWEtJVnR4U3Y4MTZkRkhKb2d4V1dJUENwUmIyemg4S1hMaW5waGV5bGdQbGVkYzQzVFRMNmtjbHh0N2VDcWhGTkYwTVkwWlRrYjhYZWkwSnMwVW9EVGJBaFpGbDFJV2xNQjN0OEdTOUtVVkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFGU2xOYW1Ta2hCazBrNkhGZzJqaDhmRFcxM2J5U3U0SGtINmhBUVFWRWpRYmQ5dUhYWmFHVDJjdmhSczdyZWF3Y3RJWHRYMXMza1RxTTlZVisvd0NwSGhleEFsdGRJd2VaZ2FIeUdaNTNYMkVwRHIwRXhGbU1HTjVoSWR5VTZKWTdSQ3l6a1NGWDhUcVRQUUUwS0MwREsxLyt6UUdpMi9HM2VRWUkzd0F1cDR5WEpZOU9KSW54dXowUUtSU09EWU1MV2hPWjJ2OFFoQVNPZTlqYjZmaFpBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBREJBRUFHMEZVTVRwdmNtUmZOV1UzWlRrek1tVTJZVG95VW5kcmVtZHFOd2dHQUFJR0J3TUZBUUVGQkFFSEFnQUtESEJ2bUFBQUFBQUFCZz09In0sIm9yZGVySWQiOiJvcmRfNWU3ZTkzMmU2YSJ9"
+        }
+      },
+      "response": {
+        "status_code": 200,
+        "reason": "OK",
+        "headers": {
+          "x-payment-response": "eyJ4NDAyVmVyc2lvbiI6MSwic3VjY2VzcyI6dHJ1ZSwib3JkZXJJZCI6Im9yZF81ZTdlOTMyZTZhIiwic3RhdHVzIjoic2V0dGxlZCIsInRyYW5zYWN0aW9uIjoiMlpud0ZmZjV4eVNmQ1pTR3lodUhHazEzRDlQdTNFd1FRSHJTNWpCVHBzYzNCQUU2djdBSlY4akhEc3VrZlBmOHY5QU16d3d6U3poM0xLUVdoRHdhRG80dSIsImNvbmZpcm1lZCI6ZmFsc2UsImRlbGl2ZXJlZEFzc2V0IjoiMzdIeFlMb3pUdXpSRGkxYnFrcVkxZ0tnaHp4YlpIRzhjV0gxcHd2QWZKUkciLCJkZWxpdmVyZWRBbW91bnQiOjQ5ODAwLCJkZWxpdmVyeVRyYW5zYWN0aW9uIjoiIiwicmVhc29uIjoiIn0=",
+          "content-type": "application/json"
+        },
+        "body": {
+          "x402Version": 1,
+          "orderId": "ord_5e7e932e6a",
+          "symbol": "AAPL",
+          "quantity": "0.0498",
+          "resource": "STOCK:AAPL x0.0498 (fee 0.03 USDC incl.)",
+          "settlement": {
+            "x402Version": 1,
+            "success": true,
+            "orderId": "ord_5e7e932e6a",
+            "status": "settled",
+            "transaction": "2ZnwFff5xySfCZSGyhuHGk13D9Pu3EwQQHrS5jBTpsc3BAE6v7AJV8jHDsukfPf8v9AMzwwzSzh3LKQWhDwaDo4u",
+            "confirmed": false,
+            "deliveredAsset": "37HxYLozTuzRDi1bqkqY1gKghzxbZHG8cWH1pwvAfJRG",
+            "deliveredAmount": 49800,
+            "deliveryTransaction": "",
+            "reason": ""
+          }
+        }
+      }
+    },
+    {
+      "step": "replay-blocked",
+      "response": {
+        "status_code": 402,
+        "reason": "Payment Required",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "x402Version": 1,
+          "error": "unknown_order",
+          "detail": "발행하지 않았거나 이미 처리된 주문입니다: ord_5e7e932e6a"
+        }
+      }
+    },
+    {
+      "step": "attack-payee-forged",
+      "evil_payee": "BUfuSY6BhX1MMGjvJhHThcJpWKy33k49ziYRV88NroJD",
+      "guard": {
+        "ok": false,
+        "code": "GUARD_PAYEE_UNKNOWN",
+        "detail": "수취인이 신뢰 목록에 없습니다 (counterparty 미검증 — 자금 유출 위험)",
+        "where": "guard.py:L185",
+        "expected": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm",
+        "actual": "BUfuSY6BhX1MMGjvJhHThcJpWKy33k49ziYRV88NroJD"
+      },
+      "leak_usdc": "0"
+    }
+  ]
+}

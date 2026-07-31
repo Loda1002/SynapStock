@@ -93,20 +93,36 @@
 >   (디자인이 늦어지면 이 세 구간을 먼저 확보해 두는 것이 안전하다)
 > 구간별 판정은 `docs/artifacts/demo_script.html` 머리말과 `docs/submission.md` 체크리스트에 박아 뒀다.
 >
-> **▶▶ 다음 순위 1번 = 배포 URL 에서 `brain=gemini` dry 세션 1회.**
-> 세션 이력 **14건 전부 `gemini_decisions=0`**(직접 조회로 확인) → 라이브 URL 만 여는 심사위원에게
-> **축② 증거가 화면·API 어디에도 0 으로 보인다.** 디자인과 무관해 **지금 할 수 있는 것 중 효과가
-> 가장 크다.** 절차는 런북 §6-1(`/app?lab=1#token=<CONTROL_TOKEN>` · **반드시 `/app` 경로 ·
-> 실제 브라우저**), 모델 `gemini-flash-latest`, 60~80봉이면 호출 100건 미만.
-> ⚠ 전략을 **'AI 판단(condition)'** 으로 바꿔야 한다(기본값 추세추종은 Gemini 를 안 쓴다).
+> **▶ 리포트가 지목한 잔여 TODO 4건 — ✅ 전부 소진(2026-08-01). 다시 하지 말 것.**
+> · `red_team --report --live-llm` 1회 → **`artifacts/red_team/20260801_red_team_live_llm.txt`**
+>   (판정자 = **실제 Gemini** · 정상 14건 **대조 14 · LLM 1회 · 캐시 13 · 오탐 0**)
+> · 근거 없던 **"87건 = 3회" 교체 완료** — `axis2_ai_narrative.md` + **소개서 12장 원가 근거**.
+>   ⚠ 소개서가 단가 가설의 **원가 근거로 쓰던 수치**였다(브리핑 397건 전수 스캔에도 그 조합 없음).
+> · `demo_http402` 재실행 → **`20260801_014907_http402_cycle.json`** 의 asset 이 Circle 공식 민트
+> · localnet 기동 후 `test_delegation --localnet` **58/58 통과** 재확보
+> · `20260731_1603` 검증본에 **`network` 키 추가** → 집계상 devnet **2 → 3**
+> 재수집 결과: 테스트 **23종 전부 통과** · red_team rc=0 · **유출 0.00 · 오탐 0** · http402 코드 8.
 >
-> **▶ 리포트가 지목한 잔여 TODO (위 보류·1번 다음)**
-> · `scripts/red_team.py --report --live-llm` 1회 실행분을 `artifacts/` 에 남기기(녹화 재생이 아닌
->   실모델 판정 기록 — '판정자 정직성' 서술의 실물 근거)
-> · `docs/axis2_ai_narrative.md:135` 의 "의미 대조 87건 = LLM 3회" 를 뒷받침하는 아카이브가 없다
->   (브리핑 397건 전수 스캔 결과 `checked>0` 은 2건뿐) → 위 세션 실측치로 교체하거나 표기를 낮춘다
-> · `scripts/demo_http402.py` 1회 재실행해 `artifacts/x402_http/` 증빙의 asset 을 현행 민트로 갱신
-> · localnet 검증기를 띄우고 `test_delegation` 58종 재확보(지금 스냅샷은 41 + 건너뜀 1)
+> **▶▶ 다음 순위 1번 = 배포 URL 에서 `brain=gemini` dry 세션 1회 — ⚠ 쿼터 조건을 먼저 맞춰야 한다.**
+> 세션 이력 **14건 전부 `gemini_decisions=0`**(직접 조회로 확인) → 라이브 URL 만 여는 심사위원에게
+> **축② 증거가 화면·API 어디에도 0 으로 보인다.** 디자인과 무관해 지금 할 수 있는 것 중 효과가 크다.
+>
+> **⚠⚠ 그런데 2026-08-01 실측: `gemini-flash-latest` 무료 티어 일일 한도 20건/일 소진.**
+> (태평양 자정까지 미회복. 한도 수치는 하드코딩이 아니라 **구글 응답에서 파싱**한 값 —
+> `gemini_decider.py:269`.) 이 상태로 세션을 열면 **설계대로 매수가 전건 보류돼
+> `gemini_decisions=0` 세션이 하나 더 쌓인다 — 갭이 오히려 나빠진다.**
+> **그리고 20건/일로는 60~80봉 세션이 애초에 불가능하다.**
+> **▶ 해법**: 같은 프로브를 `GEMINI_MODEL=gemini-flash-lite-latest` 로 돌리면 **틱 6 이 `[gemini]`**
+> (폴백 아님) — **그 모델은 쿼터가 살아 있다(500건/일).** 배포 env 를 그 모델로 바꿔 돌린다:
+> ```powershell
+> gcloud run services update synapstock --region asia-northeast3 --project synapstock --update-env-vars "GEMINI_MODEL=gemini-flash-lite-latest"
+> ```
+> ⚠ **`--update-env-vars`(부분 갱신)를 쓸 것** — `--set-env-vars` 는 나머지 env 를 전부 지운다.
+> ⚠ **세션이 도는 중에는 어떤 update 도 하지 않는다**(런북 §6). 끝난 뒤 되돌릴지는 선택이다.
+> **▶ 나머지 절차**: 런북 §6-1(`/app?lab=1#token=<CONTROL_TOKEN>` · **반드시 `/app` 경로 ·
+> 실제 브라우저** — 내부 브라우저는 `alert()` 를 자동 무시해 401 이 무반응으로 보인다),
+> 전략을 **'AI 판단(condition)'** 으로 변경(기본값 추세추종은 Gemini 를 안 쓴다), 60~80봉.
+> ⚠ **`CONTROL_TOKEN` 값은 사용자가 직접 확인한다 — Claude 는 이 시크릿을 읽지 않는다.**
 >
 > ---
 >

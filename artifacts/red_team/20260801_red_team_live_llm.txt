@@ -1,0 +1,52 @@
+
+──────────────────────────────────────────────────────────────────────────────
+  402 Guard 레드팀 — 공격/차단 매트릭스 (실제 결제 경로를 그대로 태움)
+──────────────────────────────────────────────────────────────────────────────
+
+  ① 매수 청구 위조 (a) 수취인 스왑   [계층: check_demand (서명 게이트)]
+    가드 없음(업계 기본값) : 악성 지갑에 44.94 USDC 서명·전송
+    402 Guard             : GUARD_PAYEE_UNKNOWN — 차단(서명 전)  @ guard.py:L185
+
+  ① 매수 청구 위조 (b) 금액 부풀리기   [계층: check_demand (의도 상한)]
+    가드 없음(업계 기본값) : 의도 30 인데 44.94 서명(초과 14.94)
+    402 Guard             : GUARD_INTENT_EXCEEDED — 차단(서명 전)  @ guard.py:L213
+
+  ①'' 상품 바꿔치기 (설명만 다름)   [계층: check_semantics (의미 대조)]
+    가드 없음(업계 기본값) : 주문하지 않은 상품에 32.10 USDC 서명·전송
+    하드 검사 8종         : 전부 통과 (기존 게이트로는 못 막는다)
+    402 Guard             : GUARD_SEMANTIC_MISMATCH — 차단(서명 전)  @ guard.py:L278
+    판정 주체             : 실제 Gemini (gemini-flash-latest)
+    판정 근거             : "주식 매수 주문과 달리 12개월 자동 결제 데이터 구독 및 정기 결제 조건이 포함되어 있습니다."
+
+  ② 이중청구   [계층: Memo 바인딩 + 서명 dedup]
+    가드 없음(업계 기본값) : 같은 결제 재정산됨(29.99 USDC 중복)
+    402 Guard             : 이중청구 차단 — 차단(판매자측 방어 — 구매자 Guard 아님)  @ broker_agent._guard_settlement
+
+  ③ 정산 미이행   [계층: check_delivery (온체인 재조회)]
+    가드 없음(업계 기본값) : 미전달인데 settled 로 오인 → 29.99 USDC 대가 상실
+    402 Guard             : GUARD_DELIVERY_UNCONFIRMED — 탐지(사후 — 자금은 이미 나감)  @ guard.py:L460
+
+  ①' 매도 청구 위조 (a) 자산 스왑   [계층: check_stock_transfer (서명 게이트)]
+    가드 없음(업계 기본값) : 예산 밖 유휴 400 USDC 를 서명·전송
+    402 Guard             : GUARD_ASSET_MISMATCH — 차단(서명 전)  @ guard.py:L356
+
+  ①' 매도 청구 위조 (b) 수취인 스왑   [계층: check_stock_transfer (서명 게이트)]
+    가드 없음(업계 기본값) : 주식 0.18 주를 악성 지갑에 서명·전송
+    402 Guard             : GUARD_PAYEE_UNKNOWN — 차단(서명 전)  @ guard.py:L362
+
+──────────────────────────────────────────────────────────────────────────────
+  가드 없을 때 피해 합계        : 551.96 USDC (공격 7종 회피 피해의 합 — 시나리오 가정치 IDLE_USDC 포함)
+  구매자 서명 전 차단 5건     : 유출 0.00 USDC  ← 이 계층은 트랜잭션 미생성이라 구조적으로 0
+  판매자측 방어 1건          : 402 Guard 가 아니라 브로커 자기 코드가 막았다 (구매자측 리플레이 방어는 미구현)
+  정산 후 탐지 1건           : 29.99 USDC 는 이미 나간 뒤 — 탐지·세션 정지만 가능(회수 경로 없음)
+     └ 이번 실행은 live=False 시뮬레이션이라 실제 온체인 이동은 없다
+  온체인 재조회(check_delivery) : 미도착 탐지 PASS · 정상 도착 통과 PASS
+  정상 거래 14건(같은 실행)    : 오탐 0건 · 정산 14건 · 온체인 재조회 통과 14건
+  의미 대조(정상 14건)     : 대조 14건 · 통과 14건 · 오차단 0건 · 실제 LLM 호출 1회(서식 캐시 13)
+     └ 판정자 실제 Gemini (gemini-flash-latest) — 새 계층의 오탐이 0 이 아니면 제품을 못 쓴다
+──────────────────────────────────────────────────────────────────────────────
+
+  [KPI]  공격 7 (구매자 서명 전 차단 5 · 판매자측 1 · 사후 탐지 1) · 서명 전 유출 0.00 USDC · 정상 14건 오탐 0
+  [KPI-JSON] {"attacks": 7, "attempts": 21, "blocked": 7, "counterparty_blocked": 1, "detected": 1, "false_positives": 0, "leak_usdc": "0.00", "normal": 14, "prevent_blocked": 5, "prevent_leak_usdc": "0.00", "semantic_judge": "실제 Gemini (gemini-flash-latest)", "semantic_llm_calls": 1, "unrecoverable_usdc": "29.99", "without_guard_usdc": "551.96"}
+
+  구매자 서명 전 공격 5종 전부 차단(유출 0.00 USDC) · 판매자측 1종 · 사후 미이행 1종 탐지 · 정상 거래 오탐 0.

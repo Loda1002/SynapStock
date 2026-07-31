@@ -49,7 +49,7 @@
 | **매수·매도 풀사이클** | USDC⇄주식토큰 양방향 온체인 정산, 전후 잔액 RPC 교차검증 | `agents/broker_agent.py` | ✅ 순변화 PASS |
 | **거부 4종 데모** | 건별한도 초과·mandate 위변조·금액 부족·미허용 종목 | `scripts/demo_rejections.py` | ✅ |
 | **온체인 예산 레일 (A-lite)** | SPL Token 위임으로 예산 상한을 체인이 집행. 한도 초과·회수 후 결제를 체인이 거절하고, **같은 에러 코드(0x1)인 잔액 부족과 구분해** 라벨링한다(구분하지 않으면 지갑이 빈 것을 '한도 집행'으로 광고하게 된다). 에이전트는 자기 한도를 못 올린다 | `payments/delegation.py`, `scripts/demo_delegation.py` | ⚠ **제품 미배선** — 독립 증빙 전용(엔진 결제 경로 무변경). localnet 아카이브 1건 · 단위 23종 |
-| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ **14파일 — localnet 10 · devnet 2 · 배포 세션 RPC 사후 검증본 1 · 거부 데모 로그 1**(비JSON). devnet 대표 증빙은 `20260731_1508_solana-devnet_live_buy.json`(Circle 공식 민트) — ⚠ 옛 `20260724_1643_*` 은 자체발행 민트라 **인용 금지**. localnet 10건 중 2건은 매매 세션이 아니라 **온체인 예산 레일** 증빙(`*_delegation.json`, `wired_into_product:false`). 별도로 HTTP 402 실 TCP 왕복 로그 1건 `artifacts/x402_http/` |
+| **증빙 아카이브** | tx 해시·전후 잔액·교차검증을 JSON으로 저장 | `artifacts/tx/` | ✅ **14파일 — localnet 10 · devnet 2 · 배포 세션 RPC 사후 검증본 1 · 거부 데모 로그 1**(비JSON. 검증본에도 `network` 키를 넣어 **집계상 devnet 은 3**으로 잡힌다). devnet 대표 증빙은 `20260731_1508_solana-devnet_live_buy.json`(Circle 공식 민트) — ⚠ 옛 `20260724_1643_*` 은 자체발행 민트라 **인용 금지**. localnet 10건 중 2건은 매매 세션이 아니라 **온체인 예산 레일** 증빙(`*_delegation.json`, `wired_into_product:false`). 별도로 HTTP 402 실 TCP 왕복 로그 1건 `artifacts/x402_http/` |
 
 ### 1-2. AI 판단 (Gemini)
 
