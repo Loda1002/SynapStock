@@ -851,6 +851,24 @@ class TradingEngine:
                 raise EngineError(
                     f"새 예산({budget_total})을 종목 {len(slices)}개로 나누면 이미 사용한 금액보다 "
                     f"작아지는 종목이 있습니다 — {' · '.join(over)}")
+            # 1회 매수 금액이 0 으로 내려앉는 예산은 **아예 받지 않는다**(세션 시작과 같은
+            # 기준 — :563-565 에 같은 검사와 문안이 있다). 예전에는 아래 재계산이
+            # `if new_spend > 0:` 이라 0 이면 대입만 건너뛰었는데, 그러면 mandate·auth 는
+            # 새 예산으로 바뀌고 에이전트의 1회 매수 금액만 옛 값으로 남는 **부분 적용**이
+            # 된다(실측: 화면 0.00 · 엔진 30.00). 그 상태로 매수하면 옛 금액이 새 예산을
+            # 넘겨 AP2 가 거부하므로, **공격이 없는데** 가드 KPI 가 오른다.
+            # ⚠ 이 검사도 BUG-07 과 같은 이유로 mandate 재서명 **앞**이어야 한다.
+            new_spend = self._spend_per_trade(budget_total)
+            if new_spend <= 0:
+                raise EngineError(
+                    f"예산 {budget_total} USDC 의 {SPEND_PCT}% 가 0 이 됩니다 — 예산을 올리세요.")
+            ns = len(self.symbols)
+            new_per_symbol = ((new_spend / ns).quantize(Decimal("0.01"))
+                              if ns > 1 else new_spend)
+            if new_per_symbol <= 0:
+                raise EngineError(
+                    f"1회 매수 금액이 종목 {ns}개로 나누면 0이 됩니다 — 예산을 올리거나 종목을 줄이세요.")
+
             eff_per_trade = CFG.max_budget_usdc if is_trend else per_trade_max
             # 세션 가드는 항상 이 mandate 하나로 검문한다(허용종목=전 종목, 건별=실효 한도).
             new_mandate = OpenPaymentMandate(
@@ -888,14 +906,9 @@ class TradingEngine:
             # 안 하면 세션 중 예산을 내려도 지출은 옛 예산 기준으로 남아, 화면이 말하는
             # 금액(_rules_snapshot 은 새 예산으로 계산한다)과 엔진이 쓰는 금액이 갈라진다.
             # ⚠ 종목 수로 나누는 것은 시작 때와 같은 규칙이다(한 종목이 독식하지 않게).
-            new_spend = self._spend_per_trade(budget_total)
-            if new_spend > 0:
-                cent = Decimal("0.01")
-                ns = len(self.symbols)
-                per_sym = (new_spend / ns).quantize(cent) if ns > 1 else new_spend
-                if per_sym > 0:
-                    for a in self.agents.values():
-                        a.strategy.spend_per_trade_usdc = per_sym
+            # 값은 위에서 이미 재고 검증했다 — 0 이면 여기 오기 전에 거부된다(부분 적용 없음).
+            for a in self.agents.values():
+                a.strategy.spend_per_trade_usdc = new_per_symbol
             applied = "immediate"
 
         self.budget_total = budget_total

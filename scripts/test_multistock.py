@@ -388,12 +388,53 @@ async def test_spend_follows_budget() -> None:
         check("예산이 너무 작으면 세션 시작을 막는다", "0 이 됩니다" in str(ex), str(ex)[:80])
 
 
+async def test_limit_cut_to_zero_spend_is_rejected() -> None:
+    """실행 중 한도 변경도 세션 시작과 같은 기준으로 거부해야 한다 (M8).
+
+    SPEND_PCT 전환(bb07954)이 신설한 재계산 블록이 `if new_spend > 0:` 이라, 0 이면
+    **대입만 건너뛰고** mandate·auth 는 새 예산으로 바뀌었다 = 부분 적용. 결과 둘:
+      ① 화면(_rules_snapshot 은 새 예산으로 계산)과 엔진이 갈라진다 — 이 저장소가
+         반복해서 밟은 부류다.
+      ② 에이전트가 옛 금액으로 매수를 시도해 AP2 가 거부하므로, **공격이 없는데**
+         가드 KPI 가 오른다("시도 N건 중 M건 차단"이 대표 지표다).
+    start() 는 같은 상황을 이미 거부한다(문안까지 있다). 부분 적용을 남기지 않는 것이 요점."""
+    print("\n[11] 한도 인하로 1회 매수가 0 이 되는 경우 (M8)")
+    e = _engine()
+    await _start(e, ["AAPL"])
+    old_spend = e.agents["AAPL"].strategy.spend_per_trade_usdc
+    old_budget = e.budget_total
+    e.pause()   # 실행 중 한도 변경은 긴급정지 상태에서만
+
+    raised = ""
+    try:
+        e.update_limits(Decimal("0.01"), Decimal("0.01"))   # 30% = 0.003 → 0.00
+    except EngineError as ex:
+        raised = str(ex)
+    check("1회 매수가 0 이 되는 인하는 거부", bool(raised), raised[:80])
+    check("거부 시 세션 예산 그대로(부분 적용 없음)", e.budget_total == old_budget,
+          str(e.budget_total))
+    check("거부 시 1회 매수 금액도 그대로",
+          e.agents["AAPL"].strategy.spend_per_trade_usdc == old_spend,
+          str(e.agents["AAPL"].strategy.spend_per_trade_usdc))
+    check("거부 시 화면 값 == 엔진 값 (갈라지지 않는다)",
+          Decimal(e._rules_snapshot()["spend_per_trade"]) == old_spend,
+          f"화면 {e._rules_snapshot()['spend_per_trade']} vs 엔진 {old_spend}")
+
+    # [대조군] 정상 인하는 통과하고 1회 매수 금액이 새 예산 기준으로 따라온다 — 과잉 차단 방지
+    e.update_limits(Decimal("50"), Decimal("25"))
+    check("[대조군] 정상 인하는 통과", e.budget_total == Decimal("50"), str(e.budget_total))
+    check("[대조군] 1회 매수가 새 예산의 30% 로 따라옴",
+          e.agents["AAPL"].strategy.spend_per_trade_usdc == Decimal("15.00"),
+          str(e.agents["AAPL"].strategy.spend_per_trade_usdc))
+
+
 async def _main() -> int:
     for t in (test_shared_budget_and_isolation, test_feed_exhaustion_isolation,
               test_all_exhausted_ends_session, test_guard_kpi_aggregation,
               test_single_symbol_backcompat, test_multi_guards,
               test_limit_change_syncs_guard, test_limit_cut_below_symbol_spend,
-              test_dust_spend_no_zero_trade, test_spend_follows_budget):
+              test_dust_spend_no_zero_trade, test_spend_follows_budget,
+              test_limit_cut_to_zero_spend_is_rejected):
         await t()
     bad = [n for n, ok, _ in _results if not ok]
     print("\n" + "=" * 60)
