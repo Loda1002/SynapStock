@@ -146,6 +146,9 @@ class TradingEngine:
         self.total_fees = Decimal(0)                # A8 누적 브로커 수수료 (합산, 수익모델 증명)
         self.started_at: str = ""
         self.brain_label: str = ""
+        # 이 세션이 실제로 Gemini 두뇌를 달고 있는가. brain_label 문자열을 파싱하지 않는다 —
+        # 라벨은 표시용이라 문구가 바뀌면 조용히 깨진다. 브리핑이 이 값을 보고 호출을 정한다.
+        self._uses_gemini: bool = False
         self.strategy_info: Dict[str, Any] = {"type": "condition"}  # B7 세션 전략
         self.feed_info: Dict[str, Any] = {"type": "", "label": ""}  # 시세 피드 (세션 공통 type/label)
         self.reject_count = 0                       # B2 브리핑용: AP2 거부 횟수
@@ -683,6 +686,7 @@ class TradingEngine:
         self.started_at = _now()
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_{mode}"
         self.brain_label = brain_label
+        self._uses_gemini = brain is not None
         self.strategy_info = {
             "type": strat_type,
             "symbols": list(symbols),         # 세션 종목 목록 (멀티=N개)
@@ -993,6 +997,7 @@ class TradingEngine:
             agent.brain = brain
         if self._guard is not None and getattr(self._guard, "semantic", None) is not None:
             self._guard.semantic.brain = brain
+        self._uses_gemini = brain is not None   # 브리핑도 같은 판단을 따라가야 한다(세 번째 자리)
 
     def _emit_semantic(self, side: str, order_id: str, symbol: str) -> None:
         """직전 청구서 의미 대조 판정을 로그로 흘린다 (축④ 실행 이력).
@@ -1077,7 +1082,11 @@ class TradingEngine:
             raise EngineError("브리핑할 데이터가 없습니다 — 먼저 세션을 실행하세요.")
         stats = self._briefing_stats()
         # Gemini 호출은 blocking — 이벤트 루프를 막지 않게 워커 스레드에서
-        text, source, fallback_detail = await asyncio.to_thread(generate_briefing_text, stats)
+        # 규칙 세션이면 Gemini 를 부르지 않는다 — 화면이 "Gemini 미사용"이라 적어 놓고
+        # 호출하면 라벨이 거짓이 되고, 무료 티어 일일 쿼터(축② 증빙이 걸린 자원)가
+        # 조용히 소모된다. replace_brain 의 주석과 같은 계열의 자리다.
+        text, source, fallback_detail = await asyncio.to_thread(
+            generate_briefing_text, stats, self._uses_gemini)
         rec: Dict[str, Any] = {"ts": _now(), "trigger": trigger, "source": source, "text": text}
         # 폴백 사유는 본문에 섞지 않고 별도 필드로 올린다(web/briefing.py 독스트링 참조).
         # 화면은 이 값을 title 툴팁처럼 눈에 띄지 않는 자리에 두면 된다 — 진단은 남기되

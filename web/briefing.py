@@ -47,8 +47,14 @@ def _fallback_text(stats: Dict[str, Any]) -> str:
     return " ".join(lines)
 
 
-def generate_briefing_text(stats: Dict[str, Any]) -> Tuple[str, str, str]:
+def generate_briefing_text(stats: Dict[str, Any],
+                           use_gemini: bool = True) -> Tuple[str, str, str]:
     """리포트 생성 → (본문, 출처 'gemini'/'template', 실패 상세).
+
+    use_gemini=False 면 키가 있어도 호출하지 않는다. 세션이 규칙 두뇌(brain='rule'·
+    추세추종·적립식)일 때 화면은 "Gemini 미사용"이라 적어 놓고 브리핑만 호출하던 것을
+    닫는다 — 라벨이 거짓이 될 뿐 아니라, 무료 티어 일일 쿼터는 이 프로젝트의 반복
+    병목이고 축② 증빙이 거기 걸려 있다.
 
     실패 상세는 **본문에 섞지 않고 따로 돌려준다.** 예전에는 예외 문자열 80자를 본문 끝에
     이어 붙였는데, 그 본문이 그대로 화면(브리핑 카드)·Firestore·아카이브에 남았다.
@@ -59,7 +65,7 @@ def generate_briefing_text(stats: Dict[str, Any]) -> Tuple[str, str, str]:
     그래서 본문에는 사람이 읽는 한 문장만 남기고, 원문은 세 번째 값으로 올려보내
     화면이 `title` 툴팁 등 눈에 띄지 않는 자리에 보관하게 한다(진단 정보를 버리지 않는다).
     """
-    if not CFG.gemini_api_key:
+    if not use_gemini or not CFG.gemini_api_key:
         return _fallback_text(stats), "template", ""
     try:
         from google import genai

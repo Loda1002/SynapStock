@@ -60,6 +60,36 @@ async def _error(strategy: dict, *, api_key: str) -> str:
 
 FAKE_KEY = "AIzaTestKeyForUnitTestOnly_NotReal_000000"   # developer 모드 분기용 더미
 
+_STATS = {"date": "2026-07-31", "symbol": "AAPL", "buy_count": 0, "buy_total_usdc": "0",
+          "sell_count": 0, "sell_total_usdc": "0", "realized_pnl_usdc": "0",
+          "return_pct": "0", "budget_remaining_usdc": "100", "cum_fee_usdc": "0"}
+
+
+async def _briefing_use_gemini(strategy: dict, *, api_key: str):
+    """세션을 만들고 브리핑을 돌려, 브리핑이 Gemini 를 쓰겠다고 판단했는지 잡아낸다.
+
+    실제 API 를 부르지 않도록 generate_briefing_text 를 스파이로 갈아끼운다 — 이 회귀의
+    요점은 **엔진이 브리핑에 두뇌 종류를 알려주는가**이지 모델 응답이 아니다."""
+    eng.CFG = dataclasses.replace(REAL_CFG, gemini_api_key=api_key, stock_mint="")
+    engine = TradingEngine(EventBus(), BaseStore())
+    await engine.start("dry", strategy,
+                       {"type": "replay", "dataset": "daily", "symbols": ["AAPL"]},
+                       autostart=False)
+    seen: list = []
+    real = eng.generate_briefing_text
+
+    def spy(stats, use_gemini=True):     # 기본값 True = 옛 호출부(인자 없음)의 동작
+        seen.append(use_gemini)
+        return "요약", "template", ""
+
+    eng.generate_briefing_text = spy
+    try:
+        engine.decisions.append({"ts": "t", "action": "hold", "reason": "테스트", "source": "rule"})
+        await engine.generate_briefing()
+    finally:
+        eng.generate_briefing_text = real
+    return seen[0] if seen else None
+
 
 async def main() -> int:
     try:
@@ -90,6 +120,29 @@ async def main() -> int:
         check("추세추종은 brain 무시(Gemini 미사용)", "Gemini 미사용" in lab, lab)
         lab = await _label({"type": "dca", "brain": "gemini"}, api_key=FAKE_KEY)
         check("적립형은 brain 무시(Gemini 미사용)", "Gemini 미사용" in lab, lab)
+
+        # 화면이 "Gemini 미사용"이라 적어 놓고 브리핑만 호출하면 라벨이 거짓이 되고,
+        # 무료 티어 일일 쿼터(축② 증빙이 걸린 자원)가 조용히 소모된다.
+        print("\n[6] 브리핑도 두뇌 선택을 따른다 (L11)")
+        used = await _briefing_use_gemini({"type": "condition", "brain": "rule"}, api_key=FAKE_KEY)
+        check("rule 세션이면 브리핑이 Gemini 를 안 부른다", used is False, f"use_gemini={used}")
+        used = await _briefing_use_gemini({"type": "trend"}, api_key=FAKE_KEY)
+        check("추세추종 세션도 마찬가지", used is False, f"use_gemini={used}")
+        used = await _briefing_use_gemini({"type": "dca"}, api_key=FAKE_KEY)
+        check("적립식 세션도 마찬가지", used is False, f"use_gemini={used}")
+        used = await _briefing_use_gemini({"type": "condition", "brain": "gemini"},
+                                          api_key=FAKE_KEY)
+        check("[대조군] Gemini 세션이면 부른다", used is True, f"use_gemini={used}")
+
+        # 함수 자체도 게이트를 지킨다 — 키가 있어도 use_gemini=False 면 호출 경로에 안 들어간다
+        from web import briefing as br
+        br.CFG = dataclasses.replace(REAL_CFG, gemini_api_key=FAKE_KEY)
+        try:
+            _t, src, det = br.generate_briefing_text(_STATS, use_gemini=False)
+            check("키가 있어도 use_gemini=False 면 템플릿", src == "template" and det == "",
+                  f"source={src} detail={det}")
+        finally:
+            br.CFG = REAL_CFG
     finally:
         eng.CFG = REAL_CFG
 
