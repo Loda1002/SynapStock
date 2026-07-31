@@ -125,7 +125,8 @@ def print_snapshot(snap: dict, symbol: str) -> None:
 
 
 async def main(live: bool, ticks: int, use_gemini: bool = True,
-               replay: str = "", date_from: str = "", date_to: str = "") -> None:
+               replay: str = "", date_from: str = "", date_to: str = "",
+               spend_per_trade: Decimal = Decimal("30")) -> None:
     # 제품명은 402 Guard 다(2026-07-24 재포지셔닝). 심사위원이 README 대표 명령을 실행했을 때
     # 터미널 첫 줄에 옛 이름이 뜨면 제출물과 실물이 다른 제품처럼 읽힌다.
     print(f"\n=== 402 Guard 데모  (모드: {'LIVE ' + CFG.network if live else 'DRY-RUN'}) ===")
@@ -181,10 +182,14 @@ async def main(live: bool, ticks: int, use_gemini: bool = True,
     authorizer = PaymentAuthorizer(open_mandate, agent_kp=trading_kp)
 
     # --- 에이전트 구성 ---
+    # 건별 지출은 --spend 로 바꿀 수 있다(기본 30 은 그대로 — README 대표 명령과 문서에 인용된
+    # 수치가 이 값에 걸려 있다). devnet 라이브는 Circle 파우셋이 주소당 2시간마다 20 USDC 라
+    # 30 으로는 한 건도 못 산다 → 그때만 낮춰 쓴다.
     strategy = Strategy(
         buy_dip_pct=Decimal("2"), take_profit_pct=Decimal("3"),
-        spend_per_trade_usdc=Decimal("30"),
+        spend_per_trade_usdc=spend_per_trade,
     )
+    print(f"건별 지출   : {spend_per_trade} USDC")
     trading = TradingAgent(trading_kp, authorizer, strategy, CFG.usdc_decimals, CFG.network,
                            brain=brain, fee_bps=CFG.broker_fee_bps)
     broker = BrokerAgent(
@@ -473,6 +478,13 @@ if __name__ == "__main__":
                     help="실데이터 재생 (예: AAPL) — data/market/{SYMBOL}_daily.csv, MA5/지표 규칙 매매")
     ap.add_argument("--from", dest="date_from", default="", help="재생 시작일 YYYY-MM-DD")
     ap.add_argument("--to", dest="date_to", default="", help="재생 종료일 YYYY-MM-DD")
+    # 기본 30 은 바꾸지 않는다 — README 대표 명령과 문서에 인용된 수치가 이 값에 걸려 있다.
+    # devnet 라이브처럼 지갑 잔액이 적을 때만 낮춰 쓴다(예: --spend 5).
+    ap.add_argument("--spend", type=Decimal, default=Decimal("30"), metavar="USDC",
+                    help="1회 매수 지출 (기본 30 — devnet 파우셋 한도가 낮으면 낮춰 쓴다)")
     args = ap.parse_args()
+    if args.spend <= 0:
+        ap.error("--spend 는 0 보다 커야 합니다 (0 이면 수량이 0 으로 내림돼 가짜 체결이 쌓인다)")
     asyncio.run(main(args.live, args.ticks, use_gemini=not args.no_gemini,
-                     replay=args.replay, date_from=args.date_from, date_to=args.date_to))
+                     replay=args.replay, date_from=args.date_from, date_to=args.date_to,
+                     spend_per_trade=args.spend))
