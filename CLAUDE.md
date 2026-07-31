@@ -40,36 +40,42 @@
 
 ## 현재 상태 (2026-08-01 갱신)
 
-> # ★ 새 대화가 할 일 = **배포 URL `brain=gemini` dry 세션 1회 (축② 라이브 증거 확보)**
-> **이것 하나가 지금 남은 유일한 '지금 할 수 있는' 작업이다.** 나머지는 전부 디자인 최종본
-> 대기(촬영·PDF)이거나 사용자 몫(디스코드 트랙 명칭 확인)이다.
+> # ★ 새 대화가 할 일 = **없다 — '지금 할 수 있는' 작업이 전부 소진됐다.**
+> 남은 것은 **디자인 최종본 대기**(소개서 09장 스크린샷 2개 → PDF 출력 · 영상 8장면 일괄 촬영)와
+> **사용자 몫**(디스코드 트랙 명칭 확인)뿐이다.
+> ⚠ **분할 촬영을 다시 제안하지 말 것** — 사용자가 "마지막에 한 번에" 로 결정했다(2026-08-01).
+> 새 지시가 없으면 `docs/reports/judging_latest.md` 의 축별 갭을 다시 읽고 상의부터 한다.
 >
-> **왜**: 배포 세션 이력 **14건 전부 `gemini_decisions=0`** → 라이브 URL 만 여는 심사위원에게
-> 축② 증거가 **화면·API 어디에도 0 으로 보인다.** 디자인과 무관하고 값싸다.
+> ---
 >
-> **⚠ 착수 전에 반드시 — 쿼터를 먼저 확인한다.** 2026-08-01 실측으로 `gemini-flash-latest` 가
-> **일일 20건 소진**이었다. 그 상태로 열면 매수가 전건 보류돼 **`gemini_decisions=0` 세션이 하나
-> 더 쌓여 갭이 나빠진다.** 확인 명령(1분):
-> ```powershell
-> $env:PYTHONIOENCODING='utf-8'; $env:GEMINI_MODEL='gemini-flash-lite-latest'; .\.venv\Scripts\python.exe run_demo.py --ticks 6
-> ```
-> 틱 6 이 **`[gemini]`** 면 통과(`[rule-fallback]` + '한도 소진' 이면 그 모델도 막힌 것).
+> # ▶▶▶▶▶▶▶ [✅ 완료 — 2026-08-01] **배포 URL `brain=gemini` 세션 1회 — 축② 라이브 갭이 닫혔다**
+> **세션 `20260801_021911_dry` · 리비전 `synapstock-00029-skn`. 다시 하지 말 것.**
 >
-> **▶ 순서**
-> ① 위 프로브로 쓸 모델 확정(현재 유력 = `gemini-flash-lite-latest` · 500건/일)
-> ② 배포 env 교체 — ⚠ **`--update-env-vars`**(부분 갱신). `--set-env-vars` 는 나머지를 지운다:
->    `gcloud run services update synapstock --region asia-northeast3 --project synapstock --update-env-vars "GEMINI_MODEL=gemini-flash-lite-latest"`
-> ③ **[사용자 몫]** 토큰 확인 → **실제 브라우저**로 `/app?lab=1#token=<토큰>` (⚠ 반드시 `/app` ·
->    내부 브라우저는 `alert()` 를 자동 무시해 401 이 '무반응'으로 보인다) → 개발자 탭 →
->    **전략을 'AI 판단(condition)'** 으로 (기본값 추세추종은 Gemini 를 안 쓴다) → 60~80봉 시작.
->    ⚠ **`CONTROL_TOKEN` 값은 Claude 가 읽지 않는다**(저장소 규칙).
-> ④ 완주 후 `GET /api/history/sessions` 에서 **`gemini_share_pct > 0`** 와
->    **`invoice_semantics{enabled:true, checked>0, llm_calls>0}`** 확인.
-> ⑤ 실측치를 `docs/axis2_ai_narrative.md` 에 기록(지금은 red_team 14/1 이 유일한 실측이다).
->    `GEMINI_MODEL` 을 되돌릴지는 선택 — 되돌리면 다시 20건/일 제약으로 돌아간다.
+> **결과 — 검증 항목 2개 전부 충족.** 판단 80건 중 **Gemini 78건(97.50%) · 폴백 0** ·
+> **규칙 게이트 1건 발동**(`gemini_gated: 1`) · 의미 대조 **checked 4 · llm_calls 2 · 캐시 2 ·
+> 차단 0** · 체결 4건(매수 2·매도 2 · 판단 출처 Gemini 3·규칙 1) · 실현 **+1.98 USDC(+3.30%)** ·
+> 가드 차단 0 · 소요 11분 53초. 이제 세션 이력 **16건 중 1건이 `gemini_decisions>0`** 이다.
+> **실측치는 `docs/axis2_ai_narrative.md` §6-1 에 기록**(§2-1·§5 에도 배포본 근거를 붙였다).
+>
+> **▶ 배포 env 가 바뀐 채로 남아 있다 — 되돌리지 않았다(의도).**
+> `GEMINI_MODEL = gemini-flash-lite-latest`(500건/일). 옛 값 `gemini-flash-latest` 는 20건/일이라
+> 심사위원이 세션을 한 번 돌리면 바로 소진된다 — **되돌릴 이유가 없다.** 나머지 값 env 11개와
+> 시크릿 5개는 교체 전후 전수 대조로 보존을 확인했다(`--update-env-vars` 부분 갱신).
+>
+> **⚠ 다음 세션이 알아야 할 사실 3건**
+> ① **재생 속도가 축② 수치를 좌우한다.** 무료 티어 분당 한도에 걸리면 **최소 30초 쿨다운**이고
+>    그 구간 판단이 전부 규칙 폴백이다(`agents/gemini_decider.py:251-255`). 기본값 0.3초/봉으로
+>    80봉을 몰면 24초에 80회다 — 이번엔 **8초/봉(발표용)** 으로 돌려 폴백 0 을 얻었다.
+>    실측: **연속 16회 호출까지는 폴백 0**(그 이상은 측정하지 않았다).
+> ② **세션 요약의 축② 지표는 최상위가 아니라 `ai.*` 아래에 있다.** `$_.gemini_decisions` 로 세면
+>    전건 빈 값이 나와 "0" 으로 오독한다. 정확한 경로는 `ai.gemini_decisions` ·
+>    `ai.gemini_share_pct` · `ai.invoice_semantics.llm_calls`.
+> ③ **`gemini_calls > 0` 은 축② 증거가 아니다.** 07-27 의 `condition` 세션 3건은 호출이 4·16·2
+>    인데 **채택은 전부 0** 이다(쿼터 소진으로 전건 폴백). 봐야 할 값은 **채택 수**다.
+>
+> ⚠ **AAPL 일봉 재생은 100봉 중 워밍업 20 을 빼고 정확히 80봉을 돌고 자동 종료**한다
+> (`feed.bars_total: 80`) — 봉 수를 맞추려고 중간에 끊을 필요가 없다.
 > ⚠ **세션이 도는 중에는 어떤 `gcloud run services update` 도 하지 않는다**(런북 §6).
->
-> **읽고 시작할 것**: 이 블록 → `docs/reports/judging_latest.md`(축별 갭·TODO) → 런북 §6-1.
 >
 > ---
 >
