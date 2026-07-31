@@ -933,11 +933,22 @@ class TradingEngine:
                         allowed_symbols=[sym]).sign(self._user_kp)
                     sa = PaymentAuthorizer(sm, agent_kp=self._trading_kp)
                     sa.spent_usdc = self.agents[sym].auth.spent_usdc   # 종목별 사용액 이월
+                    # 진행 중인 예약도 함께 옮긴다 (BUG-20) — 아래 공유 경로의 주석 참조.
+                    sa._reservations = dict(self.agents[sym].auth._reservations)
                     self.agents[sym].auth = sa
                 self._auth = None
             else:
                 new_auth = PaymentAuthorizer(new_mandate, agent_kp=self._trading_kp)
                 new_auth.spent_usdc = spent  # 사용액 이월 (공유 예산이라 전 종목 합산치)
+                # 진행 중인 예약도 함께 옮긴다 (BUG-20). _buy_cycle 의 finally 는
+                # `agent.auth.release(order_id)` 로 **그때의** auth 를 다시 읽는데, 한도 변경이
+                # 그 사이에 끼면 새 auth 엔 그 예약이 없어 release 가 조용히 0 을 돌려주고
+                # **실패한 결제의 예산이 세션 끝까지 묶인다.** 도달 창은 실재한다 — 한도 변경은
+                # 긴급정지 상태에서만 되지만, 정지해도 이미 떠 있는 _buy_cycle 은 정산을
+                # 기다리며 계속 돈다. spent 만 이월하면 '쓴 것'은 따라오는데 '되돌릴 권리'가
+                # 사라진다(BUG-03 과 같은 계열 — 한도가 아무 로그 없이 사라진다).
+                for a in self.agents.values():   # 이 분기의 agent 들은 같은 auth 를 공유한다
+                    new_auth._reservations.update(a.auth._reservations)
                 self._auth = new_auth
                 for a in self.agents.values():   # 모든 종목 에이전트가 새 공유 auth 를 쓴다
                     a.auth = new_auth

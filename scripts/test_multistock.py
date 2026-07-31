@@ -428,13 +428,51 @@ async def test_limit_cut_to_zero_spend_is_rejected() -> None:
           str(e.agents["AAPL"].strategy.spend_per_trade_usdc))
 
 
+async def test_limit_change_carries_reservations() -> None:
+    """한도 변경이 진행 중인 예약을 버리지 않는다 — BUG-20.
+
+    update_limits 는 새 authorizer 를 만들어 spent_usdc 만 이월했다. 그런데 _buy_cycle 의
+    finally 는 `agent.auth.release(order_id)` 로 **그때의** auth 를 다시 읽는다. 한도 변경이
+    그 사이에 끼면 새 auth 에는 그 예약이 없어 release 가 조용히 0 을 돌려주고, **실패한
+    결제의 예산이 세션 끝까지 묶인다.** 도달 창은 실재한다 — 한도 변경은 긴급정지 상태에서만
+    되는데, 정지해도 이미 떠 있는 _buy_cycle 은 정산을 기다리며 계속 돈다.
+    BUG-03 과 같은 계열이다(한도가 아무 로그 없이 사라진다)."""
+    print("\n[12] 한도 변경이 진행 중인 예약을 옮기는가 (BUG-20)")
+    e = _engine()
+    await _start(e, ["AAPL"])
+    a = e.agents["AAPL"]
+    a.auth.authorize("ord_inflight", "AAPL", Decimal("30"), "broker")   # 결제 진행 중
+    check("예약 직후 사용액 30", a.auth.spent_usdc == Decimal("30"), str(a.auth.spent_usdc))
+
+    e.pause()
+    e.update_limits(Decimal("100"), Decimal("50"))   # 진행 중인 결제를 두고 한도 재서명
+
+    freed = e.agents["AAPL"].auth.release("ord_inflight")   # 결제 실패 → finally 의 그 호출
+    check("교체된 auth 에서도 예약이 원복된다", freed == Decimal("30"), str(freed))
+    check("실패한 결제의 예산이 묶이지 않는다",
+          e.agents["AAPL"].auth.spent_usdc == Decimal("0"),
+          str(e.agents["AAPL"].auth.spent_usdc))
+
+    # 추세추종 멀티(종목별 슬라이스)도 같은 규칙 — 이쪽은 auth 가 종목마다 따로다
+    e2 = _engine()
+    await _start(e2, ["AAPL", "TSLA"], strategy={"type": "trend"})
+    e2.agents["AAPL"].auth.authorize("ord_m", "AAPL", Decimal("10"), "broker")
+    e2.pause()
+    e2.update_limits(Decimal("200"), Decimal("80"))
+    freed2 = e2.agents["AAPL"].auth.release("ord_m")
+    check("멀티 슬라이스에서도 예약이 원복된다", freed2 == Decimal("10"), str(freed2))
+    check("다른 종목 예약이 섞이지 않는다",
+          e2.agents["TSLA"].auth.release("ord_m") == Decimal("0"))
+
+
 async def _main() -> int:
     for t in (test_shared_budget_and_isolation, test_feed_exhaustion_isolation,
               test_all_exhausted_ends_session, test_guard_kpi_aggregation,
               test_single_symbol_backcompat, test_multi_guards,
               test_limit_change_syncs_guard, test_limit_cut_below_symbol_spend,
               test_dust_spend_no_zero_trade, test_spend_follows_budget,
-              test_limit_cut_to_zero_spend_is_rejected):
+              test_limit_cut_to_zero_spend_is_rejected,
+              test_limit_change_carries_reservations):
         await t()
     bad = [n for n, ok, _ in _results if not ok]
     print("\n" + "=" * 60)
