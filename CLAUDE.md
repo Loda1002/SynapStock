@@ -85,7 +85,12 @@
 >
 > **재배포**: M5 만 무인증 경로의 동작을 바꾼다(500 → 400) → **M5 수정 후 1회 필요**.
 > 런북 §4, **`GEMINI_MODEL=gemini-flash-latest` 포함 필수**.
-> **아직 안 돌린 것**: 심사 부서 `Workflow({scriptPath: ".claude/workflows/judge-dept.js"})`.
+>
+> **⚑ 사용자 결정(2026-07-31) — 심사 부서는 버그 수정이 끝난 뒤에 돌린다. 순서를 바꾸지 말 것.**
+> 지금 돌리면 곧 고칠 것을 근거로 축을 평가하게 되고 수정 후 어차피 다시 돌려야 한다.
+> 수정·검증·푸시가 끝나면 새 대화에서 `Workflow({scriptPath: ".claude/workflows/judge-dept.js"})`
+> — 착수 전에 `docs/next_session_bugfix.md` 와 `docs/reports/bug_latest.md` 를 함께 넘겨
+> 부서가 "이미 닫힌 것"을 결함으로 세지 않게 한다.
 >
 > ---
 >

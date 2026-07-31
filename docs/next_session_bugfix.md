@@ -199,6 +199,19 @@ Get-ChildItem scripts/test_*.py | ForEach-Object { & ".venv\Scripts\python.exe" 
 
 ## 5. 이 라운드 이후 남는 것
 
-- **심사 부서** — 아직 안 돌렸다: `Workflow({scriptPath: ".claude/workflows/judge-dept.js"})`
-- 제출물 3종(소개서 PDF · 3분 영상 · 구글폼) — **디자인 최종본 수령 후** 착수
-- M4·M1 · M7 · 나머지 낮음 건 · 07-27 잔여 미승계 건
+**⚑ 사용자 결정(2026-07-31): 심사 부서는 이 수정 라운드가 끝난 뒤에 돌린다.**
+순서를 바꾸지 말 것 — 지금 돌리면 곧 고칠 것을 근거로 축을 평가하게 되고, 수정 후 어차피
+다시 돌려야 한다. **수정·검증·푸시가 끝나면 그때 새 대화에서:**
+
+```
+Workflow({scriptPath: ".claude/workflows/judge-dept.js"})
+```
+
+리포트는 `docs/reports/judging_latest.md` 로 덮어쓰인다. 착수 전에 이 문서와
+`docs/reports/bug_latest.md` 를 함께 넘겨야 부서가 "이미 닫힌 것"을 결함으로 세지 않는다.
+
+그 뒤에 남는 것:
+
+- 제출물 3종(소개서 PDF · 3분 영상 · 구글폼) — **디자인 최종본 수령 후** 착수.
+  ⚠ 마감 **2026-08-03 23:59 KST**.
+- M4 · M1(§2-1 제외 결정) · M7 · 나머지 낮음 건 · 07-27 잔여 미승계 건
