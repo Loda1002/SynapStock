@@ -40,6 +40,11 @@ gcloud run services update synapstock --region asia-northeast3 --project synapst
 
 ## 1. 부서 실행
 
+> **✅ 버그 부서는 2026-07-31 에 돌렸다 — 다시 돌리지 말 것.** 확정 20건(중간 8 · 낮음 11 ·
+> 정보 1). 결과·정정 사항·수정 명세는 **[`docs/next_session_bugfix.md`](next_session_bugfix.md)**
+> 에 있다. **심사 부서(`judge-dept`)는 아직 안 돌렸다.**
+> ⚠ 아래 §4 의 "잔여 버그: 낮음 14 · 정보 1" 은 07-27 스캔 기준이라 **낡았다.**
+
 두 부서 모두 **읽기 전용**이다(코드 자동 수정 없음). 각각 새 대화에서 돌리는 것을 권한다 —
 토큰을 많이 쓴다.
 
