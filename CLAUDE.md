@@ -121,18 +121,28 @@
 >    ⑤ `.venv\\Scripts\\python.exe run_demo.py --live`
 >    ⚠ `setup_devnet.py:191` 이 **마지막에 `.env` 를 덮어쓴다**(USDC_MINT·STOCK_MINT 줄) —
 >    ①의 백업이 그래서 필요하다. 07-29 라운드는 임시 지갑 경로로 우회했다.
-> 2. **A-lite(온체인 예산 레일) 재검토** — `payments/delegation.py` · `scripts/demo_delegation.py`.
->    07-29 에 만들고 localnet 증빙 1건(`20260729_1243_…_delegation.json`)까지 남겼지만
->    그 뒤로 손대지 않았다. **아직 제품 미배선**(`wired_into_product: false`)이고, 그 경계를
->    넘는 주장(“402 Guard 의 예산이 온체인에서 집행된다”)은 **거짓**이다 — 정확한 문장은
->    "예산 상한을 체인이 집행하는 레일을 실증했고, 엔진 배선은 로드맵". 재검토할 것:
->    `test_delegation` 58종이 지금도 통과하는지 · localnet 증빙이 재현되는지 ·
->    `classify_rejection` 이 한도 초과와 잔액 부족(둘 다 `0x1`)을 여전히 갈라내는지.
->    **▶ 2026-07-31 부분 확인**: 배치 실행에서 **`test_delegation.py` rc=0**(단위 23종 전부 rc=0).
->    다만 이건 **오프라인 41종만의 통과**일 수 있다 — localnet 검증기를 안 띄우고 돌렸으므로
->    **온체인 17종이 건너뛰어졌는지 실제로 돈 것인지 아직 확인하지 않았다.** 그 구분과
->    localnet 증빙 재현이 남은 일이다.
+> 2. ~~**A-lite(온체인 예산 레일) 재검토**~~ **✅ 완료 (2026-07-31, 커밋 `4a0b0b0`) — 전부 재현됨.**
+>    `payments/delegation.py` · `scripts/demo_delegation.py` 는 **코드 무변경**이고, 07-29 이후
+>    회귀가 없음을 실행으로 확인했다. **아직 제품 미배선**(`wired_into_product: false`)이라는
+>    경계도 그대로다 — "402 Guard 의 예산이 온체인에서 집행된다"는 여전히 **거짓**이고,
+>    정확한 문장은 "예산 상한을 체인이 집행하는 레일을 실증했고, 엔진 배선은 로드맵".
+>    **▶ 실측 (localnet Agave 4.1.1 기동 후)**
+>    · `test_delegation --localnet` **58/58 통과**(오프라인 50 + localnet 섹션 L-1~L-8).
+>      ⚠ **검증기 없이 돌리면 41/41 + 건너뜀 1** 로 끝난다 — 이걸 58종 통과로 읽으면 안 된다.
+>      (CLAUDE.md 의 옛 표기 "오프라인 41 + localnet 17" 은 41 + L-1~L-8 이 맞다.)
+>    · `demo_delegation` **rc=0** · 새 증빙 `artifacts/tx/20260731_1438_solana-localnet_delegation.json`
+>      (온체인 거절 3건 · approve/transfer/revoke tx 3건 · **유출 0.00** · `wired_into_product: false`).
+>    · **★ 핵심 명제가 그대로 산다** — 한도 초과(위임 15 < 요청 20)와 잔액 부족(잔액 90 < 요청 100)이
+>      **둘 다 `0x1`** 인데 `classify_rejection` 이 `GUARD_ONCHAIN_BUDGET` / `GUARD_ONCHAIN_FUNDS`
+>      로 갈라낸다(증빙 `classification[0..1]`). 갈라내지 않으면 지갑이 빈 것을 "체인이 한도를
+>      집행했다"고 광고하게 된다.
+>    · 자기 상향 공격 차단(`0x4`) · revoke 후 `GUARD_ONCHAIN_NO_DELEGATE` · 한도 감액 시도가
+>      `DelegationError`(SPL approve 가 절대값 덮어쓰기라는 함정 방어) · agent 대납 approve 에서
+>      **자금 소유자 SOL 불변(0 → 0)**.
 >    ⚠ **C4(엔진 배선)는 하지 않는다** — 교차검증 파손 위험 + 촬영이 드라이런 경로다.
+>    ⚠ localnet 기동은 `wsl -d Ubuntu --cd /root -- /root/.local/share/solana/install/active_release/bin/solana-test-validator`.
+>    **`sh -c "…"` 형태는 이 저장소 경로에서 깨진다**(경로에 `(`·`)` 가 있어 `sh: Syntax error`).
+>    `scripts/start_localnet.bat` 도 같은 `sh -c` 라 같은 이유로 실패한다 — 위 직접 실행형을 쓸 것.
 > 3. **온체인 결제 확인** — 배포본 세션 기록 **13건 전부 `mode=dry`**(2026-07-31 재실측,
 >    리비전 `00025-xvl` 기준으로도 그대로다). 라이브
 >    (온체인) 세션이 배포 URL 에서 1건도 없다. 1번이 끝난 뒤 `ALLOW_LIVE_FROM_WEB=1` 로

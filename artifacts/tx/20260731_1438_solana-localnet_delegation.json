@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-07-31T14:38:53",
+  "source": "scripts/demo_delegation.py",
+  "kind": "spl-token-delegation",
+  "wired_into_product": false,
+  "network": "solana-localnet",
+  "rpc_url": "http://127.0.0.1:8899",
+  "wallets": {
+    "user": "5U5o3LrxK84J1SgC1LqNtZMPS2GZ6uroZtKFt8T8waT3",
+    "agent": "9mwodp16DQVqWSbmF9VtgX1Qz2F7eZxuC9AQZ1XbkShP",
+    "broker": "ANfFsWMGXQJsg1QPginE5VmaEWdi3qWXwKWXzXFpkQ64"
+  },
+  "mints": {
+    "usdc": "5mKnUCzeq97EN5ZEFcijdkgFK9oX2pVmy7DL5AhPUJYB",
+    "decimals": 6,
+    "self_minted": true
+  },
+  "budget": {
+    "approved_usdc": "25",
+    "unit": "cumulative-gross-draw-from-owner-ata"
+  },
+  "steps": [
+    {
+      "step": "approve",
+      "ok": true,
+      "signature": "4GB2q54tHLGzg8yQxwh5F3TDXBWvjD4reumndatYiPenWEaVXRADMR1X7T9crNeEt8Q3TjY5iBHeTvGQbtBmoiQc",
+      "explorer": "https://explorer.solana.com/tx/4GB2q54tHLGzg8yQxwh5F3TDXBWvjD4reumndatYiPenWEaVXRADMR1X7T9crNeEt8Q3TjY5iBHeTvGQbtBmoiQc?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "delegated_before": "0.000000",
+      "delegated_after": "25.000000",
+      "fee_payer": "agent",
+      "owner_sol_before": "0.000000000",
+      "owner_sol_after": "0.000000000"
+    },
+    {
+      "step": "transfer",
+      "ok": true,
+      "signature": "ZeE8ZvLqGCqS9P52sNRkCGELdjaJaHeJSyuA8ffv1zNih4DQsALFLfFos7mroc3ehr1C6avWwVyMyqoN94BEx2C",
+      "explorer": "https://explorer.solana.com/tx/ZeE8ZvLqGCqS9P52sNRkCGELdjaJaHeJSyuA8ffv1zNih4DQsALFLfFos7mroc3ehr1C6avWwVyMyqoN94BEx2C?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "order_id": "ord_b76b0dc1a3",
+      "amount_usdc": "10",
+      "verify_payment": {
+        "ok": true,
+        "reason": "검증 통과",
+        "amount": 10000000
+      },
+      "balance_before": "100.000000",
+      "balance_after": "90.000000",
+      "delegated_before": "25.000000",
+      "delegated_after": "15.000000"
+    },
+    {
+      "step": "revoke",
+      "ok": true,
+      "signature": "2afyr7FDGHjrvgG4rTrBQ1zpYVM64FiFUzDWuNmgH2Y54t1bJBRNXEBuamLZ7exH86AnGakSVGX4NAkUicMcTW9f",
+      "explorer": "https://explorer.solana.com/tx/2afyr7FDGHjrvgG4rTrBQ1zpYVM64FiFUzDWuNmgH2Y54t1bJBRNXEBuamLZ7exH86AnGakSVGX4NAkUicMcTW9f?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899",
+      "delegate_after": null
+    }
+  ],
+  "classification": [
+    {
+      "case": "over-limit",
+      "requested_usdc": "20",
+      "balance_usdc": "90.000000",
+      "delegated_usdc": "15.000000",
+      "spl_error_code": 1,
+      "fee_charged_sol": "0.000000000",
+      "ok": false,
+      "code": "GUARD_ONCHAIN_BUDGET",
+      "detail": "위임 잔여 15 < 요청 20 — 체인이 예산 상한에서 거절했습니다",
+      "where": "delegation.py:L264",
+      "expected": "위임 잔여 15",
+      "actual": "요청 20"
+    },
+    {
+      "case": "insufficient-funds",
+      "requested_usdc": "100",
+      "balance_usdc": "90.000000",
+      "delegated_usdc": "200.000000",
+      "spl_error_code": 1,
+      "ok": false,
+      "code": "GUARD_ONCHAIN_FUNDS",
+      "detail": "잔액 90 < 요청 100 — 한도 집행이 아니라 잔액 부족입니다",
+      "where": "delegation.py:L268",
+      "expected": "잔액 90",
+      "actual": "요청 100"
+    },
+    {
+      "case": "self-raise",
+      "spl_error_code": 4,
+      "code": "GUARD_ONCHAIN_NO_DELEGATE",
+      "detail": "에이전트가 자기 한도를 올리려 했으나 체인이 거절했습니다 (approve 는 계정 소유자만 가능 — owner mismatch). 결제 거부가 아니라 권한 거부라 classify_rejection 의 판정 대상이 아니다.",
+      "delegated_usdc": "200.000000"
+    },
+    {
+      "case": "after-revoke",
+      "requested_usdc": "10",
+      "balance_usdc": "90.000000",
+      "delegated_usdc": "0.000000",
+      "spl_error_code": 4,
+      "ok": false,
+      "code": "GUARD_ONCHAIN_NO_DELEGATE",
+      "detail": "이 지갑에 위임이 걸려 있지 않습니다 (소진·회수·미등록)",
+      "where": "delegation.py:L255",
+      "expected": "delegate=9mwodp16DQVqWSbmF9VtgX1Qz2F7eZxuC9AQZ1XbkShP",
+      "actual": "delegate=없음"
+    }
+  ],
+  "summary": {
+    "approve_tx": "4GB2q54tHLGzg8yQxwh5F3TDXBWvjD4reumndatYiPenWEaVXRADMR1X7T9crNeEt8Q3TjY5iBHeTvGQbtBmoiQc",
+    "transfer_tx": "ZeE8ZvLqGCqS9P52sNRkCGELdjaJaHeJSyuA8ffv1zNih4DQsALFLfFos7mroc3ehr1C6avWwVyMyqoN94BEx2C",
+    "revoke_tx": "2afyr7FDGHjrvgG4rTrBQ1zpYVM64FiFUzDWuNmgH2Y54t1bJBRNXEBuamLZ7exH86AnGakSVGX4NAkUicMcTW9f",
+    "onchain_rejections": 3,
+    "same_error_code_for_budget_and_funds": true,
+    "limit_enforced_by_chain": true,
+    "self_raise_blocked": true,
+    "leak_usdc": "0.00"
+  },
+  "boundary": "체인이 강제하는 것은 '이 계정에서 이 민트를 누적 얼마까지'뿐이다. 수취인·종목·청구서 의미·건별 한도·배송은 402 Guard(오프체인)가 계속 담당한다. 이 스크립트는 레일 증명 전용이고 엔진 결제 경로는 무변경이다."
+}
