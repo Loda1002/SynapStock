@@ -16,6 +16,8 @@
 """
 from __future__ import annotations
 import asyncio
+import base64
+import json
 import os
 import sys
 from decimal import Decimal
@@ -62,6 +64,15 @@ def _asgi_client() -> Http402BrokerClient:
 def _raw_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=broker_service.app),
                              base_url="http://broker.test")
+
+
+def _bad_payment_header(**over) -> str:
+    """형식이 틀린 X-PAYMENT 헤더 한 개. base64/JSON/orderId 는 정상이라 디코더의
+    **타입 검증 단계까지** 도달한다(그 앞 단계에서 걸러지면 회귀를 못 잡는다)."""
+    body = {"orderId": "ord_probe", "x402Version": 1, "scheme": "exact",
+            "network": "solana-devnet", "payload": {"serializedTransaction": "AAA="}}
+    body.update(over)
+    return base64.b64encode(json.dumps(body).encode()).decode()
 
 
 def _buyer(payee_allowlist=None):
@@ -247,6 +258,27 @@ async def test_bad_inputs() -> None:
                                  "price_usdc": str(PRICE)},
                            headers={PAYMENT_HEADER: "not-base64-json"})
         check("깨진 X-PAYMENT 헤더는 400", r.status_code == 400, str(r.status_code))
+
+        # [회귀] 형식이 틀린 payload 가 500(비JSON)이 되면 안 된다.
+        # `POST /broker/orders` 는 배포 URL 의 **무인증 공개 엔드포인트**라 심사위원이
+        # curl 로 직접 밟는다. 요청 잘못은 400 이어야 하고 본문은 JSON 이어야 한다.
+        # (예전엔 x402Version="abc" 의 ValueError 가 decode_payment_header 를 뚫고 나가
+        #  500 이 됐고, 아래 타입 3종은 검증 없이 통과했다.)
+        for label, over in (
+                ('x402Version="abc" 는 400', {"x402Version": "abc"}),
+                ("serializedTransaction=123 은 400",
+                 {"payload": {"serializedTransaction": 123}}),
+                ("network={} 는 400", {"network": {}}),
+                ("x402Version=1.5 는 400(조용한 절삭 금지)", {"x402Version": 1.5})):
+            r = await raw.post("/broker/orders",
+                               json={"symbol": SYMBOL, "spend_usdc": str(SPEND),
+                                     "price_usdc": str(PRICE)},
+                               headers={PAYMENT_HEADER: _bad_payment_header(**over)})
+            check(label, r.status_code == 400, str(r.status_code))
+            check(f"  ↳ 본문이 JSON({label[:12]}…)",
+                  r.headers.get("content-type", "").startswith("application/json")
+                  and r.json().get("error") == "invalid_payment_header",
+                  r.text[:60])
 
         r = await raw.post("/broker/orders", json={
             "symbol": SYMBOL, "spend_usdc": str(SPEND), "price_usdc": str(PRICE),

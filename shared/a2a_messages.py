@@ -16,6 +16,28 @@ from typing import Any, Dict
 X402_VERSION = 1
 
 
+def _as_str(v: Any, name: str) -> str:
+    """문자열 필드는 '문자열일 때만' 받는다.
+
+    str(v) 로 감싸면 {} 가 "{}" 로, 123 이 "123" 으로 **조용히 통과**한다 — 형식이 틀린
+    헤더를 정상 결제로 받아들이는 셈이다. 형이 다르면 TypeError 로 거절하고, 호출부
+    (payments.x402_http.decode_payment_header)가 X402ProtocolError → 400 으로 바꾼다.
+    """
+    if not isinstance(v, str):
+        raise TypeError(f"{name} 은 문자열이어야 합니다 (받은 형: {type(v).__name__})")
+    return v
+
+
+def _as_int(v: Any, name: str) -> int:
+    """정수 필드. bool·float 는 거절한다 — int(1.5) 는 1 로 조용히 절삭된다.
+
+    숫자가 아닌 문자열은 int() 가 ValueError 를 내고, 호출부가 같은 400 으로 바꾼다.
+    """
+    if isinstance(v, bool) or not isinstance(v, (int, str)):
+        raise TypeError(f"{name} 은 정수여야 합니다 (받은 형: {type(v).__name__})")
+    return int(v)
+
+
 @dataclass
 class PaymentRequirements:
     """x402 결제 요구사항 (payment-required 본문)."""
@@ -67,11 +89,13 @@ class PaymentPayload:
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "PaymentPayload":
+        """무인증 HTTP 헤더에서 오는 값이라 형을 믿지 않는다 — 위 _as_str/_as_int 참고."""
         return cls(
-            network=d["network"],
-            serialized_transaction=d["payload"]["serializedTransaction"],
-            scheme=d.get("scheme", "exact"),
-            x402_version=int(d.get("x402Version", X402_VERSION)),
+            network=_as_str(d["network"], "network"),
+            serialized_transaction=_as_str(
+                d["payload"]["serializedTransaction"], "payload.serializedTransaction"),
+            scheme=_as_str(d.get("scheme", "exact"), "scheme"),
+            x402_version=_as_int(d.get("x402Version", X402_VERSION), "x402Version"),
         )
 
 

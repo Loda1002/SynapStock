@@ -145,7 +145,10 @@ def decode_payment_header(raw: str) -> Tuple[str, PaymentSubmitted]:
         raise X402ProtocolError("X-PAYMENT 에 orderId 가 없습니다 (대사 키 부재)")
     try:
         payload = PaymentPayload.from_dict(data)
-    except (KeyError, TypeError) as e:
+    except (KeyError, TypeError, ValueError) as e:
+        # ValueError 가 빠져 있으면 x402Version="abc" 같은 값이 int() 에서 터진 채 그대로
+        # 올라가 **무인증 공개 엔드포인트가 500(비JSON)** 을 준다. 형식 오류는 서버 잘못이
+        # 아니라 요청 잘못이므로 400 이어야 한다(broker_service 가 그렇게 바꾼다).
         raise X402ProtocolError(f"X-PAYMENT payload 형식 오류: {type(e).__name__}: {e}")
     return order_id, PaymentSubmitted(order_id=order_id, payment=payload)
 
