@@ -1049,6 +1049,11 @@ body.page-dashboard .topbar {
 }
 .fx-tab.is-active { background: #edebff; color: var(--accent); }
 .fx-tab[aria-disabled="true"] { opacity: .75; cursor: not-allowed; }
+/* '소개'만 실제 링크(<a href="/">)다 — .fx-tab 이 색을 직접 지정하므로 색은 그대로이고
+   브라우저 기본 밑줄만 꺼 주면 나머지 탭과 똑같이 보인다. 호버 배경은 활성 탭과 같은 값을
+   써서 "누를 수 있는 탭"이라는 신호를 준다(잠긴 탭들은 호버해도 아무 변화가 없다). */
+a.fx-tab { text-decoration: none; cursor: pointer; }
+a.fx-tab:hover { background: #edebff; color: var(--accent); }
 
 body.page-dashboard .topbar .controls { gap: 10px; flex-wrap: nowrap; }
 /* 긴급정지·알림은 시안의 알약 칩 모양으로. 지갑 버튼은 제외한다(브랜드 색 고정). */
