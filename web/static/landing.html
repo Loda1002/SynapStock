@@ -4,14 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SynapStock — AI 에이전트에게 지갑을 맡기기 위한 승인 게이트, 402 Guard</title>
-<!-- 시안: Figma「해커톤_랜딩페이지(최종)」(1440×4312). 프런트 작업본을 저장소 규약에 맞춰 이식했다.
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     시안: Figma「해커톤_랜딩페이지(최종)」 file EmezOVF3E5w858DW7OCl4K · 1440×4312
+     값의 출처를 블록마다 주석으로 남긴다.
+       [API]  = get_design_context 로 시안 노드에서 직접 읽은 값 (히어로·문제·해결·흐름 카드)
+       [좌표] = get_metadata 의 프레임 좌표 (흐름 배치·누가쓰나)
+       [실측] = 1440 원본 렌더 픽셀 측정 (상단바·배너·푸터 — MCP 호출 한도로 API 미확보)
+     ⚠ 프런트 전달본을 기준으로 삼지 않는다. 그렇게 했더니 헤드라인 56px(실제 62)·
+       설명 16px(실제 18)·흐름 화살표 위치 등이 어긋났다.
+
      ⚠ theme.css 를 반드시 싣는다 — @font-face 6벌(Pretendard 2 · Noto Sans KR 4)이 거기 있다.
-        빼면 랜딩만 글꼴이 시스템 폴백(맑은 고딕)으로 떨어진다. 웹폰트 CDN 은 쓰지 않는다.
+        빼면 랜딩만 글꼴이 시스템 폴백으로 떨어진다. 웹폰트 CDN 은 쓰지 않는다.
      ⚠ skeleton.css 는 '맨 위로' 버튼(.to-top) 때문에 싣는다 — 대시보드와 공용이다.
-        그래서 이 페이지의 자체 버튼은 .lp-btn 이다: skeleton 의 a.btn{display:inline-block}(0,1,1)이
-        .btn{display:inline-flex}(0,1,0)을 이겨 아이콘·글자 정렬이 깨진다.
-     ⚠ 색 토큰도 --lp-text/--lp-border 로 좁혔다 — theme.css 가 같은 이름을 쓰고 있어
-        :root 에서 덮으면 .to-top 까지 함께 바뀐다. -->
+        그래서 이 페이지 자체 버튼은 .lp-btn 이다: skeleton 의 a.btn{display:inline-block}(0,1,1)이
+        .btn{display:inline-flex}(0,1,0)을 이겨 아이콘 정렬이 깨진다.
+     ⚠ 글꼴 규칙 — 시안은 본문·제목이 전부 Noto Sans KR 이고, Pretendard 는 딱 두 곳에만 쓴다:
+        ①제목 안의 쉼표 ②해결 카드의 번호 배지 1·2·3. (시안 노드가 그렇게 지정돼 있다.)
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <link rel="stylesheet" href="/static/css/theme.css">
 <link rel="stylesheet" href="/static/css/skeleton.css">
 <style>
@@ -23,55 +32,59 @@
   .lp *, .lp *::before, .lp *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --primary: #5d4ef1;
-    --primary-light: #edebff;
-    --primary-mid: #6d5fed;
-    --primary-gradient: linear-gradient(123.64deg, #5d4ef1 2.74%, #7a6bf0 100%);
-    --primary-shadow: 0 4px 14px 0 rgba(91, 79, 233, .3);
-    --primary-shadow-lg: 0 12px 30px 0 rgba(91, 79, 233, .3);
-    --bg-page: #f4f5fc;
-    --bg-section: #eef0f8;
+    --primary: #5d4ef1;          /* [API] 강조·버튼·로고 */
+    --primary-light: #edebff;    /* [API] 연보라 칩 배경 */
+    --primary-mid: #6d5fed;      /* [API] 연보라 칩 글자 */
+    --primary-tag: #7e72f6;      /* [API] 흐름 활성 카드 안의 태그 배경 */
+    --bg-page: #f4f5fc;          /* [실측] 페이지 바탕 */
+    --bg-section: #eef0f8;       /* [API] 회색 섹션(문제·흐름) */
     --bg-white: #ffffff;
-    --lp-border: #eceef6;
-    --lp-text: #000000;
-    --text-body: #5b617a;
-    --text-muted: #8f96af;
-    --green: #00bb82;
-    --red: #ff3057;
-    --footer-bg: #181b2e;
-    --footer-text: #8c8d98;
-    --card-shadow: 0 4px 20px 0 rgba(0, 0, 0, .05);
+    --lp-border: #eceef6;        /* [API] 카드 테두리 */
+    --lp-text: #000000;          /* [API] 제목 검정 */
+    --text-body: #5b617a;        /* [API] 본문 회색 */
+    --text-muted: #8f96af;       /* [API] 작은 보조 문구 */
+    --green: #00bb82;            /* [API] 근거 1번 제목 */
+    --red: #ff3057;              /* [API] 결과 배지·강조 */
+    --red-bg: #ffe8ec;           /* [API] 결과 배지 배경 */
+    --footer-bg: #181b2e;        /* [실측] */
+    --footer-text: #8c8d98;      /* [실측] */
+    --card-shadow: 0 4px 20px 0 rgba(0, 0, 0, .05);          /* [API] */
+    --btn-shadow: 0 4px 14px 0 rgba(91, 79, 233, .3);        /* [API] */
+    --card-shadow-lg: 0 12px 30px 0 rgba(91, 79, 233, .3);   /* [API] 흐름 활성 카드 */
 
     /* theme.css 토큰 2개를 라이트 값으로 못 박는다. 이 페이지에서 이 둘을 읽는 것은
        skeleton.css 의 '맨 위로' 버튼뿐인데, OS 가 다크면 theme.css 가 --accent 를
-       #8b7dff 로 바꿔 버튼만 페이지보다 밝은 보라가 된다(실측). 랜딩은 시안에 다크 판이
-       없어 라이트 고정이므로 버튼도 같은 보라여야 한다. */
+       #8b7dff 로 바꿔 버튼만 페이지보다 밝은 보라가 된다(실측). */
     --accent: #5d4ef1;
     --shadow: 0 4px 20px rgba(0, 0, 0, .05);
   }
 
   body {
-    font-family: "Noto Sans KR", "Pretendard", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+    /* [API] 시안 텍스트 노드는 전부 Noto Sans KR (Regular 400 / Bold 700) */
+    font-family: "Noto Sans KR", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
     background: var(--bg-page);
     color: var(--lp-text);
-    line-height: 1.7;
-    -webkit-font-smoothing: antialiased;
-    /* ⚠ skeleton.css:12 의 body{padding:var(--gap)} = 24px 을 해제한다.
-       안 풀면 좌우 끝이 24px 씩 안으로 밀려 시안의 80px 여백이 104px 이 된다
-       (섹션 배경색도 화면 끝까지 안 닿는다). 옛 랜딩은 자체 max-width 로
-       흡수했지만 새 시안은 전면 배경 섹션이라 body 가 폭을 그대로 줘야 한다. */
+    /* ⚠ skeleton.css:12 의 body{padding:var(--gap)}=24px 해제.
+       안 풀면 시안 80px 여백이 104px 이 되고 전면 배경 섹션이 화면 끝에 못 닿는다. */
     padding: 0;
+    -webkit-font-smoothing: antialiased;
   }
-  /* 한국어는 기본값이면 어절 중간에서 끊긴다("지출을," → "지출"+"을,").
-     랜딩 카피 전체에 걸어 줄바꿈이 어절 경계에서만 일어나게 한다(워딩 정본 요구사항). */
-  .lp { word-break: keep-all; }
+  /* 시안의 쉼표는 Noto 가 아니라 Pretendard 다(제목 노드가 그 한 글자만 따로 지정한다).
+     ⚠ line-height: 0 이 필요하다 — 글꼴이 다른 인라인 상자가 끼면 줄상자 높이가 두 글꼴의
+     content area 합집합으로 늘어나, 40px/52px 제목이 52 가 아니라 55 가 된다(실측).
+     0 으로 두면 이 한 글자가 줄 높이 계산에 끼지 않아 시안값 52/104/144 가 그대로 나온다. */
+  .comma { font-family: "Pretendard", "Noto Sans KR", sans-serif; font-style: normal; line-height: 0; }
 
-  /* 섹션 공통 폭 — 시안은 1440 폭에 좌우 80 여백, 콘텐츠 1280.
-     1440 을 넘는 화면에서는 1280 이 가운데 서고 양옆이 남는다(시안 그대로). */
+  /* ⚠ 시안의 테두리는 프레임 '안쪽' 선이라 크기를 늘리지 않는다. CSS border 는 높이를 2px
+     늘려 카드마다 시안보다 2px 씩 커진다(실측). 그래서 테두리는 전부 inset 그림자로 그린다. */
+  /* 아래 규칙들이 각자 inset 그림자로 테두리를 그린다(border 속성을 쓰지 않는다). */
+
+  /* 시안 폭 = 1440 캔버스에 좌우 80 여백, 콘텐츠 1280.
+     1440 을 넘는 화면에서는 1280 이 가운데 서고 양옆이 남는다. */
   .lp-wrap { max-width: 1440px; margin: 0 auto; padding-left: 80px; padding-right: 80px; }
 
-  /* ─── 상단 바 ─── */
-  .navbar { padding-top: 24px; }
+  /* ══ 상단 바 ══ [실측] 바 1280×66, x=80, 페이지 맨 위(위 여백 0).
+     안쪽 여백 26(로고 왼끝 106) · 로고 34×34 · CTA 176×42(오른끝 1334 = 1360−26) ══ */
   .navbar-inner {
     display: flex; align-items: center; height: 66px;
     background: var(--bg-white); border-radius: 18px; padding: 0 26px;
@@ -81,250 +94,336 @@
   .nav-logo {
     width: 34px; height: 34px; background: var(--primary); border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 14px;
+    color: #fff; font-weight: 700; font-size: 14px; line-height: 1;
   }
-  .nav-brand-name { font-weight: 700; font-size: 14px; line-height: 21px; color: var(--lp-text); }
+  .nav-brand-name { font-weight: 700; font-size: 14px; line-height: 21px; }
   .nav-brand-tag { font-size: 12px; color: var(--text-muted); }
   .nav-links { display: flex; gap: 8px; flex: 1; margin-left: 34px; }
   .nav-link {
-    padding: 8px 10px; border-radius: 10px;
-    font-size: 14px; line-height: 21px; font-weight: 700;
-    color: var(--text-body); text-decoration: none; transition: background .2s, color .2s;
+    padding: 6px 15px; border-radius: 10px;        /* [실측] '소개' 알약 54×? */
+    font-size: 13px; line-height: 21px; font-weight: 700;
+    color: var(--text-body); text-decoration: none; white-space: nowrap;
+    transition: background .2s, color .2s;
   }
   a.nav-link:hover { background: var(--primary-light); color: var(--primary); }
   .nav-link.is-current { background: var(--primary-light); color: var(--primary); }
-  /* 갈 곳이 아직 없는 탭 — 대시보드 상단 바와 같은 처리(모양만, 누를 수 없음) */
   .nav-link[aria-disabled="true"] { opacity: .5; cursor: default; }
   .nav-cta { margin-left: auto; }
   .nav-cta a {
-    display: inline-flex; align-items: center; padding: 9px 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 176px; height: 42px; padding: 0 20px;   /* [실측] */
     background: var(--primary); color: #fff; border-radius: 11px;
-    font-size: 14px; font-weight: 700; text-decoration: none;
-    box-shadow: var(--primary-shadow); white-space: nowrap; transition: opacity .2s;
+    font-size: 14px; font-weight: 700; line-height: 20px; text-decoration: none;
+    box-shadow: var(--btn-shadow); white-space: nowrap; transition: opacity .2s;
   }
   .nav-cta a:hover { opacity: .9; }
 
-  /* ─── 버튼 ───
-     이름이 .btn 이 아니라 .lp-btn 인 이유는 파일 머리말 참고(skeleton 의 a.btn 과 충돌). */
+  /* ══ 버튼 ══ [API] 히어로 노드 4003:1673 / 4003:1676 ══ */
   .lp-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 16px 28px; border-radius: 14px;
-    font-size: 15px; font-weight: 700; text-decoration: none;
-    cursor: pointer; border: none; white-space: nowrap; transition: opacity .2s;
+    border-radius: 14px; border: none; cursor: pointer;
+    font-family: inherit; font-size: 15px; font-weight: 700; line-height: 32px;
+    text-decoration: none; white-space: nowrap; transition: opacity .2s;
   }
   .lp-btn:hover { opacity: .9; }
-  .lp-btn-primary { background: var(--primary); color: #fff; box-shadow: var(--primary-shadow); }
-  .lp-btn-outline { background: var(--bg-white); border: 1px solid var(--lp-border); color: var(--lp-text); }
-  /* 화살표는 시안에서 받은 asset(18×18, stroke=currentColor)을 그대로 쓴다.
-     <img> 는 currentColor 를 못 받으므로 보라 버튼 위에서 흰색이 되도록 필터로 반전한다. */
-  .arrow-icon { width: 18px; height: 18px; display: inline-block; filter: brightness(0) invert(1); }
+  .lp-btn-primary { padding: 16px 28px; background: var(--primary); color: #fff; box-shadow: var(--btn-shadow); }
+  .lp-btn-outline { padding: 16px 26px; background: var(--bg-white); box-shadow: inset 0 0 0 1px var(--lp-border); color: var(--lp-text); }
+  /* [API] 화살표는 폭 18 의 선 벡터다. 보라 버튼 위에서 흰색이 되도록 반전한다. */
+  .arrow-icon { width: 18px; height: 18px; display: block; flex-shrink: 0; filter: brightness(0) invert(1); }
 
-  /* ─── 히어로 ─── */
-  .hero { position: relative; padding: 96px 0; text-align: center; overflow: hidden; }
+  /* ══ 첫 화면 ══ [API] 4003:1663 — py-96, column, gap-28, items-center ══ */
+  .hero {
+    position: relative; overflow: hidden;
+    padding: 96px 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 28px; text-align: center;
+  }
+  /* [API] 720×720, 가로 가운데, 세로 중심 = 히어로 높이의 50% − 167.5 */
   .hero-glow {
-    position: absolute; width: 720px; height: 720px; left: 50%; top: -50px;
-    transform: translateX(-50%); border-radius: 50%; pointer-events: none; z-index: 0;
-    background: radial-gradient(circle, rgba(93, 78, 241, .15) 0%, rgba(93, 78, 241, .06) 40%, transparent 65%);
+    position: absolute; width: 720px; height: 720px;
+    left: 50%; top: calc(50% - 167.5px); transform: translate(-50%, -50%);
+    background: radial-gradient(circle closest-side, rgba(93, 78, 241, .16) 0%, rgba(93, 78, 241, .05) 55%, rgba(93, 78, 241, 0) 72%);
+    pointer-events: none; z-index: 0;
   }
   .hero > *:not(.hero-glow) { position: relative; z-index: 1; }
+
+  /* [API] 4003:1665 — bg #f9f9ff, border #eceef6, px16 py8, r20, gap8 */
   .hero-badge {
-    display: inline-flex; align-items: center; gap: 8px; height: 33px;
-    background: #f9f9ff; border: 1px solid var(--lp-border); border-radius: 20px;
-    padding: 8px 16px; margin-bottom: 16px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #f9f9ff; box-shadow: inset 0 0 0 1px var(--lp-border); border-radius: 20px;
+    padding: 8px 16px;
   }
-  .hero-badge-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; }
-  .hero-badge-text { font-size: 13px; color: var(--primary); letter-spacing: .5px; white-space: nowrap; }
+  .hero-badge-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; flex-shrink: 0; }
+  /* [API] 4003:1667 — Noto Regular 12px, leading 1.45, #5d4ef1, 자간 없음 */
+  .hero-badge-text { font-size: 12px; line-height: 1.45; color: var(--primary); white-space: nowrap; }
+
+  /* [API] 4003:1668 — Noto Bold 62px / 72px, tracking -0.0248px(≈0), 검정, 가운데 */
   .hero h1 {
-    font-size: 56px; font-weight: 700; line-height: 68px;
-    letter-spacing: -.025em; margin-bottom: 16px;
+    font-size: 62px; line-height: 72px; font-weight: 700;
+    letter-spacing: -0.0248px; color: var(--lp-text);
   }
   .hero h1 .accent { color: var(--primary); }
-  .hero-desc { font-size: 16px; line-height: 30px; color: var(--text-body); margin-bottom: 24px; }
-  .hero-desc strong { color: var(--lp-text); font-weight: 700; }
-  .hero-buttons { display: flex; gap: 12px; justify-content: center; margin-bottom: 24px; }
-  .hero-tagline { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  .hero-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 24px; }
-  .hero-features { display: flex; gap: 16px; justify-content: center; max-width: 860px; margin: 0 auto; }
+
+  .hero-body { display: flex; flex-direction: column; align-items: center; gap: 24px; width: 100%; }  /* [API] 4003:1669 */
+  .hero-lead { display: flex; flex-direction: column; align-items: center; gap: 36px; }               /* [API] 4003:1670 */
+  /* [API] 4003:1671 — Noto Regular 18px / 34px, #5b617a, 줄바꿈 고정(nowrap) */
+  .hero-desc { font-size: 18px; line-height: 34px; color: var(--text-body); white-space: nowrap; }
+  .hero-desc strong { font-weight: 700; color: var(--lp-text); }
+  .hero-buttons { display: flex; gap: 12px; align-items: center; justify-content: center; }           /* [API] 4003:1672 */
+
+  .hero-claimwrap { display: flex; flex-direction: column; align-items: stretch; width: 100%; }       /* [API] 4003:1678 */
+  /* [API] 4003:1679 — Noto Bold 15px / 32px, 검정 */
+  .hero-tagline { font-size: 15px; line-height: 32px; font-weight: 700; text-align: center; }
+  .hero-subwrap { display: flex; flex-direction: column; align-items: center; gap: 56px; width: 100%; } /* [API] 4003:1680 */
+  /* [API] 4003:1681 — Noto Regular 12px / 32px, #8f96af */
+  .hero-sub { font-size: 12px; line-height: 32px; color: var(--text-muted); text-align: center; }
+
+  /* [API] 4003:1682 — 폭 860, gap 16 */
+  .hero-features { display: flex; align-items: center; gap: 16px; width: 860px; }
+  /* [API] 4003:1683 — bg white, border #eceef6, p22, r16, flex 1 0 0 */
   .hero-feat {
-    flex: 1; max-width: 276px; background: var(--bg-white);
-    border: 1px solid var(--lp-border); border-radius: 16px; padding: 22px; text-align: left;
+    flex: 1 0 0; min-width: 0; background: var(--bg-white);
+    box-shadow: inset 0 0 0 1px var(--lp-border); border-radius: 16px; padding: 22px;
+    text-align: left;
   }
-  .hero-feat-title { font-size: 17px; font-weight: 700; line-height: 32px; margin-bottom: 4px; }
+  /* [API] 4003:1685 — Noto Bold 17px / 32px (색은 칸마다 다르다) */
+  .hero-feat-title { font-size: 17px; line-height: 32px; font-weight: 700; }
   .hero-feat-title.green { color: var(--green); }
   .hero-feat-title.purple { color: var(--primary); }
-  .hero-feat-sub { font-size: 12px; color: var(--text-muted); line-height: 1.9; }
+  /* [API] 4003:1686 — Noto Regular 12px / 1.9, #8f96af */
+  .hero-feat-sub { font-size: 12px; line-height: 1.9; color: var(--text-muted); }
 
-  /* ─── 섹션 공통 ─── */
-  .section { padding: 96px 0; }
+  /* ══ 섹션 공통 ══ [API] py-96, column, gap-16(라벨 → 본문) ══ */
+  .section { padding: 96px 0; display: flex; flex-direction: column; align-items: center; gap: 16px; }
   .section-bg-gray { background: var(--bg-section); }
   .section-bg-white { background: var(--bg-white); }
+  /* [API] 4003:1696 / 4003:1723 — Noto Bold 12px / 32px, #5d4ef1, 자간 1.92px, 가운데 */
   .section-label {
-    text-align: center; font-size: 12px; font-weight: 700; line-height: 32px;
-    color: var(--primary); letter-spacing: 1.92px; text-transform: uppercase; margin-bottom: 16px;
+    width: 100%; text-align: center; font-size: 12px; line-height: 32px; font-weight: 700;
+    color: var(--primary); letter-spacing: 1.92px; text-transform: uppercase;
   }
-  .section-heading { text-align: center; font-size: 40px; font-weight: 700; line-height: 52px; margin-bottom: 56px; }
-  /* 시안은 이 쉼표 하나만 Pretendard 로 찍는다(Noto 쉼표보다 아래로 덜 처진다) */
-  .section-heading .comma { font-family: "Pretendard", "Noto Sans KR", sans-serif; font-style: normal; }
-  .section-subheading { text-align: center; font-size: 16px; color: var(--text-muted); line-height: 1.7; margin-top: 14px; }
+  /* [API] 제목 — Noto Bold 40px / 52px, 검정, 가운데. 줄바꿈은 <br> 로 고정(nowrap). */
+  .section-heading {
+    font-size: 40px; line-height: 52px; font-weight: 700;
+    text-align: center; white-space: nowrap;
+  }
 
-  /* ─── 문제 ─── */
-  .problem-cards { display: flex; gap: 20px; justify-content: center; margin-bottom: 72px; }
+  /* ══ 문제 ══ [API] 4003:1695 ══ */
+  .problem-body { display: flex; flex-direction: column; align-items: center; gap: 72px; width: 100%; }  /* [API] 1697 */
+  .problem-top { display: flex; flex-direction: column; align-items: center; gap: 56px; width: 100%; }   /* [API] 1698 */
+  /* [API] 1700 — gap 20, 좌우 80, 카드 높이 동일(stretch) */
+  .problem-cards { display: flex; gap: 20px; justify-content: center; align-items: stretch; width: 100%; }
+  /* [API] 1701 — bg white, border #eceef6, p28, r18, gap10, shadow */
   .problem-card {
-    flex: 1; max-width: 413.333px; min-height: 182px;
-    background: var(--bg-white); border: 1px solid var(--lp-border); border-radius: 18px;
-    padding: 28px; box-shadow: var(--card-shadow);
-    display: flex; flex-direction: column; gap: 10px;
+    flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: 10px;
+    background: var(--bg-white);
+    border-radius: 18px; padding: 28px;
+    box-shadow: inset 0 0 0 1px var(--lp-border), var(--card-shadow);
   }
-  .problem-card-head { display: flex; flex-direction: column; gap: 10px; }
+  .problem-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }  /* [API] 1702 — gap 16 */
+  /* [API] 1703 — px10 py5 r7 → 배지 24 높이. 글자 노드는 12px·높이 14·폭 26 고정이다.
+     line-height 를 normal(=17) 로 두면 배지가 27 이 된다(실측). */
   .problem-card-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 5px 10px; border-radius: 7px; font-size: 12px; width: fit-content;
+    padding: 5px 10px; border-radius: 7px; font-size: 12px; line-height: 14px;
   }
+  .problem-card-badge > span { width: 26px; text-align: center; }
   .badge-purple { background: var(--primary-light); color: var(--primary-mid); }
-  .badge-red { background: #ffe8ec; color: var(--red); }
-  .problem-card-title { font-size: 18px; font-weight: 700; line-height: 1.6; }
-  .problem-card-body { font-size: 14px; color: var(--text-body); line-height: 1.9; }
-  .problem-consequence { max-width: 680px; margin: 0 auto; text-align: center; }
-  .problem-consequence-title { font-size: 32px; font-weight: 700; line-height: 56px; margin-bottom: 20px; }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  /* [API] 1705 — Noto Bold 18px. 시안의 텍스트 상자 높이가 22 라 line-height 를 22px 로 박는다
+     (normal 은 브라우저에서 26 이 되어 카드가 4px 씩 커진다 — 실측). */
+  .problem-card-title { font-size: 18px; font-weight: 700; line-height: 22px; }
+  /* [API] 1706 — Noto Regular 14px / 1.9, #5b617a */
+  .problem-card-body { font-size: 14px; line-height: 1.9; color: var(--text-body); }
+  /* [API] 1719 — 폭 680, gap 20, 가운데 */
+  .problem-consequence { display: flex; flex-direction: column; gap: 20px; width: 680px; text-align: center; }
+  /* [API] 1720 — Noto Bold 32px / 1.75 */
+  .problem-consequence-title { font-size: 32px; line-height: 1.75; font-weight: 700; }
   .problem-consequence-title .red { color: var(--red); }
-  .problem-consequence-desc { font-size: 16px; color: var(--text-body); line-height: 1.9; }
+  /* [API] 1721 — Noto Regular 16px / 1.9, #5b617a */
+  .problem-consequence-desc { font-size: 16px; line-height: 1.9; color: var(--text-body); }
 
-  /* ─── 해결 ─── */
-  .solution-cards { display: flex; gap: 20px; justify-content: center; }
+  /* ══ 해결 ══ [API] 4003:1722 ══ */
+  .solution-body { display: flex; flex-direction: column; align-items: center; gap: 56px; width: 100%; }  /* [API] 1725 */
+  .solution-head { display: flex; flex-direction: column; align-items: center; gap: 14px; }              /* [API] 1726 — gap 14 */
+  /* [API] 1728 — Noto Regular 16px / 1.7, #8f96af */
+  .solution-sub { font-size: 16px; line-height: 1.7; color: var(--text-muted); text-align: center; }
+  .solution-cards { display: flex; gap: 20px; justify-content: center; align-items: stretch; width: 100%; }
+  /* [API] 1730 — bg #f4f5fc, border #eceef6, p28, r18, gap10, shadow */
   .solution-card {
-    flex: 1; max-width: 413.333px; min-height: 194px;
-    background: var(--bg-page); border: 1px solid var(--lp-border); border-radius: 18px;
-    padding: 28px; box-shadow: var(--card-shadow);
-    display: flex; flex-direction: column; gap: 10px;
+    flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: 10px;
+    background: var(--bg-page);
+    border-radius: 18px; padding: 28px;
+    box-shadow: inset 0 0 0 1px var(--lp-border), var(--card-shadow);
   }
-  .solution-card-head { display: flex; flex-direction: column; gap: 16px; }
+  .solution-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }   /* [API] 1737 — gap 16 */
+  /* [API] 1732 — 36×36, r11, bg #5d4ef1. 숫자는 Pretendard Bold 16 흰색. */
   .solution-card-num {
-    width: 36px; height: 36px; background: var(--primary); border-radius: 11px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-family: "Pretendard", sans-serif; font-size: 16px; font-weight: 700; flex-shrink: 0;
+    width: 36px; height: 36px; border-radius: 11px; background: var(--primary);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-family: "Pretendard", "Noto Sans KR", sans-serif;
+    font-size: 16px; font-weight: 700; line-height: 1; color: #fff;
   }
-  .solution-card-title { font-size: 18px; font-weight: 700; line-height: 1.6; }
-  .solution-card-body { font-size: 14px; color: var(--text-body); line-height: 1.9; }
+  .solution-card-title { font-size: 18px; font-weight: 700; line-height: 22px; }   /* [API] 1734 — 상자 높이 22 */
+  .solution-card-body { font-size: 14px; line-height: 1.9; color: var(--text-body); }
 
-  /* ─── 도는 순서 ─── */
-  .flow-steps { display: flex; align-items: stretch; justify-content: center; }
+  /* ══ 도는 순서 ══ [좌표] 4003:1748 · [API] 4003:1753 ══
+     행 1280 = 카드 230.4×5 + 화살표 32×4, 사이 간격 0.
+     화살표 프레임은 세로 가운데다(좌표 y=83 = (199−33)/2). */
+  .flow-body { display: flex; flex-direction: column; align-items: center; gap: 56px; width: 100%; }
+  .flow-steps { display: flex; align-items: stretch; justify-content: center; width: 100%; }
+  /* [API] 1753 — px26 py30, r18, column, gap14 */
   .flow-step {
-    width: 230.4px; min-height: 199px; padding: 28px 26px; border-radius: 18px;
-    display: flex; flex-direction: column; gap: 14px; box-sizing: border-box;
+    flex: 0 0 230.4px; width: 230.4px; min-height: 199px;
+    padding: 30px 26px; border-radius: 18px;
+    display: flex; flex-direction: column; gap: 14px;
   }
-  .flow-step.active { background: var(--primary); box-shadow: var(--primary-shadow-lg); color: #fff; }
-  .flow-step.inactive { background: var(--bg-white); border: 1px solid var(--lp-border); box-shadow: var(--card-shadow); }
-  .flow-step-head { display: flex; align-items: center; gap: 10px; }
-  .flow-step-label { font-size: 12px; font-weight: 700; }
+  .flow-step.active { background: var(--primary); color: #fff; box-shadow: var(--card-shadow-lg); }
+  .flow-step.inactive { background: var(--bg-white); box-shadow: inset 0 0 0 1px var(--lp-border), var(--card-shadow); }
+  .flow-step-head { display: flex; align-items: stretch; gap: 10px; }   /* [API] 1754 — gap 10 */
+  /* [API] 1755 — Noto Bold 12px / 1.3, 폭 40 고정 + 세로 가운데(self-stretch + justify-center).
+     ⚠ nowrap 이 없으면 'STEP 1' 이 40px 상자에서 두 줄로 접혀 머리 줄이 24 → 31 이 된다(실측). */
+  .flow-step-label {
+    flex: 0 0 40px; width: 40px; font-size: 12px; line-height: 1.3; font-weight: 700;
+    white-space: nowrap; display: flex; align-items: center;
+  }
   .flow-step.active .flow-step-label { color: #fff; }
   .flow-step.inactive .flow-step-label { color: var(--primary); }
+  /* [API] 1756 — px10 py4, r20 */
   .flow-step-tag {
-    display: inline-flex; align-items: center; justify-content: center; height: 24px;
-    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; line-height: 1.3; font-weight: 700; white-space: nowrap;
   }
-  .flow-step.active .flow-step-tag { background: rgba(255, 255, 255, .2); color: #fff; }
+  .flow-step.active .flow-step-tag { background: var(--primary-tag); color: #fff; }
   .flow-step.inactive .flow-step-tag { background: var(--primary-light); color: var(--primary-mid); }
-  .flow-step-title { font-size: 16px; font-weight: 700; }
-  .flow-step-sub { font-size: 12px; }
-  .flow-step.active .flow-step-sub { color: rgba(255, 255, 255, .8); }
+  .flow-step-name { display: flex; flex-direction: column; gap: 4px; }     /* [API] 1758 — gap 4 */
+  .flow-step-title { font-size: 16px; line-height: 1.3; font-weight: 700; }    /* [API] 1759 */
+  .flow-step-sub { font-size: 12px; line-height: 1.3; }                        /* [API] 1760 */
   .flow-step.inactive .flow-step-sub { color: var(--text-muted); }
-  .flow-step-desc { font-size: 12px; line-height: 1.9; }
-  .flow-step.active .flow-step-desc { color: rgba(255, 255, 255, .85); }
+  .flow-step-desc { font-size: 12px; line-height: 1.9; }                       /* [API] 1761 */
   .flow-step.inactive .flow-step-desc { color: var(--text-body); }
-  .flow-arrow {
-    width: 32px; height: 33px; flex-shrink: 0;
-    display: flex; align-items: flex-start; justify-content: center; padding-top: 30px;
-  }
-  .flow-arrow svg { width: 32px; height: 33px; }
+  /* [좌표] 1762 — 32×33, 행 안에서 세로 가운데 */
+  .flow-arrow { flex: 0 0 32px; width: 32px; display: flex; align-items: center; justify-content: center; }
+  .flow-arrow svg { width: 32px; height: 33px; display: block; }
 
-  /* ─── 누가 쓰나 ─── */
-  .who-cards { display: flex; gap: 20px; justify-content: center; }
-  .who-card { flex: 1; max-width: 413.333px; min-height: 276px; padding: 28px; border-radius: 18px; box-shadow: var(--card-shadow); }
-  .who-card.info { background: var(--bg-page); border: 1px solid var(--lp-border); }
-  .who-card-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+  /* ══ 누가 쓰나 ══ [좌표] 4003:1806 ══
+     제목 폭 554(2줄) · 카드 413.33×276 · gap 20 · 안쪽 28(CTA 카드만 30) */
+  .who-body { display: flex; flex-direction: column; align-items: center; gap: 56px; width: 100%; }
+  /* [좌표] 1811 — 폭 554 상자 안에서 자연 줄바꿈되어 2줄(높이 104)이 된다.
+     ⚠ .section-heading 의 nowrap 을 반드시 풀어야 한다 — 안 풀면 한 줄로 뻗어 50px 넘친다(실측). */
+  .who-heading { width: 554px; white-space: normal; }
+  .who-cards { display: flex; gap: 20px; justify-content: center; align-items: stretch; width: 100%; }
+  /* ⚠ flex-basis 를 0 으로 두면 안 된다 — border-box 에서 기준 크기가 '패딩 합' 으로 잡혀,
+     안쪽 여백이 30 인 CTA 카드만 4px 넓어진다(실측 412·412·416). 폭을 직접 3등분한다. */
+  .who-card { flex: 0 0 calc((100% - 40px) / 3); min-width: 0; min-height: 276px; border-radius: 18px; box-shadow: var(--card-shadow); }
+  .who-card.info {
+    background: var(--bg-page); padding: 28px;
+    box-shadow: inset 0 0 0 1px var(--lp-border), var(--card-shadow);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .who-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }  /* [좌표] 배지 24 → 제목 y40 */
   .who-card-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 5px 10px; border-radius: 7px; font-size: 12px; width: fit-content;
+    padding: 5px 10px; border-radius: 7px; font-size: 12px; line-height: 14px;
     background: var(--primary-light); color: var(--primary-mid);
   }
-  .who-card-title { font-size: 18px; font-weight: 700; }
-  .who-card-body { font-size: 14px; color: var(--text-body); line-height: 1.9; }
+  .who-card-title { font-size: 18px; font-weight: 700; line-height: 22px; }   /* [좌표] 1817 — 상자 높이 22 */
+  .who-card-body { font-size: 14px; line-height: 1.9; color: var(--text-body); }
+  /* [좌표] 1825 — 안쪽 30, 제목 y30, 본문 y64, 버튼 묶음 y138(=64+74) */
   .who-card-cta {
-    background: var(--primary-gradient); box-shadow: var(--primary-shadow-lg);
+    background: linear-gradient(123.64deg, #5d4ef1 2.74%, #7a6bf0 100%);
+    box-shadow: var(--card-shadow-lg); padding: 30px;
     display: flex; flex-direction: column; gap: 12px;
   }
   .who-card-cta .who-card-title, .who-card-cta .who-card-body { color: #fff; }
+  /* [좌표] 1828 — 본문 아래 20 을 띄운다. 부모 gap 12 가 이미 걸리므로 여기는 8 만 더한다. */
   .who-card-cta-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-  .who-card-cta-buttons .lp-btn { justify-content: center; padding: 13px 24px; border-radius: 12px; font-size: 14px; width: 100%; }
+  /* [좌표] 1831 — 높이 50, 글자 24 → 안쪽 위아래 13 */
+  .who-card-cta-buttons .lp-btn {
+    justify-content: center; width: 100%; height: 50px; padding: 13px 20px;
+    border-radius: 12px; font-size: 14px; line-height: 24px;
+  }
   .lp-btn-cta-white { background: #fff; color: var(--primary); }
   .lp-btn-cta-purple { background: #8478f8; color: #fff; }
 
-  /* ─── 마무리 배너 ─── */
-  .cta-banner-wrap { padding-top: 40px; padding-bottom: 40px; }
+  /* ══ 마무리 배너 ══ [실측] 패널 1280×336, 섹션 위아래 여백 40, r28 ══ */
+  /* ⚠ padding 단축 속성을 쓰면 .lp-wrap 의 좌우 80 이 0 으로 덮여 패널이 전폭이 된다(실측).
+     위아래만 지정한다. */
+  .cta-wrap { padding-top: 40px; padding-bottom: 40px; }
   .cta-banner {
-    position: relative; background: #f0eeff; border: 1px solid #e4dfff;
-    border-radius: 28px; padding: 72px 40px; text-align: center; overflow: hidden;
+    position: relative; overflow: hidden;
+    background: #f0eeff; box-shadow: inset 0 0 0 1px #e4dfff; border-radius: 28px;
+    min-height: 336px; padding: 72px 40px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   }
   .cta-banner-glow1, .cta-banner-glow2 { position: absolute; border-radius: 50%; pointer-events: none; }
   .cta-banner-glow1 {
     width: 360px; height: 360px; left: 169px; top: -157px;
-    background: radial-gradient(circle, rgba(93, 78, 241, .15) 0%, transparent 70%);
+    background: radial-gradient(circle closest-side, rgba(93, 78, 241, .15) 0%, rgba(93, 78, 241, 0) 70%);
   }
   .cta-banner-glow2 {
     width: 300px; height: 300px; left: 850px; top: 142px;
-    background: radial-gradient(circle, rgba(93, 78, 241, .12) 0%, transparent 70%);
+    background: radial-gradient(circle closest-side, rgba(93, 78, 241, .12) 0%, rgba(93, 78, 241, 0) 70%);
   }
   .cta-banner > *:not([class*="cta-banner-glow"]) { position: relative; z-index: 1; }
-  .cta-banner-title { font-size: 32px; font-weight: 700; line-height: 1.7; margin-bottom: 16px; }
-  .cta-banner-sub { font-size: 16px; color: var(--text-body); line-height: 1.7; margin-bottom: 32px; }
+  .cta-banner-title { font-size: 32px; line-height: 1.7; font-weight: 700; }
+  .cta-banner-sub { font-size: 16px; line-height: 1.7; color: var(--text-body); margin-bottom: 16px; }
 
-  /* ─── 푸터 ─── */
-  .lp-footer { background: var(--footer-bg); padding: 64px 0; }
-  .lp-footer h2 { font-size: 24px; font-weight: 700; color: #fff; line-height: 1.7; margin-bottom: 24px; }
-  .footer-links { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+  /* ══ 푸터 ══ [실측] bg #181b2e · 콘텐츠 좌 80 · 제목 24px · 첫 버튼 225×58 · 알약 사이 12 ══ */
+  /* [실측] 푸터 374 = 65 + 제목 40.8 + 22 + 링크 58 + 36 + 프로토 19.2 + 22 + 고지 45.6 + 65 */
+  .lp-footer { background: var(--footer-bg); padding: 65px 0; }
+  .lp-footer h2 { font-size: 24px; line-height: 1.7; font-weight: 700; color: #fff; margin-bottom: 22px; }
+  .footer-links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 36px; }
   .footer-link {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 10px 16px; border-radius: 10px;
-    font-size: 13px; font-weight: 700; text-decoration: none; transition: opacity .2s;
+    border-radius: 10px; font-size: 13px; font-weight: 700;
+    text-decoration: none; white-space: nowrap; transition: opacity .2s;
   }
   .footer-link:hover { opacity: .85; }
-  .footer-link.primary { background: var(--primary); color: #fff; box-shadow: var(--primary-shadow); padding: 12px 20px; font-size: 14px; }
-  .footer-link.secondary { background: rgba(255, 255, 255, .1); color: #fff; }
-  .footer-proto { font-size: 12px; color: var(--footer-text); line-height: 1.6; margin-bottom: 16px; }
-  .footer-note { font-size: 12px; color: var(--footer-text); line-height: 1.9; max-width: 820px; margin-bottom: 10px; }
-  .footer-note:last-child { margin-bottom: 0; }
+  .footer-link.primary { height: 58px; padding: 0 20px; background: var(--primary); color: #fff; box-shadow: var(--btn-shadow); font-size: 14px; }
+  .footer-link.secondary { height: 42px; padding: 0 18px; background: rgba(255, 255, 255, .1); color: #fff; }
+  .footer-proto { font-size: 12px; line-height: 1.6; color: var(--footer-text); margin-bottom: 22px; }
+  /* [실측] 고지는 폭 820 상자 안에서 2줄로 접힌다(1줄 끝 x=895, 2줄 끝 x=411). */
+  .footer-note { font-size: 12px; line-height: 1.9; color: var(--footer-text); max-width: 820px; }
 
-  /* ─── 좁은 화면 ─── */
+  /* ══ 좁은 화면 ══ 시안은 1440 데스크톱만 있다. 아래는 넘침을 막기 위한 대응이다. ══ */
+  @media (max-width: 1439px) {
+    .hero h1 { font-size: clamp(30px, 4.3vw, 62px); line-height: 1.16; }
+    .hero-desc { white-space: normal; }
+    .section-heading { white-space: normal; }
+    .flow-step { flex: 1 1 0; width: auto; }
+  }
   @media (max-width: 1160px) {
     .lp-wrap { padding-left: 24px; padding-right: 24px; }
-    .hero h1 { font-size: 42px; line-height: 52px; }
     .nav-links { gap: 2px; margin-left: 20px; }
-    .nav-link { padding: 6px 8px; font-size: 13px; }
+    .nav-link { padding: 6px 10px; }
+    .hero-features, .who-heading, .problem-consequence { width: 100%; max-width: 860px; }
+    /* 라벨·제목은 lp-wrap 밖에 있어 좁은 폭에서 글자가 화면 끝에 닿는다(1440 렌더에는 영향 없음) */
+    .section-label, .section-heading, .solution-sub, .problem-consequence { padding-left: 24px; padding-right: 24px; }
     .flow-steps { flex-wrap: wrap; gap: 12px; }
     .flow-arrow { display: none; }
-    .flow-step { width: calc(50% - 6px); }
+    .flow-step { flex: 0 0 calc(50% - 6px); }
   }
   @media (max-width: 900px) {
     .hero { padding: 64px 0; }
-    .hero h1 { font-size: 36px; line-height: 46px; }
     .section { padding: 64px 0; }
-    .section-heading, .problem-consequence-title { font-size: 28px; line-height: 40px; }
+    .section-heading, .problem-consequence-title, .cta-banner-title { font-size: 28px; line-height: 40px; }
     .problem-cards, .solution-cards, .who-cards, .hero-features { flex-direction: column; align-items: center; }
-    .problem-card, .solution-card, .who-card, .hero-feat { max-width: 500px; width: 100%; }
-    .flow-step { width: 100%; max-width: 500px; }
+    .problem-card, .solution-card, .who-card, .hero-feat { max-width: 500px; width: 100%; flex: 0 0 auto; }
+    .flow-step { flex: 0 0 100%; max-width: 500px; }
     .nav-links { display: none; }
+    .cta-banner { padding: 48px 24px; }
   }
   @media (max-width: 600px) {
     .lp-wrap { padding-left: 16px; padding-right: 16px; }
+    .section-label, .section-heading, .solution-sub, .problem-consequence { padding-left: 16px; padding-right: 16px; }
     /* 폰 폭에서는 브랜드와 CTA 가 한 줄에 안 들어간다(390px 에서 실측 20px 넘침).
-       글자를 줄이는 대신 두 줄로 접는다 — 확정 워딩('지갑 연결하고 시작하기')을 그대로 둔다. */
+       글자를 줄이는 대신 두 줄로 접는다 — 확정 워딩을 그대로 둔다. */
     .navbar-inner { height: auto; flex-wrap: wrap; padding: 14px 16px; row-gap: 12px; }
     .nav-cta { width: 100%; margin-left: 0; }
-    .nav-cta a { width: 100%; justify-content: center; }
-    .hero h1 { font-size: 28px; line-height: 38px; }
-    .hero-buttons { flex-direction: column; align-items: center; }
-    .cta-banner { padding: 40px 20px; }
-    .cta-banner-title { font-size: 24px; }
+    .nav-cta a { width: 100%; }
+    .hero-buttons { flex-direction: column; align-items: stretch; }
+    .hero-buttons .lp-btn { justify-content: center; }
   }
 </style>
 </head>
@@ -332,8 +431,8 @@
 
 <!-- ═══ 상단 바 ═══
      '소개'는 이 페이지, '대시보드'는 /app. '리포트'·'개발자'는 아직 갈 곳이 없어
-     대시보드 상단 바와 같은 방식으로 모양만 둔다(aria-disabled). 증빙으로 가는
-     x402 디스커버리는 푸터에 있다. -->
+     대시보드 상단 바와 같은 방식으로 모양만 둔다(aria-disabled).
+     증빙으로 가는 x402 디스커버리는 푸터에 있다. -->
 <nav class="navbar lp-wrap" aria-label="주요 메뉴">
   <div class="navbar-inner">
     <div class="nav-brand">
@@ -347,54 +446,61 @@
       <span class="nav-link" aria-disabled="true" title="준비 중입니다">리포트</span>
       <span class="nav-link" aria-disabled="true" title="만든 사람들 — 준비 중입니다">개발자</span>
     </div>
-    <div class="nav-cta">
-      <a href="/connect">지갑 연결하고 시작하기</a>
-    </div>
+    <div class="nav-cta"><a href="/connect">지갑 연결하고 시작하기</a></div>
   </div>
 </nav>
 
 <main>
 <!-- ═══ 첫 화면 ═══ -->
-<section class="hero lp-wrap">
+<section class="hero lp-wrap" id="about">
   <div class="hero-glow" aria-hidden="true"></div>
 
   <div class="hero-badge">
     <span class="hero-badge-dot" aria-hidden="true"></span>
-    <span class="hero-badge-text">AGENTIC COMMERCE &middot; SOLANA</span>
+    <span class="hero-badge-text">AGENTIC COMMERCE · SOLANA</span>
   </div>
 
-  <h1>손을 떼려면,<br>누군가는 <span class="accent">청구서를 읽어야</span> 합니다</h1>
+  <!-- [API] 4003:1668 — 쉼표는 Pretendard, 줄바꿈 고정, 강조는 '청구서를 읽어야' 전체 -->
+  <h1>손을 떼려면<span class="comma">,</span><br>누군가는 <span class="accent">청구서를 읽어야</span> 합니다</h1>
 
-  <p class="hero-desc">
-    AI 에이전트가 사용자가 정한 한도 안에서 스스로 사고팔고 USDC 로 정산합니다.<br>
-    <strong>402 Guard 가 서명 직전에 청구서를 대조</strong>해서, 사람이 화면을 지켜보지 않아도 됩니다.
-  </p>
+  <div class="hero-body">
+    <div class="hero-lead">
+      <p class="hero-desc">
+        AI 에이전트가 사용자가 정한 한도 안에서 스스로 사고팔고 USDC 로 정산합니다.<br>
+        <strong>402 Guard 가 서명 직전에 청구서를 대조</strong>해서, 사람이 화면을 지켜보지 않아도 됩니다.
+      </p>
 
-  <div class="hero-buttons">
-    <a href="/connect" class="lp-btn lp-btn-primary">
-      지갑 연결하고 시작하기
-      <img src="/static/img/arrow-right.svg" alt="" width="18" height="18" class="arrow-icon">
-    </a>
-    <a href="/app" class="lp-btn lp-btn-outline">데모 대시보드 보기</a>
-  </div>
-
-  <p class="hero-tagline">감시 없는 자율 &middot; 건건이 승인하지 않는 결제</p>
-  <p class="hero-sub">A2A &middot; AP2 &middot; x402 on Solana &middot; 지갑으로 로그인합니다(비밀번호 없음)</p>
-
-  <!-- 근거 3줄 — 큰 제목이 한 주장의 근거라서 첫 화면 안에 함께 둔다(워딩 정본).
-       ⚠ 성과 수치는 넣지 않는다. 여기는 광고가 아니라 무엇을 하는 곳인지 알리는 페이지다. -->
-  <div class="hero-features">
-    <div class="hero-feat">
-      <p class="hero-feat-title green">서명 전에 멈춥니다</p>
-      <p class="hero-feat-sub">어긋나면 서명이 만들어지지 않습니다</p>
+      <div class="hero-buttons">
+        <a href="/connect" class="lp-btn lp-btn-primary">
+          지갑 연결하고 시작하기
+          <img src="/static/img/arrow-right.svg" alt="" width="18" height="18" class="arrow-icon">
+        </a>
+        <a href="/app" class="lp-btn lp-btn-outline">데모 대시보드 보기</a>
+      </div>
     </div>
-    <div class="hero-feat">
-      <p class="hero-feat-title purple">예산을 코드가 집행합니다</p>
-      <p class="hero-feat-sub">위임장에서 실제로 차감됩니다</p>
-    </div>
-    <div class="hero-feat">
-      <p class="hero-feat-title">사는 쪽도 파는 쪽도 봅니다</p>
-      <p class="hero-feat-sub">자산이 나갈 때도 대조합니다</p>
+
+    <div class="hero-claimwrap">
+      <p class="hero-tagline">감시 없는 자율 · 건건이 승인하지 않는 결제</p>
+      <div class="hero-subwrap">
+        <p class="hero-sub">A2A · AP2 · x402 on Solana · 지갑으로 로그인합니다(비밀번호 없음)</p>
+
+        <!-- 근거 3줄 — 큰 제목이 한 주장의 근거라서 첫 화면 안에 함께 둔다.
+             ⚠ 성과 수치는 넣지 않는다. 여기는 광고가 아니라 무엇을 하는 곳인지 알리는 페이지다. -->
+        <div class="hero-features">
+          <div class="hero-feat">
+            <p class="hero-feat-title green">서명 전에 멈춥니다</p>
+            <p class="hero-feat-sub">어긋나면 서명이 만들어지지 않습니다</p>
+          </div>
+          <div class="hero-feat">
+            <p class="hero-feat-title purple">예산을 코드가 집행</p>
+            <p class="hero-feat-sub">위임장에서 실제로 차감됩니다</p>
+          </div>
+          <div class="hero-feat">
+            <p class="hero-feat-title">사는 쪽도 파는 쪽도</p>
+            <p class="hero-feat-sub">자산이 나갈 때도 대조합니다</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -403,42 +509,43 @@
 <section class="section section-bg-gray" id="problem">
   <p class="section-label">Nobody Reads the Invoice</p>
 
-  <h2 class="section-heading">
-    AI 에게 지갑을 맡기면 알아서 사고팝니다<br>
-    그런데 AI 는 가짜 영수증을 의심할 줄 모릅니다
-  </h2>
+  <div class="problem-body">
+    <div class="problem-top">
+      <h2 class="section-heading">AI 에게 지갑을 맡기면 알아서 사고팝니다<br>그런데 AI 는 가짜 영수증을 의심할 줄 모릅니다</h2>
 
-  <div class="problem-cards lp-wrap">
-    <div class="problem-card">
-      <div class="problem-card-head">
-        <span class="problem-card-badge badge-purple">x402</span>
-        <p class="problem-card-title">키는 지키지만, 내용은 안 본다</p>
+      <div class="problem-cards lp-wrap">
+        <div class="problem-card">
+          <div class="problem-card-head">
+            <span class="problem-card-badge badge-purple"><span>x402</span></span>
+            <p class="problem-card-title">키는 지키지만<span class="comma">,</span> 내용은 안 본다</p>
+          </div>
+          <p class="problem-card-body">구매자의 키는 지킵니다. 그런데 구매자가 무엇에 서명하는지는 아무도 검증하지 않습니다.</p>
+        </div>
+        <div class="problem-card">
+          <div class="problem-card-head">
+            <span class="problem-card-badge badge-purple"><span>AP2</span></span>
+            <p class="problem-card-title">집행할 사람이 이 세계엔 없다</p>
+          </div>
+          <p class="problem-card-body">수취인 제약은 규격에 정의돼 있습니다. 그런데 자기 지갑으로 결제하는 세계에는 그걸 집행할 주체가 없습니다.</p>
+        </div>
+        <div class="problem-card">
+          <div class="problem-card-head">
+            <span class="problem-card-badge badge-red"><span>결과</span></span>
+            <p class="problem-card-title">한 번의 서명 = 즉시 손실</p>
+          </div>
+          <p class="problem-card-body">사람이 빠진 결제에서 잘못된 서명은 되돌릴 수 없습니다.</p>
+        </div>
       </div>
-      <p class="problem-card-body">구매자의 키는 지킵니다. 그런데 구매자가 무엇에 서명하는지는 아무도 검증하지 않습니다.</p>
     </div>
-    <div class="problem-card">
-      <div class="problem-card-head">
-        <span class="problem-card-badge badge-purple">AP2</span>
-        <p class="problem-card-title">집행할 사람이 이 세계엔 없다</p>
-      </div>
-      <p class="problem-card-body">수취인 제약은 규격에 정의돼 있습니다. 그런데 자기 지갑으로 결제하는 세계에는 그걸 집행할 주체가 없습니다.</p>
-    </div>
-    <div class="problem-card">
-      <div class="problem-card-head">
-        <span class="problem-card-badge badge-red">결과</span>
-        <p class="problem-card-title">한 번의 서명 = 즉시 손실</p>
-      </div>
-      <p class="problem-card-body">사람이 빠진 결제에서 잘못된 서명은 되돌릴 수 없습니다.</p>
-    </div>
-  </div>
 
-  <!-- 이 페이지에서 제일 강한 문장. 마침표를 쉼표로 바꾸지 않는다 — 끊어 읽어야 반전이 산다. -->
-  <div class="problem-consequence lp-wrap">
-    <p class="problem-consequence-title">한도는 지켜졌습니다 <span class="red">그리고 전액을 잃습니다</span></p>
-    <p class="problem-consequence-desc">
-      악성 판매 에이전트는 한도를 넘지 않습니다. 금액을 건별 한도 바로 아래로 맞추고,<br>
-      수취인 주소 하나만 자기 지갑으로 바꾸면 됩니다.
-    </p>
+    <!-- 이 페이지에서 제일 강한 문장. 마침표를 쉼표로 바꾸지 않는다 — 끊어 읽어야 반전이 산다. -->
+    <div class="problem-consequence">
+      <p class="problem-consequence-title">한도는 지켜졌습니다 <span class="red">그리고 전액을 잃습니다</span></p>
+      <p class="problem-consequence-desc">
+        악성 판매 에이전트는 한도를 넘지 않습니다. 금액을 건별 한도 바로 아래로 맞추고,<br>
+        수취인 주소 하나만 자기 지갑으로 바꾸면 됩니다.
+      </p>
+    </div>
   </div>
 </section>
 
@@ -446,33 +553,35 @@
 <section class="section section-bg-white" id="solution">
   <p class="section-label">The Gate Before the Signature</p>
 
-  <h2 class="section-heading" style="margin-bottom:14px">사람이 정하고<span class="comma">,</span> 코드가 지킵니다</h2>
-  <p class="section-subheading" style="margin-top:0;margin-bottom:56px">
-    AI 에이전트가 사람 없이 결제할 수 있도록, 서명 직전에 청구서를 대조하는 승인 게이트입니다.
-  </p>
+  <div class="solution-body">
+    <div class="solution-head">
+      <h2 class="section-heading">사람이 정하고<span class="comma">,</span> 코드가 지킵니다</h2>
+      <p class="solution-sub">AI 에이전트가 사람 없이 결제할 수 있도록, 서명 직전에 청구서를 대조하는 승인 게이트입니다.</p>
+    </div>
 
-  <!-- ①②③ 은 시간 순서라 순서 고정 -->
-  <div class="solution-cards lp-wrap">
-    <div class="solution-card">
-      <div class="solution-card-head">
-        <div class="solution-card-num" aria-hidden="true">1</div>
-        <p class="solution-card-title">한도를 한 번 서명합니다</p>
+    <!-- ①②③ 은 시간 순서라 순서 고정 -->
+    <div class="solution-cards lp-wrap">
+      <div class="solution-card">
+        <div class="solution-card-head">
+          <div class="solution-card-num" aria-hidden="true">1</div>
+          <p class="solution-card-title">한도를 한 번 서명합니다</p>
+        </div>
+        <p class="solution-card-body">총예산·건별 최대·허용 종목을 한 번 서명하면, 그 뒤로는 다시 묻지 않습니다.</p>
       </div>
-      <p class="solution-card-body">총예산&middot;건별 최대&middot;허용 종목을 한 번 서명하면, 그 뒤로는 다시 묻지 않습니다.</p>
-    </div>
-    <div class="solution-card">
-      <div class="solution-card-head">
-        <div class="solution-card-num" aria-hidden="true">2</div>
-        <p class="solution-card-title">예산을 코드가 집행합니다</p>
+      <div class="solution-card">
+        <div class="solution-card-head">
+          <div class="solution-card-num" aria-hidden="true">2</div>
+          <p class="solution-card-title">예산을 코드가 집행합니다</p>
+        </div>
+        <p class="solution-card-body">표시용 숫자가 아니라 위임장에서 실제로 차감됩니다. 넘는 청구는 서명되지 않습니다.</p>
       </div>
-      <p class="solution-card-body">표시용 숫자가 아니라 위임장에서 실제로 차감됩니다. 넘는 청구는 서명되지 않습니다.</p>
-    </div>
-    <div class="solution-card">
-      <div class="solution-card-head">
-        <div class="solution-card-num" aria-hidden="true">3</div>
-        <p class="solution-card-title">합의한 그 청구서일 때만 서명합니다</p>
+      <div class="solution-card">
+        <div class="solution-card-head">
+          <div class="solution-card-num" aria-hidden="true">3</div>
+          <p class="solution-card-title">합의한 그 청구서일 때만 서명합니다</p>
+        </div>
+        <p class="solution-card-body">수취인·금액·자산·종목에 청구서 설명까지 맞춰 보고, 하나라도 어긋나면 서명 자체가 만들어지지 않습니다.</p>
       </div>
-      <p class="solution-card-body">수취인&middot;금액&middot;자산&middot;종목에 청구서 설명까지 맞춰 보고, 하나라도 어긋나면 서명 자체가 만들어지지 않습니다.</p>
     </div>
   </div>
 </section>
@@ -482,75 +591,78 @@
      4번은 '승인'이 아니라 '대조'다. '승인'이면 사람이 매번 승인하는 것으로 읽힌다. -->
 <section class="section section-bg-gray" id="flow">
   <p class="section-label">How a Payment Runs</p>
-  <h2 class="section-heading">한 번 서명하면<span class="comma">,</span> 나머지는 에이전트와 게이트가 합니다</h2>
 
-  <div class="flow-steps lp-wrap">
-    <div class="flow-step active">
-      <div class="flow-step-head">
-        <span class="flow-step-label">STEP 1</span>
-        <span class="flow-step-tag">사람</span>
-      </div>
-      <div>
-        <p class="flow-step-title">한도 서명</p>
-        <p class="flow-step-sub">Sign Limits</p>
-      </div>
-      <p class="flow-step-desc">예산과 한도를 한 번 서명합니다.</p>
-    </div>
+  <div class="flow-body lp-wrap">
+    <h2 class="section-heading">한 번 서명하면<span class="comma">,</span> 나머지는 에이전트와 게이트가 합니다</h2>
 
-    <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="flow-steps">
+      <div class="flow-step active">
+        <div class="flow-step-head">
+          <span class="flow-step-label">STEP 1</span>
+          <span class="flow-step-tag">사람</span>
+        </div>
+        <div class="flow-step-name">
+          <p class="flow-step-title">한도 서명</p>
+          <p class="flow-step-sub">Sign Limits</p>
+        </div>
+        <p class="flow-step-desc">예산과 한도를 한 번만 서명합니다.</p>
+      </div>
 
-    <div class="flow-step inactive">
-      <div class="flow-step-head">
-        <span class="flow-step-label">STEP 2</span>
-        <span class="flow-step-tag">AI</span>
-      </div>
-      <div>
-        <p class="flow-step-title">판단</p>
-        <p class="flow-step-sub">Decide</p>
-      </div>
-      <p class="flow-step-desc">시세를 보고 살지, 팔지, 기다릴지 정합니다.</p>
-    </div>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 
-    <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow-step inactive">
+        <div class="flow-step-head">
+          <span class="flow-step-label">STEP 2</span>
+          <span class="flow-step-tag">AI</span>
+        </div>
+        <div class="flow-step-name">
+          <p class="flow-step-title">판단</p>
+          <p class="flow-step-sub">Decide</p>
+        </div>
+        <p class="flow-step-desc">시세를 보고 살지, 팔지, 기다릴지 정합니다.</p>
+      </div>
 
-    <div class="flow-step inactive">
-      <div class="flow-step-head">
-        <span class="flow-step-label">STEP 3</span>
-        <span class="flow-step-tag">에이전트끼리</span>
-      </div>
-      <div>
-        <p class="flow-step-title">협의</p>
-        <p class="flow-step-sub">Negotiate</p>
-      </div>
-      <p class="flow-step-desc">견적을 합의하고 청구서를 받습니다.</p>
-    </div>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 
-    <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow-step inactive">
+        <div class="flow-step-head">
+          <span class="flow-step-label">STEP 3</span>
+          <span class="flow-step-tag">에이전트끼리</span>
+        </div>
+        <div class="flow-step-name">
+          <p class="flow-step-title">협의</p>
+          <p class="flow-step-sub">Negotiate</p>
+        </div>
+        <p class="flow-step-desc">견적을 합의하고 청구서를 받습니다.</p>
+      </div>
 
-    <div class="flow-step inactive">
-      <div class="flow-step-head">
-        <span class="flow-step-label">STEP 4</span>
-        <span class="flow-step-tag">402 Guard</span>
-      </div>
-      <div>
-        <p class="flow-step-title">대조</p>
-        <p class="flow-step-sub">Verify</p>
-      </div>
-      <p class="flow-step-desc">청구서를 위임장&middot;견적과 맞춰 봅니다.</p>
-    </div>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 
-    <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow-step inactive">
+        <div class="flow-step-head">
+          <span class="flow-step-label">STEP 4</span>
+          <span class="flow-step-tag">402 Guard</span>
+        </div>
+        <div class="flow-step-name">
+          <p class="flow-step-title">대조</p>
+          <p class="flow-step-sub">Verify</p>
+        </div>
+        <p class="flow-step-desc">청구서를 위임장·견적과 맞춰 봅니다.</p>
+      </div>
 
-    <div class="flow-step inactive">
-      <div class="flow-step-head">
-        <span class="flow-step-label">STEP 5</span>
-        <span class="flow-step-tag">블록체인</span>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <div class="flow-step inactive">
+        <div class="flow-step-head">
+          <span class="flow-step-label">STEP 5</span>
+          <span class="flow-step-tag">블록체인</span>
+        </div>
+        <div class="flow-step-name">
+          <p class="flow-step-title">정산</p>
+          <p class="flow-step-sub">Settle</p>
+        </div>
+        <p class="flow-step-desc">Solana 에서 USDC 로 결제하고 도착까지 확인합니다.</p>
       </div>
-      <div>
-        <p class="flow-step-title">정산</p>
-        <p class="flow-step-sub">Settle</p>
-      </div>
-      <p class="flow-step-desc">Solana 에서 USDC 로 결제하고 도착까지 확인합니다.</p>
     </div>
   </div>
 </section>
@@ -558,46 +670,47 @@
 <!-- ═══ 누가 쓰나 ═══ -->
 <section class="section section-bg-white" id="who">
   <p class="section-label">Who it's for</p>
-  <h2 class="section-heading">에이전트에 지갑을 붙이려는 순간<span class="comma">,</span><br>모두가 같은 문제를 만납니다</h2>
 
-  <div class="who-cards lp-wrap">
-    <div class="who-card info">
-      <div class="who-card-head">
-        <span class="who-card-badge">개발자</span>
-        <p class="who-card-title">에이전트에 결제를 붙이는 팀</p>
+  <div class="who-body">
+    <h2 class="section-heading who-heading">에이전트에 지갑을 붙이려는 순간<span class="comma">,</span> 모두가 같은 문제를 만납니다</h2>
+
+    <div class="who-cards lp-wrap">
+      <div class="who-card info">
+        <div class="who-card-head">
+          <span class="who-card-badge">개발자</span>
+          <p class="who-card-title">에이전트에 결제를 붙이는 팀</p>
+        </div>
+        <p class="who-card-body">결제는 x402 로 쉽게 붙습니다. 그런데 &ldquo;이 청구서를 믿어도 되는가&rdquo; 는 각자 알아서 짜야 합니다.</p>
       </div>
-      <p class="who-card-body">결제는 x402 로 쉽게 붙습니다. 그런데 &ldquo;이 청구서를 믿어도 되는가&rdquo; 는 각자 알아서 짜야 합니다.</p>
-    </div>
-    <div class="who-card info">
-      <div class="who-card-head">
-        <span class="who-card-badge">파워 유저</span>
-        <p class="who-card-title">자율 매매 도구를 쓰는 사람</p>
+      <div class="who-card info">
+        <div class="who-card-head">
+          <span class="who-card-badge">파워 유저</span>
+          <p class="who-card-title">자율 매매 도구를 쓰는 사람</p>
+        </div>
+        <p class="who-card-body">반복되는 결제라 위험이 쌓이는 최악의 조건. 여기서 되면 다른 곳에서도 됩니다.</p>
       </div>
-      <p class="who-card-body">반복되는 결제라 위험이 쌓이는 최악의 조건. 여기서 되면 다른 곳에서도 됩니다.</p>
-    </div>
-    <!-- '자금은 움직이지 않습니다' 는 빼지 않는다 — "지갑 연결" 하면 다들 송금부터 떠올린다.
-         두 번째 버튼은 지갑 없는 심사위원용 경로라 꼭 필요하다. -->
-    <div class="who-card who-card-cta">
-      <div class="who-card-head">
+      <!-- '자금은 움직이지 않습니다' 는 빼지 않는다 — "지갑 연결" 하면 다들 송금부터 떠올린다.
+           두 번째 버튼은 지갑 없는 심사위원용 경로라 꼭 필요하다. -->
+      <div class="who-card who-card-cta">
         <p class="who-card-title">지갑을 연결하면 바로 시작합니다</p>
-      </div>
-      <p class="who-card-body">비밀번호를 만들지 않습니다. Solana 지갑이 1회용 메시지에 서명하면 그게 로그인이고, 자금은 움직이지 않습니다.</p>
-      <div class="who-card-cta-buttons">
-        <a href="/connect" class="lp-btn lp-btn-cta-white">지갑 연결하고 시작하기</a>
-        <a href="/app" class="lp-btn lp-btn-cta-purple">데모 대시보드 보기</a>
+        <p class="who-card-body">비밀번호를 만들지 않습니다. Solana 지갑이 1회용 메시지에 서명하면 그게 로그인이고, 자금은 움직이지 않습니다.</p>
+        <div class="who-card-cta-buttons">
+          <a href="/connect" class="lp-btn lp-btn-cta-white">지갑 연결하고 시작하기</a>
+          <a href="/app" class="lp-btn lp-btn-cta-purple">데모 대시보드 보기</a>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ═══ 마무리 배너 ═══ -->
-<section class="cta-banner-wrap lp-wrap">
+<section class="cta-wrap lp-wrap">
   <div class="cta-banner">
     <div class="cta-banner-glow1" aria-hidden="true"></div>
     <div class="cta-banner-glow2" aria-hidden="true"></div>
-    <p class="cta-banner-title">감시 없는 자율 &middot; 건건이 승인하지 않는 결제</p>
+    <p class="cta-banner-title">감시 없는 자율 · 건건이 승인하지 않는 결제</p>
     <p class="cta-banner-sub">402 Guard 가 서명 직전에 청구서를 대조합니다</p>
-    <div class="hero-buttons" style="margin-bottom:0">
+    <div class="hero-buttons">
       <a href="/connect" class="lp-btn lp-btn-primary">
         지갑 연결하고 시작하기
         <img src="/static/img/arrow-right.svg" alt="" width="18" height="18" class="arrow-icon">
@@ -613,8 +726,7 @@
      '블록체인에서 직접 확인하기' 를 제일 눈에 띄게 둔다.
      링크한 tx = 배포 URL 라이브 세션 20260731_160230_live 의 매수 ① 레그.
      실재 확인: artifacts/tx/20260731_1603_solana-devnet_web_session_onchain_verify.json
-     ⚠ 옛 링크 3MvYmppz… 로 되돌리지 말 것 — 그건 결제 통화가 자체발행 테스트 민트였다.
-     지금 링크는 Circle 공식 devnet USDC 라 "자기가 찍은 돈으로 지불" 이 성립하지 않는다. -->
+     ⚠ 옛 링크 3MvYmppz… 로 되돌리지 말 것 — 그건 결제 통화가 자체발행 테스트 민트였다. -->
 <footer class="lp-footer">
   <div class="lp-wrap">
     <h2>직접 확인하십시오</h2>
@@ -629,19 +741,18 @@
       <a class="footer-link secondary" href="/app">대시보드</a>
       <a class="footer-link secondary" href="https://github.com/Loda1002/SynapStock" target="_blank" rel="noopener">GitHub 저장소</a>
     </div>
-    <p class="footer-proto">402 Guard &middot; A2A &middot; AP2 &middot; x402 on Solana</p>
-    <!-- 단일 공용 인스턴스 고지 — 엔진이 전역 싱글턴이고 배포가 max-instances 1 이라 한 사람이
-         세션을 켜면 다른 사람은 "이미 실행 중"으로 막힌다. 구조를 숨기는 대신 먼저 밝힌다. -->
-    <p class="footer-note">이 데모는 단일 공용 인스턴스입니다 — 세션 조작(시작&middot;정지)은 심사용 링크에서만 열려 있고, 관전(실시간 로그&middot;지표)은 누구에게나 열려 있습니다.</p>
-    <!-- 법적 문구라 문장을 줄이지 않는다. -->
-    <p class="footer-note">결제 통화는 Circle 이 발행한 공식 devnet USDC 입니다(발행 권한은 저희 것이 아닙니다). 사는 대상인 주식 토큰만 자체 발행입니다. 데모는 테스트 네트워크에서 동작하고 실제 증권거래&middot;실제 자금 이동은 없으며, 투자 조언이 아닙니다.</p>
+    <p class="footer-proto">402 Guard · A2A · AP2 · x402 on Solana</p>
+    <!-- 법적 문구라 문장을 줄이지 않는다.
+         ⚠ 여기에 '단일 공용 인스턴스' 고지 한 줄이 더 있었는데 뺐다 — 시안에도 워딩 정본
+            (docs/landing_lite.md §7)에도 없는 줄이라, 넣으면 푸터가 시안보다 54px 길어진다.
+            내용 자체는 살릴 값이 있으니 세밀 조정 단계에서 자리를 다시 정한다. -->
+    <p class="footer-note">결제 통화는 Circle 이 발행한 공식 devnet USDC 입니다(발행 권한은 저희 것이 아닙니다). 사는 대상인 주식 토큰만 자체 발행입니다. 데모는 테스트 네트워크에서 동작하고 실제 증권거래·실제 자금 이동은 없으며, 투자 조언이 아닙니다.</p>
   </div>
 </footer>
 
 <!-- 맨 위로 — 스크롤을 내리기 전에는 보이지 않는다(숨김이 CSS 기본값, js/to-top.js 가 벗긴다).
      대시보드와 같은 버튼이다(skeleton.css .to-top) — 화면 아래 가운데 40px 원이고, 마우스를
-     올리면 화살표가 벨트처럼 흐른다. 그러려면 화살표가 둘 필요하다(하나가 나가는 동안 다음이
-     들어온다). 화면에 글자가 없으므로 읽을 이름은 aria-label 이 준다.
+     올리면 화살표가 벨트처럼 흐른다. 그러려면 화살표가 둘 필요하다.
      ⚠ 이 마크업을 빼면 랜딩만 글자도 모션도 없는 맨 원이 된다. -->
 <button class="to-top" type="button" data-to-top aria-label="맨 위로">
   <span class="to-top-track" aria-hidden="true">
