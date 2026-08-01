@@ -1044,9 +1044,6 @@ body.page-dashboard .topbar {
 }
 .fx-tab.is-active { background: #edebff; color: var(--accent); }
 .fx-tab[aria-disabled="true"] { opacity: .75; cursor: not-allowed; }
-/* '개발자' 탭만 실제로 눌린다(세션 설정 서랍을 연다) — aria-disabled 가 없어서 위 규칙의
-   not-allowed 가 안 걸리는데, 그렇다고 기본 커서로 두면 누를 수 있다는 신호가 없다. */
-.fx-tab[data-dev-tab] { cursor: pointer; }
 
 body.page-dashboard .topbar .controls { gap: 10px; flex-wrap: nowrap; }
 /* 긴급정지·알림은 시안의 알약 칩 모양으로. 지갑 버튼은 제외한다(브랜드 색 고정). */

@@ -53,11 +53,9 @@
     <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">소개</span>
     <span class="fx-tab is-active">대시보드</span>
     <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">리포트</span>
-    <!-- 이 탭만 실제로 동작한다 — 세션 설정·지난 세션 카드가 든 개발자 서랍(아래 .dev-dock)을
-         여는 **화면상의 유일한 경로**다. 그전에는 주소에 ?lab=1 을 직접 붙이는 방법뿐이라,
-         모르면 세션을 시작할 수가 없었다. span 그대로 두고 role 만 준다(.fx-tab 스타일 유지). -->
-    <span class="fx-tab" role="button" tabindex="0" data-dev-tab
-          title="세션 설정·지난 세션 등 개발·시연용 조작부를 엽니다">개발자</span>
+    <!-- ⚠ 이 '개발자'는 오른쪽 개발자 서랍(.dev-dock)과 무관하다 — **만든 사람들 소개 페이지**
+         자리다(사용자 결정 2026-08-01). 페이지가 생기면 이 span 을 <a href> 로 바꾼다. -->
+    <span class="fx-tab" aria-disabled="true" title="만든 사람들 — 준비 중입니다">개발자</span>
   </nav>
   <!-- 진단 배지 4개(네트워크·엔진 상태·판단 모듈·시세 피드)는 개발자 서랍으로 옮겼다 —
        관람자에게는 읽을 이유가 없는 계기판 값이고, 배너가 그것들로 차 있으면 제품명이 묻힌다.

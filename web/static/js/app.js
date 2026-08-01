@@ -111,7 +111,6 @@
     devDrawer: $("[data-dev-drawer]"),
     devToggle: $("[data-dev-toggle]"),
     devSlot: $("[data-dev-slot]"),
-    devTab: $("[data-dev-tab]"),
     btnNotify: $("[data-btn-notify]"),
     toasts: $("[data-toasts]"),
     btnBriefing: $("[data-btn-briefing]"),
@@ -1773,17 +1772,18 @@
      app.js 가 읽는 훅은 전부 살아 있다(빼면 null 참조로 대시보드가 통째로 죽는다).
      ⚠ applyLayout 보다 먼저 옮겨야 한다 — 그리드에 남아 있으면 배치 로직이 도로 끌어온다. */
   let devMode = localStorage.getItem(LAB_KEY) === "1";
-  /* 서랍으로 옮기는 카드들.
-     · session  = 세션 조작부(모드·속도·전략) — 개발/시연용 노브다.
+  /* 서랍으로 옮기는 카드.
      · history  = '지난 세션' 목록. 세션ID·Gemini 비율은 우리 계측 단위라 관람자가 읽을 것이
                   아니다(축④·축② 증거로서의 값은 영상·소개서가 대신 진다).
-     '한도 바꾸기'(AP2 재서명)는 여기 없다 — v11 에서 그리드로 되돌렸다. 예산 한도를 정하는 것은
+     ⚠ session(세션 설정)은 **여기 없다 — v13 에서 그리드로 되돌렸다**(사용자 지시 2026-08-01).
+       시안도 세션 카드를 첫 줄 오른쪽에 보이는 카드로 둔다(design.css 가 span 4 · min-height
+       379 를 그 자리에 맞춰 두었다). 서랍에만 있으면 대시보드를 연 사람이 세션을 시작할 길이
+       화면에 없다. ⚠ 라이브 옵션 잠금(data-lab-only)은 그대로다 — 그건 ?lab=1 로만 풀린다.
+     '한도 바꾸기'(AP2 재서명)도 여기 없다 — v11 에서 그리드로 되돌렸다. 예산 한도를 정하는 것은
      개발용 조작이 아니라 이 제품을 쓰는 사람의 일이고, 그 한도를 코드가 집행하는 것이 제품이다. */
   if (el.devSlot) {
-    for (const sel of ['[data-card="session"]', '[data-card="history"]']) {
-      const card = $(sel);
-      if (card) el.devSlot.appendChild(card);
-    }
+    const card = $('[data-card="history"]');
+    if (card) el.devSlot.appendChild(card);
   }
   /* 검증용 조작부를 켠다 — `?lab=1` 로 들어온 경우와 상단 '개발자' 탭을 누른 경우가 같은 길이다.
      ⚠ 끄는 길은 `?lab=0` 하나로 둔다. 라이브 옵션이 이미 선택된 채로 도로 잠그면 화면이
@@ -1804,21 +1804,14 @@
     el.devDrawer.hidden = !open;
     if (el.devToggle) el.devToggle.setAttribute("aria-expanded", String(open));
     el.devDock.classList.toggle("is-open", open);
-    if (el.devTab) el.devTab.classList.toggle("is-active", open);
   }
   if (devMode) enableDevMode();
   if (el.devToggle) {
     el.devToggle.addEventListener("click", () => setDevDrawer(el.devDrawer.hidden));  // 닫혀 있으면 연다
   }
-  /* 상단 '개발자' 탭 — 세션 설정 카드에 닿는 **화면상의 유일한 경로**다. 이게 없으면
-     주소에 ?lab=1 을 직접 붙일 줄 아는 사람만 세션을 시작할 수 있다. */
-  if (el.devTab) {
-    const toggleDev = () => { enableDevMode(); setDevDrawer(el.devDrawer.hidden); };
-    el.devTab.addEventListener("click", toggleDev);
-    el.devTab.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDev(); }
-    });
-  }
+  /* ⚠ 상단 바의 '개발자' 탭은 이 서랍과 무관하다 — 만든 사람들 소개 페이지 자리다
+     (사용자 결정 2026-08-01). 한때 그 탭에 서랍 열기를 걸었는데, 세션 설정 카드가 그리드로
+     돌아오면서 그럴 이유가 없어졌다. 서랍을 여는 길은 오른쪽 손잡이(.dev-tab)와 ?lab=1 이다. */
   syncAdvOptions();
 
   // ---------- 컨트롤 ----------
@@ -1960,7 +1953,7 @@
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
   /* ⚠ DEFAULT_LAYOUT 을 바꾸면 이 키도 반드시 올린다. 안 올리면 이미 방문한 적 있는
      브라우저(= 촬영용 브라우저 포함)가 localStorage 에 저장된 옛 배치를 계속 쓴다. */
-  const LAYOUT_KEY = "autotrader_layout_v12";  // v12: 시안의 '오늘의 결과' 카드 신설(손익·평가손익·포지션 3장을 대체) — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v13";  // v13: 세션 설정 카드를 개발자 서랍에서 그리드 첫 줄 오른쪽으로 되돌림(시안 배치) — 기존 저장 배치 리셋
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
@@ -1978,7 +1971,8 @@
   // v12 에서 today('오늘의 결과')가 맨 앞에 들어왔다. pnl·valuation·position 은 그 타일
   // 4개로 합쳐져 화면에서 빠지지만(skeleton.css) 배열에는 남긴다 — 훅이 살아 있는 카드라
   // 배치 계산에서 빠지면 applyLayout 이 매번 맨 뒤로 밀어 넣는다.
-  const DEFAULT_LAYOUT = ["today", "pnl", "valuation", "position", "ai",
+  // v13: session 이 today 바로 뒤에 온다 — 시안 첫 줄이 today(span 8) + session(span 4) 이다.
+  const DEFAULT_LAYOUT = ["today", "session", "pnl", "valuation", "position", "ai",
                           "decisions", "log",
                           "price", "symbols",
                           "trades", "budget", "mandate", "briefing"];
