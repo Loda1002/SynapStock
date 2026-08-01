@@ -552,7 +552,7 @@
         </div>
       </div>
 
-      <div class="footnote"><b>재현 명령</b> &nbsp;<span class="mono">curl -i &lt;url&gt;/broker/orders</span> → 402 &nbsp;·&nbsp; <span class="mono">python -m scripts.red_team --report</span> &nbsp;·&nbsp; 온체인 확인 <span class="mono">explorer.solana.com/tx/&lt;sig&gt;?cluster=devnet</span></div>
+      <div class="footnote"><b>재현 명령</b> &nbsp;<span class="mono">curl -i -X POST &lt;url&gt;/broker/orders</span> → 402 <span style="font-size:10px">(본문 3필드 필수 — 전체 명령은 14장)</span> &nbsp;·&nbsp; <span class="mono">python -m scripts.red_team --report</span> &nbsp;·&nbsp; 온체인 확인 <span class="mono">explorer.solana.com/tx/&lt;sig&gt;?cluster=devnet</span></div>
     </div>
     <span class="slide-brand mono">402 GUARD</span>
     <span class="slide-num mono">08 / 14</span>
@@ -739,7 +739,7 @@
         <span class="tag">재현 절차</span>
         <h3>세 줄이면 확인됩니다</h3>
         <ul class="plain" style="margin-top:2mm">
-          <li><b>표준 402 응답</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">curl -i https://synapstock-766888967498.asia-northeast3.run.app/broker/orders</span></li>
+          <li><b>표준 402 응답</b><span class="mono" style="display:block; font-size:10.5px; line-height:1.5; margin-top:2px">curl -i -X POST \<br>https://synapstock-766888967498.asia-northeast3.run.app/broker/orders \<br>&nbsp;&nbsp;-H 'Content-Type: application/json' \<br>&nbsp;&nbsp;-d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200"}'</span></li>
           <li><b>공격·차단 매트릭스</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.red_team --report</span></li>
           <li><b>거부 4종 데모</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.demo_rejections</span></li>
           <li><b>온체인 증빙</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">artifacts/tx/*.json → explorer ?cluster=devnet</span></li>
