@@ -8,6 +8,10 @@
 <!-- theme.css = 색·폰트·간격 변수(스킨). 디자인 시안 수령 시 이 파일 위주로 교체 -->
 <link rel="stylesheet" href="/static/css/theme.css">
 <link rel="stylesheet" href="/static/css/skeleton.css">
+<!-- design.css = 시안 스킨. ⚠ 반드시 skeleton.css 뒤에 와야 한다 — 프런트가 실험장에서
+     skeleton 위에 덮어쓰는 방식으로 만든 파일이라 순서가 곧 결과다(같은 선택자가 양쪽에
+     있는 경우 뒤에 오는 이쪽이 이기는 것이 의도). 글꼴도 여기서 심는다. -->
+<link rel="stylesheet" href="/static/css/design.css">
 <!-- 스크롤 등장 모션. <head> 에서 읽어야 카드가 잠깐 보였다 숨는 깜빡임이 없다.
      이 스크립트가 실패하면 아무것도 숨지 않으므로 화면이 비지 않는다. -->
 <script src="/static/js/reveal.js"></script>
@@ -46,10 +50,10 @@
     <h1>SynapStock</h1>
   </div>
   <nav class="fx-tabs" aria-label="섹션">
+    <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">소개</span>
     <span class="fx-tab is-active">대시보드</span>
-    <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">포트폴리오</span>
-    <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">인사이트</span>
     <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">리포트</span>
+    <span class="fx-tab" aria-disabled="true" title="시안에만 있는 탭 — 아직 화면이 없습니다">개발자</span>
   </nav>
   <!-- 진단 배지 4개(네트워크·엔진 상태·판단 모듈·시세 피드)는 개발자 서랍으로 옮겼다 —
        관람자에게는 읽을 이유가 없는 계기판 값이고, 배너가 그것들로 차 있으면 제품명이 묻힌다.
@@ -202,8 +206,10 @@
        적용된다: 판단 레이어(규칙 게이트)와 청구서 레이어(의미 대조). 둘 다 AI 는 차단만 하고
        통과시키지 못한다. 이 카드는 그 두 레이어가 이번 세션에서 실제로 몇 번 일했는지 보여준다. -->
   <section class="card card-full" data-card="ai">
-    <h2><span class="ci ci-ai" aria-hidden="true"></span>AI 판단 · 청구서 심사 <span class="sub">AI 재량은 멈추는 방향으로만 — 통과 권한은 없다</span></h2>
-    <p class="sub ai-brain">두뇌 <strong data-ai-brain>—</strong></p>
+    <!-- 두뇌 표시는 시안대로 제목 줄 맨 끝 배지다(2026-08-01). ⚠ app.js 는 [data-ai-brain] 을
+         선택자로만 찾아 textContent 를 쓰므로(:342) 자리·태그를 바꿔도 안전하다.
+         p → span 인 이유는 h2 안에 문단이 들어갈 수 없어서다. 훅 속성은 그대로 둘 것. -->
+    <h2><span class="ci ci-ai" aria-hidden="true"></span>AI 판단 · 청구서 심사 <span class="sub">AI 재량은 멈추는 방향으로만 — 통과 권한은 없다</span><span class="sub ai-brain">두뇌 <strong data-ai-brain>—</strong></span></h2>
 
     <div class="ai-layers">
       <div class="ai-layer">

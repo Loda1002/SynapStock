@@ -1,0 +1,1690 @@
+/* =====================================================================
+   design.css — 시안 스킨 (Figma 해커톤_웹디자인 · Desktop-6 / 21:172)
+
+   ⚠ 이 파일은 skeleton.css **뒤에** 실려야 한다. 프런트가 실험장
+   (web/static/lab/lab.css)에서 skeleton.css 위에 덮어쓰는 방식으로 만든 것이라,
+   같은 순서로 실어야 실험장에서 확인한 화면이 그대로 나온다. 같은 선택자가
+   skeleton.css 에도 있는 경우가 있는데(예: .card.is-merging) 뒤에 오는 이 파일이
+   이기는 것이 의도다.
+
+   ⚠ 프런트가 새 lab.css 를 보내면 이 파일을 통째로 갈아 끼운다. 손으로 규칙을
+   골라 옮기지 않는다 — 시안 정밀 조정이라 한 줄만 빠져도 비례가 어긋난다.
+   이식할 때 바꾸는 것은 아래 넷뿐이다:
+     · 실험장 전용 블록 2개 제거(Phantom 아이콘 경로 되잡기 · 조작 바)
+     · @font-face 6개 제거 — theme.css 가 대신 심는다(랜딩은 이 파일을 안 싣기 때문에
+       여기 두면 랜딩만 글꼴이 시스템 폴백으로 떨어진다)
+     · 브랜드 주석의 제품명(실험장 원본은 개명 이전이라 402 Guard 로 적혀 있다)
+     · 머리말을 이 블록으로
+   ===================================================================== */
+
+/* ---- 시안 글꼴 (Pretendard) ----
+   시안은 Pretendard(숫자·라벨)와 Noto Sans KR(한글 문장)을 쓰는데 이 PC 에 둘 다 없어서
+   `--font` 목록이 system-ui 까지 흘러 **맑은 고딕**이 그려지고 있었다. 맑은 고딕 Bold 는
+   같은 700 이라도 획이 굵어 시안보다 두껍게 읽힌다("너무 두꺼워 보임"의 원인 절반).
+
+   Pretendard v1.3.9 공식 배포본(woff2, OFL) 두 벌만 심는다 — Regular(400)·Bold(700).
+   · Noto Sans KR 은 안 심는다: 한글 전체를 담은 웹폰트가 굵기당 수 MB 라 공유본이 감당 못 한다.
+     Pretendard 가 같은 한글 본문을 커버하고 시안의 주 글꼴이라 이쪽으로 통일했다.
+   · 600·800·1000 을 쓰는 곳(플로팅 라벨·로그인 헤드라인·지갑 버튼)은 CSS 글꼴 매칭 규칙에 따라
+     700 면이 선택된다(합성 굵게가 아니다). 그래서 굵기 두 벌로 충분하다.
+   ⚠ 파일은 lab/fonts/ 에 있다 — 이 폴더는 gitignore 라 저장소·배포본에 들어가지 않는다.
+   ⚠ 공유본(bundle.py)은 이 두 파일을 data URI 로 심는다. 경로만 바꾸면 공유본에서 404 가 난다. */
+/* ⚠ 전체본(748/773KB)이 아니라 **subset 본(261/264KB)** 을 쓴다. 전체본을 공유본에 심었더니
+   문서의 85%가 base64(ASCII)가 되면서 브라우저의 인코딩 추측이 EUC-KR 로 뒤집혀
+   **한글이 한자로 깨졌다**(2026-08-01). charset 을 선언해 원인은 닫았지만, 추측을 흔든
+   덩치 자체도 함께 줄였다. subset 본은 KS X 1001 상용 한글 2,350자 + 라틴을 담는다 —
+   화면에 쓰는 한글은 전부 이 범위 안이라는 것을 글자 단위로 확인했다(README 참조). */
+
+/* ---- 시안 글꼴 ② Noto Sans KR (문장용) ----
+   시안은 **두 벌을 나눠 쓴다** — 숫자·라벨은 Pretendard, 사람이 읽는 문장은 Noto Sans KR 이다
+   (`get_design_context` 로 확인: 헤드라인·날짜·배너 제목/부제/버튼·타일 단위/서브가 전부
+   `font-['Noto_Sans_KR:…']`). 두 글꼴은 **문장부호가 다르다** — 4배 확대 대조에서
+   쉼표가 Noto 는 곧은 쐐기, Pretendard 는 꼬리가 말린 모양이고 마침표도 각진 사각 vs 원이다.
+   그래서 문장까지 Pretendard 로 두면 시안과 쉼표 모양이 어긋난다(사용자 지적).
+
+   한글본 529/546KB + 라틴본 13/13KB. 라틴본을 빼면 안 된다 — **쉼표·마침표가 라틴 영역**이라
+   그것만 Pretendard 로 떨어져 지적받은 문제가 그대로 남는다.
+   unicode-range 를 달아 글자마다 필요한 파일만 쓰게 한다. */
+
+/* =====================================================================
+   ▼▼▼ 여기부터 자유롭게 실험하세요 ▼▼▼
+   ===================================================================== */
+
+/* =====================================================================
+   시안 스킨 — 해커톤_웹디자인 (Figma, Desktop - 6 / 21:172)
+
+   값 출처는 전부 시안 노드에서 직접 읽은 것이다(변수·스타일이 등록돼 있지
+   않아 적용된 값을 노드별로 읽었다). 파생값에는 "파생" 이라고 적어 뒀다.
+   theme.css 는 손대지 않는다 — 확정되면 그때 옮긴다.
+   ===================================================================== */
+:root {
+  /* 바탕 — 연보라 회색 위에 흰 카드가 그림자로 뜬다 */
+  --bg: #f4f5fc;            /* 페이지 배경 (KPI 타일 배경과 같은 색) */
+  --card-bg: #ffffff;
+  --text: #000000;          /* 시안은 제목·큰 숫자에 순수 검정을 쓴다 */
+  --muted: #8f96af;         /* 작은 보조 문구 12px */
+  --border: #e9ebf5;        /* 파생 — 시안 카드에는 테두리가 없고 그림자만 쓴다 */
+
+  /* 포인트 */
+  --accent: #5d4ef1;        /* 로고·활성 탭·지갑 버튼·강조 문구 */
+  --danger: #ff3057;        /* 긴급정지 */
+  --ok: #00bb82;            /* 막았어요·실현이익 */
+  --warn: #d97706;          /* 파생 — 시안에 경고 글자색이 없다(칩 배경 #fff2da 만 있음) */
+
+  --buy: #00bb82;
+  --sell: #ff3057;
+
+  /* 타이포 — 시안은 숫자·라벨 Pretendard Bold, 본문 Noto Sans KR */
+  --font: "Pretendard", "Noto Sans KR", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+  --fs-base: 14px;          /* 탭·버튼·표 */
+  --fs-big: 32px;           /* KPI 큰 숫자 */
+  --fs-small: 12px;
+
+  /* 형태 — 카드 18 / 타일 14 / 버튼 10~11 */
+  --radius: 18px;
+  --gap: 24px;              /* 카드 사이 (시안 실측: 배너→본문 24, 좌우 카드 24) */
+  /* Desktop-6(콘텐츠 1280) → Desktop-8 여백(콘텐츠 1098) 축소 배율.
+     ⚠ 두 시안은 **세로 치수가 완전히 같고 가로만 이 배율만큼 다르다** — 상단바 66 ·
+     배너 88 · AI 묶음 740 · 오늘 379 · 시세 392 · 예산 338 이 양쪽 모두 같고, 폭만
+     1280 → 1098 이다(디자이너가 여백을 넣으면서 가로만 좁아진 것). 그래서 폭만 좁히면
+     배너가 시안보다 두툼해 보인다(1280:88 = 14.5:1 → 1098:88 = 12.5:1).
+     디자인 요구는 "여백은 Desktop-8, 안쪽 비율은 Desktop-6" 이므로 안쪽 전체를 이
+     배율로 줄인다. 적용 지점은 아래 body.page-dashboard 의 zoom 한 곳뿐이다 —
+     낱개 치수(글자·아이콘·버튼·높이)에 배율을 흩뿌리면 빠뜨리는 곳이 반드시 생긴다. */
+  --d6-scale: 0.8578125;    /* 1098 / 1280 */
+  --pad: 24px;              /* 카드 안쪽 */
+  /* 좌우 여백 — 최신 시안(Desktop - 8): 콘텐츠 1098px, 좌우 171px (1440 기준).
+     이전 변형(Desktop - 6)은 1280px / 80px 였다. 둘은 색·모서리·그림자가 전부 같고
+     폭만 다르다.
+
+     "1098px 를 가운데 두고 남는 만큼이 여백" 을 그대로 식으로 옮겼다 —
+     1440 에서 정확히 171px 이 되고, 좁아지면 16px 까지 줄었다가 멈춘다.
+     max-width 로 본문을 묶지 않는 이유: .slim-bar(얇은 헤더)와 .guard-dock 은
+     fixed 라 본문 폭을 안 따라간다. 셋이 같은 --page-pad 를 보게 두어야 정렬이 맞는다. */
+  /* ⚠ 위쪽 상한(171px)을 두지 않는다. 상한이 있으면 1440 보다 넓은 화면에서 콘텐츠가
+     1098 을 넘어 계속 늘어난다(1920 에서 1578px). 글자 크기는 고정이라 화면이 넓을수록
+     "글자만 작고 카드만 넓은" 화면이 되어 시안과 비율이 어긋난다. 상한을 없애면
+     1440 이상에서도 콘텐츠가 시안과 같은 1098 로 고정된다. */
+  --page-pad: max(16px, calc((100vw - 1098px) / 2));
+
+  /* 그림자 — 시안 카드값 그대로 */
+  --shadow: 0 4px 20px rgba(0, 0, 0, .05);
+  --shadow-hover: 0 6px 28px rgba(0, 0, 0, .09);   /* 파생 */
+}
+
+/* 다크 — 시안에 다크 팔레트가 없어 라이트에서 유도했다(저장소 기존 방침).
+   색상은 시안 색조를 유지하고 명도만 뒤집었다. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14151d;          --card-bg: #1c1e28;
+    --text: #f2f3f7;        --muted: #9299b3;      --border: #2b2e3c;
+
+    --accent: #8b7dff;      --danger: #ff5c7a;     --ok: #2fd69b;    --warn: #f0b429;
+    --buy: #2fd69b;         --sell: #ff5c7a;
+
+    --shadow: 0 4px 20px rgba(0, 0, 0, .45);
+    --shadow-hover: 0 6px 28px rgba(0, 0, 0, .6);
+  }
+}
+
+/* ---- Phantom 지갑 버튼은 시안 적용 대상에서 제외(사용자 지시) ----
+   버튼 색은 자체 --wallet-* 변수라 이미 테마와 무관하지만, 헤더 변형 두 개가
+   모서리만 var(--radius) 를 따라간다. --radius 가 16→18 로 바뀌었으므로
+   기존 값으로 못 박아 지금 모습 그대로 유지한다. */
+.btn-wallet-sm, .btn-wallet-xs { --wallet-radius: 16px; }
+
+
+/* ---- Desktop-6 비례 (2026-08-01) ----
+   콘텐츠 묶음 전체를 --d6-scale 로 줄여 Desktop-6 의 축소판으로 만든다.
+   여백(좌우 171px)은 화면 실제 픽셀로 유지해야 하므로 --page-pad 를 배율로 나눠
+   zoom 을 되돌려 준다 — 1440 에서 콘텐츠는 그대로 1098 이고, 그 안의 배너·글자·
+   버튼만 0.8578 배가 된다(실측: 배너 1097.8×75.49 · 아이콘 41.17 · 자세히 보기 117.8×41.17).
+
+   ⚠ zoom 을 쓰는 이유: transform:scale 은 배치에 반영되지 않아 폭을 따로 보정해야 하고
+   fixed 요소가 어긋난다. zoom 은 배치까지 같이 줄어서 얇은 헤더·토스트·조작 바가
+   제자리를 지킨다(실측 확인).
+
+   ⚠ 1100px 이하에서는 걸지 않는다. 그 아래는 카드가 1열로 접혀 시안 배치 자체가
+   아니라(바로 아래 @media max-width:1100 참조) 비율을 맞출 대상이 없고, 글자만
+   14% 작아져 읽기가 나빠진다. */
+@media (min-width: 1101px) {
+  body.page-dashboard {
+    zoom: var(--d6-scale);
+    --page-pad: calc(max(16px, (100vw - 1098px) / 2) / var(--d6-scale));
+  }
+}
+
+
+/* =====================================================================
+   시안 배치 (Desktop - 8) — 여기부터는 색이 아니라 '구조'다.
+
+   지키는 것 두 가지(사용자 지시):
+     · 스크롤 시 내려오는 얇은 헤더(.slim-bar) — 손대지 않는다
+     · Phantom 지갑 버튼(.btn-wallet) — 손대지 않는다
+   ===================================================================== */
+
+/* ---- 그리드: 4열 → 12열 ----
+   시안 실측 비율을 12열로 옮기면 딱 떨어진다.
+     오늘의 결과 8 / 세션 4 · AI 12 · 타임라인 6 / 로그 6 · 시세 6 / 거래내역 6
+     · 예산 4 / 한도 4 / 브리핑 4
+   카드는 전부 .grid 의 직계 자식으로 둔다 — app.js 의 applyLayout 이 순서를 다시
+   매기면서 grid 바로 아래로 붙이기 때문에, 행 래퍼로 감싸면 도로 끄집어내진다. */
+/* 간격은 skeleton 의 gap: var(--gap)(=24) 을 그대로 쓴다 — 가로만 따로 줄이던
+   --gap-x 는 위 zoom 이 전체를 줄이므로 이중 축소가 된다(24 → 17.7). */
+.grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.grid > [data-card] { grid-column: span 12; }      /* 기본값 — .card-full/.card-wide 를 덮는다 */
+.grid > [data-card="today"]    { grid-column: span 8; }
+.grid > [data-card="session"]  { grid-column: span 4; }
+.grid > [data-card="ai"]       { grid-column: span 12; }
+.grid > [data-card="decisions"],
+.grid > [data-card="log"],
+.grid > [data-card="price"],
+.grid > [data-card="trades"]   { grid-column: span 6; }
+.grid > [data-card="budget"],
+.grid > [data-card="mandate"],
+.grid > [data-card="briefing"] { grid-column: span 4; }
+
+/* 시안에 없는 카드 — DOM 에는 남긴다(app.js 가 훅을 계속 쓴다), 화면에서만 뺀다.
+   pnl·valuation·position 은 '오늘의 결과' 타일 4개로 합쳐졌다. */
+.grid > [data-card="pnl"],
+.grid > [data-card="valuation"],
+.grid > [data-card="position"],
+.grid > [data-card="history"],
+.dev-dock { display: none !important; }
+
+@media (max-width: 1100px) {
+  .grid > [data-card] { grid-column: span 12 !important; }
+}
+
+/* ---- 상단 바 ---- */
+.topbar {
+  padding: 0 26px; min-height: 66px; gap: 34px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .06); border: 0;
+  flex-wrap: nowrap;
+}
+.fx-brand { display: flex; align-items: center; gap: 11px; flex: none; }
+.fx-logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); flex: none; }
+.brand h1 { font-size: 18px; font-weight: 700; }
+
+.fx-tabs { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.fx-tab {
+  padding: 8px 14px; border-radius: 10px;
+  font-size: 14px; font-weight: 700; color: #5b617a; white-space: nowrap;
+}
+.fx-tab.is-active { background: #edebff; color: var(--accent); }
+.fx-tab[aria-disabled="true"] { opacity: .75; cursor: not-allowed; }
+
+.topbar .controls { gap: 10px; flex-wrap: nowrap; }
+/* 긴급정지·알림은 시안의 알약 칩 모양으로. 지갑 버튼은 제외한다. */
+.topbar .controls .btn {
+  padding: 10px 15px; border-radius: 11px; border: 0;
+  font-size: 14px; font-weight: 700; white-space: nowrap;
+}
+.topbar .controls .btn-emergency { background: #ffe8ec; color: var(--danger); }
+.topbar .controls .btn-emergency::before {
+  content: ""; display: inline-block; vertical-align: -1px;
+  width: 9px; height: 9px; margin-right: 6px; border-radius: 50%;
+  background: var(--danger); opacity: .35;
+}
+.topbar .controls [data-btn-notify] { background: #ececec; color: var(--text); }
+
+/* ---- 402 Guard 배너 (시안: 본문 맨 위 보라색 가로 바) ----
+   app.js 는 여전히 이걸 '떠 있는 dock' 으로 취급해 스크롤마다 인라인 top 을 쓴다.
+   position:static 이면 top 은 아무 효과가 없어서 그대로 흐름에 놓인다. */
+.fx-banner-wrap {
+  position: static; width: auto; right: auto; top: auto;
+  display: block; margin-bottom: var(--gap);
+}
+.fx-banner {
+  display: flex; align-items: center; gap: 22px;
+  padding: 20px 24px; border: 0; border-radius: var(--radius);
+  background: linear-gradient(90deg, #6d5cf9 0%, #8f6efd 100%);
+  box-shadow: 0 10px 30px rgba(91, 79, 233, .28);
+  max-height: 200px;
+}
+.fx-banner-icon { width: 48px; height: 48px; border-radius: 14px; background: #8a7afc; flex: none; }
+.fx-banner-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+/* ⚠ 선택자를 `.fx-banner` 로 한 겹 감싼다. `.fx-banner-title`(0,1,0) 혼자서는
+   skeleton 의 `.guard-panel h2 { font-size: var(--fs-base) }`(0,1,1)에 져서
+   18px 을 써 놓고도 화면에는 **14px 로 그려지고 있었다**(실측). 시안(2003:548)은
+   18px Bold · line-height 1.45 다. */
+/* ⚠ 줄높이는 1.45(=26.1px)가 아니라 **20px** 이다. 시안의 leading 값은 1.45 지만 그 글상자의
+   실제 높이는 20 이다(= 글자를 상자 밖으로 넘치게 둔 상태). 화면에서 자리를 차지하는 것은
+   글상자 쪽이라 1.45 를 그대로 쓰면 배너가 시안 88 대신 92 가 된다. */
+.fx-banner .fx-banner-title {
+  margin: 0; font-size: 18px; line-height: 20px; font-weight: 700; color: #fff;
+}
+.fx-banner-hl { color: #ffe167; }
+/* 시안(2003:551): 12px Regular · 글상자 높이 20 (제목과 같은 이유로 1.45 대신 20px) */
+.fx-banner .fx-banner-sub {
+  margin: 0; font-size: 12px; line-height: 20px; color: #fff;
+  display: flex; align-items: center; flex-wrap: wrap;
+}
+.fx-banner-sub .fx-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: .8;
+  margin-right: 6px; flex: none;
+}
+.fx-banner-leak { color: #a4ffe5; }
+.fx-banner-legs { opacity: .85; }
+/* 차단 상세 한 줄은 시안에 없다 — 배너 높이를 88px 로 못 박는 요소라 화면에서 뺀다.
+   DOM 에는 남긴다(app.js 가 여기에 글자를 쓴다). 차단 사유를 읽는 길은 시안이 정한
+   그대로 '자세히 보기' → 결제 로그다. skeleton 의 .guard-hit{display:flex} 가
+   .hidden 을 이기므로 여기서 확실히 눌러 둔다. */
+.fx-banner-hit { display: none !important; }
+.fx-banner-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+
+/* ---- 접힌 배너를 다시 여는 손잡이 ----
+   평소에는 없는 셈 치고, 패널이 접혔을 때만 그 자리에 나타난다. 배너와 같은 자리·같은
+   보라색이라 열고 닫아도 아래 카드들이 밀리지 않는다(높이 44 + 배너 margin 그대로). */
+.fx-banner-reopen { display: none; }
+.fx-banner-wrap:has(.guard-panel.is-collapsed) .fx-banner-reopen {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 12px 20px;
+  border: 0; border-radius: var(--radius);
+  background: linear-gradient(90deg, #6d5cf9 0%, #8f6efd 100%);
+  box-shadow: 0 6px 18px rgba(91, 79, 233, .22);
+  font: inherit; font-size: 14px; font-weight: 700; color: #fff;
+  cursor: pointer;
+}
+.fx-banner-reopen-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #ffe167; flex: none;
+}
+.fx-banner-reopen-chev { margin-left: auto; }
+.fx-banner-wrap:has(.guard-panel.is-collapsed) .fx-banner-reopen:hover {
+  box-shadow: 0 8px 22px rgba(91, 79, 233, .34);
+}
+/* :has() 를 모르는 브라우저에서는 손잡이가 안 뜬다 — 그때만 늘 보이게 되돌린다
+   (닫아도 다시 열 수 있는 길이 사라지지 않게). */
+@supports not selector(:has(*)) {
+  .fx-banner-reopen { display: flex; }
+}
+.fx-banner-btn, .fx-banner-close {
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  padding: 11px 17px; border: 0; border-radius: 11px; white-space: nowrap;
+}
+.fx-banner-btn { background: #fff; color: #483ace; }
+.fx-banner-close { background: #a284ff; color: #fff; position: static; }
+
+/* ---- 오늘의 결과 ---- */
+.fx-today { display: flex; flex-direction: column; gap: 32px; }
+/* Desktop-6 실측: Noto Sans KR 12px · 글상자 797×14. 기본 줄높이(1.5=18px)로 두면 4px 이
+   늘어 아래 헤드라인이 그만큼 밀린다. */
+.fx-today-date { margin: 0; font-size: var(--fs-small); line-height: 14px; color: #9096ad; }
+/* Desktop-6 실측: Noto Sans KR Bold · 24px · line-height 34px (글상자 797×68 = 두 줄).
+   ⚠ 22px 는 Desktop-8 값이다. Desktop-8 은 폭만 좁힌 것이 아니라 글자도 함께 줄인
+   시안이라(24→22), 그 값을 쓰면 "여백은 D8·비율은 D6" 요구와 어긋난다. */
+.fx-today-line { margin: 0; font-size: 24px; line-height: 34px; font-weight: 700; color: var(--text); }
+.fx-today-line .fx-em { color: var(--accent); }
+.fx-today-line .fx-ok { color: var(--ok); }
+
+.fx-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: auto; }
+.fx-tile { background: var(--bg); border-radius: 14px; padding: 16px; min-width: 0; }
+.fx-tile-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--fs-small); font-weight: 700; color: #5b617a; white-space: nowrap;
+}
+.fx-chip { width: 30px; height: 30px; border-radius: 8px; flex: none; }
+.fx-chip-violet { background: #edebff; }
+.fx-chip-mint   { background: #dff9f1; }
+.fx-chip-blue   { background: #e6f1ff; }
+.fx-chip-amber  { background: #fff2da; }
+/* 숫자는 자르지 않는다 — 시안 값(100.00)보다 자릿수가 긴 실제 값이 들어오면
+   타일 폭(약 158px)을 넘는데, 잘라 버리면 금액을 못 읽는다. 단위가 다음 줄로 내려간다. */
+/* Desktop-6 실측: Pretendard Bold · 32px · 글상자 높이 38 (`100.00 USDC` 146×38).
+   ⚠ 24px / line-height 1.2 는 Desktop-8 값이었다. Desktop-8 은 폭만 좁힌 시안이 아니라
+   글자까지 줄인 시안이라(32→24, 타일 130→121), 그걸 따르면 타일이 세로로 납작해지고
+   총자산·손익 숫자가 시안보다 작아 보인다(사용자 지적). line-height 를 38px 로 못 박으면
+   타일이 정확히 130 이 된다 — 16(위) + 30(라벨줄) + 8 + 38(숫자) + 8 + 14(서브) + 16(아래). */
+.fx-tile-num {
+  margin: 8px 0 0; font-size: var(--fs-big); font-weight: 700; color: var(--text);
+  line-height: 38px; overflow-wrap: anywhere;
+}
+/* ⚠ 단위(USDC)의 줄높이를 1 로 눌러 둔다. 위에서 줄높이를 38px 로 못 박아도, 같은 줄에
+   섞인 12px 글자는 32px 글자와 **베이스라인이 달라** 제 인라인 상자가 줄상자를 아래로
+   7.5px 밀어낸다(실측: 38 이 아니라 45.46 → 타일 130 대신 137.46). 단위만 줄높이 1 로
+   두면 32px 글자의 상자가 줄상자를 지배해 정확히 38 이 된다.
+   flex+baseline 로도 같은 값이 나오지만, 그러면 자릿수가 긴 숫자에서 단위가 다음 줄로
+   내려가지 못한다(아래 overflow-wrap 주석 참조) — 그래서 인라인을 유지한다. */
+.fx-tile-num .unit { font-size: var(--fs-small); font-weight: 400; color: var(--muted); line-height: 1; }
+.fx-num-ok { color: var(--ok); }
+/* line-height 14 는 Desktop-6 도 같다(글상자 89×14). 기본 1.5(=18px)로 두면 4px 이 는다. */
+.fx-tile-sub { margin: 8px 0 0; font-size: var(--fs-small); line-height: 14px; color: var(--muted); }
+
+/* ---- 카드 제목 앞 작은 사각 (시안이 모든 카드 제목에 붙인 표식) ---- */
+.grid > .card > h2::before {
+  content: ""; display: inline-block; vertical-align: -6px;
+  width: 26px; height: 26px; margin-right: 10px; border-radius: 8px;
+  background: #edebff;
+}
+/* Desktop-6 실측: Noto Sans KR Bold · 16px · line-height 20 (`AI 판단 · 청구서 심사` 143×20).
+   15px 은 Desktop-8 값이다(위 .fx-today-line 과 같은 이유로 되돌렸다).
+   ⚠ 선택자가 둘인 이유는 아래 정렬 규칙과 같다 — 시세 카드의 h2 만 카드의 직계 자식이
+   아니라 `.price-head` 안에 한 겹 더 들어가 있어서, 앞 선택자만 두면 그 카드 하나만
+   skeleton 기본값(14px)으로 남는다(실측으로 실제 그랬다). */
+.grid > .card > h2,
+.grid .card h2:has(.ci) { font-size: 16px; line-height: 20px; font-weight: 700; }
+/* 제목 옆 설명은 굵게 하지 않는다(시안도 회색 보통 굵기다). h2 가 700 이라
+   가만 두면 물려받아 같이 굵어진다 — .ai-layer h3 .sub 가 이미 같은 처리를 하고 있다. */
+.grid > .card > h2 .sub,
+.grid .card h2:has(.ci) .sub { font-weight: 400; }
+
+
+/* =====================================================================
+   시안 대조 — 판단 타임라인 · 결제 로그 · 거래 내역 (Desktop - 8)
+
+   시안의 배지는 "진한 배경 + 흰 글자"가 아니라 **연한 틴트 배경 + 같은 계열
+   진한 글자**다. 저장소 기본값(skeleton.css 의 .src)은 전자라서 화면이 통째로
+   달라 보였다. 아래 칩 토큰이 그 대조표다 — 값은 전부 시안 노드에서 직접 읽었고,
+   시안에 표본이 없는 것만 "파생"으로 적었다.
+
+   구조도 두 군데 다르다(색만으로는 못 맞춘다):
+     · 타임라인 : 출처 enum 글자 배지 → **왼쪽 16px 점**, 가격은 오른쪽 끝,
+                  사유는 다음 줄. 점 색을 푸는 것이 제목 옆 범례 칩이다.
+     · 결제 로그 : 맨 앞 "[태그]" 가 본문에 섞여 있던 것 → **회색 배지**로 분리.
+   조각을 나누는 일은 app.js 몫인데 본 파일이라 못 고친다 → mock.js 가 app.js 가
+   그린 줄을 시안 구조로 다시 짠다(내용은 그대로). 여기서는 색·모양만 입힌다.
+   ===================================================================== */
+:root {
+  --fx-body: #5b617a;        /* 시안 본문 회색 — 표 셀·타임라인 글자 */
+  --fx-line: #eceef7;        /* 구분선 (Line 21 / Line 30 stroke) */
+
+  --fx-chip-bg: #ececec;     --fx-chip-fg: #8f96af;   /* 중립 칩 — HOLD·프로토콜·rule */
+  --fx-gemini-bg: #edebff;   --fx-gemini-fg: #695cf4;
+  --fx-rule-bg: #f4f5fc;     --fx-rule-fg: #5b617a;   /* 범례 칩의 rule (표 칩은 중립) */
+  --fx-layer-bg: #f4f5fc;    /* AI 카드의 두 레이어 박스 (Frame 26/27 fill) */
+  --fx-fallback-bg: #fff2da; --fx-fallback-fg: #ff9a00;
+  --fx-buy-bg: #dff9f1;      --fx-buy-fg: #00bb82;
+  --fx-sell-bg: #ffe8ec;     --fx-sell-fg: #ff3057;
+  /* 파생 — 시안 표본에 없는 두 출처. 기존 --badge-* 색조를 같은 틴트 문법으로 옮겼다. */
+  --fx-gate-bg: #fdeaf3;     --fx-gate-fg: #b4356b;
+  --fx-dca-bg: #e6f1ff;      --fx-dca-fg: #0f7ea8;
+
+  /* 점 색 = 판단 출처 (시안 Ellipse 6: #5D4EF1 / #8F96AF) */
+  --fx-dot-gemini: #5d4ef1;
+  --fx-dot-rule: #8f96af;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fx-body: #b9c0d6;      --fx-line: #2b2e3c;
+    --fx-chip-bg: #2b2e3c;   --fx-chip-fg: #9299b3;
+    --fx-gemini-bg: #2e2a55; --fx-gemini-fg: #b3a8ff;
+    --fx-rule-bg: #262936;   --fx-rule-fg: #b9c0d6;
+    --fx-layer-bg: #232634;
+    --fx-fallback-bg: #3d3218; --fx-fallback-fg: #f0b429;
+    --fx-buy-bg: #14382e;    --fx-buy-fg: #2fd69b;
+    --fx-sell-bg: #3d1f28;   --fx-sell-fg: #ff5c7a;
+    --fx-gate-bg: #3a2030;   --fx-gate-fg: #e07aa8;
+    --fx-dca-bg: #16303d;    --fx-dca-fg: #4fb4dc;
+    --fx-dot-gemini: #8b7dff;
+    --fx-dot-rule: #9299b3;
+  }
+}
+
+/* 이 둘은 시안에서 AI 카드 안의 소제목이라 앞의 26px 사각이 없다. */
+.grid > [data-card="decisions"] > h2::before,
+.grid > [data-card="log"] > h2::before { display: none; }
+
+/* ---- 제목 옆 범례 칩 ---- */
+.fx-legend {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-left: 8px; vertical-align: middle;
+}
+.fx-legend .src {
+  margin: 0; padding: 3px 8px; border-radius: 6px;
+  font-size: 12px; font-weight: 400; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+.fx-legend .src-gemini        { background: var(--fx-gemini-bg);   color: var(--fx-gemini-fg); }
+.fx-legend .src-rule          { background: var(--fx-rule-bg);     color: var(--fx-rule-fg); }
+.fx-legend .src-rule-fallback { background: var(--fx-fallback-bg); color: var(--fx-fallback-fg); }
+.fx-legend .src-rule-gate     { background: var(--fx-gate-bg);     color: var(--fx-gate-fg); }
+.fx-legend .src-dca           { background: var(--fx-dca-bg);      color: var(--fx-dca-fg); }
+
+/* ---- AI 판단 타임라인 ---- */
+[data-card="decisions"] .feed { gap: 16px; }
+[data-card="decisions"] .feed li {
+  display: flex; flex-wrap: wrap; align-items: center;
+  column-gap: 8px; row-gap: 4px;
+  padding: 0; border-bottom: 0;
+  font-size: 14px; color: var(--fx-body);
+}
+/* 출처 배지 → 왼쪽 점. 글자는 지우지 않고 감춘다(DOM 에는 enum 이 그대로 남아
+   거래표·범례와 눈으로 대조할 수 있다 — 축② 증거를 잃지 않는다). */
+[data-card="decisions"] .feed li > .src {
+  order: -1; flex: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  margin: 0 8px 0 0; padding: 0;
+  font-size: 0; color: transparent;
+  background: var(--fx-dot-rule);
+}
+[data-card="decisions"] .feed li > .src-gemini        { background: var(--fx-dot-gemini); }
+[data-card="decisions"] .feed li > .src-rule          { background: var(--fx-dot-rule); }
+[data-card="decisions"] .feed li > .src-rule-fallback { background: var(--fx-fallback-fg); }
+[data-card="decisions"] .feed li > .src-rule-gate     { background: var(--fx-gate-fg); }
+[data-card="decisions"] .feed li > .src-dca           { background: var(--fx-dca-fg); }
+
+[data-card="decisions"] .feed time {
+  flex: none; margin: 0; font-family: inherit;
+  font-size: 12px; color: var(--muted);
+}
+[data-card="decisions"] .feed .sym { flex: none; font-size: 12px; }
+[data-card="decisions"] .feed .act {
+  flex: none; margin: 0;
+  padding: 3px 9px; border-radius: 7px;
+  font-size: 12px; font-weight: 700; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+[data-card="decisions"] .feed .act-buy  { background: var(--fx-buy-bg);  color: var(--fx-buy-fg); }
+[data-card="decisions"] .feed .act-sell { background: var(--fx-sell-bg); color: var(--fx-sell-fg); }
+[data-card="decisions"] .feed .act-hold { background: var(--fx-chip-bg); color: var(--fx-chip-fg); }
+
+/* 아래 둘은 mock.js 가 "@가격 — 사유" 한 덩어리에서 갈라 낸 조각이다. */
+.fx-at { flex: none; margin-left: auto; font-size: 14px; color: var(--fx-body); }
+/* 들여쓰기는 margin 이 아니라 padding 이다 — flex-basis 100% 에 바깥 여백을 더하면
+   그만큼 줄이 넘쳐 피드에 가로 스크롤바가 생긴다(실제로 생겼다). */
+.fx-reason {
+  flex: 0 0 100%; box-sizing: border-box;
+  margin: 0; padding-left: 32px;        /* 32 = 점 16 + 간격 16 */
+  font-size: 14px; line-height: 20px; color: var(--fx-body);
+}
+
+/* ---- 결제 과정 로그 ---- */
+[data-card="log"] .feed { gap: 0; }
+/* flex-start 인 이유: 실제 로그는 시안 표본과 달리 두세 줄로 접힌다(가드 차단 줄이 특히
+   길다). center 로 두면 시각·배지가 접힌 본문 한가운데로 내려가 줄머리가 어긋난다. */
+[data-card="log"] .feed li {
+  display: flex; flex-wrap: wrap; align-items: flex-start;
+  column-gap: 9px; row-gap: 2px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--fx-line);
+  font-size: 12px; color: var(--fx-body);
+}
+[data-card="log"] .feed li:last-child { border-bottom: 0; }
+[data-card="log"] .feed time {
+  flex: none; margin: 0; font-family: inherit;
+  font-size: 12px; line-height: 20px; color: var(--muted);
+}
+/* 프로토콜 배지 — mock.js 가 본문 맨 앞 "[태그]" 에서 떼어 낸다. */
+.fx-tag {
+  flex: none; white-space: nowrap;
+  margin-top: -2px;                    /* 24px 배지를 20px 첫 줄 가운데에 맞춘다 */
+  padding: 2px 7px; border-radius: 5px;
+  font-size: 12px; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+[data-card="log"] .feed li > span:not(.fx-tag) { flex: 1 1 0; min-width: 0; line-height: 20px; }
+
+/* 세션 경계 줄은 플렉스 배치에서 빠진다(가운데 정렬이 목적인 줄이라). */
+[data-card="decisions"] .feed li.session-divider,
+[data-card="log"] .feed li.session-divider {
+  display: block; text-align: center; padding: 4px 2px;
+  border-bottom: 1px solid var(--fx-line);
+}
+
+/* ---- 거래 내역 ---- */
+[data-card="trades"] table { font-size: 14px; }
+[data-card="trades"] th,
+[data-card="trades"] td {
+  padding: 14px 8px; text-align: center;
+  border-bottom: 1px solid var(--fx-line);
+  color: var(--fx-body);
+}
+[data-card="trades"] th { font-size: 12px; font-weight: 400; color: var(--fx-body); }
+[data-card="trades"] td.sym { font-weight: 400; }
+/* 시안에 '상태' 열이 없다. 지우지는 않는다 — 이 한 줄만 지우면 도로 나온다.
+   (tx 두 열은 skeleton 이 이미 라이브에서만 보여 준다.) */
+[data-card="trades"] th:nth-child(9),
+[data-card="trades"] td:nth-child(9) { display: none; }
+
+/* 방향 = 점 + 글자 알약. mock.js 가 칸 안 글자를 span 으로 감싼다. */
+[data-card="trades"] td.side-buy,
+[data-card="trades"] td.side-sell { font-weight: 400; }
+.fx-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 12px; font-weight: 400; line-height: 20px;
+}
+.fx-pill::before {
+  content: ""; flex: none;
+  width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+}
+[data-card="trades"] td.side-buy  .fx-pill { background: var(--fx-buy-bg);  color: var(--fx-buy-fg); }
+[data-card="trades"] td.side-sell .fx-pill { background: var(--fx-sell-bg); color: var(--fx-sell-fg); }
+
+/* =====================================================================
+   세션이 도는 동안 화면이 흔들리지 않게 — 카드 높이를 고정한다.
+
+   증상(공유본 녹화 실측): 체결이 찍힐 때마다 본문이 **위로 82px 튀었다가
+   0.1초 뒤 도로 내려온다**. 15초에 10번. 공유본은 iframe 안에서 열리고 그
+   iframe 높이가 문서 높이를 따라가므로, **문서 높이가 조금만 변해도 바깥
+   페이지의 스크롤이 그만큼 밀린다** — 그게 "위아래 요동"의 정체다.
+
+   그래서 높이가 변할 수 있는 카드를 전부 "고정 높이 + 안쪽 스크롤"로 바꾼다.
+   내용이 늘어도 카드 안에서만 흐르므로 문서 높이가 한 번도 안 변한다.
+   덤으로 거래 내역이 카드를 꽉 채운다(전에는 표가 340px 에서 멈춰 아래가 비었다).
+   ===================================================================== */
+/* 451 = 시안 AI 묶음 740 − 위 AI 카드 289(실측). 두 조각은 음수 마진으로 붙어 있어
+   그리드 간격이 상쇄되므로 둘을 그냥 더하면 묶음 높이가 된다(420 이던 시절 709). */
+.grid > [data-card="decisions"],
+.grid > [data-card="log"] { height: 451px; }
+
+[data-card="decisions"],
+[data-card="log"],
+[data-card="trades"] { display: flex; flex-direction: column; }
+
+/* 피드는 자기 몫의 남은 높이를 그대로 쓴다(고정 300px 대신).
+   min-height:0 이 없으면 플렉스 자식이 내용 높이 아래로 안 줄어 카드를 밀어낸다.
+   오른쪽 여백은 스크롤바 자리와 글자 사이를 띄우려는 것이다 — 없으면 타임라인의
+   `@가격` 이 스크롤바에 딱 붙는다(줄 오른쪽 끝에 붙는 유일한 조각이라 특히 눈에 띈다). */
+[data-card="decisions"] .feed,
+[data-card="log"] .feed { height: auto; flex: 1 1 0; min-height: 0; padding-right: 12px; }
+
+/* 거래 내역 — 표가 카드 높이를 꽉 채운다(빈 아래 여백 제거 · 한 번에 더 많이 보인다).
+   basis 를 auto 가 아니라 0 으로 둔다 — auto 면 표 내용이 카드 높이를 밀어 올려서
+   행이 쌓일 때마다 카드가 커진다(고치려던 요동이 그대로 돌아온다).
+   0 이면 카드 높이는 옆 시세 카드가 정하고 표는 남는 자리를 채운다. */
+[data-card="trades"] .table-wrap { flex: 1 1 0; min-height: 0; max-height: none; }
+
+/* 내용이 계속 갈리는 스크롤 영역에서는 브라우저의 스크롤 앵커 보정을 끈다 —
+   보정이 들어가면 갱신할 때마다 스크롤이 미세하게 튄다. */
+.feed, .table-wrap, .chart { overflow-anchor: none; }
+
+/* 마지막 줄에서 유일하게 남던 흔들림: 한도 카드의 안내 문구가 `—` 한 줄 ↔ 두 줄로
+   오가며 18px 씩 움직였다. 두 줄 자리를 미리 비워 두면 문구가 바뀌어도 안 움직인다. */
+[data-card="mandate"] [data-mandate-hint] { min-height: 36px; }
+
+/* 판단 칩 — 시안 표본은 rule(중립)뿐이라 나머지는 범례 색을 그대로 따랐다(파생). */
+[data-card="trades"] td .src {
+  display: inline-block; margin: 0;
+  padding: 4px 9px; border-radius: 7px;
+  font-size: 12px; font-weight: 400; line-height: 20px;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);
+}
+[data-card="trades"] td .src-gemini        { background: var(--fx-gemini-bg);   color: var(--fx-gemini-fg); }
+[data-card="trades"] td .src-rule-fallback { background: var(--fx-fallback-bg); color: var(--fx-fallback-fg); }
+[data-card="trades"] td .src-rule-gate     { background: var(--fx-gate-bg);     color: var(--fx-gate-fg); }
+[data-card="trades"] td .src-dca           { background: var(--fx-dca-bg);      color: var(--fx-dca-fg); }
+
+
+/* =====================================================================
+   AI 카드 — 시안 대조 (Desktop - 8 · 2003:557)
+
+   세 가지가 달랐다.
+     ① 레이어 번호 : 제목 글자 안 원문자(①②) → 제목 **앞** 22×22 배지 (2003:565·587)
+     ② 보기 버튼   : 왼쪽 정렬 평범한 버튼 → 레이어 안 **오른쪽 끝**, 라벨 뒤 ▾ (2003:582·604)
+     ③ 두 피드     : 별도 카드 둘 → AI 카드와 **한 박스**, 사이는 구분선 하나 (2003:607)
+   ===================================================================== */
+
+/* ---- 두뇌 표시 — 제목 줄 맨 끝의 작은 배지 (2026-08-01, 사용자 지시) ----
+   자리는 index.html 에서 옮겼다(h2 의 마지막 자식). 모양은 판단 타임라인의 칩과 같은 계열이고,
+   **색은 `HOLD` 칩과 똑같이** 중립 칩 토큰을 쓴다(사용자 지시) — 두뇌 이름은 판단 결과가
+   아니라 그냥 상태 표시라 강조색을 쓰지 않는 편이 맞다. 다크 팔레트도 토큰이 같이 따라온다.
+   크기만 범례 칩(12px/20)보다 한 단계 작게 잡아 제목 줄을 밀어내지 않게 한다. */
+.grid > [data-card="ai"] > h2 .ai-brain {
+  flex: none; margin: 0;
+  padding: 2px 8px; border-radius: 6px;
+  font-size: 11px; font-weight: 400; line-height: 18px; white-space: nowrap;
+  background: var(--fx-chip-bg); color: var(--fx-chip-fg);   /* = HOLD 칩과 동일 */
+}
+/* 값(Gemini·rule…)만 굵게 — app.js 가 이 <strong> 의 textContent 를 갈아끼운다. */
+.grid > [data-card="ai"] > h2 .ai-brain strong { font-weight: 700; }
+
+/* ---- ⓪ 레이어 박스 자체 — Desktop-6 실측 (2026-08-01 추가) ----
+   시안의 두 레이어는 **옅은 회보라로 채워진 박스**다(Frame 26/27: 606×220 · fill #F4F5FC ·
+   모서리 14 · 테두리 없음). 우리는 skeleton 기본값(테두리 1px · 배경 없음 · 모서리 12 ·
+   안여백 12)을 그대로 쓰고 있어서 **카드와 같은 흰색**으로 보였다(사용자 지적).
+
+   안쪽 치수도 시안 그대로 옮긴다(합이 정확히 220 이 된다):
+     22(위) + 30(제목줄) + 16 + 46(숫자줄) + 16 + 20(출처줄) + 16 + 32(버튼줄) + 22(아래)
+   두 레이어 사이 간격은 20 이다(606 + 20 + 606 = 1232 = 카드 안쪽 폭). */
+.ai-layers { gap: 20px; }
+.ai-layer {
+  border: 0; border-radius: 14px; padding: 22px;
+  background: var(--fx-layer-bg);
+}
+/* 제목줄은 시안이 높이 30 으로 못 박은 줄이다(Frame 28: 562×30, 배지 22 가 그 안에서 가운데).
+   ⚠ line-height 만으로는 30 이 안 된다 — 플렉스 안 익명 텍스트 항목이 34 로 잡혀 배지가
+   6px 아래로 밀린다(실측). 높이를 직접 주면 배지 중심이 시안과 같은 4px 이 된다. */
+.ai-layer h3 { height: 30px; line-height: 30px; margin: 0 0 16px; }
+/* ⚠ skeleton 이 `.ai-layer .kpi-num { font-size: calc(var(--fs-big) * 0.72) }` 로 23px 까지
+   줄여 놓았다. 시안은 레이어 안에서도 **32px 그대로**이고 글상자는 20 이다(`3`·`100%`·`12`).
+   줄높이를 20 으로 못 박아야 숫자줄이 46(20 + 6 + 20)이 된다. */
+.ai-layer .kpi-num { font-size: var(--fs-big); line-height: 20px; margin: 0; }
+/* 단위(%)는 줄높이 0 으로 눌러 둔다. 여기는 줄높이가 20 인데 32px 글자의 상자(38.4)가
+   그보다 작아 **줄상자 바닥이 베이스라인 위에서 끝난다** — 그래서 작은 단위 글자가 아래로
+   삐져나가 줄을 24.3 으로 늘렸다(타일 숫자는 줄높이 38 이라 1 로 충분했다). */
+.ai-layer .kpi-num .unit { line-height: 0; }
+.ai-layer .kpi-row { gap: 8px; }
+.ai-layer .kpi > .sub { margin: 6px 0 0; line-height: 20px; }
+.ai-layer .ai-sources { margin: 16px 0 0; line-height: 20px; color: #979db5; }
+
+/* ---- ① 레이어 번호 배지 ----
+   시안 값 그대로: 22×22 · 모서리 7 · 배경 #5D4EF1(=--accent) · 흰 Bold 12.
+   (둥근 사각이지 정원은 아니다 — 시안 rounded 7px 을 그대로 옮겼다.)
+   h3 는 블록 그대로 두고 배지만 인라인으로 앞에 세운다 — 옆의 .sub 위치가 안 바뀐다. */
+/* 배지와 제목을 같은 줄 가운데에 맞춘다. vertical-align 로 눈대중 보정하던 것을 걷어내고
+   제목 자체를 가로 플렉스로 두어 두 상자의 중심선이 계산으로 맞게 한다. */
+.ai-layer h3 { display: flex; align-items: center; gap: 8px; }
+.ai-layer h3 .sub { margin-left: 0; }
+.ai-no {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 7px; background: var(--accent);
+  color: #fff; font-size: 12px; font-weight: 700; line-height: 1;
+}
+
+/* ---- ② 보기 버튼 ----
+   시안(2003:581): 레이어 폭을 다 쓰는 줄 안에서 오른쪽 끝에 붙는다.
+   버튼(2003:582): 흰 배경 · 1px #ECEEF7 테두리 · 모서리 9 · 좌우 12 · 높이 32
+   (5 + 줄높이 20 + 5 + 테두리 2 = 32) · 라벨 12 Bold #5D4EF1 · 라벨과 ▾ 사이 4.
+   ⚠ 라벨 글자는 app.js 가 매번 다시 쓴다 → 문구는 mock.js 가 맡는다(여기서는 모양만). */
+/* 출처줄과의 간격 16 은 시안 값이다(출처줄 끝 220 → 버튼줄 236). */
+.ai-more { display: flex; justify-content: flex-end; margin: 16px 0 0; }
+.ai-layer .ai-more .btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 9px;
+  border: 1px solid var(--fx-line); background: var(--card-bg);
+  color: var(--accent); font-size: 12px; font-weight: 700; line-height: 20px;
+}
+.ai-layer .ai-more .btn:hover { border-color: var(--accent); }
+
+/* ▾ — 시안의 Polygon 1(7.794×4.5, 위를 향한 삼각형)을 9×6 상자에 담아 세로로 뒤집은 것.
+   내보낸 SVG 그대로를 마스크로 쓴다(모양은 시안 · 색만 글자색을 따라간다 — 다크에서도
+   라벨과 같은 색이 된다). 상자 9×6 안에서 삼각형은 가로 가운데 · (뒤집기 전) 위쪽에 붙는다.
+   ⚠ 버튼 안의 자식 요소로 두면 안 된다 — app.js 의 textContent 대입에 지워진다. */
+.ai-layer .ai-more .btn::after {
+  content: ""; flex: none; width: 9px; height: 6px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--fx-caret); mask-image: var(--fx-caret);
+  -webkit-mask-repeat: no-repeat;      mask-repeat: no-repeat;
+  -webkit-mask-position: 50% 0;        mask-position: 50% 0;
+  -webkit-mask-size: 7.794px 4.5px;    mask-size: 7.794px 4.5px;
+  transform: scaleY(-1);
+}
+:root {
+  --fx-caret: url("data:image/svg+xml,%3Csvg width='7.79423' height='4.5' viewBox='0 0 7.79423 4.5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.89711 0L7.79423 4.5H0L3.89711 0Z' fill='%235D4EF1'/%3E%3C/svg%3E");
+}
+/* 마스크를 모르는 브라우저 — 삼각형이 통째로 사라지지 않게 이미지로 되돌린다(색은 시안 고정). */
+@supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+  .ai-layer .ai-more .btn::after {
+    background-color: transparent;
+    background-image: var(--fx-caret);
+    background-repeat: no-repeat; background-position: 50% 0; background-size: 7.794px 4.5px;
+  }
+}
+
+/* ---- ③ 두 피드를 AI 카드와 한 박스로 ----
+   ⚠ DOM 으로 중첩하면 안 된다 — app.js 의 cardEls() → applyLayout 이 하위까지 훑어
+   다시 .grid 직계로 끄집어낸다. 그래서 형제로 둔 채 **CSS 로만** 한 박스처럼 보이게 한다.
+     · 이음매 쪽 모서리를 펴고, 그 자리의 테두리를 투명으로(자리는 그대로 두어 1px 도 안 밀린다)
+     · 위쪽 카드와의 간격 0 (그리드 row-gap 을 음수 마진으로 되돌린다)
+     · 좌우 두 피드 사이 24px 고랑은 왼쪽 카드가 제 배경으로 덮는다 — 시안은 그 자리가 흰색이다
+   그림자는 손대는 곳이 한 군데뿐이다. AI 카드 그림자는 아래 피드의 불투명한 배경이
+   덮으므로(형제 중 뒤에 그려진다) 그대로 두고, 피드 쪽만 **위로 안 번지는** 그림자로 바꾼다.
+   그러지 않으면 이음매에 가로로 어두운 띠가 생긴다.
+   ⚠ 고정 높이(height: 420px)는 화면 요동 수정이라 그대로 둔다 — 합쳐도 두 피드는
+   여전히 제 높이 안에서만 스크롤한다(문서 높이가 안 변한다). */
+.grid > [data-card="ai"] { position: relative; }
+
+.grid:has(> [data-card="decisions"]:not(.hidden)) > [data-card="ai"],
+.grid:has(> [data-card="log"]:not(.hidden)) > [data-card="ai"] {
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+/* 시안 2003:607 의 가로 구분선 — 카드 테두리가 아니라 **안쪽 여백 안**으로만 그어진다
+   (시안 실측: 카드 1280 안에서 선 1232 = 좌우 24씩 들여쓴 값). */
+.grid:has(> [data-card="decisions"]:not(.hidden)) > [data-card="ai"]::after,
+.grid:has(> [data-card="log"]:not(.hidden)) > [data-card="ai"]::after {
+  content: ""; position: absolute; left: var(--pad); right: var(--pad); bottom: 0;
+  height: 1px; background: var(--fx-line);
+}
+
+.grid > [data-card="decisions"]:not(.hidden),
+.grid > [data-card="log"]:not(.hidden) {
+  margin-top: calc(var(--gap) * -1);
+  border-top-color: transparent;
+  border-top-left-radius: 0; border-top-right-radius: 0;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, .05);
+}
+
+/* 좌우로 놓이는 경우(넓은 화면) — 가운데 고랑을 왼쪽 카드가 덮고, 맞닿는 테두리를 지운다. */
+@media (min-width: 1101px) {
+  .grid > [data-card="decisions"]:not(.hidden) {
+    margin-right: calc(var(--gap) * -1);
+    border-right-color: transparent;
+    border-bottom-right-radius: 0;
+  }
+  .grid > [data-card="log"]:not(.hidden) {
+    border-left-color: transparent;
+    border-bottom-left-radius: 0;
+  }
+}
+/* 위아래로 쌓이는 경우(좁은 화면) — 가운데가 이음매가 된다. */
+@media (max-width: 1100px) {
+  .grid > [data-card="decisions"]:not(.hidden) {
+    border-bottom-color: transparent;
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
+}
+
+/* 한쪽만 펼친 경우 — 반쪽짜리 박스가 매달리지 않게 아랫단을 통째로 쓴다. */
+.grid:has(> [data-card="log"].hidden) > [data-card="decisions"]:not(.hidden),
+.grid:has(> [data-card="decisions"].hidden) > [data-card="log"]:not(.hidden) {
+  grid-column: span 12;
+  margin-right: 0;
+  border-right-color: var(--border); border-left-color: var(--border);
+  border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);
+}
+
+/* 한 박스가 된 뒤에는 조각 하나만 떠오르면 어긋나 보인다 — 이 셋만 hover 부양을 끈다
+   (그림자도 평소 값으로 못 박아 둔다 — 안 그러면 마우스만 올려도 이음매가 어두워진다). */
+.grid > [data-card="ai"]:hover { translate: none; box-shadow: var(--shadow); }
+.grid > [data-card="decisions"]:not(.hidden):hover,
+.grid > [data-card="log"]:not(.hidden):hover {
+  translate: none; box-shadow: 0 8px 20px -4px rgba(0, 0, 0, .05);
+}
+
+/* :has() 를 모르는 브라우저 — 합치기만 못 하고 나머지는 그대로다(카드 셋이 따로 보인다).
+   깨진 화면이 아니라 예전 모습이라 별도 대비를 두지 않는다. */
+
+
+/* =====================================================================
+   AI 카드 두 피드 '접기' — 부드럽게 (2026-08-01 사용자 지시)
+
+   skeleton.css 의 .card.is-merging 은 **펼침 키프레임을 `reverse` 로 되돌려** 쓴다.
+   원인은 두 가지 다 실제로 맞다.
+     ① `reverse` 는 시간만 뒤집고 **곡선은 그대로** 쓴다(진행값의 출력만 반전될 뿐
+        곡선 모양이 뒤집히지 않는다). 감속 곡선 cubic-bezier(0,0,.2,1) 이 뒤집히면
+        "시작이 뚝 튀고 끝이 늘어지는" 가속 반전 느낌이 된다. 자연스러운 되감기는
+        곡선을 거울로 뒤집은 값 — (x1,y1,x2,y2) → (1-x2,1-y2,1-x1,1-y1) = cubic-bezier(.8,0,1,1).
+     ② cell-pop 의 `55% { opacity: 1 }` 이 뒤집혀 45% 까지 불투명을 버티다 갑자기 사라진다.
+   그래서 접힘 전용 키프레임을 따로 둔다(펼침과 대칭이되 곡선·투명도 타이밍만 접힘에 맞춤).
+   app.js 는 --cell-h·is-merging·animationend 만 쓰므로 CSS 만으로 고친다.
+
+   ⚠ prefers-reduced-motion — skeleton.css 의 분기(animation:none)가 이 재정의보다
+   앞에 있어 다시 걸어 준다(아래). */
+/* ⚠⚠ 위 ②안(거울 곡선)으로도 여전히 어색했다 — 사용자 재지적(2026-08-01).
+   화면에서 실제로 일어난 일은 이렇다.
+     · `cubic-bezier(.8,0,1,1)` 은 **강한 가속 곡선**이라 앞 절반이 거의 멈춰 있다가
+       끝에서 한꺼번에 닫힌다 → "눌렀는데 반응이 없다가 쾅" 으로 읽힌다.
+       이론상 '자연스러운 되감기'가 체감으로는 가장 굼뜬 곡선이었다.
+     · `40% 까지 opacity: 1` 이라 **글자가 세로로 눌리는 과정이 그대로 보인다**
+       (`scale(.88,.4)` 가 텍스트를 찌그러뜨린다). 접힘에서 제일 거슬리는 부분이다.
+
+   ③ 지금 = 되감기·튕김을 다 버리고 **높이와 투명도 두 가지만** 남긴다.
+     · 곡선은 양끝이 부드러운 `cubic-bezier(.4,0,.2,1)` — 누르자마자 움직이고 끝에서 안착.
+     · 내용은 앞 55% 안에 먼저 사라진다. **눌리는 글자를 안 보여 주는 것이 핵심.**
+     · `transform` 은 아예 안 쓴다. 높이가 이미 접는 일을 하고 있어서 scale 을 겹치면
+       상자가 찌그러져 보인다(= 위 두 번째 문제의 근본 원인).
+     · 닫는 동작은 여는 것보다 조금 빠른 게 자연스럽다 — 0.46초 → **0.32초**.
+   값은 이 규칙 안에서만 쓰므로 여기에 지역 변수로 둔다. */
+.card.is-merging {
+  --merge-dur: .32s;
+  --merge-ease: cubic-bezier(.4, 0, .2, 1);
+  animation: cell-merge-grow var(--merge-dur) var(--merge-ease) forwards,
+             cell-merge-pop  var(--merge-dur) linear forwards;
+}
+
+/* 높이: 채워진 높이 → 0. 곡선이 양끝을 부드럽게 잡아 준다. */
+@keyframes cell-merge-grow {
+  from {
+    height: var(--cell-h, auto); padding-top: var(--pad); padding-bottom: var(--pad);
+    border-top-width: 1px; border-bottom-width: 1px;
+  }
+  to {
+    height: 0; padding-top: 0; padding-bottom: 0;
+    border-top-width: 0; border-bottom-width: 0;
+  }
+}
+
+/* 투명도만. 앞 55% 안에 다 빠진다 — 상자가 아직 접히는 중에 내용은 이미 없어서
+   글자가 눌리는 모습이 안 보인다. 곡선을 linear 로 둔 것은 페이드가 높이보다 먼저
+   끝나야 하기 때문이다(가속·감속을 주면 끝쪽에 잔상이 남는다). */
+@keyframes cell-merge-pop {
+  from { opacity: 1; }
+  55%  { opacity: 0; }
+  to   { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.is-merging { animation: none; }
+}
+
+
+/* =====================================================================
+   툴팁 — 알림 버튼 · 지갑 연결 버튼
+
+   ⚠ 버튼에 직접 붙일 수 없다. 둘 다 색이 차오르는 모션 때문에 `overflow: hidden` 이라
+   말풍선이 버튼 안에서 잘린다. 그래서 감싼 `.tip` span 에 붙인다.
+   내용은 `data-tip` 한 곳에서 온다 — app.js·wallet.js 가 쓰던 `title` 을 mock.js 가
+   그리로 옮기고 `title` 은 비운다(남겨 두면 브라우저 기본 툴팁과 두 개가 겹쳐 뜬다).
+   말풍선이 오른쪽 정렬인 이유: 두 버튼 다 상단 바 오른쪽 끝에 있어서 왼쪽 정렬로 두면
+   화면 밖으로 넘친다. */
+:root {
+  --tip-bg: #2b2d42;                  /* 카드가 전부 흰색이라 어두운 면이 겹쳐 읽힌다 */
+  --tip-fg: #f4f5fc;
+  --tip-line: rgba(255, 255, 255, .10);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --tip-bg: #343850; --tip-fg: #f2f3f7; }   /* 다크에서는 배경보다 한 단계 밝게 */
+}
+
+.tip { position: relative; display: inline-flex; }
+.tip[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 9px); right: 0; z-index: 60;
+  width: max-content; max-width: 264px;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--tip-line);
+  background: var(--tip-bg); color: var(--tip-fg);
+  font-size: 12px; font-weight: 400; line-height: 1.55; text-align: left;
+  white-space: pre-line;              /* mock.js 가 넣은 줄바꿈을 살린다 */
+  box-shadow: 0 10px 28px rgba(20, 22, 40, .28);
+  opacity: 0; translate: 0 -4px; pointer-events: none;
+  transition: opacity .14s var(--stagger-ease), translate .14s var(--stagger-ease);
+}
+/* 꼬리 — 아래쪽 테두리만 남긴 삼각형이라 상자 높이가 그대로 5px 이다.
+   말풍선(+9px)보다 5px 위에서 시작해 정확히 맞닿는다. */
+.tip[data-tip]::before {
+  content: ""; position: absolute; top: calc(100% + 4px); right: 18px; z-index: 61;
+  border-width: 0 5px 5px; border-style: solid;
+  border-color: transparent transparent var(--tip-bg);
+  opacity: 0; pointer-events: none;
+  transition: opacity .14s var(--stagger-ease);
+}
+/* focus-within 을 함께 두어 키보드로 탭 이동해도 설명이 보인다. */
+.tip[data-tip]:hover::after,  .tip[data-tip]:focus-within::after,
+.tip[data-tip]:hover::before, .tip[data-tip]:focus-within::before { opacity: 1; translate: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tip[data-tip]::after, .tip[data-tip]::before { transition: none; }
+}
+
+
+/* ---- 누를 수 있는 체결 알림 ----
+   결제 과정 로그로 데려가는 토스트. 클래스는 mock.js 가 붙인다(제목으로 골라낸다).
+   나머지 토스트는 눌러도 갈 곳이 없으므로 손 모양을 주지 않는다. */
+.toasts .fx-toast-trade { cursor: pointer; }
+.toasts .fx-toast-trade:hover { border-color: var(--accent); }
+.toasts .fx-toast-trade:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 포커싱 테두리 — skeleton 은 카드 **바깥**에 그린다(outline-offset: 3px).
+   피드가 AI 카드와 한 박스가 된 지금은 그 선이 이웃 조각 위로 넘어와 한 덩어리에서
+   아래 반쪽만 툭 튀어나온 것처럼 보인다. 안쪽으로 당겨 박스 테두리를 따라 흐르게 한다
+   (음수 offset 이라 모서리 반지름도 그대로 따라간다). */
+.card-focused { outline-offset: -2px; }
+
+/* 누른 체결과 같은 주문번호를 단 로그 줄 — 5초 뒤 저절로 벗겨진다(mock.js).
+   좌우 여백을 주지 않는다: 줄이 세로 플렉스 항목이라 음수 마진으로 넓히면 로그 상자에
+   가로 스크롤바가 생긴다. 어차피 줄이 상자 폭을 다 쓴다.
+
+   위아래는 배지처럼 띄운다. ⚠ 마진만 더하면 강조가 켜질 때마다 아랫줄들이 밀려 내려간다
+   → **안쪽 여백에서 뺀 만큼을 바깥 여백으로 돌려준다**(padding 5→2, margin 0→3).
+   줄이 차지하는 높이와 글자 위치는 1px 도 안 변하고, 색칠된 상자만 위아래로 3px 씩 줄어
+   연속으로 강조돼도 사이가 6px 벌어진다. */
+[data-card="log"] .feed li.fx-log-hit {
+  background: var(--fx-gemini-bg);
+  border-radius: 8px;
+  padding-top: 2px; padding-bottom: 2px;
+  margin-top: 3px; margin-bottom: 3px;
+  border-bottom-color: transparent;   /* 배지 한가운데를 가로지르던 구분선은 감춘다 */
+}
+
+
+/* =====================================================================
+   카드 아이콘 — 시안이 자리만 잡아 둔 칸을 채운다.
+
+   시안(Desktop - 8)의 `Rectangle 16~22` · `Frame 84` 는 안이 빈 사각형이다
+   (메타데이터 확인: 벡터 자식 0개). 그래서 글리프는 우리가 정한 것이다.
+   선 아이콘 한 벌로 통일했다 — 24×24 격자, 굵기 2, 둥근 끝.
+
+   칠하는 방식은 ▾ 와 같다. SVG 를 **마스크**로 쓰고 색은 글자색(currentColor)이
+   준다 — 그래서 다크 모드에서 토큰만 바뀌면 아이콘도 따라온다. 자산을 두 벌
+   두지 않아도 되고, 데이터 URI 라 공유본에서도 외부 요청이 0건이다. */
+:root {
+  --ci-shield:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z'/%3E%3C/svg%3E");
+  --ci-shield-ok:  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z'/%3E%3Cpath d='m8.8 11.9 2.3 2.3 4.3-4.4'/%3E%3C/svg%3E");
+  --ci-power:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5v7'/%3E%3Cpath d='M7.2 6.8a7 7 0 1 0 9.6 0'/%3E%3C/svg%3E");
+  --ci-search:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.6' cy='10.6' r='6.4'/%3E%3Cpath d='m15.4 15.4 4.6 4.6'/%3E%3C/svg%3E");
+  --ci-candles:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3.2M8 16.8V21M16 3v4.2M16 17.8V21'/%3E%3Crect x='5.4' y='6.2' width='5.2' height='10.6' rx='1.2'/%3E%3Crect x='13.4' y='7.2' width='5.2' height='10.6' rx='1.2'/%3E%3C/svg%3E");
+  --ci-list:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h10'/%3E%3C/svg%3E");
+  --ci-doc:        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 3.5h7l4 4v13h-11Z'/%3E%3Cpath d='M13.5 3.5v4h4M9.5 12.5h5M9.5 16h5'/%3E%3C/svg%3E");
+  --ci-sliders:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5h8.9M17.5 8.5H20M4 15.5h2.5M11.1 15.5H20'/%3E%3Ccircle cx='15.2' cy='8.5' r='2.3'/%3E%3Ccircle cx='8.8' cy='15.5' r='2.3'/%3E%3C/svg%3E");
+  --ci-gauge:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17.5a8 8 0 1 1 16 0'/%3E%3Cpath d='M12 17.5 16.2 11.8'/%3E%3C/svg%3E");
+  --ci-coins:      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='7' rx='7' ry='2.8'/%3E%3Cpath d='M5 7v4.6c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V7'/%3E%3Cpath d='M5 11.6v4.6c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-4.6'/%3E%3C/svg%3E");
+  --ci-arrow-up:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V5.2'/%3E%3Cpath d='m6.4 10.8 5.6-5.6 5.6 5.6'/%3E%3C/svg%3E");
+  --ci-arrow-dash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke-dasharray='3 3' d='M12 20V6'/%3E%3Cpath d='m6.4 10.8 5.6-5.6 5.6 5.6'/%3E%3C/svg%3E");
+  --ci-arrow-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v14.8'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
+  --ci-arrow-dash-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke-dasharray='3 3' d='M12 4v14'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
+  --ci-box:        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3.4 8 4.2v8.8l-8 4.2-8-4.2V7.6Z'/%3E%3Cpath d='m4 7.6 8 4.2 8-4.2M12 11.8V20.6'/%3E%3C/svg%3E");
+  --ci-bell:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8.8a6 6 0 1 0-12 0c0 5.2-2 6.7-2 6.7h16s-2-1.5-2-6.7'/%3E%3Cpath d='M10.3 19a2 2 0 0 0 3.4 0'/%3E%3C/svg%3E");
+  /* 꺼짐 — 같은 종에 작대기 하나. 마스크라 겹치는 부분은 하나로 합쳐져 '그어진' 모양이 된다. */
+  --ci-bell-off:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8.8a6 6 0 1 0-12 0c0 5.2-2 6.7-2 6.7h16s-2-1.5-2-6.7'/%3E%3Cpath d='M10.3 19a2 2 0 0 0 3.4 0'/%3E%3Cpath d='M3.6 3.6 20.4 20.4'/%3E%3C/svg%3E");
+}
+
+/* 글리프를 얹는 공통 규칙. 색은 담는 칸이 정한다(칸마다 배경 틴트가 다르다). */
+.ci::before,
+.fx-chip::before,
+.fx-logo::before,
+.fx-banner-icon::before {
+  content: ""; display: block;
+  background-color: currentColor;
+  -webkit-mask: var(--ci) center / contain no-repeat;
+          mask: var(--ci) center / contain no-repeat;
+}
+
+/* 제목 줄 — 아이콘 칸과 글자를 가운데로 맞춘다.
+   ⚠ inline 정렬(vertical-align: -6px)로는 안 맞는다. 26px 상자를 글꼴 베이스라인에
+   눈대중으로 걸어 두는 방식이라 글꼴·줄높이가 조금만 달라도 어긋난다(실제로 어긋났다).
+   제목을 가로 플렉스로 두면 두 상자의 중심선이 계산으로 맞는다.
+   간격 8px 은 시안 값이다 — 칸(26) 끝에서 제목 시작이 34, 제목 끝에서 부제 시작도 8이다.
+   ⚠ 선택자가 둘인 이유: 시세 카드의 h2 만 카드의 직계 자식이 아니라 `.price-head` 안에
+   한 겹 더 들어가 있다. 앞 선택자만 두면 그 카드 하나만 어긋난 채 남는다(실측 -1.5px). */
+.grid > .card > h2,
+.grid .card h2:has(.ci) { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; }
+.grid > .card > h2::before { flex: none; margin-right: 0; vertical-align: initial; }
+.fx-legend { margin-left: 0; }
+
+/* 제목 앞 칸 — 기존 h2::before(빈 연보라 사각형)와 크기가 같다.
+   아이콘이 붙은 제목에서는 그 사각형을 끄고 이 span 이 같은 자리를 잡는다. */
+.grid > .card > h2:has(.ci)::before { content: none; }
+.ci {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  background: var(--fx-gemini-bg); color: var(--fx-gemini-fg);
+}
+.ci::before { width: 15px; height: 15px; }
+
+.ci-session  { --ci: var(--ci-power); }     /* 시안 부제가 "전원 · 한 번 켜두면 됩니다" */
+.ci-ai       { --ci: var(--ci-search); }    /* 두 레이어의 공통 동작 = 서명 전에 들여다본다 */
+.ci-price    { --ci: var(--ci-candles); }   /* 카드 안 차트와 같은 모양 */
+.ci-trades   { --ci: var(--ci-list); }
+.ci-budget   { --ci: var(--ci-gauge); }     /* 카드 본체가 게이지 막대 */
+.ci-mandate  { --ci: var(--ci-sliders); }   /* 하는 일은 값 조절 — 서명 글리프는 ci-ai 와 겹친다 */
+.ci-briefing { --ci: var(--ci-doc); }
+
+/* 오늘의 결과 타일 4개 — 배경 틴트는 이미 색이 나뉘어 있으므로 글리프는 같은 계열 진한 색. */
+.fx-chip { display: inline-flex; align-items: center; justify-content: center; }
+.fx-chip::before { width: 17px; height: 17px; }
+.fx-chip-violet { color: var(--accent);            --ci: var(--ci-coins); }      /* 총자산 = 쌓인 것 */
+.fx-chip-mint   { color: var(--ok);                --ci: var(--ci-arrow-up); }   /* 실현 = 확정된 방향 */
+.fx-chip-blue   { color: var(--fx-dca-fg);         --ci: var(--ci-arrow-dash); } /* 평가 = 아직 확정 아님 */
+.fx-chip-amber  { color: var(--fx-fallback-fg);    --ci: var(--ci-box); }        /* 포지션 = 들고 있는 것 */
+
+/* 손익 두 칸은 부호를 따라 화살표가 뒤집힌다.
+   app.js 가 값 span 에 pos/neg 를 찍어 주므로(`el.pnl.className`·`el.unrealized.className`)
+   그것만 보면 되고 자바스크립트를 더 두지 않는다.
+   ⚠ 색까지 함께 바꾼다 — 방향만 뒤집으면 초록 아래 화살표가 되어 옆 숫자(빨강)와 어긋난다.
+   쓰는 색은 새로 만들지 않고 시안에 이미 있는 매도 칩 짝(--fx-sell-bg/-fg)을 그대로 쓴다.
+   값이 0일 때는 지금까지의 모습(위 화살표) 그대로 둔다 — 손실이 아니기 때문이다. */
+.fx-tile:has([data-pnl].neg) .fx-chip-mint,
+.fx-tile:has([data-unrealized].neg) .fx-chip-blue {
+  background: var(--fx-sell-bg); color: var(--fx-sell-fg);
+}
+.fx-tile:has([data-pnl].neg) .fx-chip-mint        { --ci: var(--ci-arrow-down); }
+.fx-tile:has([data-unrealized].neg) .fx-chip-blue { --ci: var(--ci-arrow-dash-down); }
+
+/* 브랜드·배너 — 제품(SynapStock)이 파는 것이 지출 통제라 로고에 방패를 쓴다. 배너는 같은
+   방패에 체크를 더한다
+   (로고는 정체성, 배너가 말하는 것은 "막았어요" 라는 결과다). */
+.fx-logo {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; --ci: var(--ci-shield);
+}
+.fx-logo::before { width: 19px; height: 19px; }
+.fx-banner-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; --ci: var(--ci-shield-ok);
+}
+.fx-banner-icon::before { width: 26px; height: 26px; }
+
+/* =====================================================================
+   시세 카드 등락 배지 — 시안 2003:849
+   ===================================================================== */
+
+/* 시안(2003:841)은 큰 숫자 오른쪽에 알약 하나로 붙는다. 지금은 숫자 아래 줄에 맨 글자로
+   있었다 → 같은 줄로 올린다(제목만 한 줄을 통째로 쓴다). */
+[data-card="price"] .price-head > div {
+  display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px;
+}
+[data-card="price"] .price-head > div > h2 { flex: 1 0 100%; }
+[data-card="price"] .price-head > div > .huge { margin: 0; }
+[data-card="price"] .price-head > div > .sub {
+  margin: 0; display: inline-flex; align-items: center; gap: 10px;
+}
+/* 기준 문구(`세션 시작가 대비`)는 시안에 없다. 지우지 않고 알약 툴팁으로 내린다
+   (mock.js 가 옮겨 준다 — app.js 가 매 갱신마다 이 칸에 값을 쓰므로 DOM 은 남긴다). */
+[data-change-basis] { display: none; }
+
+/* 알약 (2003:849 — 125×30 · 좌우 여백 11 · 삼각형과 글자 사이 6) */
+[data-price-change] {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 11px; border-radius: 20px;
+  font-size: 12px; line-height: 20px;
+}
+/* 삼각형 (2003:851 — 7.794×6.5). 내보낸 SVG 대신 같은 크기 상자를 잘라 만든다.
+   ⚠ 오를 때 위 · 내릴 때 아래로 **꼭짓점만 뒤집는다** — 회전(rotate)으로 뒤집으면
+   밑변이 위로 가면서 글자와의 시각 중심이 어긋난다. */
+[data-price-change]::before {
+  content: ""; flex: none; width: 7.794px; height: 6.5px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+/* 색은 시안에 이미 있는 매수·매도 칩 짝을 그대로 쓴다(새 색을 만들지 않는다).
+   오름 = 민트 배경 + 초록 글자·삼각형 / 내림 = 연분홍 배경 + 빨강 글자·삼각형. */
+[data-price-change].pos { background: var(--fx-buy-bg);  color: var(--fx-buy-fg); }
+[data-price-change].neg { background: var(--fx-sell-bg); color: var(--fx-sell-fg); }
+[data-price-change].neg::before { clip-path: polygon(50% 100%, 100% 0, 0 0); }
+
+/* 아직 값이 없거나(—) 보합이면 알약을 만들지 않는다 — 회색 알약이 떠 있으면
+   "무언가 일어났다"로 읽힌다. */
+[data-price-change]:not(.pos):not(.neg) {
+  background: none; padding: 0; height: auto; color: var(--muted);
+}
+[data-price-change]:not(.pos):not(.neg)::before { display: none; }
+
+/* =====================================================================
+   데일리 브리핑 카드 — 시안 2003:906
+   ===================================================================== */
+
+/* 카드 껍데기(흰 배경 · 모서리 18 · 그림자 0 4 20 · 안쪽 여백 24)는 이미 시안 값이라
+   손댈 것이 없다. 다른 것은 **덩어리 사이 간격 16** 하나뿐이라 세로 플렉스로 잡는다
+   (제목·알약·본문이 각자 margin 을 들고 있어 8/8 로 어긋나 있었다).
+   align-items 를 시작에 붙여야 알약이 제 글자만큼만 넓어진다(시안 실측 146px = 내용 폭). */
+[data-card="briefing"] {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+}
+[data-card="briefing"] > h2,
+[data-card="briefing"] .briefing-text { margin: 0; }
+
+/* 시안에는 `오늘 요약` 버튼이 없다. ⚠ DOM 에서 지우면 안 된다 — app.js 가
+   `[data-btn-briefing]` 을 querySelector 로 잡아 클릭을 물린다(없으면 null 참조).
+   실험장은 목이라 어차피 세션 종료·수동 양쪽 다 목이 만들어 준다. */
+[data-card="briefing"] [data-btn-briefing] { display: none; }
+
+/* 생성 시각 알약 (2003:911) — 배경은 페이지 바탕과 같은 색이라 새 토큰을 만들지 않는다.
+   감싸고 있던 `.briefing-bar` 는 상자를 없앤다(display: contents) — 남겨 두면 그 줄이
+   알약(36)보다 4px 높아져 위아래 간격이 16 이 아니라 18 로 벌어진다(실측). */
+[data-card="briefing"] .briefing-bar { display: contents; }
+[data-briefing-meta] {
+  /* ⚠ 이 span 은 `.sub` 라 skeleton 에서 `margin: 2px 0` 을 물려받는다. 플렉스에서는
+     그 여백이 간격에 그대로 더해져 16 이 18 로 벌어진다(실측). 그래서 0 으로 지운다. */
+  margin: 0;
+  padding: 8px 11px; border-radius: 8px;
+  background: var(--bg); color: var(--muted);
+  font-size: 12px; line-height: 20px;
+}
+
+/* 본문 (2003:913) — 14/26 회색, 숫자 요약만 굵은 검정(그 굵은 부분은 mock.js 가 감싼다). */
+[data-card="briefing"] .briefing-text {
+  color: var(--fx-body); font-size: 14px; line-height: 26px;
+}
+[data-card="briefing"] .briefing-text strong { color: var(--text); font-weight: 700; }
+
+/* 알림 켜기/끄기 버튼 앞의 종.
+   ⚠ 버튼 안의 자식 요소로 두면 지워진다 — app.js 의 renderNotifyBtn 과 mock.js 의 syncTip 이
+   상태가 바뀔 때마다 라벨을 `textContent` 로 통째로 다시 쓴다(AI 카드의 ▾ 와 같은 함정).
+   ⚠ `::before` 는 못 쓴다 — 이 버튼은 `.btn-sweep` 이라 차오르는 원이 그 자리를 쓰고 있다.
+   그래서 `::after` 로 그리고 `order: -1` 로 글자 앞에 세운다(버튼을 flex 로 바꾼다).
+   그 원은 `position: absolute` 라 flex 자식이 되지 않으므로 배치가 흔들리지 않는다.
+   ⚠ 크기 17px 은 눈대중이 아니라 **글자에 맞춘 값**이다. 9배 확대 실측에서 종의 잉크가
+   83, `꺼짐` 의 잉크가 92 였다(같은 배율) — 종만 9% 짧아 작고 높게 읽혔다. 15 × 92/83 ≒ 17.
+   가운데는 `align-items: center` 가 이미 맞춰 준다(두 중심이 0.5px 안에서 일치한다). */
+[data-btn-notify] {
+  display: inline-flex; align-items: center; gap: 6px;
+  --bell: var(--ci-bell-off);
+  /* 차오르는 원의 색(사용자 지정 #EDEBFF — 시안의 아이콘 칸과 같은 연보라).
+     ⚠ 글자색(`--sweep-fg`)은 skeleton 의 짙은 파랑 그대로 뒀다 — 지시가 바탕색 하나였다.
+     연보라 위에서 대비는 충분하지만 계열이 달라진다(강조색 보라로 맞추려면 이 아래 한 줄). */
+  --sweep-bg: #EDEBFF;
+}
+[data-btn-notify].is-notify-on { --bell: var(--ci-bell); }
+[data-btn-notify]::after {
+  content: ""; order: -1; flex: none;
+  width: 17px; height: 17px;
+  background-color: currentColor;
+  -webkit-mask: var(--bell) center / contain no-repeat;
+          mask: var(--bell) center / contain no-repeat;
+}
+
+/* 마스크를 모르는 브라우저 — 글리프만 빼고 빈 칸(지금 모습)으로 돌아간다. */
+@supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+  .ci::before, .fx-chip::before, .fx-logo::before, .fx-banner-icon::before,
+  [data-btn-notify]::after { display: none; }
+}
+
+/* =====================================================================
+   "맨 위로" 버튼 — 화면 아래 가운데 · 호버하면 화살표가 벨트처럼 흐른다
+   (본 파일 skeleton.css:567~597 을 여기서만 덮어쓴다)
+   ===================================================================== */
+
+/* ---- 자리: 오른쪽 아래 → 가로 가운데 ----
+   ⚠ left:50% + translate 로 가운데를 잡으면 안 된다. translate 는 등장·퇴장 모션이
+   이미 쓰고 있어서(.to-top{translate:0 12px}) 가운데맞춤이 그 모션을 지운다.
+   left·right 를 0 으로 펴고 margin 으로 가운데를 잡으면 translate 를 비워 둘 수 있다. */
+.to-top {
+  /* 50 → 40 으로 줄인다(사용자 지시). ⚠ 아래 벨트 값 셋이 이 높이에 묶여 있다 —
+     화살표 간격 = 높이 − 화살표(16) · 트랙 top = (높이 − 16) / 2 · 한 주기 = 높이. */
+  width: 40px; height: 40px;
+  left: 0; right: 0; margin-inline: auto;
+  /* 폭이 늘지 않으므로(아래) 알약이 될 일이 없다 — 늘 원이다. */
+  transition: filter .3s, scale .2s var(--stagger-ease),
+              opacity .22s var(--stagger-ease), translate .22s var(--stagger-ease),
+              visibility .22s;
+}
+
+/* 글자를 없앤다. content:none 이면 상자 자체가 생기지 않으므로
+   skeleton 의 :hover::before(글자 올리기) 규칙도 함께 죽는다. */
+.to-top::before { content: none; }
+
+/* 호버: 가로로 늘어나던 것을 되돌리고(글자가 없으니 늘릴 이유가 없다) 아주 살짝만 커진다. */
+.to-top:hover { width: 40px; border-radius: 50%; scale: 1.06; }
+
+/* ---- 화살표 벨트 ----
+   트랙 안 화살표는 12×16 이고 사이 간격(gap)이 24 이라 화살표 top 끼리 정확히 40px,
+   곧 버튼 높이만큼 떨어진다. 그래서 트랙을 40px 밀어 올리는 한 주기 동안
+   ①앞 화살표 top 이 원 위쪽 끝(0)에 닿는 순간 ②다음 화살표 top 이 아래쪽 끝(40)에 걸린다
+   = 사용자가 요청한 "앞이 나가는 순간 다음이 나오기 시작" 이 간격만으로 성립한다.
+   한 주기가 끝나면 두 번째 화살표가 첫 번째의 처음 자리에 정확히 겹치므로 이음매가 없다.
+   top:12px = (40 − 16) / 2 → 평소(비호버)에는 화살표 하나가 원 한가운데 서 있다. */
+.to-top-track {
+  position: absolute; top: 12px; left: 0; right: 0;   /* (40 − 16) / 2 */
+  display: flex; flex-direction: column; align-items: center; gap: 24px;   /* 40 − 16 */
+}
+@keyframes to-top-belt {
+  from { translate: 0 0; }
+  to   { translate: 0 -40px; }   /* 한 주기 = 버튼 높이 */
+}
+.to-top:hover .to-top-track { animation: to-top-belt .9s linear infinite; }
+
+/* skeleton 의 "한 번 위로 빠져나가고 끝" 모션은 벨트와 겹치므로 끈다. */
+.to-top:hover .to-top-icon { transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .to-top:hover { scale: none; }
+  .to-top:hover .to-top-track { animation: none; }
+}
+
+/* =====================================================================
+   알림창(토스트) — 오른쪽 아래 → 오른쪽 위, 위에서 아래로 쌓기
+   ===================================================================== */
+
+/* app.js 는 새 토스트를 뒤에 붙이고(appendChild) 넘치면 맨 앞을 지운다 —
+   그래서 위를 기준으로 잡기만 하면 오래된 것이 위, 새 것이 아래가 되고
+   지워지는 것도 맨 위부터다. 자바스크립트는 손대지 않는다.
+   자리 예약(skeleton.css:541)은 아래로 내려가 있던 시절의 것이라 걷는다 —
+   버튼이 이제 아래 가운데이고 토스트는 위로 올라가 서로 만나지 않는다.
+
+   ⚠ 화면 위에는 늘 머리글이 하나 있다 — 스크롤 전에는 제목칸(.topbar), 스크롤하면
+   얇은 헤더(.slim-bar)다. 토스트는 z-index 100 이고 얇은 헤더는 55 라 그냥 두면 토스트가
+   머리글을 덮는다. 그래서 지금 보이는 머리글 아래로 내려 보낸다.
+   두 상태만 있으면 된다 — app.js 의 syncHeaderUI 가 **제목칸이 화면 위로 완전히 사라진 뒤에야**
+   얇은 헤더를 내리므로(`bar.bottom <= 0`), 둘이 동시에 보이는 구간이 없다.
+   높이는 실측값이다(제목칸 66 · 얇은 헤더 39, 1440 기준). ⚠ 제목칸은 flex-wrap 이라
+   화면이 좁아 두 줄이 되면 66보다 커진다 — 그때는 이 값을 다시 재야 한다.
+   머리글 아래로 띄우는 여유는 8px 만 둔다 — "가리지만 않을 만큼" 이 지시였다. */
+.toasts {
+  top: calc(var(--gap) + 66px + 8px);   /* 제목칸 바닥(24+66=90) + 8 = 98 */
+  bottom: auto;
+  padding-bottom: 0;
+  /* 칸 하나하나가 제 글 길이만큼만 넓어진다.
+     기본값(stretch)이면 flex 가 모든 토스트를 **가장 긴 것에 맞춰** 늘려서, 짧은 알림도
+     긴 알림과 같은 폭이 된다. flex-end 로 바꾸면 각자 제 내용만큼만 차지하고 오른쪽에
+     붙는다(줄바꿈 상한인 skeleton 의 max-width:340px 는 그대로 살아 있다). */
+  align-items: flex-end;
+}
+.slim-bar.is-shown ~ .toasts {
+  top: calc(48px + 8px);                /* 얇은 헤더 바닥(48) + 8 = 56 — 아래 '얇은 헤더 두껍게' 참조 */
+}
+
+
+/* =====================================================================
+   얇은 헤더 — 살짝 두껍게 (2026-08-01 사용자 지시)
+
+   원래 '손대지 않는다' 목록(lab.css 주석·CLAUDE.md)이었는데, 이번 지시가 **크기만**
+   풀었다. 모양·색·hover 모션은 그대로다.
+   목표는 화면 기준 1.2배(33.8 → 약 40). body.page-dashboard 의 zoom(0.8578) 때문에
+   CSS 에는 그만큼 크게 적는다. 값은 사용자가 눈으로 보고 다듬을 예정이므로
+   이 목록이 기준점이다 — 전/후 실측은 README 참조.
+   ===================================================================== */
+.slim-bar {
+  padding-top: 10px; padding-bottom: 10px;      /* 8 → 10 (가로는 --page-pad 그대로) */
+}
+.slim-brand { font-size: 18px; }                /* 15 → 18 (글줄 22.5 → 27) */
+
+/* 지갑 버튼 — .btn-wallet-xs 가 **크기 변수만** 갈아끼우는 구조라 그 6개만 키운다.
+   ⚠ 모양·색·hover 모션(--wallet-bg/-fg/차오르는 원 등)은 건드리지 않는다. */
+.btn-wallet-xs {
+  --wallet-pad-y: 5px;      /* 4 → 5 */
+  --wallet-pad-x: 12px;     /* 10 → 12 */
+  --wallet-fs: 14px;        /* 12 → 14 */
+  --wallet-gap: 7px;        /* 6 → 7 */
+  --wallet-icon-w: 16px;    /* 14 → 16 */
+  --wallet-icon-h: 14px;    /* 12 → 14 */
+}
+
+/* 긴급정지·재개 — .btn-small 은 전역이라 .slim-bar 안에서만 덮어써 지갑 버튼과 같은
+   높이를 유지한다. 라벨의 🛑 이모지가 글줄을 밀어내므로(실측) 세로 여백은 그대로 두고
+   글자만 14px 로 키운다 — 이모지 줄상자가 비례해 커진다. */
+.slim-bar .btn.btn-small {
+  padding: 2px 10px;        /* 2px 8px → (세로 2px 유지) */
+  font-size: 14px;          /* 12px(--fs-small) → */
+}
+
+/* =====================================================================
+   오른쪽 아래 플로팅 버튼 (uiverse.io/icochran10/shaggy-quail-31 의 거울상)
+   ===================================================================== */
+
+/* 원본 값 그대로: 폭 w-14(56) → hover:w-64(256) · rounded-lg(8) · gap-1(4) ·
+   px-3 py-2(12/8) · gap-2.5(10) · duration-500 · active:scale-95.
+   바꾼 것은 두 가지뿐이다 — ①방향(왼쪽 기준 → 오른쪽 기준 거울상)
+   ②색(하드코딩 흰색·회색·파스텔 → theme.css 토큰, 다크 모드 대응). */
+/* ⚠ 펼친 폭은 원본처럼 고정(256=w-64)이 아니라 **제 문구 길이만큼**이다.
+   원본이 256인 것은 버튼 안에 알림 목록·설정 패널이 들어가기 때문인데, 여기는 라벨
+   한 줄뿐이라 왼쪽이 텅 빈 채로 길어 보였다.
+   ⚠ `width: 56px → max-content` 로는 안 된다 — CSS 는 픽셀과 내재 크기(max-content) 사이를
+   이어 주지 못해서 전환이 0.5초 동안 늘어나지 않고 **툭 뛴다**(원본의 유일한 모션이 사라진다).
+   그래서 폭 대신 **원본이 제 펼침 패널에 쓰는 방법을 그대로 빌린다** — 격자 칸을
+   `0fr → 1fr` 로 전환하는 것이다(`grid-rows-[0fr]` → `peer-focus:grid-rows-[1fr]`).
+   fr 은 전환이 되고, 부모가 max-content 면 1fr 은 곧 '글자가 차지하는 만큼'이라
+   **문구가 길어지면 박스도 저절로 길어진다.** */
+.fab-stack {
+  position: fixed; right: var(--gap); bottom: var(--gap); z-index: 101;
+  list-style: none; margin: 0;
+  width: max-content;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  /* 원본의 세로 레일(border-l + pl-1)을 오른쪽으로 옮긴 것 */
+  border-right: 1px solid var(--border);
+  padding: 0 4px 0 0;
+  /* 펼쳐진 버튼 왼쪽의 빈 자리가 화면을 가리지 않게 — 칸 자체는 클릭을 통과시킨다 */
+  pointer-events: none;
+}
+/* 바탕을 절반만 비친다(사용자 지시 50%).
+   앞줄은 color-mix 를 모르는 브라우저용이다(그쪽은 불투명하게 남는다).
+   ⚠ 아이콘 칸(STOP·메뉴)은 제 배경을 따로 들고 있어 그대로 진하다 — 판만 비친다. */
+.fab-item {
+  pointer-events: auto;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+  border-right: 1px solid transparent;
+  background: var(--card-bg);
+  background: color-mix(in srgb, var(--card-bg) 50%, transparent);
+  transition: border-color .5s, box-shadow .5s;
+}
+/* 원본의 hover / has-[:focus] — 키보드로 왔을 때도 같이 펼친다 */
+.fab-item:hover, .fab-item:has(:focus-visible) {
+  border-right-color: var(--border);
+  box-shadow: var(--shadow-hover);
+}
+
+/* 격자 두 칸 = [늘어나는 라벨][아이콘]. 순서를 명시로 뒤집었기 때문에 마크업은 아이콘이
+   먼저여도 화면에서는 아이콘이 오른쪽 끝에 고정되고 라벨이 그 왼쪽에서 나온다
+   (거울상의 핵심 — 원본은 아이콘이 왼쪽에 고정되고 오른쪽으로 늘어난다). */
+/* 여백을 아예 두지 않는다 — 접혀 있을 때는 **아이콘 칸(36×36)이 곧 버튼**이다(사용자 지시).
+   원본은 px-3 py-2(12/8) 라 60.8×52 였다.
+   ⚠ 펼쳤을 때 라벨이 왼쪽 벽에 붙지 않게 하는 여백은 **라벨 안쪽 span** 이 든다
+   (`.fab-label > span` 의 padding). 버튼에 좌우 여백을 두면 접혔을 때도 남아 버리고,
+   호버에서 여백을 켰다 껐다 하면 폭이 톡 튄다 — 늘어나는 칸 **안에** 넣어야 같이 자란다. */
+.fab-btn {
+  display: grid; grid-template-columns: 0fr auto; align-items: center;
+  padding: 0;
+  border: 0; background: none; cursor: pointer;
+  font: inherit; text-align: right;
+  transition: scale .15s;
+}
+/* ⚠ 펼침 전환(.5s)을 **호버 규칙 안에만** 둔다. 기본 규칙에 두면 커서가 나갈 때도 같은
+   전환이 거꾸로 돌아 **아이콘이 한 번 더 튕긴다**(사용자 지적). 여기에 두면 들어올 때만
+   전환이 존재하고, 나갈 때는 규칙이 떨어져 나가며 곧바로 제자리로 접힌다.
+
+   튕김의 정체(실측): 전환 중 라벨 칸은 `0.3fr` 처럼 **1보다 작은 값**을 지나는데, 그때
+   fr 칸은 남는 자리를 제 비율만큼만 먹고 **나머지가 격자 오른쪽에 남는다**. 그래서 칸들이
+   왼쪽으로 몰리며 아이콘이 15px 왼쪽으로 갔다가 되돌아온다(1107.2 → 1092.0 → 1107.2).
+   ※ 아예 안 튕기게 하려면 `justify-content: end` 한 줄이면 되지만(남는 자리가 왼쪽에
+   모여 아이콘이 오른쪽에 붙박인다), 지시가 "들어올 때 한 번은 튕기게" 라 그대로 둔다. */
+.fab-item:hover .fab-btn,
+.fab-item:has(:focus-visible) .fab-btn {
+  grid-template-columns: 1fr auto;
+  transition: grid-template-columns .5s, scale .15s;
+}
+.fab-btn:active { scale: .95; }
+/* ⚠ 두 칸 모두 행을 못박는다. 마크업 순서가 [아이콘, 라벨]인데 아이콘을 2열에 두면
+   자동 배치가 뒤로만 흐르는 성질 때문에 1열인 라벨이 **다음 줄로 밀린다**
+   (그러면 버튼 높이가 52 → 73 이 된다 — 실제로 한 번 그렇게 났다). */
+.fab-icon {
+  grid-row: 1; grid-column: 2;
+  display: grid; place-items: center;
+  /* size-6(24) + p-1(4×2) + border-2(2×2) = 36 — 원본과 같은 바깥 크기 */
+  width: 36px; height: 36px;
+  border: 2px solid; border-radius: 8px;
+}
+.fab-icon svg { width: 24px; height: 24px; }
+/* 바깥 span 은 0 까지 줄어드는 칸이고(그래서 min-width:0 + overflow:hidden),
+   안쪽 span 이 잘려 나가는 실제 글자다. 아이콘과의 간격(원본 gap-2.5 = 10)도 안쪽에
+   넣는다 — 격자 gap 으로 두면 접혔을 때 그 10px 이 남아 원이 어정쩡하게 넓어진다. */
+.fab-label { grid-row: 1; grid-column: 1; min-width: 0; overflow: hidden; }
+/* 왼쪽 12 = 펼쳤을 때 글자가 벽에 붙지 않게 · 오른쪽 10 = 아이콘과의 간격(원본 gap-2.5).
+   둘 다 잘려 나가는 칸 안에 있어서 접히면 여백까지 같이 사라진다. */
+.fab-label > span {
+  display: block; white-space: nowrap; font-weight: 600;
+  padding: 0 10px 0 12px;
+}
+
+/* ① 긴급정지 — 빨간 바탕에 STOP. 글자는 칸(안쪽 28px)에 들어가도록 줄였다.
+   접혀 있을 때 보이는 것이 이 칸뿐이라 여기가 곧 버튼의 얼굴이다. */
+.fab-btn-stop { color: var(--danger); }
+.fab-icon-stop {
+  background: var(--danger); border-color: var(--danger); color: #fff;
+  font-size: 11px; font-weight: 800; letter-spacing: .2px; line-height: 1;
+}
+
+/* ② 메뉴 — 원본 2번 버튼(파랑)의 자리. 색만 강조색 계열로 바꿔 두 버튼이 한 벌로 읽히게 한다.
+   앞줄은 color-mix 를 모르는 브라우저용 고정값이다. */
+.fab-btn-menu { color: var(--accent); }
+.fab-icon-menu {
+  background: #e7ecfd; border-color: #b9c6f9; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--card-bg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab-item, .fab-btn { transition: none; }
+}
+
+/* =====================================================================
+   얇은 헤더의 작은 긴급정지 버튼 감추기
+   ===================================================================== */
+
+/* ⚠ DOM 에서 지우면 안 된다 — app.js 가 [data-slim-pause] 를 querySelector 로 한 번 잡아
+   두고 갱신마다 `el.slimPause.classList.toggle(...)` 을 부른다(app.js:646). 없으면 null
+   참조로 대시보드가 통째로 죽는다. 그래서 화면에서만 뺀다.
+   ⚠ 짝인 '▶ 매매 재개'([data-slim-resume])는 그대로 뒀다 — 지시가 긴급정지 하나였다.
+   정지 상태가 되면 얇은 헤더에 재개 버튼만 나타난다. */
+[data-slim-pause] { display: none; }
+
+
+/* =====================================================================
+   지갑 연결 페이지 (lab/connect.html) — 시안 2장 합본
+
+   사용자 지시대로 두 시안을 섞었다.
+     · 배경  = 2번의 진한 보라 + 민트 색을, 1번의 무늬(왼쪽 위 → 오른쪽 아래로
+               흐르는 큰 덩어리)로 배치하고 크기도 1번처럼 화면만 하게.
+     · 상자  = 1번의 유리 상자. 다만 1번의 바깥 큰 박스는 만들지 않는다.
+     · 옆 글 = 2번처럼 검정 초대형 헤드라인 + 회색 본문.
+     · Phantom 버튼(.btn-wallet)은 자리만 옮기고 모양·색·모션은 손대지 않는다.
+
+   ⚠ 판단이 하나 들어갔다 — 1번은 왼쪽 글자가 흰색이라 그 자리가 진보라여도 됐지만,
+     여기 글자는 2번을 따라 검정이다. 그래서 보라·민트 덩어리는 네 귀퉁이에 앉히고
+     글자와 상자가 앉는 가운데는 배경이 직접 밝게 비워 준다(1번에서 오른쪽 가운데가
+     흰빛으로 비는 것과 같은 자리다). 바깥 박스를 없앤 이상 그 밝은 자리를 만들 수
+     있는 것은 배경뿐이다.
+
+   전부 .auth-page 아래로만 걸려 있다 — 이 파일은 대시보드·랜딩도 함께 읽는다.
+   ===================================================================== */
+
+.auth-page {
+  --auth-purple: 93, 78, 241;      /* #5d4ef1 — 시안 보라(=--accent 와 같은 값) */
+  --auth-purple-deep: 68, 51, 216; /* 왼쪽 위 가장 진한 지점 */
+  --auth-mint: 72, 226, 197;       /* 2번 시안의 민트 */
+  --auth-page-bg: #f5f5ff;
+
+  padding: 0;                      /* 배경을 화면 끝까지 — skeleton 의 body 여백을 걷는다 */
+  background: var(--auth-page-bg);
+}
+
+/* 배경 한 장. 요소는 하나고 방사형 그라데이션 넉 장이 겹친다.
+   fixed 라 스크롤해도 무늬가 따라오지 않는다(좁은 화면에서 세로로 길어질 때 중요). */
+.auth-bg {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-color: var(--auth-page-bg);
+  background-image:
+    /* ① 왼쪽 위 — 1번에서 화면을 지배하는 그 보라 덩어리.
+       ⚠ 지름을 화면보다 크게(150%×120%) 잡고 꼬리를 82% 까지 길게 끈다. 처음엔
+       60% 에서 끊었더니 구석만 물들고 가운데가 흰 판으로 남아 1번의 '큰 무늬'가
+       아니라 점 네 개가 됐다(실측: 헤드라인 자리가 배경색 그대로 #f5f5ff). */
+    radial-gradient(150% 120% at -8% -14%,
+      rgba(var(--auth-purple-deep), .95) 0%, rgba(var(--auth-purple), .62) 18%,
+      rgba(var(--auth-purple), .26) 36%, rgba(var(--auth-purple), .08) 58%,
+      rgba(var(--auth-purple), 0) 82%),
+    /* ② 오른쪽 위 민트 — 2번에서 가져온 색 */
+    radial-gradient(95% 85% at 108% -8%,
+      rgba(var(--auth-mint), .72) 0%, rgba(var(--auth-mint), .30) 30%,
+      rgba(var(--auth-mint), .10) 52%, rgba(var(--auth-mint), 0) 76%),
+    /* ③ 오른쪽 아래 — 1번이 바닥에서 다시 보라로 돌아오는 자리 */
+    radial-gradient(120% 110% at 112% 116%,
+      rgba(var(--auth-purple), .90) 0%, rgba(var(--auth-purple), .50) 22%,
+      rgba(var(--auth-purple), .18) 42%, rgba(var(--auth-purple), .05) 62%,
+      rgba(var(--auth-purple), 0) 84%),
+    /* ④ 왼쪽 아래 민트 — 대각선 반대편에 짝을 둬야 ②가 혼자 뜬 것처럼 보이지 않는다 */
+    radial-gradient(85% 75% at -14% 118%,
+      rgba(var(--auth-mint), .50) 0%, rgba(var(--auth-mint), .18) 34%,
+      rgba(var(--auth-mint), 0) 66%);
+}
+
+/* ---- 두 칸 배치 ---- */
+.auth-page .auth {
+  min-height: 100vh;
+  display: grid;
+  /* ⚠ 오른쪽 칸을 auto 로 두면 안 된다 — auto 트랙은 제 max-content(안내 문구를 한 줄로
+     편 폭, 실측 870px)를 먼저 가져가고 남는 것만 1fr 에 준다. 그래서 왼쪽 글자 칸이
+     122px 로 찌부러졌다. 상자 폭을 못 박고 나머지를 전부 왼쪽에 준다. */
+  grid-template-columns: minmax(0, 1fr) 440px;
+  align-items: center; justify-content: normal;
+  gap: clamp(36px, 6vw, 92px);
+  max-width: 1180px; margin: 0 auto;
+  padding: clamp(40px, 8vh, 88px) clamp(24px, 5vw, 56px);
+}
+
+/* ---- 왼쪽 글 (2번 시안) ---- */
+.auth-intro h1 {
+  margin: 0 0 20px;
+  font-size: clamp(46px, 6.6vw, 78px);
+  font-weight: 800; line-height: 1.04; letter-spacing: -.025em;
+  color: var(--text);
+}
+.auth-intro .tagline {
+  margin: 0;
+  max-width: 26ch;
+  font-size: clamp(15px, 1.3vw, 18px); line-height: 1.65;
+  color: var(--muted);
+}
+/* 아래 작은 링크 줄 — 2번 시안에서 헤드라인 아래 왼쪽에 붙어 있는 그 자리다 */
+.auth-page .auth-back {
+  margin: clamp(28px, 5vh, 44px) 0 0;
+  text-align: left; font-size: 14px;
+}
+.auth-page .auth-back a { color: var(--muted); }
+.auth-page .auth-back a:hover { color: var(--accent); }
+
+/* ---- 오른쪽 유리 상자 (1번 시안) ---- */
+.auth-page .auth-card {
+  width: 100%; max-width: none;    /* 폭은 위 그리드 칸(440px)이 정한다 */
+  padding: 40px 36px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, .60);
+  border: 1px solid rgba(255, 255, 255, .8);
+  box-shadow: 0 30px 70px -34px rgba(28, 20, 80, .5),
+              0 2px 10px rgba(28, 20, 80, .05);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+}
+/* 카드가 마우스에 반응해 떠오르는 것은 대시보드용 동작이다 — 로그인 화면에서는 끈다 */
+.auth-page .auth-card:hover {
+  transform: none;
+  box-shadow: 0 30px 70px -34px rgba(28, 20, 80, .5),
+              0 2px 10px rgba(28, 20, 80, .05);
+}
+
+.auth-head { text-align: center; margin-bottom: 22px; }
+.auth-head h2 {
+  margin: 0 0 6px;
+  font-size: 34px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15;
+  color: var(--text);
+}
+.auth-head .sub { margin: 0; font-size: 14px; }
+
+/* 안내 상자 — 유리 위라서 불투명한 회색 판(skeleton 기본)을 쓰면 상자가 둘로 보인다 */
+.auth-page .auth-notice {
+  background: rgba(255, 255, 255, .55);
+  border: 1px solid rgba(var(--auth-purple), .14);
+  border-radius: 14px;
+  padding: 14px 16px; margin: 0 0 20px;
+  font-size: 13px; line-height: 1.65; color: var(--muted);
+}
+.auth-page .auth-notice strong { color: var(--text); font-weight: 700; }
+
+/* ⚠ .btn-wallet 은 손대지 않는다(모양·색·모션 유지). 위아래 간격만 준다. */
+.auth-page .btn-wallet.auth-submit { margin-top: 2px; }
+
+.auth-page .auth-result { margin-top: 12px; text-align: center; font-size: 13px; }
+.auth-page [data-no-provider] { margin-top: 12px; text-align: center; line-height: 1.6; }
+.auth-page [data-no-provider] a { color: var(--accent); }
+
+/* ---- 연결 후 ---- */
+/* 주소는 44자라 큰 숫자용 .big 을 그대로 쓰면 상자를 뚫는다. 알약 안에 접어 넣는다. */
+.auth-page [data-connect-done] .big {
+  margin: 0 0 12px;
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(var(--auth-purple), .07);
+  font-size: 0;                       /* code 만 보이게 — .big 의 32px 을 무력화한다 */
+  text-align: center;
+}
+.auth-page [data-connect-address] {
+  font-size: 13px; line-height: 1.6; word-break: break-all; color: var(--text);
+}
+.auth-page [data-wallet-balance] { margin: 0 0 16px; text-align: center; font-size: 13px; }
+.auth-page [data-connect-done] .btn.auth-submit {
+  display: block; padding: 13px 16px; border-radius: 14px;
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  font-weight: 700; text-align: center; text-decoration: none;
+}
+.auth-page [data-connect-done] .btn.auth-submit:hover { filter: brightness(1.06); }
+.auth-page .auth-secondary {
+  display: block; width: 100%; margin-top: 8px;
+  padding: 11px 16px; border-radius: 14px;
+  background: transparent; border-color: rgba(var(--auth-purple), .2); color: var(--muted);
+}
+
+/* ---- 좁은 화면 ---- */
+@media (max-width: 900px) {
+  .auth-page .auth {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center; text-align: center;
+    gap: 36px;
+  }
+  .auth-intro .tagline { max-width: 34ch; margin-inline: auto; }
+  .auth-page .auth-back { text-align: center; }
+  .auth-page .auth-card { max-width: 440px; padding: 32px 24px; }
+  /* 세로로 쌓이면 ③(오른쪽 아래 보라)이 상자 뒤로 올라온다 — 아래로 더 밀어 둔다 */
+  .auth-bg { background-position: 0 0, 0 0, 0 12%, 0 0; }
+}
+
+/* ---- 다크 ----
+   시안에 다크가 없어 저장소 기존 방침대로 라이트에서 유도했다. 색조는 그대로 두고
+   바탕만 어둡게 뒤집는다. 글자색은 --text 를 쓰므로 자동으로 밝아진다. */
+@media (prefers-color-scheme: dark) {
+  .auth-page { --auth-page-bg: #0f1119; }
+  .auth-bg {
+    background-image:
+      radial-gradient(150% 120% at -8% -14%,
+        rgba(var(--auth-purple-deep), .88) 0%, rgba(var(--auth-purple), .44) 18%,
+        rgba(var(--auth-purple), .18) 36%, rgba(var(--auth-purple), .05) 58%,
+        rgba(var(--auth-purple), 0) 82%),
+      radial-gradient(95% 85% at 108% -8%,
+        rgba(var(--auth-mint), .40) 0%, rgba(var(--auth-mint), .16) 30%,
+        rgba(var(--auth-mint), .05) 52%, rgba(var(--auth-mint), 0) 76%),
+      radial-gradient(120% 110% at 112% 116%,
+        rgba(var(--auth-purple), .62) 0%, rgba(var(--auth-purple), .32) 22%,
+        rgba(var(--auth-purple), .12) 42%, rgba(var(--auth-purple), .03) 62%,
+        rgba(var(--auth-purple), 0) 84%),
+      radial-gradient(85% 75% at -14% 118%,
+        rgba(var(--auth-mint), .28) 0%, rgba(var(--auth-mint), .10) 34%,
+        rgba(var(--auth-mint), 0) 66%);
+  }
+  .auth-page .auth-card {
+    background: rgba(28, 30, 40, .62);
+    border-color: rgba(255, 255, 255, .09);
+    box-shadow: 0 30px 70px -34px rgba(0, 0, 0, .8);
+  }
+  .auth-page .auth-card:hover { box-shadow: 0 30px 70px -34px rgba(0, 0, 0, .8); }
+  .auth-page .auth-notice { background: rgba(255, 255, 255, .04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-page .auth-card { transition: none; }
+}
+
+
+/* =====================================================================
+   시안 비율 맞추기 — 카드 높이 (2026-08-01)
+
+   1440 에서 재 보면 **폭은 이미 시안과 정확히 같다**(모든 카드 Δ0). 어긋나는 것은 높이뿐이라
+   높이를 미는 요소만 시안 값으로 되돌린다. 시안 = Desktop-8(1440), 콘텐츠 1098.
+
+   ⚠ 버튼은 손대지 않는다(사용자 지시) — 지갑 버튼·배너 버튼·차트 조작부·플로팅 버튼 전부.
+   ===================================================================== */
+
+/* 시세 차트 — 시안 Frame 114 는 489×220 이다. skeleton 기본값이 320 이라 카드가 100px 높았다. */
+.chart { height: 220px; }
+
+/* 예산·한도·브리핑 — 시안 350×338. 실측 268 로 70px 짧아 마지막 줄이 시안보다 납작했다.
+   min-height 라 내용이 늘면 그때는 늘어난다(잘리지 않는다). */
+.grid > [data-card="budget"],
+.grid > [data-card="mandate"],
+.grid > [data-card="briefing"] { min-height: 338px; }
+
+/* 오늘의 결과·세션 설정 — 시안 379(724 / 350). 바닥값만 잡아 둔다. */
+.grid > [data-card="today"],
+.grid > [data-card="session"] { min-height: 379px; }
+
+
+/* =====================================================================
+   시안 글꼴 배분 — 문장 Noto Sans KR / 숫자·라벨 Pretendard (2026-08-01)
+
+   시안이 실제로 그렇게 나눠 쓴다(`get_design_context` 로 확인한 노드 전부 일치).
+   기본을 Noto 로 두고, 시안이 Pretendard 로 지정한 자리만 되돌린다.
+   ⚠ 두 글꼴은 문장부호 모양이 다르다 — 이 배분이 어긋나면 쉼표·마침표부터 티가 난다.
+   ===================================================================== */
+:root {
+  --font: "Noto Sans KR", "Pretendard", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+  /* 숫자·라벨용 — 시안이 Pretendard Bold 로 지정한 자리 */
+  --font-num: "Pretendard", "Noto Sans KR", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+/* 시안이 Pretendard 로 못 박은 자리: 타일 라벨(2003:499)·타일 숫자(2003:500).
+   같은 성격(큰 숫자·KPI)인 다른 카드도 같은 규칙으로 묶는다. */
+.fx-tile-head, .fx-tile-num,
+.big, .huge, .kpi-num, .budget-hero, .budget-foot-num { font-family: var(--font-num); }
+
+
+/* =====================================================================
+   가드 배너 버튼 — 시안 실측 (2003:552 / 2003:555)
+
+   자세히 보기 137×48 · 닫기 60×48 · 둘 다 py11 px17 · 모서리 11 · 글자 14 Bold.
+   실측은 120×43 / 60×43 이었다 — 높이 5px 부족, 화살표는 글자 `→` 라 시안의 20px 선과 다름.
+   ===================================================================== */
+
+/* 높이 48 = 시안의 `h-full`(배너 본문 48에 맞춰 늘어남). 값으로 못 박는 편이 읽기 쉽다. */
+.fx-banner-btn, .fx-banner-close { height: 48px; }
+
+/* 라벨과 화살표 사이 15px(시안 gap). 버튼 안을 플렉스로 두어야 간격이 정확히 잡힌다. */
+.fx-banner-btn {
+  display: inline-flex; align-items: center; gap: 15px;
+  padding-right: 17px;
+}
+/* 화살표 — 시안이 내보낸 SVG(Arrow 2) 그대로를 마스크로 쓴다. 20×14.73, 색은 글자색을 따라간다.
+   ⚠ 글자 `→` 를 그대로 두면 굵기·길이가 다르다(시안은 선 끝에 화살촉이 붙은 20px 직선).
+   span 안의 글자는 font-size:0 으로 지우고 마스크만 남긴다 — DOM 은 안 건드린다. */
+.fx-banner-btn > span {
+  flex: none; width: 20px; height: 14.73px; font-size: 0;
+  background: currentColor;
+  -webkit-mask: var(--arrow2) center / 20px 14.73px no-repeat;
+  mask: var(--arrow2) center / 20px 14.73px no-repeat;
+}
+:root {
+  --arrow2: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="21" height="14.7279" viewBox="0 0 21 14.7279" fill="none"><path d="M20.7071 8.07107C21.0976 7.68054 21.0976 7.04738 20.7071 6.65685L14.3431 0.292893C13.9526 -0.097631 13.3195 -0.097631 12.9289 0.292893C12.5384 0.683418 12.5384 1.31658 12.9289 1.70711L18.5858 7.36396L12.9289 13.0208C12.5384 13.4113 12.5384 14.0445 12.9289 14.435C13.3195 14.8256 13.9526 14.8256 14.3431 14.435L20.7071 8.07107ZM0 7.36396V8.36396H20V7.36396V6.36396H0V7.36396Z" fill="black"/></svg>');
+}

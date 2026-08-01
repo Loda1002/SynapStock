@@ -11,6 +11,47 @@
    유도한 값에는 "파생" 이라고 적어 두었다.
    시안 룩 = 연보라 회색 바탕 위에 흰 카드가 테두리 없이 그림자로만 떠 있는 형태,
    보라 강조 + 민트 상승 + 큰 굵은 숫자 + 넉넉한 여백. */
+/* ---- 시안 글꼴 (2026-08-01 편입) ----
+   시안은 두 벌을 나눠 쓴다 — 숫자·라벨은 Pretendard, 사람이 읽는 문장은 Noto Sans KR.
+   심지 않으면 --font 목록이 system-ui 까지 흘러 맑은 고딕이 그려지는데, 맑은 고딕 Bold 는
+   같은 700 이라도 획이 굵어 시안보다 두껍게 읽힌다("너무 두꺼워 보임"의 원인 절반이었다).
+   ⚠ 여기(theme.css)에 두는 이유: 세 페이지(대시보드·연결·랜딩)가 전부 이 파일을 읽는다.
+      시안 규칙 파일(design.css)에 두면 그걸 안 싣는 랜딩만 글꼴이 달라진다.
+   ⚠ Pretendard 는 KS X 1001 상용 한글 2,350자 subset 이다(전체본은 벌당 750KB).
+      화면에 쓰는 한글이 전부 이 범위 안이라는 것은 글자 단위로 확인했다.
+   ⚠ Noto 는 라틴본을 빼면 안 된다 — 쉼표·마침표가 라틴 영역(U+002C·U+002E)이라
+      한글본만 심으면 문장부호만 Pretendard 로 떨어져 시안과 모양이 어긋난다. */
+@font-face {
+  font-family: "Pretendard";
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/static/fonts/Pretendard-Regular.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/static/fonts/Pretendard-Bold.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans KR"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/static/fonts/noto-sans-kr-korean-400-normal.woff2") format("woff2");
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
+}
+@font-face {
+  font-family: "Noto Sans KR"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/static/fonts/noto-sans-kr-korean-700-normal.woff2") format("woff2");
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
+}
+@font-face {
+  font-family: "Noto Sans KR"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/static/fonts/noto-sans-kr-latin-400-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+@font-face {
+  font-family: "Noto Sans KR"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/static/fonts/noto-sans-kr-latin-700-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+
 :root {
   color-scheme: light dark;
 }

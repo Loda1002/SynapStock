@@ -8,17 +8,36 @@
 <!-- 지갑 연결이 곧 로그인이다. 이메일·비밀번호 계정을 만들지 않는다.
      self-custody 를 주장하는 제품이 비밀번호를 보관하는 계정 체계를 함께 파는 것은
      앞뒤가 맞지 않고, "로그인 후 지갑 연결"은 사용자가 같은 일(소유 증명)을 두 번 하는 것이다.
-     대시보드와 같은 스킨(theme.css) + 골격(skeleton.css)을 쓰므로 시안 교체 시 함께 바뀐다. -->
+     대시보드와 같은 스킨(theme.css) + 골격(skeleton.css) + 시안(design.css)을 쓴다. -->
 <link rel="stylesheet" href="/static/css/theme.css">
 <link rel="stylesheet" href="/static/css/skeleton.css">
+<!-- ⚠ design.css 는 반드시 skeleton.css 뒤에 — 순서가 곧 결과다. 이 페이지의 시안 규칙은
+     전부 .auth-page 아래로만 걸려 있어 대시보드·랜딩에는 한 줄도 새지 않는다. -->
+<link rel="stylesheet" href="/static/css/design.css">
 </head>
-<body>
+<!-- 이 클래스가 시안 규칙 전체의 스위치다(design.css) -->
+<body class="auth-page">
+
+<!-- 배경. 시안 2번의 보라·민트를 시안 1번의 무늬(왼쪽 위에서 오른쪽 아래로 흐르는 큰 덩어리)로
+     칠한다. 요소 하나에 방사형 그라데이션 넉 장을 겹치는 것뿐이라 DOM 도 스크립트도 안 늘어난다. -->
+<div class="auth-bg" aria-hidden="true"></div>
 
 <main class="auth">
+
+  <!-- 왼쪽 — 시안 2번의 글 배치(검정 초대형 헤드라인 + 회색 본문 + 아래 작은 링크 줄) -->
+  <section class="auth-intro">
+    <h1>SynapStock</h1>
+    <p class="tagline">지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다</p>
+    <p class="sub auth-back">
+      <a href="/">← 소개 페이지</a> · <a href="/app">연결 없이 데모 둘러보기</a>
+    </p>
+  </section>
+
+  <!-- 오른쪽 — 시안 1번의 유리 상자. 시안 1번의 바깥 큰 박스는 쓰지 않는다(사용자 지시). -->
   <section class="card auth-card">
-    <div class="brand auth-brand">
-      <h1>SynapStock</h1>
-      <p class="tagline">지갑을 연결하면 로그인됩니다 — 비밀번호는 만들지 않습니다</p>
+    <div class="auth-head">
+      <h2>지갑 연결</h2>
+      <p class="sub">Phantom 지갑 서명이 곧 로그인입니다.</p>
     </div>
 
     <!-- 연결 전 -->
@@ -28,7 +47,8 @@
         아닙니다. 거래 권한은 이후 <strong>AP2 위임장</strong>이 정한 한도 안에서만 열립니다.
       </p>
       <!-- 대시보드 헤더와 같은 버튼(.btn-wallet, skeleton.css). 이 페이지의 라벨은 JS 가
-           건드리지 않으므로(disabled 만 토글) 아이콘·글자가 그대로 남는다. -->
+           건드리지 않으므로(disabled 만 토글) 아이콘·글자가 그대로 남는다.
+           ⚠ 모양·색·모션은 손대지 않는다(사용자 지시) — 자리만 유리 상자 안으로 옮겼다. -->
       <button class="btn-wallet auth-submit" type="button" data-connect-btn>
         <span class="wallet-icon" aria-hidden="true"></span>
         <span>Phantom 지갑 연결</span>
@@ -50,12 +70,8 @@
       <!-- 온체인 잔액 — 연결된 그 지갑을 체인에서 직접 읽는다(wallet.js mountBalance) -->
       <p class="sub" data-wallet-balance hidden></p>
       <a class="btn auth-submit" href="/app">대시보드로 이동 →</a>
-      <button class="btn" type="button" data-disconnect-btn>연결 해제</button>
+      <button class="btn auth-secondary" type="button" data-disconnect-btn>연결 해제</button>
     </div>
-
-    <p class="sub auth-back">
-      <a href="/app">← 연결 없이 데모 둘러보기</a> · <a href="/">소개 페이지</a>
-    </p>
   </section>
 </main>
 
