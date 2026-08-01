@@ -1992,6 +1992,34 @@
   }
 
   let draggedCard = null;
+
+  // ── 드래그 중 자동 스크롤 ───────────────────────────────────────────────
+  // 네이티브 HTML5 드래그가 도는 동안 브라우저는 휠·트랙패드 이벤트를 문서로 보내지
+  // 않는다. 그래서 카드를 잡은 채로는 화면 밖으로 스크롤할 수가 없어, 첫 화면에
+  // 보이는 카드끼리만 자리를 바꿀 수 있었다. 커서를 뷰포트 위·아래 가장자리에 대고
+  // 있는 동안 우리가 대신 굴려 준다.
+  // ⚠ dragover 는 마우스가 '움직일 때만' 온다 — 가장자리에 멈춰 있으면 이벤트가
+  //   끊긴다. 그래서 좌표만 받아 두고 실제 스크롤은 rAF 루프가 돌린다.
+  const DRAG_EDGE = 96;       // 가장자리로 치는 두께(px)
+  const DRAG_EDGE_MAX = 26;   // 한 프레임 최대 이동량(px) — 가장자리에 가까울수록 빨라진다
+  let dragPointerY = null, dragScrollRAF = null;
+
+  function dragScrollStep() {
+    if (!draggedCard) { dragScrollRAF = null; dragPointerY = null; return; }  // dragend 가 곧 정지 신호
+    if (dragPointerY != null) {
+      const h = window.innerHeight;
+      let dy = 0;
+      if (dragPointerY < DRAG_EDGE) dy = -DRAG_EDGE_MAX * (1 - dragPointerY / DRAG_EDGE);
+      else if (dragPointerY > h - DRAG_EDGE) dy = DRAG_EDGE_MAX * (1 - (h - dragPointerY) / DRAG_EDGE);
+      if (dy) window.scrollBy(0, dy);
+    }
+    dragScrollRAF = requestAnimationFrame(dragScrollStep);
+  }
+  // 카드 사이 빈 곳에서도 좌표를 받아야 하므로 document 에 건다.
+  // ⚠ 여기서는 preventDefault 를 하지 않는다 — 하면 카드 밖에도 드롭이 허용된 것처럼
+  //   보이는데 drop 핸들러는 카드에만 있어 아무 일도 일어나지 않는다(커서만 거짓말).
+  document.addEventListener("dragover", (e) => { dragPointerY = e.clientY; }, { passive: true });
+
   function initCardDrag() {
     for (const card of cardEls()) {
       const handle = card.querySelector("h2");
@@ -2005,11 +2033,15 @@
         card.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
         try { e.dataTransfer.setData("text/plain", card.dataset.card); } catch (err) { /* 일부 브라우저 */ }
+        dragPointerY = e.clientY;
+        if (dragScrollRAF == null) dragScrollRAF = requestAnimationFrame(dragScrollStep);
       });
       card.addEventListener("dragend", () => {
         card.removeAttribute("draggable");
         card.classList.remove("dragging");
         draggedCard = null;
+        dragPointerY = null;
+        if (dragScrollRAF != null) { cancelAnimationFrame(dragScrollRAF); dragScrollRAF = null; }
         cardEls().forEach((c) => c.classList.remove("drop-target"));
         saveLayout();
       });
