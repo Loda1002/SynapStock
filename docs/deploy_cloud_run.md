@@ -150,7 +150,7 @@ gcloud projects get-iam-policy $PROJECT_ID --flatten="bindings[].members" --filt
 `--source .` 이 엉뚱한 폴더를 통째로 업로드하는 사고**를 막는 안전장치다.
 
 ```powershell
-if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가 아닙니다. 현재 위치: $(Get-Location)" } else { gcloud run deploy synapstock --project $PROJECT_ID --source . --region $REGION --allow-unauthenticated --min-instances 1 --max-instances 1 --no-cpu-throttling --concurrency 300 --cpu 1 --memory 1Gi --timeout 3600 --set-env-vars "FIRESTORE_ENABLED=1,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com,ALLOW_LIVE_FROM_WEB=0,MAX_BUDGET_USDC=1000,GEMINI_MODE=developer,GEMINI_MODEL=gemini-flash-latest,STOCK_MINT=37HxYLozTuzRDi1bqkqY1gKghzxbZHG8cWH1pwvAfJRG,STOCK_SYMBOL=tAAPL,BUDGET_USDC=100,PER_TRADE_MAX_USDC=50" --set-secrets "TRADING_KEYPAIR_JSON=autotrader-trading-wallet:latest,BROKER_KEYPAIR_JSON=autotrader-broker-wallet:latest,USER_KEYPAIR_JSON=autotrader-user-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest,CONTROL_TOKEN=autotrader-control-token:latest" }
+if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가 아닙니다. 현재 위치: $(Get-Location)" } else { gcloud run deploy synapstock --project $PROJECT_ID --source . --region $REGION --allow-unauthenticated --min-instances 1 --max-instances 1 --no-cpu-throttling --concurrency 300 --cpu 1 --memory 1Gi --timeout 3600 --set-env-vars "FIRESTORE_ENABLED=1,SOLANA_NETWORK=solana-devnet,SOLANA_RPC_URL=https://api.devnet.solana.com,ALLOW_LIVE_FROM_WEB=0,MAX_BUDGET_USDC=1000,GEMINI_MODE=developer,GEMINI_MODEL=gemini-flash-lite-latest,STOCK_MINT=37HxYLozTuzRDi1bqkqY1gKghzxbZHG8cWH1pwvAfJRG,STOCK_SYMBOL=tAAPL,BUDGET_USDC=100,PER_TRADE_MAX_USDC=50" --set-secrets "TRADING_KEYPAIR_JSON=autotrader-trading-wallet:latest,BROKER_KEYPAIR_JSON=autotrader-broker-wallet:latest,USER_KEYPAIR_JSON=autotrader-user-wallet:latest,GEMINI_API_KEY=autotrader-gemini-key:latest,CONTROL_TOKEN=autotrader-control-token:latest" }
 ```
 
 > ⚠ **`STOCK_MINT` 이하 4개는 2026-07-31 에 추가됐다 — 빼면 안 된다.** 그 전까지 이 명령에는
@@ -169,10 +169,16 @@ if (-not (Test-Path -LiteralPath ".\Dockerfile")) { "중단: 저장소 루트가
 > 이 값이 있어 드러나지 않는다. 빠뜨리면 조건형(Gemini) 세션에서만 뒤늦게 터진다.
 
 > ⚠ **`--set-env-vars` 는 기존 env 를 전부 덮어쓴다**(2026-07-28 반영). 위 명령에 없는 변수는
-> 다음 배포에서 **사라진다** — 그래서 `GEMINI_MODEL=gemini-flash-latest` 를 명령에 직접 넣어 두었다.
+> 다음 배포에서 **사라진다** — 그래서 `GEMINI_MODEL` 을 명령에 직접 넣어 두었다.
 > 예전 명령에는 이 줄이 없어서, 재배포할 때마다 §7-1 에서 따로 넣어 둔 모델이 지워지고
 > **일일 쿼터가 소진된 기본 모델로 되돌아갔다.** env 를 하나만 바꾸고 싶을 때는
 > `--set-env-vars` 가 아니라 `--update-env-vars` 를 쓴다(그쪽은 지정한 것만 덧씌운다).
+
+> ⚠ **모델 값은 `gemini-flash-lite-latest` 다 — `gemini-flash-latest` 로 되돌리지 말 것**
+> (2026-08-01 정정). 무료 티어 일일 한도가 **`gemini-flash-latest` 는 20건/일,
+> `gemini-flash-lite-latest` 는 500건/일**이라, 전자로 배포하면 심사위원이 조건형(AI 판단)
+> 세션을 **한 번 돌리는 것만으로 한도가 소진된다**(60~80봉 세션은 애초에 완주가 불가능하다).
+> 배포 현행값도 lite 이며, 이 명령을 그대로 복붙해야 그 상태가 유지된다.
 
 ### 플래그가 이 값인 이유 (줄이면 안 되는 것들)
 
@@ -256,8 +262,10 @@ curl -s "https://<URL>/.well-known/x402"
   소진되면 배포본의 조건형(Gemini) 세션이 **매수를 전부 보류**한다 — 설계된 fail-closed 동작이라
   엔진은 계속 돌지만 화면에는 체결이 안 나온다. 소진 시 재배포 없이 갈아타는 방법:
   ```powershell
-  gcloud run services update synapstock --region $REGION --update-env-vars "GEMINI_MODEL=gemini-flash-latest"
+  gcloud run services update synapstock --region $REGION --update-env-vars "GEMINI_MODEL=<쿼터가 남은 모델>"
   ```
+  ⚠ **`gemini-flash-latest` 로는 갈아타지 않는다** — 일일 20건이라 세션 하나를 못 채운다.
+  배포 현행값 `gemini-flash-lite-latest`(500건/일)가 지금까지 확인된 유일한 실용 선택지다.
 - **환경변수만 수정**: `gcloud run services update synapstock --region $REGION --update-env-vars KEY=VALUE`
 - **비용**: 상시 1 인스턴스(CPU 상시 할당) ≈ **월 $50 안팎** → 심사 기간 2~3주면 $25~40,
   $300 크레딧으로 충분. 심사 끝나면 삭제: `gcloud run services delete synapstock --region $REGION`
