@@ -316,6 +316,11 @@
   }
   @media (max-width: 600px) {
     .lp-wrap { padding-left: 16px; padding-right: 16px; }
+    /* 폰 폭에서는 브랜드와 CTA 가 한 줄에 안 들어간다(390px 에서 실측 20px 넘침).
+       글자를 줄이는 대신 두 줄로 접는다 — 확정 워딩('지갑 연결하고 시작하기')을 그대로 둔다. */
+    .navbar-inner { height: auto; flex-wrap: wrap; padding: 14px 16px; row-gap: 12px; }
+    .nav-cta { width: 100%; margin-left: 0; }
+    .nav-cta a { width: 100%; justify-content: center; }
     .hero h1 { font-size: 28px; line-height: 38px; }
     .hero-buttons { flex-direction: column; align-items: center; }
     .cta-banner { padding: 40px 20px; }
