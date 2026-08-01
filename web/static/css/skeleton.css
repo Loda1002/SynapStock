@@ -355,7 +355,17 @@ input[type="number"], input[type="text"], input[type="time"] {
 .ai-layer {
   flex: 1 1 300px; border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 6px); padding: 12px;
+  /* 두 레이어의 '보기' 버튼 줄을 같은 높이에 맞춘다. 레이어 상자끼리는 .ai-layers 의
+     flex stretch 로 이미 높이가 같은데, 안쪽은 흐름대로 쌓여서 설명 줄 수가 다르면
+     버튼이 위아래로 어긋났다(2026-08-01 실측: 좌우로 나란할 때 14px). 좁아져서 줄내림이
+     되면 각자 자기 높이라 우연히 맞아 보이던 것이 그 때문이다. */
+  display: flex; flex-direction: column;
 }
+/* ⚠ 자식 결합자로 특정도를 (0,2,0) 으로 올려 둔 것은 의도다 — design.css(시안)가
+   `.ai-more { margin: 16px 0 0 }` 으로 margin 을 shorthand 로 다시 쓰기 때문에,
+   (0,1,0) 로 쓰면 뒤에 실리는 그쪽이 이겨 바닥 정렬이 풀린다.
+   padding-top 은 콘텐츠가 꽉 차 auto 가 0 이 될 때의 최소 간격이다. */
+.ai-layer > .ai-more { margin-top: auto; padding-top: 16px; }
 .ai-layer h3 { font-size: var(--fs-base); margin: 0 0 10px; }
 .ai-layer h3 .sub { display: inline; margin-left: 6px; font-weight: 400; }
 .ai-layer .kpi-num { font-size: calc(var(--fs-big) * 0.72); }
@@ -1034,6 +1044,9 @@ body.page-dashboard .topbar {
 }
 .fx-tab.is-active { background: #edebff; color: var(--accent); }
 .fx-tab[aria-disabled="true"] { opacity: .75; cursor: not-allowed; }
+/* '개발자' 탭만 실제로 눌린다(세션 설정 서랍을 연다) — aria-disabled 가 없어서 위 규칙의
+   not-allowed 가 안 걸리는데, 그렇다고 기본 커서로 두면 누를 수 있다는 신호가 없다. */
+.fx-tab[data-dev-tab] { cursor: pointer; }
 
 body.page-dashboard .topbar .controls { gap: 10px; flex-wrap: nowrap; }
 /* 긴급정지·알림은 시안의 알약 칩 모양으로. 지갑 버튼은 제외한다(브랜드 색 고정). */

@@ -111,6 +111,7 @@
     devDrawer: $("[data-dev-drawer]"),
     devToggle: $("[data-dev-toggle]"),
     devSlot: $("[data-dev-slot]"),
+    devTab: $("[data-dev-tab]"),
     btnNotify: $("[data-btn-notify]"),
     toasts: $("[data-toasts]"),
     btnBriefing: $("[data-btn-briefing]"),
@@ -1771,7 +1772,7 @@
      이 한 곳으로 모이게 하려는 구조다. 감추기만 하고 DOM 에서 빼지는 않으므로
      app.js 가 읽는 훅은 전부 살아 있다(빼면 null 참조로 대시보드가 통째로 죽는다).
      ⚠ applyLayout 보다 먼저 옮겨야 한다 — 그리드에 남아 있으면 배치 로직이 도로 끌어온다. */
-  const devMode = localStorage.getItem(LAB_KEY) === "1";
+  let devMode = localStorage.getItem(LAB_KEY) === "1";
   /* 서랍으로 옮기는 카드들.
      · session  = 세션 조작부(모드·속도·전략) — 개발/시연용 노브다.
      · history  = '지난 세션' 목록. 세션ID·Gemini 비율은 우리 계측 단위라 관람자가 읽을 것이
@@ -1784,7 +1785,12 @@
       if (card) el.devSlot.appendChild(card);
     }
   }
-  if (devMode) {
+  /* 검증용 조작부를 켠다 — `?lab=1` 로 들어온 경우와 상단 '개발자' 탭을 누른 경우가 같은 길이다.
+     ⚠ 끄는 길은 `?lab=0` 하나로 둔다. 라이브 옵션이 이미 선택된 채로 도로 잠그면 화면이
+     고른 모드와 엔진이 받을 모드가 어긋나므로, 되돌리기는 새로고침 경로로 몰아 둔다. */
+  function enableDevMode() {
+    devMode = true;
+    localStorage.setItem(LAB_KEY, "1");
     el.devDock.classList.remove("hidden");
     el.adv.open = true;
     // 검증용에서만 푸는 잠금: 라이브 모드 옵션
@@ -1792,13 +1798,25 @@
       n.classList.remove("hidden");
       if (n.tagName === "OPTION") n.disabled = false;
     }
+    syncAdvOptions();
   }
+  function setDevDrawer(open) {
+    el.devDrawer.hidden = !open;
+    if (el.devToggle) el.devToggle.setAttribute("aria-expanded", String(open));
+    el.devDock.classList.toggle("is-open", open);
+    if (el.devTab) el.devTab.classList.toggle("is-active", open);
+  }
+  if (devMode) enableDevMode();
   if (el.devToggle) {
-    el.devToggle.addEventListener("click", () => {
-      const open = el.devDrawer.hidden;          // 지금 닫혀 있으면 연다
-      el.devDrawer.hidden = !open;
-      el.devToggle.setAttribute("aria-expanded", String(open));
-      el.devDock.classList.toggle("is-open", open);
+    el.devToggle.addEventListener("click", () => setDevDrawer(el.devDrawer.hidden));  // 닫혀 있으면 연다
+  }
+  /* 상단 '개발자' 탭 — 세션 설정 카드에 닿는 **화면상의 유일한 경로**다. 이게 없으면
+     주소에 ?lab=1 을 직접 붙일 줄 아는 사람만 세션을 시작할 수 있다. */
+  if (el.devTab) {
+    const toggleDev = () => { enableDevMode(); setDevDrawer(el.devDrawer.hidden); };
+    el.devTab.addEventListener("click", toggleDev);
+    el.devTab.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDev(); }
     });
   }
   syncAdvOptions();

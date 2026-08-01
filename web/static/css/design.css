@@ -9,10 +9,12 @@
 
    ⚠ 프런트가 새 lab.css 를 보내면 이 파일을 통째로 갈아 끼운다. 손으로 규칙을
    골라 옮기지 않는다 — 시안 정밀 조정이라 한 줄만 빠져도 비례가 어긋난다.
-   이식할 때 바꾸는 것은 아래 넷뿐이다:
+   이식할 때 바꾸는 것은 아래 다섯뿐이다:
      · 실험장 전용 블록 2개 제거(Phantom 아이콘 경로 되잡기 · 조작 바)
      · @font-face 6개 제거 — theme.css 가 대신 심는다(랜딩은 이 파일을 안 싣기 때문에
        여기 두면 랜딩만 글꼴이 시스템 폴백으로 떨어진다)
+     · `.dev-dock { display: none !important }` 해제 — 실험장은 세션 카드를 그리드에 두지만
+       본 화면에서 그 서랍은 세션 설정에 닿는 유일한 경로다(감추면 세션을 못 켠다)
      · 브랜드 주석의 제품명(실험장 원본은 개명 이전이라 402 Guard 로 적혀 있다)
      · 머리말을 이 블록으로
    ===================================================================== */
@@ -189,8 +191,7 @@
 .grid > [data-card="pnl"],
 .grid > [data-card="valuation"],
 .grid > [data-card="position"],
-.grid > [data-card="history"],
-.dev-dock { display: none !important; }
+.grid > [data-card="history"] { display: none !important; }
 
 @media (max-width: 1100px) {
   .grid > [data-card] { grid-column: span 12 !important; }
