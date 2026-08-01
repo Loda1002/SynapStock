@@ -2,7 +2,7 @@
 
 이 디렉터리는 **개발/평가 지원 에이전트 부서**(트랙 B)가 내는 리포트를 모은다.
 최종 앱에는 들어가지 않는다 — 개발·자가평가를 돕는 조직이다. 상세 배경은
-`CLAUDE.md` '에이전트 부서', `docs/differentiation.md`(402 Guard 재포지셔닝).
+`docs/differentiation.md`(402 Guard 재포지셔닝).
 
 > **원칙**: 이 부서들은 앱 동작·제출물 자체를 바꾸지 않는다(품질만 높인다).
 > 리포트는 저장소 실물(코드·artifacts·테스트·git)에 근거하며 **추정·창작을 섞지 않는다**.
@@ -36,14 +36,14 @@ Workflow({ scriptPath: ".claude/workflows/judge-dept.js" })
 
 | 파일 | 내용 | 커밋 |
 |---|---|---|
-| `judging_<TS>.md` | 실행 시각별 리포트(이력 추적) | O |
-| `judging_latest.md` | 최신 리포트 포인터(내용 동일) | O |
+| `judging_<TS>.md` | 실행 시각별 리포트(로컬 이력) | X (.gitignore) |
+| `judging_latest.md` | 최신 리포트 — **저장소에 커밋되는 것은 이것뿐** | O |
 | `_evidence_<TS>.json` | 결정론적 증거 스냅샷(재생성 가능) | X (.gitignore) |
 
 ### 심사 기준의 출처 (source of truth)
 
 - **1차 기준 = 킥오프 세션 '전사' 기반**: `docs/hackathon_essentials_0721.md` §1 + `docs/FEATURES.md` §5.
-- 대회 공식 신청 페이지 원문은 아직 미확보(`docs/handoff.md` §4). 전사와 신청 페이지가
+- 대회 공식 신청 페이지 원문은 아직 미확보다. 전사와 신청 페이지가
   다를 수 있는 지점은 리포트의 **"기준 불일치·미검증"** 섹션으로 분리 표기한다.
 - 공식 원문(영상 전사 전문·신청 페이지 원문)을 확보하면 그걸 정본으로 삼아 워크플로우의
   `AXES`/`SOURCE_OF_TRUTH`(`.claude/workflows/judge-dept.js`)를 갱신한다.
@@ -92,8 +92,8 @@ Workflow({ scriptPath: ".claude/workflows/bug-dept.js" })
 
 | 파일 | 내용 | 커밋 |
 |---|---|---|
-| `bug_<TS>.md` | 실행 시각별 버그 리포트(이력 추적) | O |
-| `bug_latest.md` | 최신 리포트 포인터(내용 동일) | O |
+| `bug_<TS>.md` | 실행 시각별 버그 리포트(로컬 이력) | X (.gitignore) |
+| `bug_latest.md` | 최신 리포트 — **저장소에 커밋되는 것은 이것뿐** | O |
 | `_bugscan_<TS>.json` | 결정론적 버그표면 스냅샷(재생성 가능) | X (.gitignore) |
 
 ### 버그표면 수집기가 모으는 것 (`scripts/collect_bugscan.py`)
@@ -141,8 +141,8 @@ Workflow({ scriptPath: ".claude/workflows/data-dept.js" })
 
 | 파일 | 내용 | 커밋 |
 |---|---|---|
-| `data_<TS>.md` | 실행 시각별 데이터 품질 리포트(이력 추적) | O |
-| `data_latest.md` | 최신 리포트 포인터(내용 동일) | O |
+| `data_<TS>.md` | 실행 시각별 데이터 품질 리포트(로컬 이력) | X (.gitignore) |
+| `data_latest.md` | 최신 리포트 — **저장소에 커밋되는 것은 이것뿐** | O |
 | `_dataquality_<TS>.json` | 결정론적 품질표면 스냅샷(재생성 가능) | X (.gitignore) |
 
 ### 품질표면 수집기가 모으는 것 (`scripts/collect_dataquality.py`)

@@ -1,11 +1,18 @@
-# SynapStock — 손을 떼려면, 한도가 있어야 합니다
+# SynapStock — 손을 떼려면, 누군가는 청구서를 읽어야 합니다
 
 구글 클라우드 X 솔라나 AI Agentic 해커톤 · **Track C: Multi-Agent Commerce**
 
-**SynapStock 은 사용자가 정한 한도 안에서 AI 에이전트가 스스로 주식을 사고팔고 USDC 로
-정산하는 시스템입니다.** 그 지출을 지키는 것이 **402 Guard** 입니다 — 에이전트가 결제에
-서명하기 직전, 이 청구서가 합의한 그 청구서인지 대조합니다. 그래서 사람이 화면을
-지켜보지 않아도 됩니다.
+**AI 에이전트가 사용자가 정한 한도 안에서 스스로 주식을 사고팔고 USDC 로 정산합니다.**
+그 결제를 지키는 것이 **402 Guard** 입니다 — 에이전트가 서명하기 직전, 이 청구서가 합의한
+그 청구서인지 대조합니다. 그래서 사람이 화면을 지켜보지 않아도 됩니다.
+
+**감시 없는 자율. 건건이 승인하지 않는 결제.**
+
+| | |
+|---|---|
+| **서명 전에 멈춥니다** | 어긋나면 서명이 만들어지지 않습니다 |
+| **예산을 코드가 집행합니다** | 위임장에서 실제로 차감됩니다 |
+| **사는 쪽도 파는 쪽도 봅니다** | 자산이 나갈 때도 대조합니다 |
 
 > 이름 규칙: **SynapStock = 제품**, **402 Guard = 그 안의 지출 승인 게이트**
 > (`payments/guard.py`). 아래에서 "402 Guard" 는 항상 그 게이트를 가리킵니다.
@@ -192,6 +199,11 @@ python run_demo.py
 청구서 대조, 서명된 결제 트랜잭션 생성·검증까지 모두 실제로 수행한다. 온체인 전송만 생략한다
 (`--ticks N` 으로 틱 수 조절 — 목 시세는 매수·매도 1사이클에 최소 9틱이 필요하다).
 
+> **판단 옆 배지에 대해.** `GEMINI_API_KEY` 가 없으면 판단은 규칙으로 돌고 `[rule]` 이 붙는다.
+> 키가 있으면 `[gemini]` 가 붙고, 무료 티어 분당 한도에 걸린 틱만 `[rule-fallback]` 으로
+> 내려간다. **어느 쪽이든 결제 경로(A2A → AP2 → 402 Guard → x402)는 같다** — AI 는 무엇을
+> 살지 고를 뿐 한도를 넘지 못한다. 두뇌를 직접 고르려면 `--no-gemini`(규칙 고정).
+
 ### 30초 안에 방어를 직접 확인하기 — 레드팀
 
 ```bash
@@ -377,7 +389,7 @@ solana-agent/
 │   ├── broker_service.py   # x402 자원 서버 (402 + accepts[] + 디스커버리)
 │   ├── events.py           # EventBus (인메모리 히스토리 + 구독)
 │   ├── store.py            # Firestore 영속화 (기본 OFF)
-│   └── static/             # landing/index/connect.html + css(skeleton·theme) + js(app·wallet)
+│   └── static/             # landing/index/connect.html + css(theme·skeleton·design) + js(app·wallet) + fonts
 ├── scripts/
 │   ├── red_team.py         # ★ 공격/차단 매트릭스 (실제 결제 경로를 그대로 태움)
 │   ├── setup_devnet.py     # devnet 준비(민트·에어드랍·지급)

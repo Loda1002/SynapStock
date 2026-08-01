@@ -70,5 +70,61 @@ docs/reports/_bugscan_*.json
 # 리포트(docs/reports/data_*.md)만 커밋한다.
 docs/reports/_dataquality_*.json
 
-# 프런트 전달본 원본 - 참고용 보관, 커밋하지 않는다 (CLAUDE.md 방침)
+# 프런트 전달본 원본 - 참고용 보관, 커밋하지 않는다
 docs/design/incoming/
+
+# ══════════════════════════════════════════════════════════════════════
+# 공개 저장소에 올리지 않는 것 (2026-08-02)
+# 로컬 파일은 그대로 두고 **추적만 해제**한다. 기준은 하나 —
+# "제품 이해·재현·검증에 쓰이지 않는 개발 진행 관리 노트와 머신 전용 설정".
+# ══════════════════════════════════════════════════════════════════════
+
+# 개발 에이전트 내부 작업 노트. 자체 평가·미완성 항목·검증 안 된 가설이 섞여 있고
+# 로컬 절대경로(윈도우 사용자명)가 6곳 들어 있다. 제품 설명은 README 와
+# docs/FEATURES.md 가 진다.
+CLAUDE.md
+
+# 머신 전용 개발 환경 설정 — 제품과 무관하고 OS 고정 경로가 박혀 있다.
+# ⚠ .claude/workflows/*.js 는 README '이 저장소는 스스로를 감사합니다' 가 심사 증거로
+#   소개하므로 계속 커밋한다. 아래 세 줄만 제외한다.
+.mcp.json
+.claude/settings.json
+.claude/launch.json
+.vscode/
+
+# 진행 관리·협업 전달 노트 (제품 문서가 아니라 "다음에 뭘 할지" 메모다)
+docs/next_session_plan.md
+docs/next_session_bugfix.md
+docs/next_session_departments.md
+docs/next_conversations.md
+docs/next_round_plan.md
+docs/user_feedback_p2.md
+docs/handoff.md
+docs/preflight_review.md
+docs/progress_log.md
+docs/feature_candidates.md
+docs/feature_spec.md
+docs/multistock_plan.md
+docs/intraday_synthesis.md
+docs/design_brief.md
+docs/README_template.md
+docs/submission.md
+docs/landing_lite.md
+docs/landing_full.md
+docs/frontend_backend_split.md
+docs/frontend_kickoff.md
+docs/frontend_p5_handoff.md
+docs/design/README.md
+docs/design/concept_brief_402guard.md
+docs/design/dashboard_mockup.png
+
+# 외부 경쟁 조사 — 다른 팀·수상작 분석이 든 내부 전략 문서다.
+docs/reports/competition_research.md
+docs/reports/competition_research_reconcile.md
+docs/reports/agentfabric_benchmark.md
+
+# 부서 리포트의 날짜별 스냅샷 — `*_latest.md` 만 커밋한다.
+# 옛 리포트의 낡은 평가가 현행으로 오독되는 것을 막는다. 재실행하면 다시 생성된다.
+docs/reports/judging_2*.md
+docs/reports/bug_2*.md
+docs/reports/data_2*.md

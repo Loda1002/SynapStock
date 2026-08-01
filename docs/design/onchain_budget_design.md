@@ -4,7 +4,7 @@
 > `24565f6`(C5) · `70664f6`(문서 5곳). 아래 명세대로 구현했고, 다른 점은 §4-2 N2 의 골든 상수
 > 생성 명령 하나뿐이다 — `Keypair.from_bytes(bytes(range(1,65)))` 는 solders 가 뒤 32바이트를
 > 파생 공개키와 대조해 `ValueError` 를 내므로 `Keypair.from_seed(bytes(range(1,33)))` 로 바꿨다
-> (입력의 결정론성은 동일). 검증 실측은 `docs/progress_log.md` 2026-07-29 (2) 항목 참조.
+> (입력의 결정론성은 동일).
 > **작성** 2026-07-29 · **기준 커밋** `fc65ce4` · **제출 마감** 2026-08-03 23:59 KST
 > **선행 문서** [`onchain_budget_rfc.md`](onchain_budget_rfc.md) — 타당성·Go/No-Go 는 거기서 끝났다.
 > 이 문서는 그 결론을 **착수 가능한 명세**로 내린 것이다.

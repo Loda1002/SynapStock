@@ -29,7 +29,7 @@ Windows + 한국어 경로라 Python 실행 시 반드시 앞에 PYTHONIOENCODIN
 
 const SOURCE_OF_TRUTH = `## 심사 기준의 출처 (반드시 지킬 것)
 - 1차 기준 = 킥오프 세션 '전사' 기반 문서: docs/hackathon_essentials_0721.md §1(심사 4축) + docs/FEATURES.md §5.
-- 대회 공식 신청 페이지 원문은 아직 미확보다(docs/handoff.md §4 — 사이트 JS 렌더링으로 조사 실패).
+- 대회 공식 신청 페이지 원문은 아직 미확보다(사이트 JS 렌더링으로 조사 실패).
   전사와 신청 페이지가 다를 수 있는 지점은 단정하지 말고 criteria_mismatch(기준 불일치·미검증)로 분리 표기한다.
 - 모든 부합 근거는 실물에 붙인다: 증거 JSON 의 키/값, 저장소 file:line, artifacts 파일명.
   근거를 못 찾으면 등급을 낮추고 '미검증'으로 적는다. 추정·창작·기억 인용 금지.
@@ -40,7 +40,7 @@ const AXES = [
   {
     key: 'innovation', axis: '① 혁신성·UX·상업성',
     criteria: '직관적/새로운 UX 로 기존 문제를 푸는가. 당위성(왜 카드망이 아니라 블록체인·왜 사람 없는 자율결제인가)이 분명한가. 상업성.',
-    look: '재포지셔닝(docs/differentiation.md §1·§7), 첫 화면 KPI 가 수익률이 아니라 시도·차단·유출·오탐인지(scripts/red_team.py, web/static), 공격 콘솔(--attacker 로 심사위원 입력). 당위성 블록(docs/submission.md §2-3).',
+    look: '재포지셔닝(docs/differentiation.md §1·§7), 첫 화면 KPI 가 수익률이 아니라 시도·차단·유출·오탐인지(scripts/red_team.py, web/static), 공격 콘솔(--attacker 로 심사위원 입력). 당위성 블록(docs/differentiation.md §7).',
   },
   {
     key: 'ai', axis: '② AI 활용도 (Gemini)',
@@ -205,7 +205,7 @@ ${JSON.stringify(clean, null, 2)}
 # 402 Guard 심사 자가평가 리포트
 > 생성: <PLACEHOLDER — 다음 단계에서 타임스탬프 기입>
 > 근거 스냅샷: ${ev.evidence_path}
-> 심사 기준 출처: 킥오프 전사(docs/hackathon_essentials_0721.md §1) + docs/FEATURES.md §5. 신청 페이지 원문 미확보(docs/handoff.md §4).
+> 심사 기준 출처: 킥오프 전사(docs/hackathon_essentials_0721.md §1) + docs/FEATURES.md §5. 신청 페이지 원문 미확보.
 
 ## 종합 요약
 | 축 | 등급 | 한 줄 근거 |

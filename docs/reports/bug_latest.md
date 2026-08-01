@@ -422,9 +422,8 @@ BUG-11·12 로 매수 레그에서 닫았던 바로 그 결함이 **매도 레�
 ### ⚠ 이 파일이 덮어쓴 것
 
 `docs/reports/bug_latest.md` 에는 07-27 스캔 결과에 **손으로 갱신한 상태 표**(어느 건이
-닫혔는지)가 들어 있었다. 이 리포트가 그것을 대체한다. 원본은 커밋돼 있으므로
-`git show HEAD:docs/reports/bug_latest.md` 로 볼 수 있고, 07-27 스캔의 최초 본문은
-`docs/reports/bug_20260727_134231.md` 에 그대로 있다.
+닫혔는지)가 들어 있었다. 이 리포트가 그것을 대체한다. 옛 판은 git 이력에 남아 있어
+`git log --follow docs/reports/bug_latest.md` 로 볼 수 있다.
 
 ---
 
