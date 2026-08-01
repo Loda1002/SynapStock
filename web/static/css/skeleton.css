@@ -930,7 +930,12 @@ tr.session-divider td {
 
 /* 멀티 종목 (동시 매수) — 심볼 선택·포커스·종목별 요약 */
 .sym-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0; }
-.sym-opt { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-small); }
+/* 설명 문구가 체크박스와 같은 줄에 흐르면, 폭이 모자랄 때 문구 꼬리가 체크박스 사이로
+   감겨 들어가 줄이 어색하게 끊긴다(사용자 지적 2026-08-01). 문구에 한 줄을 통째로 주고
+   체크박스는 그 아래 한 줄에 나란히 놓는다 — 문구 길이가 바뀌어도(라이브 전환 시 app.js 가
+   더 긴 문장으로 갈아 쓴다) 체크박스 줄은 흔들리지 않는다. */
+.sym-picker > [data-sym-picker-label] { flex: 1 0 100%; margin: 0; }
+.sym-opt { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-small); white-space: nowrap; }
 .linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--accent);
   text-decoration: underline; cursor: pointer; }
 tr.focus-row { font-weight: 600; }

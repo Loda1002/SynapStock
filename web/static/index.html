@@ -336,14 +336,64 @@
     </div>
   </section>
 
-  <!-- 세션 설정 — 관람 화면에서는 감춘다.
-       ⚠ 이 카드는 페이지가 열릴 때 app.js 가 통째로 아래 개발자 서랍(.dev-drawer)으로 옮긴다.
-          여기 그대로 두는 이유는 두 가지다: ①마크업이 카드 사이에 있어야 읽기 쉽다
-          ②스크립트가 실패해도 카드가 그리드에 남아 조작이 아예 막히지는 않는다.
-       고급 노브는 그 안에서 다시 <details data-adv> 뒤로 접힌다(값은 접혀 있어도 살아 있다 —
-       세션 시작 payload 가 한 줄도 바뀌지 않는 것이 분리의 전제다). -->
+  <!-- 세션 설정 — 대시보드에 보이는 카드다(시안 첫 줄 오른쪽, design.css 가 span 4 ·
+       min-height 379 를 그 자리에 맞춰 두었다).
+       ⚠ 여기 남는 것은 **사람이 매번 고르는 것뿐**이다: 전략 · 신호 · 살 종목 · 시작/종료.
+          한 번 정해 두면 건드릴 일이 없는 검증용 노브(실행 모드·재생 속도·시세 피드·
+          데이터셋·봉 간격·AI 판단 모드·TA·DCA)는 아래 data-card="session-adv" 로 나가 있고,
+          app.js 가 그 카드를 통째로 개발자 서랍(.dev-drawer)으로 옮긴다.
+       세션 시작 payload 는 두 카드의 값을 모두 읽으므로 한 줄도 바뀌지 않는다(분리의 전제). -->
   <section class="card" data-card="session">
     <h2><span class="ci ci-session" aria-hidden="true"></span>세션 설정 <span class="sub">무엇을 · 어떻게 살지</span></h2>
+    <div class="stack">
+      <!-- 기본값이 조건형이었다. 조건형은 Gemini 두뇌를 붙이고, 두뇌가 붙으면 청구서 의미
+           대조 계층도 함께 붙는다(engine.py). 그런데 무료 티어 일일 쿼터가 소진돼 있으면
+           의미 대조가 '검사 불가'가 되고 설계대로 **매수가 전건 보류**된다 — 엔진은 계속
+           돌지만 결제가 한 건도 일어나지 않는다. 실측 사례가 있다(20260727_130702: 97건 보류).
+           처음 들어온 사람이 아무 설정도 안 바꾸고 시작 버튼을 눌렀을 때 "결제가 실제로
+           동작하는가"가 쿼터 잔량에 걸리면 안 되므로, 기본값을 두뇌 없는 추세추종으로 둔다.
+           AI 판단을 보려면 두 번째 항목을 고르면 된다(라벨에 Gemini 를 명시한다 — 축② 근거). -->
+      <select data-strategy-select aria-label="매매 전략"
+              title="추세추종: 결정론적 규칙 신호로 매매합니다(Gemini 미사용 — 쿼터와 무관하게 항상 동작). AI 판단: Gemini 가 판단하고 청구서 의미 대조 계층이 함께 켜집니다(무료 티어 쿼터 소진 시 매수가 보류됩니다).">
+        <option value="trend">추세추종 — 오를 때 보유, 꺾이면 전량 매도</option>
+        <option value="condition">AI 판단 — Gemini 가 판단하고 청구서 설명까지 대조</option>
+        <!-- TEMP: 성능 평가 위해 적립형(DCA) 임시 비활성화 — 복원 시 disabled·hidden 제거 +
+             원 라벨 "적립형 (주기 정액 매수)" 되돌리기. 간단 목록에서는 숨긴다(내부 사정이
+             옵션 라벨에 그대로 적혀 있었다) — 고급을 펼치면 그대로 나타난다. -->
+        <option value="dca" disabled hidden data-adv-option>적립형 (성능 평가 위해 임시 비활성화)</option>
+      </select>
+      <!-- 신호는 고급에서 꺼내 여기 둔다 — 추세추종의 판단 기준이라 전략 바로 다음이 자연스럽다.
+           app.js 가 전략에 따라 보이고 숨긴다(strat === 'trend' 일 때만). -->
+          <select data-trend-signal aria-label="추세 판단 신호"
+                  title="가격>MA20: 종가가 20일 이동평균 위면 상승세로 보유, 아래면 전량 매도 / 골든크로스5/20: MA5가 MA20 위면 상승세. 검증에서 가격>MA20 이 가장 단순·우수.">
+            <option value="pxma20">신호: 가격 &gt; MA20</option>
+            <option value="cross_5_20">신호: 골든크로스 5/20</option>
+            <option value="cross_1_5">신호: 골든크로스 1/5 (빠른 반응)</option>
+            <option value="cross_5_20_1_5">신호: 5/20 + 1/5 결합 (빠른 손절)</option>
+          </select>
+      <div class="sym-picker hidden" data-sym-picker
+           title="여러 종목을 고르면 하나의 예산·하나의 402 Guard 아래 각 종목을 독립 포지션으로 동시에 매수합니다(샌드박스 전용). 아무것도 안 고르면 기본 단일 종목입니다.">
+        <span class="sub" data-sym-picker-label>살 종목 — 여러 개 고르면 예산을 나눠 동시에 굴립니다</span>
+        <label class="sym-opt"><input type="checkbox" data-sym-check value="AAPL"> AAPL</label>
+        <label class="sym-opt"><input type="checkbox" data-sym-check value="TSLA"> TSLA</label>
+        <label class="sym-opt"><input type="checkbox" data-sym-check value="NVDA"> NVDA</label>
+      </div>
+
+
+      <div class="row">
+        <button class="btn" data-btn-start>▶ 세션 시작</button>
+        <button class="btn" data-btn-stop disabled>■ 세션 종료</button>
+      </div>
+    </div>
+    <p class="rules" data-rules>지금 설정: —</p>
+  </section>
+
+  <!-- 세션 고급 설정 — app.js 가 페이지를 열 때 통째로 개발자 서랍(.dev-drawer)으로 옮긴다.
+       ⚠ DOM 에서 지우면 안 된다: 여기 있는 훅(data-mode-select·data-speed-select·
+          data-feed-select·data-decision-mode·data-ta-mode·data-dca-*)을 app.js 가 계속 읽는다.
+       그리드에 남긴 것은 사람이 매번 고르는 것뿐이다 — 전략·신호·살 종목·시작/종료. -->
+  <section class="card" data-card="session-adv">
+    <h2><span class="ci ci-session" aria-hidden="true"></span>세션 고급 설정 <span class="sub">개발·검증용 노브</span></h2>
     <div class="stack">
       <select data-mode-select aria-label="실행 모드"
               title="샌드박스는 온체인 전송만 빼고 협의·청구서·가드 검사·정산까지 전 과정을 그대로 재현합니다.">
@@ -363,30 +413,6 @@
         <option value="3" hidden data-adv-option title="3초/봉">느림</option>
         <option value="8" title="8초/봉">발표용</option>
       </select>
-      <div class="sym-picker hidden" data-sym-picker
-           title="여러 종목을 고르면 하나의 예산·하나의 402 Guard 아래 각 종목을 독립 포지션으로 동시에 매수합니다(샌드박스 전용). 아무것도 안 고르면 기본 단일 종목입니다.">
-        <span class="sub" data-sym-picker-label>살 종목 — 여러 개 고르면 예산을 나눠 동시에 굴립니다</span>
-        <label class="sym-opt"><input type="checkbox" data-sym-check value="AAPL"> AAPL</label>
-        <label class="sym-opt"><input type="checkbox" data-sym-check value="TSLA"> TSLA</label>
-        <label class="sym-opt"><input type="checkbox" data-sym-check value="NVDA"> NVDA</label>
-      </div>
-      <!-- 기본값이 조건형이었다. 조건형은 Gemini 두뇌를 붙이고, 두뇌가 붙으면 청구서 의미
-           대조 계층도 함께 붙는다(engine.py). 그런데 무료 티어 일일 쿼터가 소진돼 있으면
-           의미 대조가 '검사 불가'가 되고 설계대로 **매수가 전건 보류**된다 — 엔진은 계속
-           돌지만 결제가 한 건도 일어나지 않는다. 실측 사례가 있다(20260727_130702: 97건 보류).
-           처음 들어온 사람이 아무 설정도 안 바꾸고 시작 버튼을 눌렀을 때 "결제가 실제로
-           동작하는가"가 쿼터 잔량에 걸리면 안 되므로, 기본값을 두뇌 없는 추세추종으로 둔다.
-           AI 판단을 보려면 두 번째 항목을 고르면 된다(라벨에 Gemini 를 명시한다 — 축② 근거). -->
-      <select data-strategy-select aria-label="매매 전략"
-              title="추세추종: 결정론적 규칙 신호로 매매합니다(Gemini 미사용 — 쿼터와 무관하게 항상 동작). AI 판단: Gemini 가 판단하고 청구서 의미 대조 계층이 함께 켜집니다(무료 티어 쿼터 소진 시 매수가 보류됩니다).">
-        <option value="trend">추세추종 — 오를 때 보유, 꺾이면 전량 매도</option>
-        <option value="condition">AI 판단 — Gemini 가 판단하고 청구서 설명까지 대조</option>
-        <!-- TEMP: 성능 평가 위해 적립형(DCA) 임시 비활성화 — 복원 시 disabled·hidden 제거 +
-             원 라벨 "적립형 (주기 정액 매수)" 되돌리기. 간단 목록에서는 숨긴다(내부 사정이
-             옵션 라벨에 그대로 적혀 있었다) — 고급을 펼치면 그대로 나타난다. -->
-        <option value="dca" disabled hidden data-adv-option>적립형 (성능 평가 위해 임시 비활성화)</option>
-      </select>
-
       <!-- ▼ 고급 — 여기부터는 우리 검증용이다. 접혀 있어도 값은 살아 있다. -->
       <details class="adv" data-adv>
         <summary>고급 설정 <span class="sub">개발·검증용 노브 — 촬영에는 필요하지 않습니다</span></summary>
@@ -413,13 +439,6 @@
             <option value="strict">AI 엄격 (규칙 그대로)</option>
             <option value="trend">AI 추세 (보류 재량)</option>
           </select>
-          <select data-trend-signal aria-label="추세 판단 신호"
-                  title="가격>MA20: 종가가 20일 이동평균 위면 상승세로 보유, 아래면 전량 매도 / 골든크로스5/20: MA5가 MA20 위면 상승세. 검증에서 가격>MA20 이 가장 단순·우수.">
-            <option value="pxma20">신호: 가격 &gt; MA20</option>
-            <option value="cross_5_20">신호: 골든크로스 5/20</option>
-            <option value="cross_1_5">신호: 골든크로스 1/5 (빠른 반응)</option>
-            <option value="cross_5_20_1_5">신호: 5/20 + 1/5 결합 (빠른 손절)</option>
-          </select>
           <label class="sub" data-ta-wrap
                  title="켜면 이동평균 배열(1~200일)·골든/데드크로스·지지/저항·차트/캔들 패턴을 코드로 계산해 AI 판단과 규칙 폴백에 함께 반영합니다. 실데이터 재생에서 의미가 있으며, 백테스트 검증 전이라 기본은 꺼짐입니다.">
             <input type="checkbox" data-ta-mode> TA 보강 (이동평균·패턴 근거 판단)
@@ -437,13 +456,7 @@
           </span>
         </div>
       </details>
-
-      <div class="row">
-        <button class="btn" data-btn-start>▶ 세션 시작</button>
-        <button class="btn" data-btn-stop disabled>■ 세션 종료</button>
-      </div>
     </div>
-    <p class="rules" data-rules>지금 설정: —</p>
   </section>
 
   <section class="card" data-card="position">
