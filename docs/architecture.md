@@ -1,5 +1,5 @@
 # 시스템 아키텍처 설계 (v2 — 주식 자동매매)
-### 구글 클라우드 X 솔라나 AI Agentic 해커톤 · Track C: Multi-Agent Commerce
+### 구글 클라우드 X 솔라나 AI Agentic 해커톤 · Track B: Autonomous On-chain Settlement
 
 > **[0722 갱신 노트 — 0721 킥오프 Q&A 반영]** Gemini는 API 호출 수준이면 충분(ADK/Vertex 구조적 활용은 필수도 가산점도 아님). 아래 표의 "Gemini(Vertex AI) via ADK"는 **Gemini API(무료 티어) 직접 호출**로 하향 적용한다. $300 크레딧으로는 Gemini API 결제 불가. 심사 평가 네트워크는 Devnet/Localnet으로 확정.
 
@@ -22,7 +22,7 @@
 
 ---
 
-## 2. 멀티에이전트 구조 (Track C 유지)
+## 2. 멀티에이전트 구조
 
 - **Trading Agent (Buyer)** — 사용자 대리. 시세·조건을 Gemini로 판단, 매수/매도 결정, AP2 예산 한도 보유, USDC 서명.
 - **Market/Broker Agent (Seller)** — 토큰화 주식 시세 제시(payment-required), 온체인 결제 검증, 주식 토큰 전달 / 매도 시 USDC 반환.
@@ -64,7 +64,7 @@
 
 | 레이어 | 역할 | 기술 | 근거 |
 |---|---|---|---|
-| 통신 | 에이전트 협의 | **A2A** | Track C 핵심 |
+| 통신 | 에이전트 협의 | **A2A** | 견적 합의 레일 |
 | 권한 | 예산·자율한도 | **AP2** Open/Closed Payment Mandate | "한도 내 자율 결제" 요구 직결 |
 | 실행 | 온체인 정산 | **x402 on Solana (USDC ⇄ 주식토큰)** | 심사 필수 devnet 라이브 tx |
 | 두뇌 | 시세판단·협의 | **Gemini API(무료 티어)** | 심사 AI 활용도 — 호출 수준이면 충분(0721 Q&A) |

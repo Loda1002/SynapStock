@@ -1,6 +1,6 @@
 # SynapStock — 손을 떼려면, 누군가는 청구서를 읽어야 합니다
 
-구글 클라우드 X 솔라나 AI Agentic 해커톤 · **Track C: Multi-Agent Commerce**
+구글 클라우드 X 솔라나 AI Agentic 해커톤 · **Track B: Autonomous On-chain Settlement**
 
 **AI 에이전트가 사용자가 정한 한도 안에서 스스로 주식을 사고팔고 USDC 로 정산합니다.**
 그 결제를 지키는 것이 **402 Guard** 입니다 — 에이전트가 서명하기 직전, 이 청구서가 합의한
