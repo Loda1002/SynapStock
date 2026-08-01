@@ -21,6 +21,40 @@
 > ⚠️ 데모는 전부 **devnet/localnet(테스트 토큰)** + **읽기전용 시세**로 동작합니다. 실제
 > 증권거래·실제 자금 이동은 없습니다. 매매 조건은 사용자가 정의하는 규칙이며 투자 조언이 아닙니다.
 
+## 직접 재현하기 — 세 줄
+
+화면을 믿지 않으셔도 됩니다. 아래 셋은 저희 손을 거치지 않고 확인되는 것들입니다.
+
+**① 라이브 URL 이 진짜 x402 자원 서버인가** — 결제 없이 주문하면 표준 402 가 나옵니다.
+
+```bash
+curl -i -X POST https://synapstock-766888967498.asia-northeast3.run.app/broker/orders \
+     -H 'Content-Type: application/json' \
+     -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'
+# → HTTP/2 402  ·  accepts[].asset = 4zMMC9sr… (Circle 공식 devnet USDC)
+```
+
+⚠ **본문 없이 보내면 402 가 아니라 422** 입니다 — 세 필드가 필수입니다(`OrderBody`, `extra=forbid`).
+`accepts[].maxAmountRequired` 는 요청한 지출액에 따라 달라지므로 고정값으로 인용하지 않습니다.
+
+**② 결제가 실제로 체인에 있는가** — devnet explorer 에서 이 서명을 조회하십시오.
+
+```
+3XeVWKF9XvyDrCvh7hsodNEay6McAqjCZ5Ypp7X4tT73AFXgKWB2tpnbaZaxC1tfZzw2FcCiasQ6Njt8RZbKL6E3
+https://explorer.solana.com/tx/<위 서명>?cluster=devnet
+```
+
+배포 URL 에서 돌린 라이브 세션의 매수 레그입니다. `err: null`, Memo 에 x402 주문번호가
+`AT1:ord_5406404512:3uR12Hbb` 로 결박돼 있고, 결제 통화는 **Circle 공식 USDC**(발행 권한이
+저희 지갑이 아닙니다). 증빙 원본은 `artifacts/tx/20260731_1603_*_onchain_verify.json`.
+
+**③ 게이트가 정말 막는가** — 공격과 정상 거래를 같은 실행에서 돌립니다.
+
+```bash
+python -m scripts.red_team --report
+# → 구매자 서명 전 차단 5건 · 유출 0.00 USDC · 정상 거래 14건 오탐 0
+```
+
 ## 이 계층이 왜 비어 있었나
 
 x402 는 구매자의 **키**를 지킵니다. 하지만 구매자가 **무엇에 서명하는지**는 검증하지
