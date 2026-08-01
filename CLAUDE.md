@@ -120,6 +120,10 @@
 > **E. (선택) 심사위원 재현 3줄**을 README 상단·랜딩에 박는다 — 배포 URL 402(위 완전형) ·
 > devnet explorer 에서 `3XeVWKF9…` 조회 · `python -m scripts.red_team --report`(유출 0.00).
 > 축④ 는 '우리가 보여주는 것'보다 '심사위원이 자기 손으로 재현하는 것'이 강하다.
+> ⚠ **E 중 랜딩(`web/static/landing.html`) 부분만 성격이 다르다** — 화면 변경이라 A~D 의
+> "코드·화면 변경 0" 전제에서 벗어나고, **배포 대기 목록에 한 건 더 쌓인다**(현재 대기 =
+> 푸터 `9745bf6`). 디자인 최종본이 랜딩을 통째로 바꿀 예정이라 **README 쪽만 하고 랜딩은
+> 디자인 반영 때 함께 넣는 편이 싸다.**
 >
 > **게이트**: 문서 변경이라 테스트는 불필요하지만, A 를 고친 뒤 **런북 명령과 배포 현행 env 를
 > 눈으로 대조**한다(`gcloud run services describe … --format="value(spec.template.spec.containers[0].env)"`).
