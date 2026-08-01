@@ -62,8 +62,13 @@ Firestore) 시간이 걸린다. 마감 주에 처음 시도했다가 막히면 �
 ```
 
 **완료 기준**: Service URL 확보 · `/api/state` 의 `persistence.enabled=true` · 재시작 후에도
-`/api/history/sessions` 에 세션이 남음 · `curl -i <URL>/broker/orders` 가 402 반환 ·
-증빙 스크린샷 확보.
+`/api/history/sessions` 에 세션이 남음 · 아래 명령이 402 반환 · 증빙 스크린샷 확보.
+
+```bash
+curl -i -X POST <배포URL>/broker/orders -H 'Content-Type: application/json' \
+     -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'
+```
+(⚠ 본문을 빼면 402 가 아니라 422 다 — `OrderBody` 가 `extra=forbid` 이고 세 필드가 필수다.)
 
 **⚠ 배포 시 주의**: `ALLOW_LIVE_FROM_WEB=0` 으로 두고(시연 직전에만 개방),
 `CONTROL_TOKEN` 을 반드시 설정한다(공개 URL 보호).

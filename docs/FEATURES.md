@@ -138,7 +138,7 @@
 | **G2** ✅ | 결제 경로 결선 + `allowed_asset` 살리기 + release/settle 한도 원복 (커밋 9701d90) | authorize 앞 guard, 실패 시 예약 원복(H), partial 배송 처리(I) | 해결 (스모크 예약회계 일치) |
 | **G3** ✅ | `scripts/red_team.py --report` — 공격 매트릭스 + 오탐 0 (커밋 7e2f3b8) | **2026-07-28 실행값: 공격 7 · 구매자 서명 전 차단 5 · 판매자측 1 · 사후 탐지 1 · 서명 전 유출 0.00 · 정상 14건 오탐 0 · 가드 없을 때 551.96** (`rc=0`) | 해결 |
 | **G4** ✅ | Memo 바인딩(AT1) + `exact` 정합(`!=`) + 서명 dedup + expires_at (커밋 9523d19) | 대사 키·리플레이·초과지불 방어(D·E) | 해결 (localnet 풀사이클 PASS) |
-| **G5** ✅ | 브로커 HTTP 402 분리(매수 경로) — **완료 (커밋 70bed10, 2026-07-26)** | 결함 F(HTTP 402 가 코드에 0줄, 브로커가 같은 프로세스의 객체) | 해결 — `web/broker_service.py` · `payments/x402_http.py` · test_http402 53건 · 실 TCP 왕복 `artifacts/x402_http/`. **배포 URL 에서 `curl -i .../broker/orders` → 402** |
+| **G5** ✅ | 브로커 HTTP 402 분리(매수 경로) — **완료 (커밋 70bed10, 2026-07-26)** | 결함 F(HTTP 402 가 코드에 0줄, 브로커가 같은 프로세스의 객체) | 해결 — `web/broker_service.py` · `payments/x402_http.py` · test_http402 53건 · 실 TCP 왕복 `artifacts/x402_http/`. **배포 URL 에서 402 재현 가능** — `curl -i -X POST <배포URL>/broker/orders -H 'Content-Type: application/json' -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'` (⚠ 본문을 빼면 422) |
 | G6 | pay.sh/유료 데이터 402 엔드포인트 | 심사 3축 가점(필수 아님 — 공식 기준상 병렬 예시) | 미착수 (여유 시) |
 | **—** ✅ | devnet 실증 + explorer 증빙 — **완료 (2026-07-24, 2026-07-31 공식 민트 재실증)** | 증빙이 전부 localhost 였음 | 해결 — 대표 증빙은 `artifacts/tx/20260731_1508_solana-devnet_live_buy.json`(**Circle 공식 민트** `4zMMC9sr…`, `mintAuthority` 가 우리 지갑 아님 · 체결 3건 전부 settled · 교차검증 PASS). 배포 URL 라이브 세션 증빙 별도 1건(`20260731_1603_*_onchain_verify.json`). **⚠ 옛 `20260724_1643_*` 은 결제 통화가 자체발행 테스트 민트라 인용 금지** |
 

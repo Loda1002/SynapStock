@@ -40,7 +40,9 @@
 | `GET /.well-known/x402` | — (JSON API) | **신설(2026-07-26, G5)** — x402 디스커버리 | 그대로 |
 
 > `/broker/orders`·`/.well-known/x402` 는 **판매자 측 자원**이라 프론트가 호출할 일이 없다.
-> 심사위원이 `curl -i <배포URL>/broker/orders` 로 진짜 402 를 확인하는 용도다
+> 심사위원이 `curl -i -X POST <배포URL>/broker/orders -H 'Content-Type: application/json'
+> -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'` 로 진짜 402 를
+> 확인하는 용도다(⚠ 본문을 빼면 `OrderBody` 검증에 걸려 402 가 아니라 422 다)
 > (로컬 시연은 별도 프로세스: `python -m web.broker_service --port 8402`).
 
 - 라우트 변경(§5)은 **백엔드가 `server.py` 에서** 적용한다. 프론트는 그 전에도 파일을 **`/static/landing.html` 로 직접 열어** 개발할 수 있다(StaticFiles 가 모든 정적 파일을 서빙하므로).

@@ -72,7 +72,9 @@ x402 exact 스킴은 판매자를 보호하지 구매자를 보호하지 않습�
 스펙에 counterparty verification이 없어서, 악성 판매자가 한도 안쪽 금액으로
 청구서를 위조하면 AI 에이전트는 그대로 서명합니다. 비어 있던 나머지 절반을 구현했습니다.
 
-  curl -i http://<url>/broker/orders      # → 402 Payment Required (원본 응답)
+  # → 402 Payment Required (원본 응답). 본문을 빼면 402 가 아니라 422 다.
+  curl -i -X POST <배포URL>/broker/orders -H 'Content-Type: application/json' \
+       -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'
   python scripts/red_team.py --report     # → 공격/차단 매트릭스 + 온체인 재조회
   https://explorer.solana.com/tx/<sig>?cluster=devnet
 ```
@@ -131,7 +133,9 @@ curl -i -X POST http://127.0.0.1:8402/broker/orders \
 ```
 
 배포(Cloud Run)는 컨테이너당 포트를 하나만 노출하므로 **메인 앱에도 같은 router 를 마운트**했다
-(`web/server.py`). 즉 배포 URL 에서도 `curl -i https://<url>/broker/orders` 로 402 를 확인할 수 있다.
+(`web/server.py`). 즉 배포 URL 에서도 같은 명령의 호스트만 바꿔 402 를 확인할 수 있다
+(⚠ 본문 없이 `curl -i <배포URL>/broker/orders` 만 치면 402 가 아니라 **405/422** 다 —
+`OrderBody` 가 `extra=forbid` 이고 세 필드가 필수다).
 
 **이 레그가 402 Guard 서사를 강화하는 이유**: 전송이 HTTP 가 되면 상대가 진짜 원격이 된다.
 구매 에이전트는 브로커가 보낸 `accepts[]` 를 그대로 믿지 않고 **자기가 계산한 견적**과 대조한
