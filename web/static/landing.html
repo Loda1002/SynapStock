@@ -352,7 +352,11 @@
   .who-card-body { font-size: 14px; line-height: 1.9; color: var(--text-body); }
   /* [좌표] 1825 — 안쪽 30, 제목 y30, 본문 y64, 버튼 묶음 y138(=64+74) */
   .who-card-cta {
-    background: linear-gradient(123.64deg, #5d4ef1 2.74%, #7a6bf0 100%);
+    /* [시안] 그라데이션 편집기에서 읽은 중지점 — 0% #5B4FE9 → 100% #7A6BF0.
+       추정값이던 '#5D4EF1 2.74%' 는 시작 색도 위치도 틀렸다(카드 왼쪽 위가 그만큼 밝았다).
+       각도는 편집기에 숫자로 안 나와 시안 핸들선을 픽셀로 재 확인했다(≈125°) — 기존
+       123.64deg 가 그 오차 범위 안이라 그대로 둔다. */
+    background: linear-gradient(123.64deg, #5b4fe9 0%, #7a6bf0 100%);
     box-shadow: var(--card-shadow-lg); padding: 30px;
     display: flex; flex-direction: column; gap: 12px;
   }
