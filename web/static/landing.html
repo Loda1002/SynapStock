@@ -24,9 +24,13 @@
 <link rel="stylesheet" href="/static/css/theme.css">
 <link rel="stylesheet" href="/static/css/skeleton.css">
 <style>
-  /* 시안에 다크 판이 없다. 라이트로 고정하지 않으면 브라우저 다크 모드가 페이지를
-     강제로 뒤집어(auto-dark) 흰 카드만 검게 남는 깨진 화면이 된다. */
-  :root { color-scheme: light; }
+  /* 시안에 다크 판이 없어 **라이트 값에서 유도**한다(사용자 결정 2026-08-02 —
+     다크 시안을 새로 받기에는 마감까지 시간이 없다).
+     theme.css:135 가 대시보드 팔레트에 이미 쓰는 방식이고, 그래서 아래 다크 값은
+     **theme.css 가 이미 정해 둔 값을 최대한 그대로 재사용**한다. 같은 라이트 색에
+     서로 다른 다크 색을 주면 두 페이지가 다크에서만 어긋난다.
+     둘 다 선언해야 브라우저가 페이지를 임의로 뒤집는 auto-dark 가 걸리지 않는다. */
+  :root { color-scheme: light dark; }
 
   html { scroll-behavior: smooth; }
   .lp *, .lp *::before, .lp *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -40,7 +44,11 @@
   .lp { word-break: keep-all; }
 
   :root {
-    --primary: #5d4ef1;          /* [API] 강조·버튼·로고 */
+    --primary: #5d4ef1;          /* [API] 보라 '면' — 버튼·로고·활성 카드·번호 배지 (흰 글자를 얹는다) */
+    /* 보라 '글자' 전용. 라이트에서는 --primary 와 같은 값이라 화면이 한 픽셀도 안 바뀌고,
+       다크에서만 갈라진다 — #5d4ef1 을 다크 바탕(#14151d)에 글자로 쓰면 대비가 2.9:1 로
+       읽히지 않기 때문이다(면으로 쓸 때는 흰 글자가 얹혀 문제가 없다). */
+    --primary-ink: #5d4ef1;
     --primary-light: #edebff;    /* [API] 연보라 칩 배경 */
     --primary-mid: #6d5fed;      /* [API] 연보라 칩 글자 */
     --primary-tag: #7e72f6;      /* [API] 흐름 활성 카드 안의 태그 배경 */
@@ -54,17 +62,57 @@
     --green: #00bb82;            /* [API] 근거 1번 제목 */
     --red: #ff3057;              /* [API] 결과 배지·강조 */
     --red-bg: #ffe8ec;           /* [API] 결과 배지 배경 */
-    --footer-bg: #181b2e;        /* [실측] */
+    --badge-bg: #f9f9ff;         /* [API] 히어로 배지 바탕 */
+    --banner-bg: #f0eeff;        /* [실측] 마무리 배너 */
+    --banner-line: #e4dfff;      /* [실측] 마무리 배너 테두리 */
+    --arrow-line: #c5c8d6;       /* [실측] 흐름 화살표 */
+    --footer-bg: #181b2e;        /* [실측] — 이미 어두운 면이라 다크에서도 그대로 쓴다 */
     --footer-text: #8c8d98;      /* [실측] */
     --card-shadow: 0 4px 20px 0 rgba(0, 0, 0, .05);          /* [API] */
     --btn-shadow: 0 4px 14px 0 rgba(91, 79, 233, .3);        /* [API] */
     --card-shadow-lg: 0 12px 30px 0 rgba(91, 79, 233, .3);   /* [API] 흐름 활성 카드 */
+    --nav-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+    --glow-strong: .16;          /* 히어로 글로우 세기 */
 
-    /* theme.css 토큰 2개를 라이트 값으로 못 박는다. 이 페이지에서 이 둘을 읽는 것은
-       skeleton.css 의 '맨 위로' 버튼뿐인데, OS 가 다크면 theme.css 가 --accent 를
-       #8b7dff 로 바꿔 버튼만 페이지보다 밝은 보라가 된다(실측). */
-    --accent: #5d4ef1;
-    --shadow: 0 4px 20px rgba(0, 0, 0, .05);
+    /* theme.css 토큰 2개를 이 페이지 값에 묶는다. 이 둘을 읽는 것은 skeleton.css 의
+       '맨 위로' 버튼뿐인데, 그냥 두면 OS 다크에서 theme.css 의 --accent(#8b7dff)를 따라가
+       버튼만 이 페이지 버튼들과 다른 보라가 된다(실측). var() 로 묶어 두면 라이트·다크
+       어느 쪽이든 자동으로 같은 색을 쓴다. */
+    --accent: var(--primary);
+    --shadow: var(--card-shadow);
+  }
+
+  /* ══ 다크 ══ 시안에 다크 판이 없어 라이트에서 유도했다.
+     ⚠ 대부분은 theme.css 가 같은 라이트 색에 이미 정해 둔 다크 값을 그대로 가져온 것이다
+        (오른쪽 주석의 = 표시). 두 페이지가 같은 색을 다르게 어둡게 하면 안 된다.
+     ⚠ --primary 는 일부러 안 바꾼다 — 보라 '면' 위에는 흰 글자가 얹혀 있어서 면을 밝히면
+        오히려 대비가 무너진다(#8b7dff + 흰 글자 = 2.8:1). 글자용은 --primary-ink 가 맡는다. */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary-ink: #8b7dff;    /* = theme.css --accent(dark) */
+      --primary-light: #2e2a55;  /* = theme.css --fx-gemini-bg(dark) */
+      --primary-mid: #b3a8ff;    /* = theme.css --fx-gemini-fg(dark) */
+      --bg-page: #14151d;        /* = theme.css --bg(dark) */
+      --bg-section: #191b24;     /* 파생 — 라이트에서 섹션이 바탕보다 어두웠으니 다크에선 한 단 밝게 */
+      --bg-white: #1c1e28;       /* = theme.css --card-bg(dark) */
+      --lp-border: #2b2e3c;      /* = theme.css --border(dark) */
+      --lp-text: #f2f3f7;        /* = theme.css --text(dark) */
+      --text-body: #b9c0d6;      /* = theme.css --fx-body(dark) */
+      --text-muted: #9299b3;     /* = theme.css --muted(dark) */
+      --green: #2fd69b;          /* = theme.css --ok(dark) */
+      --red: #ff5c7a;            /* = theme.css --danger(dark) */
+      --red-bg: #3d1f28;         /* = theme.css --fx-sell-bg(dark) */
+      --badge-bg: #1f2130;       /* 파생 */
+      --banner-bg: #1f1c35;      /* 파생 — 연보라 배너의 색조를 유지하고 명도만 뒤집었다 */
+      --banner-line: #332c5e;    /* 파생 */
+      --arrow-line: #4a4f63;     /* 파생 — 라이트의 연회색 화살표를 그대로 두면 다크에서 너무 튄다 */
+      --card-shadow: 0 4px 20px 0 rgba(0, 0, 0, .45);   /* = theme.css --shadow(dark) */
+      --nav-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
+      --glow-strong: .22;        /* 어두운 바탕에서는 같은 알파로는 글로우가 안 보인다 */
+    }
+    /* ⚠ 요소 단위 다크 규칙은 여기 두지 않는다 — 이 블록은 파일 앞쪽이라
+       뒤에 나오는 같은 특정도의 기본 규칙에 진다(실제로 .nav-link 에서 겪었다).
+       요소 override 는 파일 맨 아래 '다크 — 요소별 보정' 절에 모아 둔다. */
   }
 
   body {
@@ -102,7 +150,7 @@
   .navbar-inner {
     display: flex; align-items: center; height: 66px;
     background: var(--bg-white); border-radius: 18px; padding: 0 26px;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+    box-shadow: var(--nav-shadow);
   }
   .nav-brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
   .nav-logo {
@@ -162,7 +210,7 @@
   .hero-glow {
     position: absolute; width: 720px; height: 720px;
     left: 50%; top: calc(50% - 167.5px); transform: translate(-50%, -50%);
-    background: radial-gradient(circle closest-side, rgba(93, 78, 241, .16) 0%, rgba(93, 78, 241, .05) 55%, rgba(93, 78, 241, 0) 72%);
+    background: radial-gradient(circle closest-side, rgba(93, 78, 241, var(--glow-strong)) 0%, rgba(93, 78, 241, .05) 55%, rgba(93, 78, 241, 0) 72%);
     pointer-events: none; z-index: 0;
   }
   .hero > *:not(.hero-glow) { position: relative; z-index: 1; }
@@ -170,19 +218,20 @@
   /* [API] 4003:1665 — bg #f9f9ff, border #eceef6, px16 py8, r20, gap8 */
   .hero-badge {
     display: inline-flex; align-items: center; gap: 8px;
-    background: #f9f9ff; box-shadow: inset 0 0 0 1px var(--lp-border); border-radius: 20px;
+    background: var(--badge-bg); box-shadow: inset 0 0 0 1px var(--lp-border); border-radius: 20px;
     padding: 8px 16px;
   }
-  .hero-badge-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; flex-shrink: 0; }
+  /* 6px 점이라 면이지만 사실상 글자만큼 작다 — 다크에서 묻히지 않게 ink 를 쓴다. */
+  .hero-badge-dot { width: 6px; height: 6px; background: var(--primary-ink); border-radius: 50%; flex-shrink: 0; }
   /* [API] 4003:1667 — Noto Regular 12px, leading 1.45, #5d4ef1, 자간 없음 */
-  .hero-badge-text { font-size: 12px; line-height: 1.45; color: var(--primary); white-space: nowrap; }
+  .hero-badge-text { font-size: 12px; line-height: 1.45; color: var(--primary-ink); white-space: nowrap; }
 
   /* [API] 4003:1668 — Noto Bold 62px / 72px, tracking -0.0248px(≈0), 검정, 가운데 */
   .hero h1 {
     font-size: 62px; line-height: 72px; font-weight: 700;
     letter-spacing: -0.0248px; color: var(--lp-text);
   }
-  .hero h1 .accent { color: var(--primary); }
+  .hero h1 .accent { color: var(--primary-ink); }
 
   .hero-body { display: flex; flex-direction: column; align-items: center; gap: 24px; width: 100%; }  /* [API] 4003:1669 */
   .hero-lead { display: flex; flex-direction: column; align-items: center; gap: 36px; }               /* [API] 4003:1670 */
@@ -209,7 +258,7 @@
   /* [API] 4003:1685 — Noto Bold 17px / 32px (색은 칸마다 다르다) */
   .hero-feat-title { font-size: 17px; line-height: 32px; font-weight: 700; }
   .hero-feat-title.green { color: var(--green); }
-  .hero-feat-title.purple { color: var(--primary); }
+  .hero-feat-title.purple { color: var(--primary-ink); }
   /* [API] 4003:1686 — Noto Regular 12px / 1.9, #8f96af */
   .hero-feat-sub { font-size: 12px; line-height: 1.9; color: var(--text-muted); }
 
@@ -220,7 +269,7 @@
   /* [API] 4003:1696 / 4003:1723 — Noto Bold 12px / 32px, #5d4ef1, 자간 1.92px, 가운데 */
   .section-label {
     width: 100%; text-align: center; font-size: 12px; line-height: 32px; font-weight: 700;
-    color: var(--primary); letter-spacing: 1.92px; text-transform: uppercase;
+    color: var(--primary-ink); letter-spacing: 1.92px; text-transform: uppercase;
   }
   /* [API] 제목 — Noto Bold 40px / 52px, 검정, 가운데. 줄바꿈은 <br> 로 고정(nowrap). */
   .section-heading {
@@ -308,7 +357,9 @@
     white-space: nowrap; display: flex; align-items: center;
   }
   .flow-step.active .flow-step-label { color: #fff; }
-  .flow-step.inactive .flow-step-label { color: var(--primary); }
+  /* 'STEP 2~5' 는 어두운 카드 위의 보라 '글자' 다 — 면이 아니라서 ink 를 쓴다
+     (--primary 로 두면 다크에서 3.02:1 이었다. 실측). */
+  .flow-step.inactive .flow-step-label { color: var(--primary-ink); }
   /* [API] 1756 — px10 py4, r20 */
   .flow-step-tag {
     display: inline-flex; align-items: center; justify-content: center;
@@ -324,7 +375,9 @@
   .flow-step-desc { font-size: 12px; line-height: 1.9; }                       /* [API] 1761 */
   .flow-step.inactive .flow-step-desc { color: var(--text-body); }
   /* [좌표] 1762 — 32×33, 행 안에서 세로 가운데 */
-  .flow-arrow { flex: 0 0 32px; width: 32px; display: flex; align-items: center; justify-content: center; }
+  /* 화살표 색은 SVG 의 stroke 속성이 아니라 여기서 준다(속성에 박으면 다크에서 못 바꾼다).
+     각 <svg> 는 stroke="currentColor" 라 이 color 를 따라온다. */
+  .flow-arrow { flex: 0 0 32px; width: 32px; display: flex; align-items: center; justify-content: center; color: var(--arrow-line); }
   .flow-arrow svg { width: 32px; height: 33px; display: block; }
 
   /* ══ 누가 쓰나 ══ [좌표] 4003:1806 ══
@@ -378,7 +431,7 @@
   .cta-wrap { padding-top: 40px; padding-bottom: 40px; }
   .cta-banner {
     position: relative; overflow: hidden;
-    background: #f0eeff; box-shadow: inset 0 0 0 1px #e4dfff; border-radius: 28px;
+    background: var(--banner-bg); box-shadow: inset 0 0 0 1px var(--banner-line); border-radius: 28px;
     min-height: 336px; padding: 72px 40px; text-align: center;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   }
@@ -461,6 +514,15 @@
     .nav-cta a { width: 100%; }
     .hero-buttons { flex-direction: column; align-items: stretch; }
     .hero-buttons .lp-btn { justify-content: center; }
+  }
+
+  /* ══ 다크 — 요소별 보정 ══
+     ⚠ 반드시 스타일시트 '맨 아래' 에 둔다. 위쪽 :root 다크 블록에 넣으면 같은 특정도의
+        기본 규칙이 뒤에 나와서 이긴다(실측: 알약 글자가 계속 #5d4ef1 이었다). ══ */
+  @media (prefers-color-scheme: dark) {
+    /* 연보라 칩(#2e2a55) 위의 보라 글자. --primary-ink(#8b7dff)로는 4.1:1 뿐이라
+       칩 글자 토큰(--primary-mid = #b3a8ff)을 쓴다 → 6.3:1. 라이트는 건드리지 않는다. */
+    .nav-link.is-current, a.nav-link:hover { color: var(--primary-mid); }
   }
 </style>
 </head>
@@ -648,7 +710,7 @@
         <p class="flow-step-desc">예산과 한도를 한 번만 서명합니다.</p>
       </div>
 
-      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 
       <div class="flow-step inactive">
         <div class="flow-step-head">
@@ -662,7 +724,7 @@
         <p class="flow-step-desc">시세를 보고 살지, 팔지, 기다릴지 정합니다.</p>
       </div>
 
-      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 
       <div class="flow-step inactive">
         <div class="flow-step-head">
@@ -676,7 +738,7 @@
         <p class="flow-step-desc">견적을 합의하고 청구서를 받습니다.</p>
       </div>
 
-      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 
       <div class="flow-step inactive">
         <div class="flow-step-head">
@@ -690,7 +752,7 @@
         <p class="flow-step-desc">청구서를 위임장·견적과 맞춰 봅니다.</p>
       </div>
 
-      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="#c5c8d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 32 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16.5H24M24 16.5L18 10.5M24 16.5L18 22.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 
       <div class="flow-step inactive">
         <div class="flow-step-head">
