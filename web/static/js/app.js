@@ -566,7 +566,8 @@
     const symTip = `devnet 테스트 토큰 — ${(focusSymbol || s.symbol || "").replace(/^t/, "")} 을 토큰화한 자산`;
     el.symbol.title = symTip;
     el.posSymbol.title = symTip;
-    if (fp.current != null) el.price.textContent = fp.current + " USDC";
+    // 단위(USDC)는 index.html 의 옆 span 이 그린다 — 여기서 붙이면 32px 볼드가 단위까지 먹는다.
+    if (fp.current != null) el.price.textContent = fp.current;
     ticksPerCandle = fp.ticks_per_candle || ticksPerCandle;
     sessionOpen = fp.session_open != null ? num(fp.session_open) : null;
     prevClose = fp.prev_close != null ? num(fp.prev_close) : prevClose;
@@ -1576,7 +1577,7 @@
         renderSymbolStrip();
         // 포커스 종목만 가격 카드·차트·평가손익을 갱신 (다른 종목 틱은 표만 갱신)
         if (!d.symbol || d.symbol === focusSymbol) {
-          el.price.textContent = d.price + " USDC";
+          el.price.textContent = d.price;   // 단위는 옆 span (위 renderState 주석 참고)
           /* '틱'·'간격'은 엔진 내부 단위라 화면에서 뺐다 — 실데이터 재생에서는 날짜와
              '몇 번째 봉인지'가 같은 것을 사람 말로 전한다. 합성 패턴 피드(개발용)에는
              봉 총수가 없으므로 그때만 틱 수를 그대로 쓴다(그쪽은 실제로 틱이 단위다). */

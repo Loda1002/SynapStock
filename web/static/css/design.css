@@ -1176,6 +1176,13 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
 }
 [data-card="price"] .price-head > div > h2 { flex: 1 0 100%; }
 [data-card="price"] .price-head > div > .huge { margin: 0; }
+/* 단위는 오늘의 결과 타일과 같은 톤 — 작은 회색(사용자 지시 2026-08-02).
+   시안도 숫자 32 + `USDC` 14 로 나뉘어 있다. 예전에는 app.js 가 한 문자열로 써서
+   CSS 로 나눌 수가 없었는데(그래서 '남은 시안 차이'로 적혀 있었다), 이번에 마크업에서
+   span 을 분리해 닫았다. 값은 `.fx-tile-num .unit` 과 같은 토큰을 쓴다. */
+[data-card="price"] .huge .unit {
+  font-size: var(--fs-small); font-weight: 400; color: var(--muted); line-height: 1;
+}
 [data-card="price"] .price-head > div > .sub {
   margin: 0; display: inline-flex; align-items: center; gap: 10px;
 }
@@ -1184,9 +1191,12 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
 [data-change-basis] { display: none; }
 
 /* 알약 (2003:849 — 125×30 · 좌우 여백 11 · 삼각형과 글자 사이 6) */
+/* ⚠ 모서리 20(=완전 알약) → 10 (사용자 지시 2026-08-02 · "약간 네모난 모양").
+   높이가 30 이라 20 이면 좌우가 반원으로 잘리는데, 10 이면 직선 구간이 남아 옆의
+   시세 숫자·아래 카드들과 같은 '둥근 사각' 언어가 된다(카드 18 · 타일 14 · 칩 8). */
 [data-price-change] {
   display: inline-flex; align-items: center; gap: 6px;
-  height: 30px; padding: 0 11px; border-radius: 20px;
+  height: 30px; padding: 0 11px; border-radius: 10px;
   font-size: 12px; line-height: 20px;
 }
 /* 삼각형 (2003:851 — 7.794×6.5). 내보낸 SVG 대신 같은 크기 상자를 잘라 만든다.
@@ -1919,9 +1929,13 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
   background-repeat: no-repeat;
   background-position: right 14px center;
 }
-/* 값은 시안이 Pretendard Bold 18 로 못 박은 자리다(금액을 읽는 칸이라 타일 숫자와 같은 계열). */
+/* 값은 시안이 Pretendard Bold 18 로 못 박은 자리다(금액을 읽는 칸이라 타일 숫자와 같은 계열).
+   ⚠ `max-width: none` 이 반드시 있어야 한다(사용자 지시 2026-08-02 — 칸을 카드 끝까지).
+      skeleton.css:213 의 `input[type="number"] { width:100%; max-width: 220px }` 가 같은
+      특정도(0,1,1)로 살아 있어서, 위에서 width:100% 를 줘도 **220px 에서 잘린다**
+      (실측: 필드 356 인데 칸 220). max-width 를 안 덮으면 폭 규칙이 조용히 무력화된다. */
 [data-card="mandate"] input {
-  height: 44px; padding: 0 15px;
+  height: 44px; padding: 0 15px; max-width: none;
   font-family: var(--font-num); font-size: 18px; font-weight: 700;
 }
 /* 라벨은 <label class="field"> 안에서 글자 → 칸 순서로 쌓인다(지금은 한 줄에 흘렀다). */
@@ -1974,6 +1988,13 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
 
 /* 설명 줄 — 시안 12 회색 · 줄높이 20 */
 [data-card="session"] .rules { font-size: 12px; line-height: 20px; color: var(--muted); }
+
+/* 한글은 어절 중간에서 끊으면 안 된다(사용자 지시 2026-08-02).
+   실제로 한도 카드의 `… 적용됩니다` 가 `적용됩니 / 다` 로 갈라져 마지막 글자만 다음 줄에
+   혼자 남았다. 소개서(pitch_deck)와 랜딩(.lp)에는 이미 걸려 있던 규칙인데 대시보드에만
+   빠져 있었다. 영문·숫자 줄바꿈 규칙은 그대로라 지갑 주소·tx 해시는 영향받지 않는다
+   (그쪽은 각자 `overflow-wrap: anywhere` 로 끊는다). */
+body.page-dashboard { word-break: keep-all; }
 
 
 /* =====================================================================

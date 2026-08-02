@@ -285,7 +285,11 @@
         <h2><span class="ci ci-price" aria-hidden="true"></span>시세 <span class="sub" data-symbol></span>
           <span class="sub hidden" data-focus-wrap>· 보기
             <select data-focus-select aria-label="차트에 표시할 종목"></select></span></h2>
-        <p class="huge" data-price>—</p>
+        <!-- ⚠ 단위를 별도 span 으로 뺐다(사용자 지시 2026-08-02). 예전에는 app.js 가
+             `325.89 USDC` 를 **한 문자열로** 써서 32px 볼드가 단위까지 먹었다 — 시안은
+             숫자만 크고 단위는 오늘의 결과 타일처럼 작은 회색이다. app.js 는 이제
+             [data-price] 안에 숫자만 쓴다(두 곳: renderState · price_tick). -->
+        <p class="huge"><span data-price>—</span> <span class="unit">USDC</span></p>
         <p class="sub"><span data-price-change>—</span> <span class="unit" data-change-basis>세션 시작가 대비</span></p>
       </div>
     </div>
