@@ -325,7 +325,10 @@
             <option value="240">240봉 보기</option>
             <option value="0">전체 보기</option>
           </select>
-          <button class="btn btn-small hidden" data-chart-latest title="최신 봉으로 돌아갑니다">최신 ▸</button>
+          <!-- ⚠ 글자 `▸` 를 뺐다 — 화살표는 design.css 가 다른 화살표와 같은 삼각형으로
+               그린다(오른쪽으로 돌려서). app.js 는 이 버튼의 textContent 를 쓰지 않고
+               .hidden 만 토글하므로(:854·:880) 가상 요소가 지워지지 않는다. -->
+          <button class="btn btn-small hidden" data-chart-latest title="최신 봉으로 돌아갑니다">최신</button>
         </span>
         <span class="sub"><i class="swatch swatch-up"></i>양봉 <i class="swatch swatch-down"></i>음봉</span>
         <!-- 이동평균선. 봉이 그 기간만큼 쌓이기 전에는 선이 없으므로, app.js 가 해당 항목에
