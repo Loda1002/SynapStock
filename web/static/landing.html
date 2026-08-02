@@ -93,6 +93,12 @@
 
   /* ══ 상단 바 ══ [실측] 바 1280×66, x=80, 페이지 맨 위(위 여백 0).
      안쪽 여백 26(로고 왼끝 106) · 로고 34×34 · CTA 176×42(오른끝 1334 = 1360−26) ══ */
+  /* 시안은 상단 바가 페이지 맨 위(여백 0)에 붙지만, 대시보드는 body 패딩 --gap 만큼
+     띄우고 시작한다(실측 offsetTop 24). 소개 ↔ 대시보드를 오갈 때 바가 위로 튀어
+     보여서 상단 여백만 대시보드에 맞춘다(사용자 결정 2026-08-02).
+     ⚠ 좌우는 시안 80 그대로다 — 171 로 맞추면 바(1098)만 아래 카드(1280)보다 좁아진다.
+     ⚠ margin 이 아니라 padding 이다. body 패딩이 0 이라 위쪽 margin 은 밖으로 빠져나간다. */
+  .lp .navbar { padding-top: var(--gap); }
   .navbar-inner {
     display: flex; align-items: center; height: 66px;
     background: var(--bg-white); border-radius: 18px; padding: 0 26px;
