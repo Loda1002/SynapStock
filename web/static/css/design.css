@@ -1118,9 +1118,15 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
    ⚠ 색까지 함께 바꾼다 — 방향만 뒤집으면 초록 아래 화살표가 되어 옆 숫자(빨강)와 어긋난다.
    쓰는 색은 새로 만들지 않고 시안에 이미 있는 매도 칩 짝(--fx-sell-bg/-fg)을 그대로 쓴다.
    값이 0일 때는 지금까지의 모습(위 화살표) 그대로 둔다 — 손실이 아니기 때문이다. */
+/* ⚠ 2026-08-02: 손실일 때도 **칸 배경은 연보라 그대로**다(사용자 지시). 손실 신호는
+   글리프 색(빨강)과 아래에서 뒤집는 화살표 방향이 계속 진다 — 네 칸의 배경이 상태에 따라
+   갈리면 "배경색은 전부 같다"는 규칙이 한 칸에서만 깨진다.
+   ⚠ background 선언을 **지우면 안 된다.** skeleton.css:1266 에 같은 선택자로
+   `background: #ffe8ec` 가 있어서, 여기서 빼면 그 분홍이 되살아난다(뒤 파일이라
+   값을 덮어써야 이긴다). 그래서 위 네 칸과 같은 토큰을 명시한다. */
 .fx-tile:has([data-pnl].neg) .fx-chip-mint,
 .fx-tile:has([data-unrealized].neg) .fx-chip-blue {
-  background: var(--fx-sell-bg); color: var(--fx-sell-fg);
+  background: var(--fx-gemini-bg); color: var(--fx-sell-fg);
 }
 .fx-tile:has([data-pnl].neg) .fx-chip-mint        { --ci: var(--ci-arrow-down); }
 .fx-tile:has([data-unrealized].neg) .fx-chip-blue { --ci: var(--ci-arrow-dash-down); }
