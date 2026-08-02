@@ -96,12 +96,19 @@
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-weight: 700; font-size: 14px; line-height: 1;
   }
-  .nav-brand-name { font-weight: 700; font-size: 14px; line-height: 21px; }
+  /* [시안] 텍스트 노드 — Pretendard Bold 18 / 145%, #000000, 상자 102×34.
+     ⚠ 이 페이지에서 Pretendard 를 쓰는 셋째 자리다(제목 쉼표·해결 번호 배지와 함께). */
+  .nav-brand-name {
+    font-family: "Pretendard", "Noto Sans KR", sans-serif;
+    font-weight: 700; font-size: 18px; line-height: 1.45;
+  }
   .nav-brand-tag { font-size: 12px; color: var(--text-muted); }
   .nav-links { display: flex; gap: 8px; flex: 1; margin-left: 34px; }
+  /* [시안] '소개' 알약 54×36 — px14 py8, r10, bg #edebff, 글자 #5d4ef1.
+     글자 상자 높이가 20 이라 line-height 를 20px 로 박는다(21 이면 알약이 37 이 된다). */
   .nav-link {
-    padding: 6px 15px; border-radius: 10px;        /* [실측] '소개' 알약 54×? */
-    font-size: 13px; line-height: 21px; font-weight: 700;
+    padding: 8px 14px; border-radius: 10px;
+    font-size: 13px; line-height: 20px; font-weight: 700;
     color: var(--text-body); text-decoration: none; white-space: nowrap;
     transition: background .2s, color .2s;
   }
@@ -338,9 +345,10 @@
   .who-card-cta .who-card-title, .who-card-cta .who-card-body { color: #fff; }
   /* [좌표] 1828 — 본문 아래 20 을 띄운다. 부모 gap 12 가 이미 걸리므로 여기는 8 만 더한다. */
   .who-card-cta-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-  /* [좌표] 1831 — 높이 50, 글자 24 → 안쪽 위아래 13 */
+  /* [시안] 353.33×50 — px47 py13, r12, gap 10. 폭이 '채우기' 라 좌우 47 은 줄바꿈 여유일 뿐
+     가운데 정렬된 글자 위치를 바꾸지 않는다(내용 폭 259 > 글자 폭). */
   .who-card-cta-buttons .lp-btn {
-    justify-content: center; width: 100%; height: 50px; padding: 13px 20px;
+    justify-content: center; width: 100%; height: 50px; padding: 13px 47px; gap: 10px;
     border-radius: 12px; font-size: 14px; line-height: 24px;
   }
   .lp-btn-cta-white { background: #fff; color: var(--primary); }
@@ -369,9 +377,9 @@
   .cta-banner-title { font-size: 32px; line-height: 1.7; font-weight: 700; }
   .cta-banner-sub { font-size: 16px; line-height: 1.7; color: var(--text-body); margin-bottom: 16px; }
 
-  /* ══ 푸터 ══ [실측] bg #181b2e · 콘텐츠 좌 80 · 제목 24px · 첫 버튼 225×58 · 알약 사이 12 ══ */
-  /* [실측] 푸터 374 = 65 + 제목 40.8 + 22 + 링크 58 + 36 + 프로토 19.2 + 22 + 고지 45.6 + 65 */
-  .lp-footer { background: var(--footer-bg); padding: 65px 0; }
+  /* ══ 푸터 ══ [시안] 1440×373, bg #181b2e, 안쪽 좌우 80 · 위아래 64, 알약 사이 12 ══ */
+  /* [시안] 373 = 64 + 제목 40.8 + 22 + 링크 58 + 36 + 프로토 19.2 + 22 + 고지 45.6 + 64 = 371.6 */
+  .lp-footer { background: var(--footer-bg); padding: 64px 0; }
   .lp-footer h2 { font-size: 24px; line-height: 1.7; font-weight: 700; color: #fff; margin-bottom: 22px; }
   .footer-links { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 36px; }
   .footer-link {
@@ -380,11 +388,16 @@
     text-decoration: none; white-space: nowrap; transition: opacity .2s;
   }
   .footer-link:hover { opacity: .85; }
-  .footer-link.primary { height: 58px; padding: 0 20px; background: var(--primary); color: #fff; box-shadow: var(--btn-shadow); font-size: 14px; }
+  /* [시안] 225×58 — px20 py13(→ 안쪽 줄 32), r12, gap 6, 그림자 */
+  .footer-link.primary { height: 58px; padding: 0 20px; border-radius: 12px; background: var(--primary); color: #fff; box-shadow: var(--btn-shadow); font-size: 14px; }
   .footer-link.secondary { height: 42px; padding: 0 18px; background: rgba(255, 255, 255, .1); color: #fff; }
   .footer-proto { font-size: 12px; line-height: 1.6; color: var(--footer-text); margin-bottom: 22px; }
-  /* [실측] 고지는 폭 820 상자 안에서 2줄로 접힌다(1줄 끝 x=895, 2줄 끝 x=411). */
-  .footer-note { font-size: 12px; line-height: 1.9; color: var(--footer-text); max-width: 820px; }
+  /* [시안] 고지는 폭 820 상자 안에서 2줄로 접힌다 — Noto Regular 12 / 190%, #8c8d98. */
+  .footer-note, .footer-notice { font-size: 12px; line-height: 1.9; color: var(--footer-text); max-width: 820px; }
+  /* 시안에 없는 줄이다(사용자 결정 2026-08-02: 별도 문단). 법적 고지 뒤에 붙이면 묻혀서
+     '밝혔다'는 기록만 남고 안 읽힌다 — 독립 문단이라야 목적을 달성한다. 푸터 +32.8px. */
+  .footer-notice { margin-bottom: 10px; }
+  .footer-notice strong { color: #fff; font-weight: 700; }
 
   /* ══ 좁은 화면 ══ 시안은 1440 데스크톱만 있다. 아래는 넘침을 막기 위한 대응이다. ══ */
   @media (max-width: 1439px) {
@@ -396,7 +409,8 @@
   @media (max-width: 1160px) {
     .lp-wrap { padding-left: 24px; padding-right: 24px; }
     .nav-links { gap: 2px; margin-left: 20px; }
-    .nav-link { padding: 6px 10px; }
+    /* 좌우만 줄인다 — 위아래 8 을 건드리면 알약 높이가 시안 36 에서 32 로 내려앉는다. */
+    .nav-link { padding: 8px 10px; }
     .hero-features, .who-heading, .problem-consequence { width: 100%; max-width: 860px; }
     /* 라벨·제목은 lp-wrap 밖에 있어 좁은 폭에서 글자가 화면 끝에 닿는다(1440 렌더에는 영향 없음) */
     .section-label, .section-heading, .solution-sub, .problem-consequence { padding-left: 24px; padding-right: 24px; }
@@ -491,12 +505,15 @@
             <p class="hero-feat-title green">서명 전에 멈춥니다</p>
             <p class="hero-feat-sub">어긋나면 서명이 만들어지지 않습니다</p>
           </div>
+          <!-- 워딩은 docs/landing_lite.md 정본을 쓴다. 시안은 '예산을 코드가 집행' 처럼
+               어미를 자른 표기인데, 세 칸 중 1번만 '멈춥니다' 로 끝나 어미가 어긋난다.
+               실측: 정본 문장이 3칸 모두 1줄에 들어가 카드 높이(98.8)도 전체 높이(4287)도 그대로다. -->
           <div class="hero-feat">
-            <p class="hero-feat-title purple">예산을 코드가 집행</p>
+            <p class="hero-feat-title purple">예산을 코드가 집행합니다</p>
             <p class="hero-feat-sub">위임장에서 실제로 차감됩니다</p>
           </div>
           <div class="hero-feat">
-            <p class="hero-feat-title">사는 쪽도 파는 쪽도</p>
+            <p class="hero-feat-title">사는 쪽도 파는 쪽도 봅니다</p>
             <p class="hero-feat-sub">자산이 나갈 때도 대조합니다</p>
           </div>
         </div>
@@ -742,10 +759,12 @@
       <a class="footer-link secondary" href="https://github.com/Loda1002/SynapStock" target="_blank" rel="noopener">GitHub 저장소</a>
     </div>
     <p class="footer-proto">402 Guard · A2A · AP2 · x402 on Solana</p>
-    <!-- 법적 문구라 문장을 줄이지 않는다.
-         ⚠ 여기에 '단일 공용 인스턴스' 고지 한 줄이 더 있었는데 뺐다 — 시안에도 워딩 정본
-            (docs/landing_lite.md §7)에도 없는 줄이라, 넣으면 푸터가 시안보다 54px 길어진다.
-            내용 자체는 살릴 값이 있으니 세밀 조정 단계에서 자리를 다시 정한다. -->
+    <!-- 단일 공용 인스턴스 고지 — 엔진이 전역 싱글턴이고 배포가 max-instances 1 이라
+         한 사람이 세션을 켜면 다른 사람은 "이미 실행 중"으로 막힌다. 마감까지 멀티테넌트
+         리팩터는 불가능하므로 구조를 숨기는 대신 먼저 밝힌다(GAP-01). 조작 API 가 토큰
+         게이트인 이유(아무나 남의 세션을 정지시킬 수 없어야 한다)도 여기서 함께 설명된다. -->
+    <p class="footer-notice">이 데모는 <strong>단일 공용 인스턴스</strong>입니다 — 세션 조작(시작·정지)은 심사용 링크에서만 열려 있고, 관전(로그·지표)은 누구에게나 열려 있습니다.</p>
+    <!-- 법적 문구라 문장을 줄이지 않는다. -->
     <p class="footer-note">결제 통화는 Circle 이 발행한 공식 devnet USDC 입니다(발행 권한은 저희 것이 아닙니다). 사는 대상인 주식 토큰만 자체 발행입니다. 데모는 테스트 네트워크에서 동작하고 실제 증권거래·실제 자금 이동은 없으며, 투자 조언이 아닙니다.</p>
   </div>
 </footer>
