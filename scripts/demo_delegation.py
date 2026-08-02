@@ -126,6 +126,28 @@ async def _airdrop(client, pk: Pubkey, sol: float) -> None:
     await client.confirm_transaction(r.value, commitment=Confirmed)
 
 
+async def check_rpc(client, rpc_url: str, is_devnet: bool) -> bool:
+    """첫 RPC 호출 **전에** 연결만 한 번 확인한다. 성공하면 아무것도 출력하지 않는다.
+
+    이 명령은 심사위원·촬영자가 화면 앞에서 직접 친다. 검증기를 띄우지 않은 채 실행하면
+    준비 단계의 첫 에어드랍이 raw 트레이스백으로 죽어, 화면에 위임 데모가 아니라 파이썬
+    스택이 뜬다. 그럴 때는 무엇을 해야 하는지 한국어로 말하고 끝낸다(rc=2).
+    재시도는 걸지 않는다 — 여기서 백오프를 돌면 '연결이 안 된다'는 답이 수십 초 늦어진다."""
+    try:
+        await client.get_version()
+        return True
+    except BaseException as e:            # noqa: BLE001 — 연결 실패는 종류를 안 가리고 안내로 바꾼다
+        print(f"\n[오류] RPC 에 연결할 수 없습니다 ({rpc_url}) — {type(e).__name__}")
+        if is_devnet:
+            print("       네트워크와 SOLANA_RPC_URL 을 확인하고 잠시 후 다시 실행하십시오.")
+        else:
+            print("       별도 터미널에서 localnet 검증기를 먼저 띄우십시오:")
+            print("         wsl -d Ubuntu --cd /root -- "
+                  "/root/.local/share/solana/install/active_release/bin/solana-test-validator")
+            print("       devnet 에서 돌리려면 --devnet 을 주십시오.")
+        return False
+
+
 async def setup_localnet(client, decimals: int):
     """임시 3지갑 + 테스트 민트 + user 에 100 발행. 심사위원이 무설정으로 재현하는 경로다."""
     user, agent, broker = Keypair(), Keypair(), Keypair()
@@ -233,6 +255,10 @@ async def main() -> int:
     print(f"  네트워크   : {network}  {rpc_url}")
 
     client = await x.get_client(rpc_url)
+    if not await check_rpc(client, rpc_url, args.devnet):
+        await client.close()
+        return 2
+
     steps: list = []
     classification: list = []
     unexpected: list = []
