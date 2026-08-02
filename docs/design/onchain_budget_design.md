@@ -644,7 +644,7 @@ python scripts/demo_delegation.py --devnet   # devnet: CFG 지갑 + CFG.usdc_min
   체인이 못 보는 것 : 수취인 · 종목 · 청구서 의미 · 건별 한도 · 배송 → 402 Guard 가 담당
   온체인 거절       : 3건 (한도 1 · 잔액 1 · 회수 후 1)   유출 : 0.00 USDC
   제품 배선 여부    : 아니오 — 이 스크립트는 레일 증명 전용이고 엔진 경로는 무변경입니다
-  증빙              : artifacts/tx/20260731_1420_solana-localnet_delegation.json
+  증빙              : artifacts/tx/20260731_1438_solana-localnet_delegation.json
 ```
 
 ### 6-4. 아카이브 스키마

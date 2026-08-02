@@ -1,4 +1,4 @@
-# Cloud Run 배포 런북 — AutoTrader Agent
+# Cloud Run 배포 런북 — SynapStock
 
 > **사용자가 직접 실행하는 문서다** (GCP 인증·과금 명령은 Claude 가 대행하지 않는다 — CLAUDE.md 규칙).
 > 명령은 전부 **PowerShell 기준**이고 위에서 아래로 순서대로 실행하면 된다.
