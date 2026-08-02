@@ -85,29 +85,28 @@
   /* 형태 — 카드 18 / 타일 14 / 버튼 10~11 */
   --radius: 18px;
   --gap: 24px;              /* 카드 사이 (시안 실측: 배너→본문 24, 좌우 카드 24) */
-  /* Desktop-6(콘텐츠 1280) → Desktop-8 여백(콘텐츠 1098) 축소 배율.
-     ⚠ 두 시안은 **세로 치수가 완전히 같고 가로만 이 배율만큼 다르다** — 상단바 66 ·
-     배너 88 · AI 묶음 740 · 오늘 379 · 시세 392 · 예산 338 이 양쪽 모두 같고, 폭만
-     1280 → 1098 이다(디자이너가 여백을 넣으면서 가로만 좁아진 것). 그래서 폭만 좁히면
-     배너가 시안보다 두툼해 보인다(1280:88 = 14.5:1 → 1098:88 = 12.5:1).
-     디자인 요구는 "여백은 Desktop-8, 안쪽 비율은 Desktop-6" 이므로 안쪽 전체를 이
-     배율로 줄인다. 적용 지점은 아래 body.page-dashboard 의 zoom 한 곳뿐이다 —
-     낱개 치수(글자·아이콘·버튼·높이)에 배율을 흩뿌리면 빠뜨리는 곳이 반드시 생긴다. */
-  --d6-scale: 0.8578125;    /* 1098 / 1280 */
   --pad: 24px;              /* 카드 안쪽 */
-  /* 좌우 여백 — 최신 시안(Desktop - 8): 콘텐츠 1098px, 좌우 171px (1440 기준).
-     이전 변형(Desktop - 6)은 1280px / 80px 였다. 둘은 색·모서리·그림자가 전부 같고
-     폭만 다르다.
+  /* 좌우 여백 — 대시보드 시안(Desktop - 6): 콘텐츠 **1280px**, 좌우 80px (1440 기준).
 
-     "1098px 를 가운데 두고 남는 만큼이 여백" 을 그대로 식으로 옮겼다 —
-     1440 에서 정확히 171px 이 되고, 좁아지면 16px 까지 줄었다가 멈춘다.
-     max-width 로 본문을 묶지 않는 이유: .slim-bar(얇은 헤더)와 .guard-dock 은
-     fixed 라 본문 폭을 안 따라간다. 셋이 같은 --page-pad 를 보게 두어야 정렬이 맞는다. */
-  /* ⚠ 위쪽 상한(171px)을 두지 않는다. 상한이 있으면 1440 보다 넓은 화면에서 콘텐츠가
-     1098 을 넘어 계속 늘어난다(1920 에서 1578px). 글자 크기는 고정이라 화면이 넓을수록
-     "글자만 작고 카드만 넓은" 화면이 되어 시안과 비율이 어긋난다. 상한을 없애면
-     1440 이상에서도 콘텐츠가 시안과 같은 1098 로 고정된다. */
-  --page-pad: max(16px, calc((100vw - 1098px) / 2));
+     ⚠ 2026-08-02 변경 — 예전에는 Desktop-8(콘텐츠 1098 · 좌우 171)을 따르면서
+        body.page-dashboard 에 `zoom: 0.8578`(= 1098/1280) 을 걸어 Desktop-6 의
+        축소판을 만들고 있었다. 그 결과 **대시보드 상단 바가 랜딩(1280)보다 182px 좁아**
+        두 페이지를 오갈 때 크기가 달라 보였다(사용자 지적). 랜딩을 기준점으로 삼기로
+        했으므로 zoom 을 걷어내고 시안 원본 폭 1280 을 그대로 쓴다 — 안쪽 치수(글자·
+        아이콘·버튼·높이)는 전부 Desktop-6 실측값이라 배율 없이 그대로 맞는다.
+
+     ⚠ 랜딩과 **완전히 같은 식**이다. 랜딩은 `.lp-wrap { max-width: 1440; padding: 0 80 }`
+       인데, 본문을 max-width 로 묶을 수 없는 이 페이지에서 그와 동치인 표현이
+       `max(80px, (100vw − 1280px) / 2)` 다:
+         · 1440 이상 → (100vw−1280)/2 가 이겨 콘텐츠가 정확히 1280 (랜딩의 max-width 와 같다)
+         · 1440 미만 → 80 이 이겨 좌우 여백 80 고정 (랜딩의 padding 과 같다)
+       바닥을 16 으로 두면 1440 미만에서 대시보드만 콘텐츠가 넓어져 두 페이지가 어긋난다
+       (1425 뷰포트에서 실측 1280 vs 1265). 좁은 폭 축소도 랜딩과 같은 지점에서 한다.
+     ⚠ max-width 로 본문을 묶지 않는 이유: .slim-bar(얇은 헤더)와 .guard-dock 은
+       fixed 라 본문 폭을 안 따라간다. 셋이 같은 --page-pad 를 보게 두어야 정렬이 맞는다.
+     ⚠ 위쪽 상한을 두지 않는다. 상한이 있으면 1440 보다 넓은 화면에서 콘텐츠가 1280 을
+       넘어 계속 늘어나는데, 글자 크기는 고정이라 "글자만 작고 카드만 넓은" 화면이 된다. */
+  --page-pad: max(80px, calc((100vw - 1280px) / 2));
 
   /* 그림자 — 시안 카드값 그대로 */
   --shadow: 0 4px 20px rgba(0, 0, 0, .05);
@@ -136,25 +135,16 @@
 .btn-wallet-sm, .btn-wallet-xs { --wallet-radius: 16px; }
 
 
-/* ---- Desktop-6 비례 (2026-08-01) ----
-   콘텐츠 묶음 전체를 --d6-scale 로 줄여 Desktop-6 의 축소판으로 만든다.
-   여백(좌우 171px)은 화면 실제 픽셀로 유지해야 하므로 --page-pad 를 배율로 나눠
-   zoom 을 되돌려 준다 — 1440 에서 콘텐츠는 그대로 1098 이고, 그 안의 배너·글자·
-   버튼만 0.8578 배가 된다(실측: 배너 1097.8×75.49 · 아이콘 41.17 · 자세히 보기 117.8×41.17).
+/* ---- (걷어낸 규칙) Desktop-6 비례 zoom ----
+   2026-08-01 에는 여기서 `body.page-dashboard { zoom: 0.8578 }` 로 콘텐츠 전체를 줄여
+   Desktop-8(1098) 폭에 Desktop-6 비율을 욱여넣고 있었다. 2026-08-02 에 랜딩(1280)을
+   기준점으로 삼기로 하면서 걷어냈다 — 이제 --page-pad 가 곧장 1280 을 만든다.
+   ⚠ 되살리지 말 것. 되살리면 대시보드만 랜딩보다 14% 작아진다. */
 
-   ⚠ zoom 을 쓰는 이유: transform:scale 은 배치에 반영되지 않아 폭을 따로 보정해야 하고
-   fixed 요소가 어긋난다. zoom 은 배치까지 같이 줄어서 얇은 헤더·토스트·조작 바가
-   제자리를 지킨다(실측 확인).
-
-   ⚠ 1100px 이하에서는 걸지 않는다. 그 아래는 카드가 1열로 접혀 시안 배치 자체가
-   아니라(바로 아래 @media max-width:1100 참조) 비율을 맞출 대상이 없고, 글자만
-   14% 작아져 읽기가 나빠진다. */
-@media (min-width: 1101px) {
-  body.page-dashboard {
-    zoom: var(--d6-scale);
-    --page-pad: calc(max(16px, (100vw - 1098px) / 2) / var(--d6-scale));
-  }
-}
+/* 좁은 폭 여백 — 랜딩의 `.lp-wrap` 이 같은 지점에서 같은 값으로 줄인다(landing.html:486·508).
+   두 페이지가 같이 움직여야 오갈 때 본문 폭이 튀지 않는다. */
+@media (max-width: 1160px) { :root { --page-pad: 24px; } }
+@media (max-width: 600px)  { :root { --page-pad: 16px; } }
 
 
 /* =====================================================================
@@ -197,23 +187,96 @@
   .grid > [data-card] { grid-column: span 12 !important; }
 }
 
-/* ---- 상단 바 ---- */
-.topbar {
+/* ---- 상단 바 ----
+   ⚠ 2026-08-02: 플렉스 → **3칸 그리드**로 바꿨다(사용자 지시). 플렉스에서는 탭이
+   브랜드 바로 오른쪽에 붙어서, 랜딩과 대시보드의 브랜드 폭이 다르면(랜딩은 `402 Guard`
+   꼬리표가 더 있다) 같은 탭이 두 페이지에서 서로 다른 자리에 놓였다(실측: 대시보드 탭
+   중심이 바 중심에서 -221px). 가운데 칸을 `auto`, 양옆을 같은 `1fr` 로 두면 탭이 좌우
+   내용 길이와 무관하게 **정확히 한가운데**에 선다 — 랜딩도 같은 그리드를 쓴다.
+   ⚠ 이게 성립하려면 오른쪽 조작부가 1fr(≈461px) 안에 들어와야 한다. 알림 버튼 라벨을
+      줄인 것(app.js NOTIFY_LABEL)이 그래서 함께 필요했다(555 → 약 382).
+   ⚠ minmax(0, 1fr) 인 이유: 그냥 1fr 이면 트랙 최소 폭이 '내용 길이'라 좁은 화면에서
+      가운데 칸을 밀어낸다. */
+/* ⚠ 선택자에 `body.page-dashboard` 를 붙여야 한다. skeleton.css:1031 에 같은 규칙이
+   `body.page-dashboard .topbar`(0,3,1) 로 들어 있어서, 짧은 `.topbar`(0,1,1) 로는
+   **뒤 파일이어도 진다**(처음에 그렇게 썼다가 그림자가 옛 값 그대로인 것을 실측했다).
+   display 는 양쪽 어디에도 없어 짧은 선택자로도 먹지만, 한 덩어리로 두는 편이 안전하다. */
+body.page-dashboard .topbar {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
   padding: 0 26px; min-height: 66px; gap: 34px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, .06); border: 0;
-  flex-wrap: nowrap;
+  /* 그림자를 랜딩의 상단 바(--nav-shadow)와 같은 값으로 맞췄다(사용자 지시).
+     두 겹이라 바로 아래 1px 이 또렷하고 아래로 넓게 번진다 — 한 겹짜리 예전 값
+     (0 6px 14px 6%)보다 카드가 떠 있는 느낌이 확실하다. */
+  box-shadow: var(--nav-shadow); border: 0;
+}
+body.page-dashboard .topbar > .brand { justify-self: start; }
+body.page-dashboard .topbar > .fx-tabs { justify-self: center; }
+body.page-dashboard .topbar > .controls { justify-self: end; }
+/* 좁은 화면에서는 세 칸이 한 줄에 안 들어간다 — 예전처럼 흐르게 되돌린다
+   (랜딩도 같은 이유로 900px 부터 flex 로 되돌아간다). */
+@media (max-width: 1100px) {
+  body.page-dashboard .topbar { display: flex; flex-wrap: wrap; }
+}
+:root {
+  --nav-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --nav-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35); }
 }
 .fx-brand { display: flex; align-items: center; gap: 11px; flex: none; }
 .fx-logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); flex: none; }
 .brand h1 { font-size: 18px; font-weight: 700; }
+/* ---- 브랜드 글자를 랜딩과 한 벌로 (사용자 지시 2026-08-02) ----
+   랜딩의 `.nav-brand-name` 은 **Pretendard Bold 18 / 145%** 다(landing.html:163 · 시안이
+   이 페이지에서 Pretendard 를 쓰는 세 자리 중 하나로 못 박은 값). 대시보드는 아무것도
+   지정하지 않아 `--font`(= Noto Sans KR 우선) 를 물려받아 **Noto 18 / 27** 로 그려지고
+   있었다 — 같은 제품명이 두 페이지에서 다른 글꼴로 보였다(실측으로 확인).
+   대시보드 시안(Desktop-6)도 `402 Guard` 를 Pretendard 18 Bold 로 지정한다.
+   `--font-num` 이 곧 Pretendard 우선 목록이라 새 변수를 만들지 않는다. */
+.fx-brand h1, .slim-brand { font-family: var(--font-num); line-height: 1.45; }
 
 .fx-tabs { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
-.fx-tab {
-  padding: 8px 14px; border-radius: 10px;
-  font-size: 14px; font-weight: 700; color: #5b617a; white-space: nowrap;
+
+/* ---- 탭 — 랜딩의 `.nav-link` 와 한 벌로 (사용자 지시 2026-08-02) ----
+   실측으로 드러난 차이 6가지(전부 아래에서 랜딩 값으로 맞췄다):
+     ① 글자 14px/21 → **13px/20** (그래서 탭 높이도 37 → 36 으로 같아진다)
+     ② ⚠ **다크에서 라이트 색을 그대로 쓰고 있었다** — 색을 토큰이 아니라 `#5b617a`·`#edebff`
+        로 못 박아 둔 탓이다. 다크 화면에서 비활성 글자가 어두운 회색(#5b617a)이고 활성 탭
+        배경이 밝은 연보라(#edebff)였다. 랜딩은 같은 자리에서 #b9c0d6 / #2e2a55 를 쓴다.
+     ③ 활성·호버 글자 #8b7dff → **#b3a8ff**(다크). 연보라 칩 위에서 전자는 4.1:1 뿐이라
+        랜딩이 칩 글자 전용 색을 따로 두고 있다(6.3:1).
+     ④ 전환 없음 → `background .2s, color .2s`
+     ⑤ 잠긴 탭 opacity .75 → **.5**
+     ⑥ 잠긴 탭 커서 not-allowed → **default** (누를 수 있는 것을 막은 게 아니라 아직 없는 화면이다)
+   ⚠ 색은 반드시 토큰으로 둔다. 두 토큰은 랜딩 값과 정확히 같다 —
+     `--fx-body` = 랜딩 --text-body(#5b617a / #b9c0d6) · `--fx-gemini-bg` = --primary-light(#edebff / #2e2a55).
+   ⚠ 선택자에 `body.page-dashboard` 를 붙인다. skeleton.css:1046~1056 에 같은 규칙이 있어
+     특정도를 올려 두지 않으면 나중에 그쪽을 고칠 때 조용히 되돌아간다. */
+:root {
+  /* 활성·호버 탭의 글자색. 랜딩은 라이트에서 --primary(#5d4ef1), 다크에서 --primary-mid
+     (#b3a8ff)를 쓴다 — 이 조합에 정확히 맞는 기존 토큰이 없어 전용으로 둔다
+     (--accent 는 다크가 #8b7dff, --fx-gemini-fg 는 라이트가 #695cf4 로 각각 어긋난다). */
+  --fx-tab-on: #5d4ef1;
 }
-.fx-tab.is-active { background: #edebff; color: var(--accent); }
-.fx-tab[aria-disabled="true"] { opacity: .75; cursor: not-allowed; }
+@media (prefers-color-scheme: dark) {
+  :root { --fx-tab-on: #b3a8ff; }
+}
+body.page-dashboard .fx-tab {
+  padding: 8px 14px; border-radius: 10px;
+  font-size: 13px; line-height: 20px; font-weight: 700;
+  color: var(--fx-body); white-space: nowrap;
+  transition: background .2s, color .2s;
+}
+body.page-dashboard .fx-tab.is-active,
+body.page-dashboard a.fx-tab:hover {
+  background: var(--fx-gemini-bg); color: var(--fx-tab-on);
+}
+body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default; }
+/* 좁은 폭에서 좌우만 줄인다 — 랜딩도 같은 지점에서 같은 값으로 줄인다(landing.html:517). */
+@media (max-width: 1160px) {
+  body.page-dashboard .fx-tab { padding: 8px 10px; }
+}
 
 .topbar .controls { gap: 10px; flex-wrap: nowrap; }
 /* 긴급정지·알림은 시안의 알약 칩 모양으로. 지갑 버튼은 제외한다. */
@@ -261,8 +324,10 @@
   margin: 0; font-size: 12px; line-height: 20px; color: #fff;
   display: flex; align-items: center; flex-wrap: wrap;
 }
+/* 점 색은 바로 뒤에 오는 `새어나간 돈` 과 같다 — 시안도 그렇다(Ellipse 5 fill #A4FFE5).
+   흰색 반투명으로 두면 그 점이 뒤 문장이 아니라 앞의 아이콘에 딸린 것처럼 읽힌다. */
 .fx-banner-sub .fx-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: .8;
+  width: 6px; height: 6px; border-radius: 50%; background: #a4ffe5;
   margin-right: 6px; flex: none;
 }
 .fx-banner-leak { color: #a4ffe5; }
@@ -308,9 +373,18 @@
 
 /* ---- 오늘의 결과 ---- */
 .fx-today { display: flex; flex-direction: column; gap: 32px; }
-/* Desktop-6 실측: Noto Sans KR 12px · 글상자 797×14. 기본 줄높이(1.5=18px)로 두면 4px 이
-   늘어 아래 헤드라인이 그만큼 밀린다. */
-.fx-today-date { margin: 0; font-size: var(--fs-small); line-height: 14px; color: #9096ad; }
+/* Desktop-6 실측: Noto Sans KR 12px · 글상자 797×14.
+   ⚠ 2026-08-02 — 세션 설정 카드의 부제(`무엇을 · 어떻게 살지`)와 **글자 성격을 맞춘다**
+   (사용자 지시). 그쪽은 `.sub` 라 12px / 줄높이 20 / 보통 굵기 / var(--muted) 다.
+   색을 시안 하드코딩(#9096ad) 대신 토큰으로 바꾸는 이유는 다크에서다 — 하드코딩이면
+   다크 화면에서 이 줄만 라이트 회색으로 남는다(두 값의 라이트 차이는 #9096ad vs
+   #8f96af 로 육안 구분이 안 된다).
+   ⚠ 선택자를 `.fx-today >` 로 한 겹 감싼다. `.fx-today-date`(0,1,0) 혼자서는 skeleton 의
+   `.fx-today > .fx-today-date`(0,2,0)에 져서 줄높이가 되돌아간다. */
+.fx-today > .fx-today-date {
+  margin: 0; font-size: var(--fs-small); line-height: 20px;
+  font-weight: 400; color: var(--muted);
+}
 /* Desktop-6 실측: Noto Sans KR Bold · 24px · line-height 34px (글상자 797×68 = 두 줄).
    ⚠ 22px 는 Desktop-8 값이다. Desktop-8 은 폭만 좁힌 것이 아니라 글자도 함께 줄인
    시안이라(24→22), 그 값을 쓰면 "여백은 D8·비율은 D6" 요구와 어긋난다. */
@@ -362,8 +436,14 @@
    ⚠ 선택자가 둘인 이유는 아래 정렬 규칙과 같다 — 시세 카드의 h2 만 카드의 직계 자식이
    아니라 `.price-head` 안에 한 겹 더 들어가 있어서, 앞 선택자만 두면 그 카드 하나만
    skeleton 기본값(14px)으로 남는다(실측으로 실제 그랬다). */
-.grid > .card > h2,
-.grid .card h2:has(.ci) { font-size: 16px; line-height: 20px; font-weight: 700; }
+/* ⚠ `.fx-today-date` 만 뺀다. '오늘의 결과' 의 날짜 줄은 시안에서 카드 제목이 아니라
+   **작은 회색 라벨**(Noto 12 · #9096AD)이다. 뺴지 않으면 이 규칙이 skeleton 의
+   `.fx-today > .fx-today-date`(0,2,0)를 (0,2,1)로 눌러 **16px Bold** 로 그린다
+   (실측으로 실제 그러고 있었다 — 사용자가 "세션 설정 부제와 다르다"고 지적한 것).
+   skeleton 쪽 같은 규칙에는 이 `:not()` 이 이미 들어 있었는데 여기만 빠져 있었다.
+   ⚠ 아래 `display:flex` 규칙에서는 빼면 안 된다 — 아이콘 칸 정렬에 그게 필요하다. */
+.grid > .card > h2:not(.fx-today-date),
+.grid .card h2:has(.ci):not(.fx-today-date) { font-size: 16px; line-height: 20px; font-weight: 700; }
 /* 제목 옆 설명은 굵게 하지 않는다(시안도 회색 보통 굵기다). h2 가 700 이라
    가만 두면 물려받아 같이 굵어진다 — .ai-layer h3 .sub 가 이미 같은 처리를 하고 있다. */
 .grid > .card > h2 .sub,
@@ -628,8 +708,11 @@
   font-size: 11px; font-weight: 400; line-height: 18px; white-space: nowrap;
   background: var(--fx-chip-bg); color: var(--fx-chip-fg);   /* = HOLD 칩과 동일 */
 }
-/* 값(Gemini·rule…)만 굵게 — app.js 가 이 <strong> 의 textContent 를 갈아끼운다. */
-.grid > [data-card="ai"] > h2 .ai-brain strong { font-weight: 700; }
+/* ⚠ 값(Gemini·rule…)을 굵게 하지 않는다(사용자 지시 2026-08-02). 이 배지는 판단 결과가
+   아니라 상태 표시라 강조할 이유가 없고, 두뇌 이름이 길면(`추세추종 규칙 (가격>MA20 …)`)
+   굵은 글씨가 제목 줄에서 혼자 튀어 읽는 순서를 흐린다. <strong> 태그는 그대로 둔다 —
+   app.js 가 이 요소의 textContent 를 갈아끼우므로 없애면 값이 안 들어간다. */
+.grid > [data-card="ai"] > h2 .ai-brain strong { font-weight: 400; }
 
 /* ---- ⓪ 레이어 박스 자체 — Desktop-6 실측 (2026-08-01 추가) ----
    시안의 두 레이어는 **옅은 회보라로 채워진 박스**다(Frame 26/27: 606×220 · fill #F4F5FC ·
@@ -960,6 +1043,9 @@
   --ci-arrow-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v14.8'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
   --ci-arrow-dash-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke-dasharray='3 3' d='M12 4v14'/%3E%3Cpath d='m6.4 13.2 5.6 5.6 5.6-5.6'/%3E%3C/svg%3E");
   --ci-box:        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3.4 8 4.2v8.8l-8 4.2-8-4.2V7.6Z'/%3E%3Cpath d='m4 7.6 8 4.2 8-4.2M12 11.8V20.6'/%3E%3C/svg%3E");
+  /* '오늘의 결과' 카드용 — 이 카드가 말하는 단위가 '하루'라 달력을 쓴다. 다른 카드가
+     쓰는 글리프(코인·화살표·목록)는 이미 안쪽 타일 4개가 나눠 갖고 있어 겹친다. */
+  --ci-calendar:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='5.6' width='16' height='14.4' rx='2.2'/%3E%3Cpath d='M8 3.2v4.8M16 3.2v4.8M4 10.6h16'/%3E%3C/svg%3E");
   --ci-bell:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8.8a6 6 0 1 0-12 0c0 5.2-2 6.7-2 6.7h16s-2-1.5-2-6.7'/%3E%3Cpath d='M10.3 19a2 2 0 0 0 3.4 0'/%3E%3C/svg%3E");
   /* 꺼짐 — 같은 종에 작대기 하나. 마스크라 겹치는 부분은 하나로 합쳐져 '그어진' 모양이 된다. */
   --ci-bell-off:   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8.8a6 6 0 1 0-12 0c0 5.2-2 6.7-2 6.7h16s-2-1.5-2-6.7'/%3E%3Cpath d='M10.3 19a2 2 0 0 0 3.4 0'/%3E%3Cpath d='M3.6 3.6 20.4 20.4'/%3E%3C/svg%3E");
@@ -1007,6 +1093,7 @@
 .ci-budget   { --ci: var(--ci-gauge); }     /* 카드 본체가 게이지 막대 */
 .ci-mandate  { --ci: var(--ci-sliders); }   /* 하는 일은 값 조절 — 서명 글리프는 ci-ai 와 겹친다 */
 .ci-briefing { --ci: var(--ci-doc); }
+.ci-today    { --ci: var(--ci-calendar); }  /* 이 카드가 세는 단위가 '하루' */
 
 /* 오늘의 결과 타일 4개 — 배경 틴트는 이미 색이 나뉘어 있으므로 글리프는 같은 계열 진한 색. */
 .fx-chip { display: inline-flex; align-items: center; justify-content: center; }
@@ -1032,6 +1119,11 @@
 /* 브랜드·배너 — 제품(SynapStock)이 파는 것이 지출 통제라 로고에 방패를 쓴다. 배너는 같은
    방패에 체크를 더한다
    (로고는 정체성, 배너가 말하는 것은 "막았어요" 라는 결과다). */
+/* 브랜드·배너 — 제품(SynapStock)이 파는 것이 지출 통제라 로고에 방패를 쓴다. 배너는 같은
+   방패에 체크를 더한다(로고는 정체성, 배너가 말하는 것은 "막았어요" 라는 결과다).
+   ⚠ 2026-08-02 에 잠깐 랜딩과 같은 `S` 글자로 바꿨다가 **방패로 되돌렸다**(사용자 지시).
+      대신 랜딩 로고도 같은 방패로 맞췄다 — 두 페이지를 한 벌로 두라는 요구는 그대로 살린다.
+      랜딩은 design.css 를 안 싣기 때문에 그쪽은 인라인 <svg> 로 같은 모양을 그린다. */
 .fx-logo {
   display: inline-flex; align-items: center; justify-content: center;
   color: #fff; --ci: var(--ci-shield);
@@ -1080,6 +1172,23 @@
 [data-price-change].pos { background: var(--fx-buy-bg);  color: var(--fx-buy-fg); }
 [data-price-change].neg { background: var(--fx-sell-bg); color: var(--fx-sell-fg); }
 [data-price-change].neg::before { clip-path: polygon(50% 100%, 100% 0, 0 0); }
+
+/* ---- 차트 가로 스크롤바 (사용자 지시 2026-08-02 — 끌기 대신) ----
+   내용이 없는 넓은 칸에 브라우저가 붙여 준 스크롤바를 그대로 쓴다(app.js syncChartScroll).
+   손잡이 길이가 곧 '전체 중 보이는 비율'이라, 지금 어느 구간을 보고 있는지가 화면에 남는다.
+   ⚠ 오버레이 스크롤바(가만두면 안 보이는 종류)를 쓰는 환경도 있어 모양을 직접 정한다. */
+.chart-scroll {
+  overflow-x: auto; overflow-y: hidden;
+  height: 10px; margin-top: 6px;
+  scrollbar-width: thin; scrollbar-color: var(--muted) var(--bg);
+}
+.chart-scroll > div { height: 1px; }
+.chart-scroll::-webkit-scrollbar { height: 10px; }
+.chart-scroll::-webkit-scrollbar-track { background: var(--bg); border-radius: 5px; }
+.chart-scroll::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 5px; }
+.chart-scroll::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+/* 끌기를 걷어냈으므로 손 모양 커서도 함께 걷는다 — 남겨 두면 잡히지 않는데 잡히는 척한다. */
+.chart { cursor: default; }
 
 /* 아직 값이 없거나(—) 보합이면 알약을 만들지 않는다 — 회색 알약이 떠 있으면
    "무언가 일어났다"로 읽힌다. */
@@ -1248,9 +1357,9 @@
 
    원래 '손대지 않는다' 목록(lab.css 주석·CLAUDE.md)이었는데, 이번 지시가 **크기만**
    풀었다. 모양·색·hover 모션은 그대로다.
-   목표는 화면 기준 1.2배(33.8 → 약 40). body.page-dashboard 의 zoom(0.8578) 때문에
-   CSS 에는 그만큼 크게 적는다. 값은 사용자가 눈으로 보고 다듬을 예정이므로
-   이 목록이 기준점이다 — 전/후 실측은 README 참조.
+   ⚠ 2026-08-02: 예전에는 body.page-dashboard 에 zoom(0.8578) 이 걸려 있어 여기 적은
+   값이 화면에서 0.86 배로 보였다. zoom 을 걷어냈으므로 이제 적힌 값이 곧 화면 값이다
+   (얇은 헤더 높이 41 → 48). 값은 사용자가 눈으로 보고 다듬을 예정이다.
    ===================================================================== */
 .slim-bar {
   padding-top: 10px; padding-bottom: 10px;      /* 8 → 10 (가로는 --page-pad 그대로) */
@@ -1688,4 +1797,175 @@
 }
 :root {
   --arrow2: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="21" height="14.7279" viewBox="0 0 21 14.7279" fill="none"><path d="M20.7071 8.07107C21.0976 7.68054 21.0976 7.04738 20.7071 6.65685L14.3431 0.292893C13.9526 -0.097631 13.3195 -0.097631 12.9289 0.292893C12.5384 0.683418 12.5384 1.31658 12.9289 1.70711L18.5858 7.36396L12.9289 13.0208C12.5384 13.4113 12.5384 14.0445 12.9289 14.435C13.3195 14.8256 13.9526 14.8256 14.3431 14.435L20.7071 8.07107ZM0 7.36396V8.36396H20V7.36396V6.36396H0V7.36396Z" fill="black"/></svg>');
+}
+
+
+/* =====================================================================
+   시세 카드 — 가격 글자 크기 (사용자 지시 2026-08-02 · 항목 7)
+
+   시안(Frame 110)은 가격을 **Pretendard Bold 32** 로 쓴다. 다른 큰 숫자(타일·KPI·
+   예산)와 같은 --fs-big 이다. 그런데 skeleton 은 `.huge` 에 `--fs-big * 1.6`(=51.2px)
+   을 주고 있어 이 숫자만 혼자 1.6배로 튀어 있었다(실측 51.2px).
+   줄높이 38 은 타일 숫자와 같은 값이다 — 같은 32px 글자라 상자도 같아야 한다.
+   ===================================================================== */
+[data-card="price"] .huge { font-size: var(--fs-big); line-height: 38px; }
+
+
+/* =====================================================================
+   예산 카드 — 제목 색 · 안쪽 세로 리듬 (사용자 지시 2026-08-02 · 항목 8·9)
+
+   이 카드만 skeleton 의 옛 규칙(uiverse 이식본)을 그대로 쓰고 있어서 시안과 셋이 달랐다.
+     ① 제목이 회색(--muted)이라 다른 카드 제목(검정)과 혼자 달랐다 — 사용자 지적.
+     ② 게이지가 4px 이고 위아래 여백이 16/12 라, 시안(8px · 33/38)보다 납작하고 답답했다.
+     ③ 큰 숫자가 26.24px(--fs-big × .82) · 굵기 800 이었다 — 시안은 32px · 700 으로
+        다른 카드의 큰 숫자와 같다.
+   값은 전부 시안 Frame 116 실측이다(카드 410×338 · 안여백 24 · 게이지 폭 362 = 410−48).
+   ===================================================================== */
+.budget-card h2 { color: var(--text); margin-bottom: 24px; }   /* ① 시안: 검정 · 제목→본문 24 */
+
+/* 제목 아래로 내린 설명 줄 — 시안은 12 회색이고, 아래 큰 숫자와의 간격이 14 다.
+   `.sub` 가 skeleton 에서 `margin: 2px 0` 을 들고 있어 그대로 두면 간격이 어긋난다. */
+.budget-note { margin: 0 0 14px; line-height: 14px; }
+
+/* ③ 다른 카드의 큰 숫자와 같은 값으로. 단위(USDC)는 시안 Noto 14 #5B617A. */
+.budget-hero { font-size: var(--fs-big); font-weight: 700; line-height: 38px; }
+/* ⚠ 단위(USDC)의 줄높이를 1 로 눌러 둔다. 같은 줄에 섞인 14px 글자는 32px 글자와
+   베이스라인이 달라 제 인라인 상자가 줄상자를 6px 아래로 밀어낸다(실측 38 → 44,
+   그만큼 아래 줄이 전부 밀린다). 타일 숫자(.fx-tile-num .unit)에 쓴 것과 같은 처리다. */
+.budget-hero .unit { font-size: 14px; line-height: 1; color: var(--fx-body); }
+.budget-hero-label { margin-top: 11px; line-height: 14px; }
+
+/* ② 게이지 — 시안은 높이 8 · 모서리 4(= 끝이 완전히 둥근 막대)다.
+   위 33 / 아래 38 은 시안의 글상자 사이 실측 간격이다. */
+.budget-card .gauge { height: 8px; border-radius: 4px; margin: 33px 0 38px; }
+
+/* 아래 두 지표 — 시안은 숫자가 14 Bold(우리는 12였다), 라벨과의 간격이 13 이다. */
+.budget-foot-num { font-size: 14px; line-height: 20px; }
+.budget-foot-label { margin-top: 13px; line-height: 14px; }
+
+
+/* =====================================================================
+   세션 설정 · 세션 고급 설정 · 한도 바꾸기 — 폼 요소 (사용자 지시 2026-08-02 · 항목 3)
+
+   이 세 카드만 시안이 한 줄도 안 걸려 있었다(실측):
+     · <select> 41 → **32** · 모서리 12 → 18 · 배경이 카드와 같은 흰색(시안은 회색 칸) ·
+       테두리 1px(시안 없음) · **글꼴이 Arial**(폼 요소는 `font: inherit` 이 없으면
+       브라우저 기본 글꼴을 쓴다 — 카드 안에서 이 칸들만 글꼴이 달랐다)
+     · <input> 44 → 30 · 값이 14 보통(시안 Pretendard 18 Bold)
+     · 버튼 43 → 32 · 모서리 11~12 → 18
+
+   값은 시안 실측이다 — 세션(Frame 3_5): 칸 362×41 · 모서리 12 · 채움 #F4F5FC ·
+   좌여백 14 · 글자 14 · 칸 사이 8 · 시작 버튼 363×43 · 모서리 12 · #5D4EF1.
+   한도(Frame 117_2): 칸 362×44 · 모서리 12 · 값 Pretendard 18 Bold · 좌여백 15 ·
+   적용 버튼 90×41 · 모서리 11.5 · 테두리만(#ECEEF7).
+   ⚠ 색은 하드코딩하지 않고 토큰을 쓴다. `--bg` 는 라이트에서 정확히 #F4F5FC 이고
+     다크에서는 #14151d 이라, 흰 카드 위 회색 칸이 다크에서도 "카드보다 한 단계 어두운 칸"
+     으로 같은 관계를 유지한다(하드코딩하면 다크에서 이 칸만 하얗게 남는다).
+   ⚠ 범위를 세 카드로 좁힌다. `select`/`.btn` 은 전역이라 넓게 걸면 차트 조작부(작아야 한다)와
+     상단 바 버튼(이미 제 규칙이 있다)까지 끌려온다.
+   ===================================================================== */
+:root {
+  /* 시안의 드롭다운 화살표(Polygon 1: 7.794×4.5, 아래를 향한 삼각형, #8F96AF).
+     select 는 대체 요소라 ::after 를 못 붙인다 → 배경 이미지로 그린다. */
+  --fx-select-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7.794' height='4.5' viewBox='0 0 7.794 4.5'%3E%3Cpath d='M0 0H7.794L3.897 4.5Z' fill='%238F96AF'/%3E%3C/svg%3E");
+}
+
+[data-card="session"] .stack,
+[data-card="session-adv"] .stack { gap: 8px; }
+
+[data-card="session"] select,
+[data-card="session-adv"] select,
+[data-card="mandate"] input {
+  font: inherit; font-size: 14px; color: var(--text);
+  width: 100%; box-sizing: border-box;
+  border: 0; border-radius: 12px;
+  background: var(--bg);
+}
+[data-card="session"] select,
+[data-card="session-adv"] select {
+  height: 41px; padding: 0 32px 0 14px;
+  -webkit-appearance: none; appearance: none;
+  background-image: var(--fx-select-caret);
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+/* 값은 시안이 Pretendard Bold 18 로 못 박은 자리다(금액을 읽는 칸이라 타일 숫자와 같은 계열). */
+[data-card="mandate"] input {
+  height: 44px; padding: 0 15px;
+  font-family: var(--font-num); font-size: 18px; font-weight: 700;
+}
+/* 라벨은 <label class="field"> 안에서 글자 → 칸 순서로 쌓인다(지금은 한 줄에 흘렀다). */
+[data-card="mandate"] .field {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 0 0 12px; font-size: 12px; color: var(--muted);
+  /* 라벨 글상자를 시안 값(14)으로 못 박는다. 기본 줄높이(1.5=18)로 두면 필드마다 4px 씩
+     늘어 카드가 시안 338 을 넘고, 그만큼 같은 줄의 예산·브리핑도 함께 늘어난다.
+     input 은 제 line-height 를 따로 쓰므로 이 값이 칸 높이에 영향을 주지 않는다. */
+  line-height: 14px;
+}
+/* 아래 세 값은 카드 높이를 시안 338 에 맞추려고 함께 정한 값이다(합이 정확히 338 이 된다):
+   24 + 26(제목) + 16 + 66(필드) + 12 + 66(필드) + 12 + 36(안내줄) + 15 + 41(버튼) + 24.
+   ⚠ 하나만 고치면 카드가 커지고, 그러면 같은 줄의 예산·브리핑까지 함께 늘어난다. */
+[data-card="mandate"] h2 { margin-bottom: 16px; }
+/* 허용 종목 · 대기 상태를 한 줄에. 요동 방지용 최소 높이(문구가 1↔2줄로 오간다)를
+   개별 문단이 아니라 이 줄에 둔다 — 두 문단이 나란히 있어 어느 쪽이 접혀도 줄이 안 흔들린다. */
+.mandate-note {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin: 0 0 15px; min-height: 36px;
+}
+.mandate-note > .sub { margin: 0; }
+.mandate-note > [data-mandate-hint] { text-align: right; min-height: 0; }
+
+/* 버튼 — 시작은 시안의 보라 큰 버튼, 종료는 같은 높이의 테두리 버튼(시안에는 종료가 없다).
+   ⚠ `.btn` 기본값(모서리 18 · 높이 32 · 테두리 1px)을 이 카드 안에서만 덮는다. */
+[data-card="session"] .row { display: flex; gap: 8px; }
+[data-card="session"] .row .btn,
+[data-card="mandate"] .btn {
+  font: inherit; font-size: 14px; font-weight: 700;
+  height: 43px; padding: 0 18px; border-radius: 12px; border: 0;
+}
+/* 두 버튼을 **정확히 반씩** 나눠 갖는다(사용자 지시 2026-08-02 — 크기를 같게).
+   `flex: 1 1 0` 이어야 한다. `1 1 auto` 로 두면 글자 길이(`▶ 세션 시작` vs `■ 세션 종료`)가
+   기준 크기로 잡혀 남는 자리만 반씩 나눠 가지므로 폭이 서로 다르게 끝난다. */
+[data-card="session"] .row .btn { flex: 1 1 0; min-width: 0; }
+[data-card="session"] .row [data-btn-start] { background: var(--accent); color: #fff; }
+[data-card="session"] .row [data-btn-stop] {
+  background: transparent; color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--fx-line);
+}
+/* 한도 적용 — 시안 90×41 · 모서리 11.5 · 채움 없이 테두리만 */
+[data-card="mandate"] .btn {
+  height: 41px; min-width: 90px; border-radius: 11.5px;
+  background: transparent; color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--fx-line);
+}
+[data-card="session"] .row .btn:disabled,
+[data-card="mandate"] .btn:disabled { opacity: .45; }
+
+/* 설명 줄 — 시안 12 회색 · 줄높이 20 */
+[data-card="session"] .rules { font-size: 12px; line-height: 20px; color: var(--muted); }
+
+
+/* =====================================================================
+   다크 — 요소별 보정
+
+   ⚠ 반드시 스타일시트 **맨 아래** 에 둔다. 위쪽 `:root` 다크 블록 안에 요소 규칙을
+      넣으면, 같은 특정도의 기본 규칙이 파일 뒤에 나와서 이긴다(랜딩에서 세 번 밟은
+      함정이고 landing.html 도 같은 이유로 맨 아래에 이 절을 둔다).
+   ===================================================================== */
+/* 알림 버튼이 다크에서 안 보였다(사용자 지적 · 항목 3).
+   원인은 **배경만 하드코딩(#ececec)이고 글자는 토큰(--text)** 이라, 다크에서
+   밝은 회색 바탕 위에 거의 흰 글자가 되어 대비가 1.1:1 이었다
+   (실측: 배경 rgb(236,236,236) · 글자 rgb(242,243,247)).
+
+   배경을 중립 칩 토큰으로 바꾼다. 그 토큰은 **라이트에서 정확히 #ececec** 이므로
+   라이트 화면은 한 픽셀도 안 바뀌고, 다크에서만 #2b2e3c 가 된다 → 미디어 쿼리가 아예
+   필요 없다(다크 값을 따로 유도하지 않으니 두 페이지에서 색이 갈릴 일도 없다).
+
+   ⚠ 선택자에 `body.page-dashboard` 를 붙여야 한다. skeleton.css 에 같은 규칙이
+     `body.page-dashboard .topbar .controls [data-btn-notify]`(0,4,0) 로 들어 있어서,
+     짧은 `.topbar .controls [data-btn-notify]`(0,3,0) 로는 **뒤 파일이어도 진다**
+     (처음에 그렇게 썼다가 실측에서 안 먹는 것을 확인했다). */
+body.page-dashboard .topbar .controls [data-btn-notify] {
+  background: var(--fx-chip-bg); color: var(--text);
 }

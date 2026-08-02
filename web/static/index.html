@@ -46,6 +46,7 @@
        ⚠ 원래 있던 '← 소개' 링크와 태그라인은 시안에 없어서 뺐다. 랜딩으로 가는 길은
           얇은 헤더의 브랜드 링크에 그대로 살아 있다. -->
   <div class="brand fx-brand">
+    <!-- 방패는 design.css 가 마스크로 그린다(--ci-shield). 랜딩 로고도 같은 모양이다. -->
     <span class="fx-logo" aria-hidden="true"></span>
     <h1>SynapStock</h1>
   </div>
@@ -63,10 +64,12 @@
        관람자에게는 읽을 이유가 없는 계기판 값이고, 배너가 그것들로 차 있으면 제품명이 묻힌다.
        DOM 에서 지우지는 않는다(app.js 가 매 갱신마다 값을 쓰므로 없애면 null 참조로 죽는다).
        매매 정지 배지만 남긴다 — 이건 관람자가 알아야 하는 안전 상태다. -->
-  <div class="statusbar">
-    <span class="badge badge-danger hidden" data-paused-badge>🛑 매매 정지됨</span>
-  </div>
+  <!-- ⚠ 매매 정지 배지를 감싸던 `.statusbar` 상자를 없애고 배지만 아래 조작부로 옮겼다
+       (2026-08-02). 상단 바를 `1fr auto 1fr` 그리드로 바꿔 **탭을 정중앙에 고정**하는데,
+       칸이 셋이어야 해서 자식이 넷이면 안 된다. app.js 는 [data-paused-badge] 를
+       querySelector 로 찾으므로 자리를 옮겨도 무변경이다. -->
   <div class="controls">
+    <span class="badge badge-danger hidden" data-paused-badge>🛑 매매 정지됨</span>
     <!-- 가드 알림창 접기/펴기는 제목칸 오른쪽 아래에 붙은 탭(.guard-tab)이 담당한다 —
          그 탭은 스크롤해도 제목칸을 따라다녀서 여기 버튼을 따로 둘 필요가 없다. -->
     <!-- 🛑 를 뺐다 — 시안(2003:831, 9×9)대로 라벨 앞에 점을 하나 그리는데 이모지까지 있으면
@@ -171,7 +174,11 @@
           보유 여부는 valuation 의 주식 평가액이다. 날짜도 브라우저 시계가 아니라 재생 중인
           봉의 날짜를 쓴다(시세 카드가 이미 같은 날짜를 보여준다). -->
   <section class="card fx-today" data-card="today">
-    <h2 class="fx-today-date" data-today-date>오늘의 결과</h2>
+    <!-- ⚠ 훅([data-today-date])이 h2 자신이 아니라 **안쪽 span** 에 있다. app.js 의
+         renderTodayDate 가 `el.todayDate.textContent = …` 로 통째로 갈아 끼우기 때문에,
+         h2 에 직접 걸면 그 대입 한 번에 앞의 아이콘 span 이 지워진다(다른 카드 제목의
+         ▾·종 아이콘에서 이미 겪은 함정). 훅만 한 겹 안으로 내리면 app.js 는 무변경이다. -->
+    <h2 class="fx-today-date"><span class="ci ci-today" aria-hidden="true"></span><span data-today-date>오늘의 결과</span></h2>
     <p class="fx-today-line" data-today-line>세션을 시작하면 오늘 한 일이 한 문장으로 정리됩니다.</p>
     <div class="fx-tiles">
       <div class="fx-tile">
@@ -185,12 +192,13 @@
         <!-- 수익률의 기준은 전략에 따라 다르다(state.pnl.basis) — 라벨은 app.js 가 바꾼다.
              고정 문구로 두면 실현 0 USDC 아래에 수익률 6.22% 가 붙어 자기모순으로 읽힌다. -->
         <p class="fx-tile-sub"><span data-return-label>수익률</span> <span data-return-pct>0</span>%</p>
-        <!-- 브로커 수수료 — 아래 pnl 카드가 화면에서 빠지면서 이 줄도 함께 사라졌던 것을
-             타일 안으로 되살린다. 이 제품의 수익모델이 슬라이드가 아니라 코드에 있다는
-             유일한 화면 근거다(3분 영상 C 구간에서 클로즈업할 줄).
-             ⚠ 훅 이름은 pnl 카드와 같은 것을 그대로 쓴다 — app.js 가 querySelector 로
-               한 번만 잡고 문서상 먼저 나오는 이 줄을 쓰므로 app.js 는 무변경이다. -->
-        <p class="fx-tile-sub" title="브로커가 가져가는 몫 — 이 제품의 수익모델 근거입니다">브로커 수수료 <span data-fee-rate>—</span> · 누적 <span data-cum-fee>0</span> USDC</p>
+        <!-- ⚠ 여기 있던 `브로커 수수료 … · 누적 … USDC` 줄을 뺐다(사용자 지시 2026-08-02).
+             시안은 타일마다 보조 문구가 **한 줄**인데 이 타일만 두 줄이라 혼자 길었다.
+             ⚠ 대가: 이 줄이 화면에 남은 유일한 수익모델 근거였다(3분 영상 C 구간 클로즈업
+                대상으로 적어 둔 줄이다). 값 자체는 아래 감춰진 pnl 카드에 그대로 살아 있어
+                app.js 는 무변경이고([data-fee-rate]·[data-cum-fee] 를 거기서 잡는다),
+                되살리려면 이 자리에 그 <p> 한 줄을 도로 넣으면 된다. -->
+
       </div>
       <div class="fx-tile">
         <div class="fx-tile-head"><span class="fx-chip fx-chip-blue" aria-hidden="true"></span>평가손익</div>
@@ -283,6 +291,14 @@
     </div>
     <svg class="chart" data-chart viewBox="0 0 640 260" role="img"
          aria-label="캔들차트 — 시가·고가·저가·종가와 이동평균선"></svg>
+    <!-- 지나간 봉 보기 — 예전에는 차트를 마우스로 끌어야 했다(사용자 지시 2026-08-02로 교체).
+         진짜 스크롤바를 쓰려고 **내용이 없는 넓은 칸**을 하나 두고 브라우저가 그 칸에 붙여 준
+         가로 스크롤바를 그대로 쓴다. 안쪽 칸의 폭은 app.js 가 `전체 봉 ÷ 보이는 봉` 비율로
+         정하고, 스크롤 위치와 차트 구간을 서로 맞춰 준다.
+         ⚠ 봉이 화면에 다 들어오면 app.js 가 통째로 감춘다(끌 것이 없는데 막대만 남지 않게). -->
+    <div class="chart-scroll hidden" data-chart-scroll aria-hidden="true">
+      <div data-chart-scroll-inner></div>
+    </div>
     <!-- 조작부·범례를 그래프 위가 아니라 아래에 둔다. 위쪽은 402 Guard 요약 패널(.guard-dock)이
          떠 있는 자리라, 여기 두면 스크롤 위치에 따라 통째로 가린다(실측 100%). -->
       <div class="chart-legend">
@@ -321,7 +337,7 @@
         </span>
         <span class="sub" data-candle-info>캔들 집계 대기</span>
         <span class="sub" data-tick-info>틱 대기 중</span>
-        <span class="sub chart-hint">좌우로 끌면 지나간 봉을 볼 수 있습니다</span>
+        <span class="sub chart-hint">아래 막대를 움직이면 지나간 봉을 볼 수 있습니다</span>
       </div>
   </section>
 
@@ -474,7 +490,11 @@
        막대 → 좌우 두 지표" 라는 배치만 옮기고 flex + theme.css 토큰으로 다시 짰다.
        데이터 훅(data-budget-*)은 다섯 개 전부 그대로다 — app.js 는 한 줄도 안 바뀐다. -->
   <section class="card budget-card" data-card="budget">
-    <h2><span class="ci ci-budget" aria-hidden="true"></span>예산 <span class="sub" title="화면에 표시만 하는 상한이 아니라, AP2 위임장에서 실제로 차감되는 값입니다">코드가 집행하는 상한</span></h2>
+    <h2><span class="ci ci-budget" aria-hidden="true"></span>예산</h2>
+    <!-- 시안(Frame 116)은 이 설명을 제목 옆이 아니라 **제목 아래 별도 줄**에 둔다.
+         제목 옆에 붙여 두면 카드 아래쪽이 44px 비어 리듬이 어긋난다(실측).
+         ⚠ 문구는 한 글자도 바꾸지 않았다 — 자리만 옮겼다. -->
+    <p class="sub budget-note" title="화면에 표시만 하는 상한이 아니라, AP2 위임장에서 실제로 차감되는 값입니다">코드가 집행하는 상한</p>
     <p class="budget-hero"><span data-budget-remaining>0</span> <span class="unit">USDC</span></p>
     <p class="budget-hero-label">남은 예산</p>
     <div class="gauge" role="progressbar"><div class="gauge-fill" data-budget-fill></div></div>
@@ -503,9 +523,16 @@
       <label class="field">건별 최대 (USDC)
         <input data-mandate-per-trade type="number" min="0" step="any" required>
       </label>
-      <p class="sub" title="여러 종목을 골라도 예산과 한도는 이 하나를 함께 씁니다">허용 종목: <span data-mandate-symbols>—</span></p>
+      <!-- 시안(Frame 137)은 `허용 종목: tAAPL` 과 `대기 상태 — …` 를 **한 줄에 나란히** 둔다
+           (둘 다 y=2059.8). 위아래로 쌓아 두면 카드가 시안 338 보다 53px 커져서, 같은 줄의
+           예산·브리핑 카드까지 함께 늘어난다(그리드가 행 높이를 가장 큰 카드에 맞춘다).
+           ⚠ 안내문([data-mandate-hint])을 버튼 **앞**으로 옮겼다 — app.js 는 이 훅을
+             querySelector 로 찾으므로 자리를 옮겨도 무변경이다. -->
+      <div class="mandate-note">
+        <p class="sub" title="여러 종목을 골라도 예산과 한도는 이 하나를 함께 씁니다">허용 종목: <span data-mandate-symbols>—</span></p>
+        <p class="sub" data-mandate-hint>—</p>
+      </div>
       <button class="btn" type="submit" data-btn-mandate title="AP2 mandate 재서명">한도 적용</button>
-      <p class="sub" data-mandate-hint>—</p>
     </form>
   </section>
 

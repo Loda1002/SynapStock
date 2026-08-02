@@ -64,6 +64,8 @@
     chartGroup: $("[data-chart-group]"),
     chartView: $("[data-chart-view]"),
     chartLatest: $("[data-chart-latest]"),
+    chartScroll: $("[data-chart-scroll]"),
+    chartScrollInner: $("[data-chart-scroll-inner]"),
     candleInfo: $("[data-candle-info]"),
     tickInfo: $("[data-tick-info]"),
     posQty: $("[data-pos-qty]"),
@@ -849,6 +851,7 @@
     if (!all.length) {
       el.candleInfo.textContent = "캔들 집계 대기";
       if (el.chartLatest) el.chartLatest.classList.add("hidden");
+      syncChartScroll(0, 0, 0);   // 그릴 봉이 없으면 스크롤바도 감춘다
       const note = svgNode("text", { x: CH.w / 2, y: CH.h / 2, "text-anchor": "middle" }, "empty-note");
       note.textContent = "세션을 시작하면 시세 캔들이 그려집니다";
       svg.appendChild(note);
@@ -865,6 +868,7 @@
     const start = Math.max(0, end - size);
     const view = all.slice(start, end);
     const following = viewEnd == null || end >= all.length;
+    syncChartScroll(all.length, size, start);
 
     // 일봉 판별: ts 가 날짜만(YYYY-MM-DD)이면 실데이터 일봉, ISO 시각이면 목 틱 집계
     const isDaily = view.some((c) => c.t && !c.t.includes("T"));
@@ -947,13 +951,18 @@
   }
 
   /* ---------- 차트 스크롤 (지나간 봉 다시 보기) ----------
-     드래그가 기본이고, Shift+휠도 같은 일을 한다. 오른쪽 끝까지 오면 viewEnd 를 null 로
-     되돌려 새 봉을 자동으로 따라간다.
+     ⚠ 2026-08-02: 차트를 마우스로 **끌던 방식을 진짜 스크롤바로 바꿨다**(사용자 지시).
+        끌기는 화면에 아무 표시가 없어서 그런 기능이 있다는 것을 알 방법이 없었고, 지금
+        어느 구간을 보고 있는지도 안 보였다. 스크롤바는 둘 다 한 번에 해결한다.
+     구현: 차트 아래에 **내용 없는 넓은 칸**(index.html 의 .chart-scroll)을 두고 브라우저가
+     거기 붙여 준 가로 스크롤바를 그대로 쓴다. 안쪽 칸 폭 = 트랙 폭 × (전체 봉 ÷ 보이는 봉)
+     이라, 손잡이 길이가 곧 '전체 중 보이는 비율'이 된다.
+     Shift+휠은 그대로 둔다(끌기와 달리 화면을 가로막지 않는 보조 조작이다).
      ⚠ 그냥 휠은 가로채지 않는다. 차트는 화면 폭을 다 쓰는 카드라, 휠을 먹으면 대시보드를
         스크롤하다 커서가 차트를 지나는 순간 페이지가 멈춘다(촬영 중이면 그대로 화면에 남는다).
         확대·축소도 휠에 걸지 않는다 — 트랙패드 핀치가 ctrl+휠로 오기 때문에 손대지 않아도
         배율이 멋대로 바뀐다(실측: 60봉으로 시작한 차트가 43봉이 되어 있었다).
-        보이는 봉 수는 아래 '보기 범위' 선택으로만 바뀐다. */
+        보이는 봉 수는 '보기 범위' 선택으로만 바뀐다. */
   function panChart(bars) {
     const total = groupCandles(candles, chartGroup).length;
     if (!total) return;
@@ -964,35 +973,51 @@
     drawChart();
   }
 
+  /* 차트 → 스크롤바 방향의 동기화. drawChart 가 그릴 때마다 부른다.
+     ⚠ 여기서 scrollLeft 를 쓰면 브라우저가 scroll 이벤트를 쏘고, 그 핸들러가 다시
+        drawChart 를 불러 무한 왕복이 된다. 그래서 우리가 쓴 것인지 표시해 두고
+        다음 프레임에 푼다(사람이 끄는 동안에는 이 플래그가 꺼져 있다). */
+  let scrollSyncing = false;
+  function syncChartScroll(total, size, start) {
+    const track = el.chartScroll, inner = el.chartScrollInner;
+    if (!track || !inner) return;
+    // 다 보이면 스크롤할 것이 없다 — 막대만 남으면 "왜 안 움직이지"가 된다.
+    if (!total || total <= size) { track.classList.add("hidden"); return; }
+    track.classList.remove("hidden");
+    inner.style.width = Math.round(track.clientWidth * (total / size)) + "px";
+    const max = track.scrollWidth - track.clientWidth;
+    const want = Math.round((start / (total - size)) * max);
+    if (Math.abs(track.scrollLeft - want) > 1) {
+      scrollSyncing = true;
+      track.scrollLeft = want;
+      requestAnimationFrame(() => { scrollSyncing = false; });
+    }
+  }
+
+  if (el.chartScroll) {
+    el.chartScroll.addEventListener("scroll", () => {
+      if (scrollSyncing) return;                 // 우리가 옮긴 것 — 되받지 않는다
+      const total = groupCandles(candles, chartGroup).length;
+      if (!total) return;
+      const size = Math.min(viewSize, total);
+      if (total <= size) return;
+      const track = el.chartScroll;
+      const max = track.scrollWidth - track.clientWidth;
+      const frac = max > 0 ? track.scrollLeft / max : 0;
+      const start = Math.round(frac * (total - size));
+      const end = start + size;
+      // 오른쪽 끝에 닿으면 null 로 되돌려 새 봉을 다시 자동으로 따라간다.
+      viewEnd = end >= total ? null : end;
+      drawChart();
+    }, { passive: true });
+  }
+
   if (el.chart) {
     el.chart.addEventListener("wheel", (e) => {
       if (!candles.length || !e.shiftKey) return;   // 그냥 휠은 페이지 스크롤 그대로
       e.preventDefault();
       panChart(Math.sign(e.deltaY || e.deltaX) * Math.max(1, Math.round(viewSize / 8)));
     }, { passive: false });
-
-    let dragX = null, dragEnd = null;
-    el.chart.addEventListener("pointerdown", (e) => {
-      if (!candles.length) return;
-      dragX = e.clientX;
-      dragEnd = viewEnd;
-      el.chart.setPointerCapture(e.pointerId);
-      el.chart.classList.add("is-dragging");
-    });
-    el.chart.addEventListener("pointermove", (e) => {
-      if (dragX == null) return;
-      const total = groupCandles(candles, chartGroup).length;
-      const size = Math.min(viewSize, total);
-      const perBar = el.chart.clientWidth / Math.max(size, 1);
-      const moved = Math.round((dragX - e.clientX) / Math.max(perBar, 1));
-      const base = dragEnd == null ? total : dragEnd;
-      const next = Math.min(Math.max(base + moved, size), total);
-      viewEnd = next >= total ? null : next;
-      drawChart();
-    });
-    const endDrag = () => { dragX = null; el.chart.classList.remove("is-dragging"); };
-    el.chart.addEventListener("pointerup", endDrag);
-    el.chart.addEventListener("pointercancel", endDrag);
   }
 
   if (el.chartLatest) {
@@ -1222,10 +1247,16 @@
   /* ⚠ '차단됨'을 쓰지 않는다 — 같은 화면에 '가드 차단' KPI 가 있어서, 브라우저가 알림을
      막은 것을 402 Guard 가 무언가를 막은 것으로 읽는다(실제 오독 지점).
      ⚠ 앞의 🔔·🔕 이모지는 뺐다 — 시안대로 skeleton.css 가 종을 그리므로 그대로 두면
-     종이 두 개가 된다(글자 이모지 + 아이콘). 문구 자체는 한 글자도 바꾸지 않았다. */
+     종이 두 개가 된다(글자 이모지 + 아이콘).
+     ⚠ 2026-08-02: 라벨을 **한두 낱말로 줄였다**(사용자 지시). 예전 `브라우저가 알림을
+     막았습니다` 는 버튼 하나가 243px 이라, 상단 바의 탭을 정중앙에 두려 해도 오른쪽
+     조작부가 자리를 다 먹어 탭이 밀려났다(실측: 오른쪽 555 vs 쓸 수 있는 자리 461).
+     정보는 하나도 안 잃는다 — 아래 renderNotifyBtn 이 **상태별 안내를 title 로 이미 달고
+     있고**, wireTips 가 그 title 을 우리 말풍선(data-tip)으로 옮긴다. 즉 화면에서는 종
+     아이콘 + 한 낱말, 마우스를 올리면 예전 그대로의 설명이 뜬다. */
   const NOTIFY_LABEL = {
-    on: "알림 켜짐", off: "알림 받기",
-    denied: "브라우저가 알림을 막았습니다", unsupported: "이 브라우저는 알림 미지원",
+    on: "켜짐", off: "켜기",
+    denied: "허용 필요", unsupported: "미지원",
   };
 
   function renderNotifyBtn() {

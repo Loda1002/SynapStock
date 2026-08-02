@@ -147,17 +147,27 @@
      ⚠ 좌우는 시안 80 그대로다 — 171 로 맞추면 바(1098)만 아래 카드(1280)보다 좁아진다.
      ⚠ margin 이 아니라 padding 이다. body 패딩이 0 이라 위쪽 margin 은 밖으로 빠져나간다. */
   .lp .navbar { padding-top: var(--gap); }
+  /* ⚠ 2026-08-02: 플렉스 → **3칸 그리드**(사용자 지시). 메뉴가 브랜드 바로 오른쪽에
+     붙어 있으면, 브랜드 폭이 다른 대시보드와 같은 메뉴가 서로 다른 자리에 놓인다.
+     가운데를 auto, 양옆을 같은 1fr 로 두면 좌우 길이와 무관하게 정중앙에 선다
+     (대시보드 .topbar 도 같은 그리드다 — 한쪽만 고치면 도로 어긋난다). */
   .navbar-inner {
-    display: flex; align-items: center; height: 66px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center; height: 66px;
     background: var(--bg-white); border-radius: 18px; padding: 0 26px;
     box-shadow: var(--nav-shadow);
   }
+  .navbar-inner > .nav-brand { justify-self: start; }
+  .navbar-inner > .nav-links { justify-self: center; }
+  .navbar-inner > .nav-cta { justify-self: end; }
   .nav-brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
   .nav-logo {
     width: 34px; height: 34px; background: var(--primary); border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-weight: 700; font-size: 14px; line-height: 1;
   }
+  /* 방패 — 대시보드 .fx-logo::before 와 같은 19px 이다. */
+  .nav-logo svg { width: 19px; height: 19px; display: block; }
   /* [시안] 텍스트 노드 — Pretendard Bold 18 / 145%, #000000, 상자 102×34.
      ⚠ 이 페이지에서 Pretendard 를 쓰는 셋째 자리다(제목 쉼표·해결 번호 배지와 함께). */
   .nav-brand-name {
@@ -165,7 +175,8 @@
     font-weight: 700; font-size: 18px; line-height: 1.45;
   }
   .nav-brand-tag { font-size: 12px; color: var(--text-muted); }
-  .nav-links { display: flex; gap: 8px; flex: 1; margin-left: 34px; }
+  /* ⚠ 여백·flex 를 걷었다 — 위 그리드가 자리를 정하므로 남겨 두면 가운데에서 34px 밀린다. */
+  .nav-links { display: flex; gap: 8px; }
   /* [시안] '소개' 알약 54×36 — px14 py8, r10, bg #edebff, 글자 #5d4ef1.
      글자 상자 높이가 20 이라 line-height 를 20px 로 박는다(21 이면 알약이 37 이 된다). */
   .nav-link {
@@ -177,7 +188,7 @@
   a.nav-link:hover { background: var(--primary-light); color: var(--primary); }
   .nav-link.is-current { background: var(--primary-light); color: var(--primary); }
   .nav-link[aria-disabled="true"] { opacity: .5; cursor: default; }
-  .nav-cta { margin-left: auto; }
+  .nav-cta { justify-self: end; }
   .nav-cta a {
     display: inline-flex; align-items: center; justify-content: center;
     width: 176px; height: 42px; padding: 0 20px;   /* [실측] */
@@ -205,6 +216,16 @@
     position: relative; overflow: hidden;
     padding: 96px 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 28px; text-align: center;
+    /* 첫 화면이 화면 높이를 다 쓰게 한다 (사용자 지시 2026-08-02).
+       그러지 않으면 히어로가 926px 에서 끝나 그보다 높은 화면에서는 아래쪽에
+       두 번째 섹션(회색 배경)이 띠처럼 삐져나온다 — 첫인상이 잘린 화면이 된다.
+       90px = 상단 바 묶음 높이(위 여백 24 + 바 66). 값을 padding 으로 늘리지 않고
+       min-height 로 두는 이유: 화면 높이는 모니터마다 다르므로 고정 여백으로는
+       한 해상도에서만 맞는다. 내용은 이미 justify-content:center 라 남는 자리가
+       위아래로 반씩 나뉜다.
+       ⚠ 좁은 화면(≤900px)에서는 아래에서 auto 로 되돌린다 — 폰에서는 히어로가
+         이미 화면보다 길고, 주소창 때문에 100vh 가 실제 화면보다 크다. */
+    min-height: calc(100vh - 90px);
   }
   /* [API] 720×720, 가로 가운데, 세로 중심 = 히어로 높이의 50% − 167.5 */
   .hero-glow {
@@ -495,12 +516,18 @@
     .flow-step { flex: 0 0 calc(50% - 6px); }
   }
   @media (max-width: 900px) {
-    .hero { padding: 64px 0; }
+    /* min-height 해제 — 이 폭에서는 히어로가 이미 화면보다 길고, 폰에서는 주소창
+       때문에 100vh 가 실제 보이는 높이보다 커서 아래가 잘린다. */
+    .hero { padding: 64px 0; min-height: auto; }
     .section { padding: 64px 0; }
     .section-heading, .problem-consequence-title, .cta-banner-title { font-size: 28px; line-height: 40px; }
     .problem-cards, .solution-cards, .who-cards, .hero-features { flex-direction: column; align-items: center; }
     .problem-card, .solution-card, .who-card, .hero-feat { max-width: 500px; width: 100%; flex: 0 0 auto; }
     .flow-step { flex: 0 0 100%; max-width: 500px; }
+    /* 메뉴가 사라지면 3칸 그리드에 항목이 둘뿐이라 CTA 가 가운데 칸으로 올라간다 —
+       이 폭부터는 예전처럼 흐르게 되돌린다(대시보드 .topbar 도 같은 이유로 되돌린다). */
+    .navbar-inner { display: flex; }
+    .nav-cta { margin-left: auto; }
     .nav-links { display: none; }
     .cta-banner { padding: 48px 24px; }
   }
@@ -535,7 +562,16 @@
 <nav class="navbar lp-wrap" aria-label="주요 메뉴">
   <div class="navbar-inner">
     <div class="nav-brand">
-      <div class="nav-logo" aria-hidden="true">S</div>
+      <!-- 대시보드 로고(.fx-logo)와 **같은 방패**다 (사용자 지시 2026-08-02: 두 페이지 로고
+           통일 + 글자 `S` 대신 방패). 그쪽은 design.css 의 --ci-shield 를 마스크로 쓰는데
+           이 페이지는 design.css 를 안 싣기 때문에 같은 path 를 인라인 <svg> 로 그린다.
+           ⚠ 모양을 고칠 때 두 곳을 함께 고쳐야 한다(path 문자열이 같아야 한다). -->
+      <div class="nav-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z"/>
+        </svg>
+      </div>
       <span class="nav-brand-name">SynapStock</span>
       <span class="nav-brand-tag">402 Guard</span>
     </div>
