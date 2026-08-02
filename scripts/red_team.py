@@ -629,4 +629,18 @@ if __name__ == "__main__":
                     help="①'' 의미 대조를 실제 Gemini 로 판정 (GEMINI_API_KEY·쿼터 필요). "
                          "기본은 실제 응답을 녹화해 재생하므로 오프라인에서 돈다.")
     args = ap.parse_args()
+
+    # README 가 "심사위원이 직접 악성 수취인 주소를 넣어볼 수 있다"고 권하는 입력이라,
+    # 주소를 잘못 붙여넣었을 때 파이썬 트레이스백이 아니라 사람이 읽는 안내가 나가야 한다.
+    # (검증을 여기서 한 번만 한다 — _env() 는 공격 건마다 불린다.)
+    if args.attacker:
+        args.attacker = args.attacker.strip()
+        try:
+            Pubkey.from_string(args.attacker)
+        except Exception:
+            print(f"[오류] --attacker 값이 올바른 base58 Solana 주소가 아닙니다: {args.attacker!r}")
+            print("       예: --attacker 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU")
+            print("       (앞뒤 공백·줄바꿈이 섞이지 않았는지 확인하십시오. 생략하면 임시 지갑을 씁니다.)")
+            raise SystemExit(2)
+
     raise SystemExit(asyncio.run(main(args.attacker, live_llm=args.live_llm)))

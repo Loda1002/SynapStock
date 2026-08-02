@@ -43,7 +43,7 @@
 | **A2A 에이전트 협상** | 구매 에이전트 ↔ 브로커 에이전트가 메시지로 견적 요청·응답 | `shared/a2a_messages.py`, `agents/` | ✅ localnet 검증 |
 | **AP2 mandate 한도** | 사용자가 서명한 한도(총예산=순투입 상한·건별 한도·허용 종목)를 초과하면 기계적 거부 | `payments/ap2_mandate.py` | ✅ 거부 4종 데모 |
 | **x402 3단계 정산** | payment-required → submitted → completed. 브로커가 온체인 검증 후 자산 전달 | `payments/x402_solana.py` | ✅ 매수·매도 양방향 |
-| **HTTP 402 레그 (G5)** | 브로커를 진짜 HTTP 자원 서버로 노출 — `POST /broker/orders` 가 결제 없으면 **402 Payment Required + accepts[]**, `X-PAYMENT` 헤더가 붙으면 200 + `X-PAYMENT-RESPONSE`. `GET /.well-known/x402` 디스커버리(미구현 항목 선공개). 1회용 청구서로 리플레이 차단, 온체인 정산 기본 잠김. 매수 레그 전용(매도는 방향이 반대라 A2A 인프로세스) | `web/broker_service.py`, `payments/x402_http.py` | ✅ test_http402 53건 · 실제 TCP 데모 `artifacts/x402_http/` |
+| **HTTP 402 레그 (G5)** | 브로커를 진짜 HTTP 자원 서버로 노출 — `POST /broker/orders` 가 결제 없으면 **402 Payment Required + accepts[]**, `X-PAYMENT` 헤더가 붙으면 200 + `X-PAYMENT-RESPONSE`. `GET /.well-known/x402` 디스커버리(미구현 항목 선공개). 1회용 청구서로 리플레이 차단, 온체인 정산 기본 잠김. 매수 레그 전용(매도는 방향이 반대라 A2A 인프로세스) | `web/broker_service.py`, `payments/x402_http.py` | ✅ test_http402 61건 · 실제 TCP 데모 `artifacts/x402_http/` |
 | **매수·매도 풀사이클** | USDC⇄주식토큰 양방향 온체인 정산, 전후 잔액 RPC 교차검증 | `agents/broker_agent.py` | ✅ 순변화 PASS |
 | **거부 4종 데모** | 건별한도 초과·mandate 위변조·금액 부족·미허용 종목 | `scripts/demo_rejections.py` | ✅ |
 | **온체인 예산 레일 (A-lite)** | SPL Token 위임으로 예산 상한을 체인이 집행. 한도 초과·회수 후 결제를 체인이 거절하고, **같은 에러 코드(0x1)인 잔액 부족과 구분해** 라벨링한다(구분하지 않으면 지갑이 빈 것을 '한도 집행'으로 광고하게 된다). 에이전트는 자기 한도를 못 올린다 | `payments/delegation.py`, `scripts/demo_delegation.py` | ⚠ **제품 미배선** — 독립 증빙 전용(엔진 결제 경로 무변경). localnet 아카이브 1건 · 단위 23종 |
@@ -55,7 +55,7 @@
 |---|---|---|---|
 | **Gemini 매매 판단** | 무료 티어(`gemini-flash-lite-latest`). 시세·MA·변동성·평단 손익률·직전 회고를 보고 매수/매도/보류 + 한국어 이유 | `agents/gemini_decider.py` | ✅ 실패 시 규칙 폴백 |
 | **판단 모드 토글** | 엄격(규칙 그대로) / 추세(보류 재량) | 세션 설정 | ✅ 백테스트 실측 |
-| **규칙 게이트** | "규칙 신호 없는 개시 금지"를 프롬프트가 아니라 **코드로 강제** — AI 가 매수기준 미충족 매수·익절기준 미충족 매도를 내면 `hold` 로 강등하고 출처를 `rule-gate` 로 기록. 보류(멈추는 방향)는 항상 허용 | `agents/trading_agent.py` `_rule_gate` | ✅ test_rule_gate 28건 |
+| **규칙 게이트** | "규칙 신호 없는 개시 금지"를 프롬프트가 아니라 **코드로 강제** — AI 가 매수기준 미충족 매수·익절기준 미충족 매도를 내면 `hold` 로 강등하고 출처를 `rule-gate` 로 기록. 보류(멈추는 방향)는 항상 허용 | `agents/trading_agent.py` `_rule_gate` | ✅ test_rule_gate 34건 |
 | **판단 출처 계측** | 세션의 `gemini`/`rule`/`rule-fallback`/`rule-gate` 집계 + 체결별 판단 출처를 tx 아카이브·세션 요약(Firestore)·`/api/state.ai` 에 기록 — 온체인 증빙에서 AI 관여분을 확인 가능 | `web/engine.py` `_ai_stats` | ✅ test_ai_stats 27건 |
 | **TA 판단 보강** | MA 1~200일·크로스·기울기·지지/저항·차트/캔들 패턴을 판단 근거로 주입 | `market/indicators.py` | ✅ 기본 OFF, 단위테스트 44건 |
 | **JSON 파서 견고화** | 코드펜스·잘못된 이스케이프·제어문자 정화 후 재파싱, 실패 시 1회 재요청 | `parse_decision_json` | ✅ 테스트 11건 |
@@ -84,7 +84,7 @@
 | **실데이터 재생** | 실제 미국 주식 일봉 CSV를 1틱=1봉으로 재생(워밍업 20봉, 소진 시 자동 종료) | `market/price_feed.py` (ReplayPriceFeed) | ✅ AAPL·TSLA·NVDA |
 | **적립식(DCA)** | 조건형 / 적립형(틱·분·매일 시각 정액 매수), mandate 한도 동일 적용 | 전략 선택 | ✅ 테스트 7케이스 |
 | **추세추종** | 상승세 전량 보유·하락세 전량 매도(자본 보존)·재상승 재매수. 올인/올아웃·복리·결정론 규칙 신호. **신호 4종**: 가격≥MA20 / 골든크로스5/20 / 1/5(가격≥MA5, 빠름) / 5/20+1/5 결합(빠른 손절). **멀티 종목**은 종목별 예산/N 슬라이스로 독립 격리 | 전략 선택 `Strategy.mode="trend"`·`trend_signal` | ✅ 재현검증 4신호×3종목 정확일치·웹 3종목 +77.55%. ⚠1/5·인트라바는 휩쏘로 수익↓ |
-| **멀티 종목(동시 매수)** | 하나의 402 Guard 아래 N종목 독립 포지션. 조건형/적립형은 공유예산(1회=총 spend/N), **추세추종은 종목별 예산/N 슬라이스로 독립 올인·복리·완전 격리**(한 종목 손실이 남을 잠식 못함). 대시보드 종목 선택·포커스·종목별 요약, 백테스트 포트폴리오. 드라이 전용(라이브·목시세 멀티 거부), N=1 하위호환 | `web/engine.py`·`scripts/backtest.py --symbols` | ✅ test_multistock 37건·웹 3종목(추세 +77.55%·유출0) |
+| **멀티 종목(동시 매수)** | 하나의 402 Guard 아래 N종목 독립 포지션. 조건형/적립형은 공유예산(1회=총 spend/N), **추세추종은 종목별 예산/N 슬라이스로 독립 올인·복리·완전 격리**(한 종목 손실이 남을 잠식 못함). 대시보드 종목 선택·포커스·종목별 요약, 백테스트 포트폴리오. 드라이 전용(라이브·목시세 멀티 거부), N=1 하위호환 | `web/engine.py`·`scripts/backtest.py --symbols` | ✅ test_multistock 73건·웹 3종목(추세 +77.55%·유출0) |
 | **재생 속도·봉 간격** | 세션 시작 시 재생 속도 선택(0.15~8초/틱) + **봉 간격**(일봉 / 하루 N개 합성 인트라바 — 실 일봉 OHLC 경로, 마지막 종가=실 일봉 종가) | `web/engine.py`·`market/price_feed.IntradayReplayFeed` | ✅ test_intraday(481일 0불일치)·웹 e2e |
 | **백테스트 러너** | 규칙 vs Gemini(엄격/추세) vs 추세추종 비교 + **매수후보유 벤치마크**·시장노출 (`--strategy trend --trend-signal --suffix _bear`) · `--symbols` 멀티 포트폴리오 · `--sub-bars` 인트라바 | `scripts/backtest.py` | ✅ 3종목 실측 |
 | **데이터 수집** | Alpha Vantage 일봉(무료 25콜/일 보호) + 하락장 yfinance(`fetch_bear_data.py`) | `scripts/fetch_market_data.py` | ✅ |
@@ -136,7 +136,7 @@
 | **G2** ✅ | 결제 경로 결선 + `allowed_asset` 살리기 + release/settle 한도 원복 (커밋 9701d90) | authorize 앞 guard, 실패 시 예약 원복(H), partial 배송 처리(I) | 해결 (스모크 예약회계 일치) |
 | **G3** ✅ | `scripts/red_team.py --report` — 공격 매트릭스 + 오탐 0 (커밋 7e2f3b8) | **2026-07-28 실행값: 공격 7 · 구매자 서명 전 차단 5 · 판매자측 1 · 사후 탐지 1 · 서명 전 유출 0.00 · 정상 14건 오탐 0 · 가드 없을 때 551.96** (`rc=0`) | 해결 |
 | **G4** ✅ | Memo 바인딩(AT1) + `exact` 정합(`!=`) + 서명 dedup + expires_at (커밋 9523d19) | 대사 키·리플레이·초과지불 방어(D·E) | 해결 (localnet 풀사이클 PASS) |
-| **G5** ✅ | 브로커 HTTP 402 분리(매수 경로) — **완료 (커밋 70bed10, 2026-07-26)** | 결함 F(HTTP 402 가 코드에 0줄, 브로커가 같은 프로세스의 객체) | 해결 — `web/broker_service.py` · `payments/x402_http.py` · test_http402 53건 · 실 TCP 왕복 `artifacts/x402_http/`. **배포 URL 에서 402 재현 가능** — `curl -i -X POST <배포URL>/broker/orders -H 'Content-Type: application/json' -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'` (⚠ 본문을 빼면 422) |
+| **G5** ✅ | 브로커 HTTP 402 분리(매수 경로) — **완료 (커밋 70bed10, 2026-07-26)** | 결함 F(HTTP 402 가 코드에 0줄, 브로커가 같은 프로세스의 객체) | 해결 — `web/broker_service.py` · `payments/x402_http.py` · test_http402 61건 · 실 TCP 왕복 `artifacts/x402_http/`. **배포 URL 에서 402 재현 가능** — `curl -i -X POST <배포URL>/broker/orders -H 'Content-Type: application/json' -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'` (⚠ 본문을 빼면 422) |
 | G6 | pay.sh/유료 데이터 402 엔드포인트 | 심사 3축 가점(필수 아님 — 공식 기준상 병렬 예시) | 미착수 (여유 시) |
 | **—** ✅ | devnet 실증 + explorer 증빙 — **완료 (2026-07-24, 2026-07-31 공식 민트 재실증)** | 증빙이 전부 localhost 였음 | 해결 — 대표 증빙은 `artifacts/tx/20260731_1508_solana-devnet_live_buy.json`(**Circle 공식 민트** `4zMMC9sr…`, `mintAuthority` 가 우리 지갑 아님 · 체결 3건 전부 settled · 교차검증 PASS). 배포 URL 라이브 세션 증빙 별도 1건(`20260731_1603_*_onchain_verify.json`). **⚠ 옛 `20260724_1643_*` 은 결제 통화가 자체발행 테스트 민트라 인용 금지** |
 

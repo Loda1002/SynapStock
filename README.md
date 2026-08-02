@@ -263,7 +263,7 @@ curl -i -X POST http://127.0.0.1:8402/broker/orders \
 curl -s http://127.0.0.1:8402/.well-known/x402    # 디스커버리(미구현 항목까지 공개)
 
 python -m scripts.demo_http402                    # 전 과정 실왕복 + artifacts/x402_http/ 증빙
-python -m scripts.test_http402                    # 53건 검증
+python -m scripts.test_http402                    # 61건 검증
 ```
 
 엔진의 매수 레그를 이 HTTP 경로로 보내려면 `.env` 에 `BROKER_HTTP_URL=http://127.0.0.1:8402`
@@ -294,6 +294,10 @@ solana-test-validator                 # 별도 터미널 (localnet)
 python -m scripts.demo_delegation     # .env·시크릿·Gemini 키 불필요 — 임시 지갑·테스트 민트 자체 생성
 python -m scripts.test_delegation --localnet
 ```
+
+> ⚠ 검증기 없이 `--localnet` 을 빼고 돌리면 `41/41 통과 · 건너뜀 1종` 으로 끝난다 —
+> 온체인 왕복 8종(L-1~L-8)은 검증기가 떠 있을 때만 실행된다. 출력이 건너뛴 사실을 스스로
+> 밝히므로 통과로 오독할 여지는 없지만, 레일 검증을 실제로 보려면 위 세 줄을 순서대로 쓴다.
 
 핵심은 **거절 사유를 정직하게 갈라내는 것**이다. 체인은 *한도 초과*와 *잔액 부족*을 **같은
 에러 코드(`0x1`)** 로 거절한다. 구분하지 않으면 지갑이 빈 것을 "체인이 한도를 집행했다"고

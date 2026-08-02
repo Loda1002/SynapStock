@@ -477,7 +477,7 @@ python -c "from solders.keypair import Keypair; from solders.pubkey import Pubke
 | 테스트 | 사유 | 어느 커밋 뒤 |
 |---|---|---|
 | `test_settlement.py` | `verify_payment` 를 검증하는 유일한 곳 = C1 이 만드는 tx 모양의 수신측 | C1 |
-| `test_http402.py` | `build_transfer_transaction` → `encode_payload` → 원격 검증 왕복(53건) | C1 |
+| `test_http402.py` | `build_transfer_transaction` → `encode_payload` → 원격 검증 왕복(61건) | C1 |
 | `test_guard.py` | `GuardResult` 를 공유하게 되므로 | C2 |
 | `test_leak_kpi.py` | RPC 3함수를 스텁한다 — C5 의 스냅샷 시그니처 변경에 가장 먼저 걸린다 | C5 |
 | `test_dry_sell.py` · `test_multistock.py` · `test_trend.py` | `engine.start` 경로가 `snapshot_balances` 를 임포트한다(`engine.py:36`) | C5 |

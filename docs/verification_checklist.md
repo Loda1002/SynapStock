@@ -25,7 +25,7 @@
 ## HTTP 402 레그 검증 (G5, 2026-07-26 추가)
 
 ```bash
-python -m scripts.test_http402      # 53건 — 상태코드·헤더·왕복·리플레이·Guard·엔진 경로
+python -m scripts.test_http402      # 61건 — 상태코드·헤더·왕복·리플레이·Guard·엔진 경로
 python -m scripts.demo_http402      # 실제 TCP 왕복 + artifacts/x402_http/ 증빙
 ```
 

@@ -120,7 +120,7 @@ x402 exact 스킴은 판매자를 보호하지 구매자를 보호하지 않습�
 | `web/broker_service.py` | x402 자원 서버. `POST /broker/orders`(402 ↔ 200) · `GET /.well-known/x402`. 결제 로직은 기존 `BrokerAgent` 를 그대로 호출하고 이 파일은 **전송(상태코드·헤더)만** 담당한다 |
 | `payments/x402_http.py` | 와이어 포맷 + 클라이언트. 서버·클라이언트가 **같은 함수**로 바디를 만들고 읽어 포맷이 갈라질 수 없다 |
 | `web/engine.py` | `BROKER_HTTP_URL` 이 설정된 세션만 매수 레그를 HTTP 로 보낸다. 미설정(기본)이면 기존 인프로세스 경로 그대로 |
-| `scripts/test_http402.py` | 53건 — 402 상태코드·accepts[] 필드·X-PAYMENT 왕복·리플레이 차단·Guard 차단·엔진 경로·메인 앱 마운트 |
+| `scripts/test_http402.py` | 61건 — 402 상태코드·accepts[] 필드·X-PAYMENT 왕복·리플레이 차단·Guard 차단·엔진 경로·메인 앱 마운트 |
 | `scripts/demo_http402.py` | **실제 TCP 소켓**(uvicorn)에서 전 과정 실행 + 증빙 아카이빙(`artifacts/x402_http/`) |
 
 실행 두 가지 — **같은 코드, 같은 브로커 지갑(`secrets/broker.json`)**:
