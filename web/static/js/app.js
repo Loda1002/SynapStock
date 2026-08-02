@@ -1964,6 +1964,33 @@
     const s = await post("/api/trading/resume", { actor: "human" });
     if (s) renderState(s);
   });
+  /* 한도 칸의 증감 화살표 — 브라우저 기본 스피너를 대신하는 진짜 버튼이다.
+     기본 스피너를 쓸 수 없는 이유는 index.html·design.css 주석 참고(step="any" 라
+     stepUp() 이 InvalidStateError 로 죽는다 = 기본 화살표는 눌러도 값이 안 변했다).
+     그래서 stepUp()/stepDown() 을 쓰지 않고 값을 직접 계산한다.
+     ⚠ 한도를 실제로 바꾸는 것은 '한도 적용'(폼 submit) 이다 — 여기서는 칸의 값만
+       움직이고 서버를 부르지 않는다(화살표 한 번에 AP2 재서명이 나가면 안 된다). */
+  const NUM_STEP = 1;
+  document.querySelectorAll("[data-num-step]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = btn.closest(".num-field").querySelector("input");
+      if (!input) return;
+      const dir = Number(btn.dataset.numStep) || 0;
+      const cur = Number(input.value);
+      let next = (Number.isFinite(cur) ? cur : 0) + dir * NUM_STEP;
+      const min = input.min === "" ? -Infinity : Number(input.min);
+      if (Number.isFinite(min)) next = Math.max(min, next);
+      // 부동소수 잔재(99.99999…) 방지 — 이 칸은 USDC 금액이라 소수 둘째 자리면 충분하다.
+      input.value = String(Math.round(next * 100) / 100);
+      // ⚠ 반드시 칸으로 포커스를 옮긴다 — renderState(:678·:679)가 "칸이 포커스가 아니면
+      //   서버 값으로 되돌린다"라서, 포커스가 버튼에 남아 있으면 다음 상태 갱신(SSE 는
+      //   틱마다 온다)에 방금 올린 값이 지워진다. 세션 중에는 화살표가 죽은 것처럼 보인다.
+      input.focus();
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
+
   el.mandateForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const s = await post("/api/mandate", {

@@ -1968,14 +1968,16 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
   height: 44px; padding: 0 15px; max-width: none;
   font-family: var(--font-num); font-size: 18px; font-weight: 700;
 }
-/* 총예산·건별 최대 칸의 화살표 — 브라우저 기본 증감 스피너(위/아래 한 쌍)라 화면의 다른
-   화살표와 모양이 달랐다(마우스를 올릴 때만 나타난다).
-   ⚠ 이 자리만은 삼각형으로 '바꿀' 수 없다 — 실측: `::-webkit-inner-spin-button` 에
-     appearance:none 을 주면 모양은 지워지지만 **증감 기능도 함께 죽는다**(눌러도 값이 안
-     변한다). 스피너 내부의 위·아래 화살표를 따로 그릴 수 있는 CSS 훅도 없다. 그래서
-     '다른 모양의 화살표를 남기는' 대신 감춘다 — 시안(Frame 117_2)에도 스피너가 없고,
-     값은 직접 입력하거나 칸을 고른 뒤 키보드 ↑/↓ 로 그대로 조정할 수 있다.
-   ⚠ 되살리려면 아래 두 규칙을 지우면 된다(마크업·app.js 무관). */
+/* 총예산·건별 최대 칸의 증감 화살표 — 기본 스피너를 감추고 **같은 삼각형을 쓰는 버튼**을
+   직접 둔다(index.html .num-field). 기본 스피너를 못 쓰는 이유 둘, 둘 다 실측이다:
+     ① 이 칸들은 `step="any"`(USDC 소수 입력)이라 증감 알고리즘에 허용 단계가 없다 →
+        `stepUp()` 이 InvalidStateError 로 죽는다. 즉 기본 화살표는 눌러도 값이 안 변하는
+        장식이었다(`step="1"` 짜리 대조군은 100 → 101 로 정상 동작).
+     ② 스피너 내부에 노출된 훅은 `::-webkit-inner-spin-button` 하나뿐이라 위·아래 화살표를
+        따로 그릴 수 없고, 거기에 appearance:none 을 주면 모양과 함께 동작도 사라진다.
+   ⚠ 칸 높이 44 는 시안 값이고 카드 합계 338 을 이룬다 — 버튼은 칸 **안에** 겹쳐 두어
+     레이아웃에 높이를 한 픽셀도 더하지 않는다(position:absolute).
+   ⚠ 오른쪽 안쪽 여백을 32 로 넓힌다(기본 15) — 안 넓히면 긴 숫자가 화살표 밑으로 흐른다. */
 [data-card="mandate"] input[type="number"] {
   -moz-appearance: textfield; appearance: textfield;
 }
@@ -1983,6 +1985,24 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
 [data-card="mandate"] input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none; appearance: none; margin: 0;
 }
+[data-card="mandate"] .num-field { display: block; position: relative; }
+[data-card="mandate"] .num-field input { padding-right: 32px; }
+.num-steps {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 4px;
+}
+/* 버튼은 화살표(7.794×4.5)보다 넉넉한 12×11 로 잡는다 — 삼각형만큼만 두면 누르기 어렵다.
+   배경 그림은 화면의 다른 화살표와 **같은 --fx-select-caret** 이고, 위쪽만 뒤집는다. */
+.num-step {
+  width: 12px; height: 11px; padding: 0; margin: 0;
+  border: 0; background: transparent; cursor: pointer;
+  background-image: var(--fx-select-caret);
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  background-size: 7.794px 4.5px;
+}
+.num-step-up { transform: scaleY(-1); }
+.num-step:hover { opacity: .6; }
 /* 라벨은 <label class="field"> 안에서 글자 → 칸 순서로 쌓인다(지금은 한 줄에 흘렀다). */
 [data-card="mandate"] .field {
   display: flex; flex-direction: column; gap: 8px;

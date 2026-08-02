@@ -527,11 +527,33 @@
   <section class="card" data-card="mandate">
     <h2><span class="ci ci-mandate" aria-hidden="true"></span>한도 바꾸기 <span class="sub" title="AP2 mandate 를 새 한도로 다시 서명합니다">AP2 위임장을 다시 서명합니다</span></h2>
     <form data-mandate-form>
+      <!-- ⚠ 숫자 칸의 증감 화살표는 브라우저 기본 스피너가 아니라 **진짜 버튼 2개**다.
+           기본 스피너를 쓸 수 없는 이유: 이 칸들은 step="any" 라(USDC 소수 입력) 증감
+           알고리즘에 '허용 단계'가 없어 stepUp() 이 InvalidStateError 로 죽는다 —
+           즉 기본 화살표는 눌러도 값이 안 변하는 장식이었다. 게다가 스피너 내부는
+           ::-webkit-inner-spin-button 하나뿐이라 위·아래 화살표를 따로 그릴 수도 없다.
+           그래서 같은 삼각형을 쓰는 버튼을 직접 둔다(design.css .num-step).
+           ⚠ type="button" 필수 — 이 폼은 submit 에서 AP2 재서명을 하므로, 기본값
+             (type=submit)이면 화살표를 누를 때마다 한도가 재서명된다.
+           ⚠ app.js 는 [data-mandate-budget] 을 querySelector 로 찾으므로 이 겉포장은
+             무관하다(:96·:97·:678·:1970). -->
       <label class="field">총예산 (USDC)
-        <input data-mandate-budget type="number" min="0" step="any" required>
+        <span class="num-field">
+          <input data-mandate-budget type="number" min="0" step="any" required>
+          <span class="num-steps" aria-hidden="true">
+            <button type="button" class="num-step num-step-up" data-num-step="1" tabindex="-1"></button>
+            <button type="button" class="num-step num-step-down" data-num-step="-1" tabindex="-1"></button>
+          </span>
+        </span>
       </label>
       <label class="field">건별 최대 (USDC)
-        <input data-mandate-per-trade type="number" min="0" step="any" required>
+        <span class="num-field">
+          <input data-mandate-per-trade type="number" min="0" step="any" required>
+          <span class="num-steps" aria-hidden="true">
+            <button type="button" class="num-step num-step-up" data-num-step="1" tabindex="-1"></button>
+            <button type="button" class="num-step num-step-down" data-num-step="-1" tabindex="-1"></button>
+          </span>
+        </span>
       </label>
       <!-- 시안(Frame 137)은 `허용 종목: tAAPL` 과 `대기 상태 — …` 를 **한 줄에 나란히** 둔다
            (둘 다 y=2059.8). 위아래로 쌓아 두면 카드가 시안 338 보다 53px 커져서, 같은 줄의
