@@ -2021,7 +2021,18 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
 .mandate-note {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 12px; margin: 0 0 15px; min-height: 36px;
+  /* 좁은 폭에서는 두 문단을 위아래로 흘린다(사용자 지적 2026-08-03).
+     나란히 둔 채 폭이 모자라면 **양쪽이 동시에 2줄로 접혀** `허용 종목:` / `tAAPL` 처럼
+     어절이 갈라진다(실측: 카드 352 이하에서 좌·우 모두 2줄). 줄바꿈을 허용하면 각 문단이
+     제 줄을 통째로 써서 둘 다 1줄이 된다.
+     ⚠ `row-gap: 0` 이 핵심이다. 위의 `gap: 12` 가 줄 사이에도 걸리면 안내줄이 36 → 48 이
+       되어 카드가 시안 338 을 넘고, 그러면 같은 줄의 예산·브리핑 카드까지 함께 커진다.
+       0 으로 두면 18+18 = 36 이라 **높이가 한 픽셀도 안 바뀐다**(283/352/420/927 실측).
+     ⚠ `flex: 0 0 auto` 가 없으면 줄바꿈 대신 기존처럼 쪼그라들어 다시 2줄이 된다.
+     넓은 폭(420 이상)에서는 시안(Frame 137)대로 그대로 나란히 남는다. */
+  flex-wrap: wrap; row-gap: 0;
 }
+.mandate-note > .sub { flex: 0 0 auto; }
 .mandate-note > .sub { margin: 0; }
 .mandate-note > [data-mandate-hint] { text-align: right; min-height: 0; }
 
