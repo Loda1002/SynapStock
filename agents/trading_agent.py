@@ -610,9 +610,20 @@ class TradingAgent:
             # "몇 봉 전 매도"라고 말하면서 보유 수량은 그대로인 모순이 다시 생긴다.
             self._record_action("sell", price)
         if completed.status == "settled":
-            # 대금 환입은 실제로 받았을 때만. 추세추종(올인/올아웃)은 매도 대금 전액을
-            # 운용현금으로 환입해 복리 재투자한다. 조건형/적립형은 기존대로 예산까지만.
-            self.auth.credit_sale(total_usdc, allow_surplus=(self.strategy.mode == "trend"))
+            # 대금 환입은 실제로 받았을 때만. 매도가 있는 전략(추세추종·조건형)은 매도 대금
+            # 전액을 운용현금으로 환입해 실현이익을 재투자한다 — 그래야 화면의 총자산
+            # (= 가용 현금 + 주식 평가액)이 번 만큼 늘어난다. 예산까지만 환입하면 실현이익이
+            # 현금에 남지 않아, 포지션이 비는 순간 총자산이 늘 예산값으로 되돌아온다
+            # (사용자 지적 2026-08-03 — 조건형만 그렇게 보였다).
+            # ⚠ 402 Guard 의 '순투입 한도' 주장은 그대로다: authorize 가 amount ≤ remaining 을
+            #   보고 remaining 의 출발값이 예산이므로, 잉여는 오직 '판 돈'에서만 생긴다.
+            #   즉 사용자 지갑에서 새로 끌어오는 순금액은 여전히 예산을 넘지 못한다.
+            # ⚠ 적립형(dca)은 제외한다 — 매수만 하는 전략이라 이 경로가 없고, '순투입 한도'
+            #   정의를 그대로 두는 편이 문서와 어긋나지 않는다.
+            # ⚠ scripts/backtest.py 는 자기 호출부에서 is_trend 기준을 그대로 쓴다(:378).
+            #   문서에 인용된 백테스트 수치를 흔들지 않으려고 일부러 맞추지 않았다.
+            self.auth.credit_sale(
+                total_usdc, allow_surplus=(self.strategy.mode in ("trend", "condition")))
         # 영수증에도 partial 을 표시한다 — 예전에는 note 가 빈 문자열이라 아카이브에서
         # 정상 매도와 구분할 수 없었다(포지션은 차감됐는데 대금은 못 받은 건이다).
         if not completed.confirmed:

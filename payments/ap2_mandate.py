@@ -171,10 +171,14 @@ class PaymentAuthorizer:
 
         판 만큼 spent 가 줄어 다시 매수에 쓸 수 있다.
 
-        allow_surplus=False (기본, 조건형/적립형): spent 는 0 밑으로 내려가지 않는다
+        allow_surplus=False (기본, 적립형): spent 는 0 밑으로 내려가지 않는다
         (매수 원금보다 비싸게 팔아도 한도가 늘어나지 않음 — 순투입은 예산까지).
+        ⚠ 2026-08-03 부터 **조건형은 여기서 빠졌다**(→ allow_surplus=True). 실현이익이
+          현금에 남지 않아, 포지션이 비는 순간 화면의 총자산이 늘 예산값으로 되돌아왔다
+          (`agents/trading_agent.py` on_sale_completed 주석 참고). 적립형은 매수만 하는
+          전략이라 이 경로 자체가 없어 기존 정의를 그대로 둔다.
 
-        allow_surplus=True (추세추종 올인/올아웃): 매도 대금 전액을 환입해 spent 가
+        allow_surplus=True (매도가 있는 전략 — 추세추종 올인/올아웃 · 조건형): 매도 대금 전액을 환입해 spent 가
         음수까지 내려갈 수 있다(remaining = budget − spent > budget). 이는 '실현이익을
         운용현금으로 재투자'하는 복리를 표현한다. 사용자 예산(초기 자본)은 여전히 첫
         진입의 상한이고(remaining 초기값 = budget), 이후 매수는 '가진 현금(remaining)'을
