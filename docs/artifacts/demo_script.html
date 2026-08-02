@@ -651,7 +651,10 @@
       }
     });
 
-    var PREP_KEY = "guard402.demo.prep.v1";
+    // v2: 2026-08-02 밤 — p0(낭독 실측)·p10(배포 dry 세션 금지)을 신설했고 p3 의 의미가
+    // 뒤집혔다(ALLOW_LIVE_FROM_WEB 을 '켜라' → '0 으로 두라'). 옛 체크 상태가 남으면
+    // 뒤집힌 항목이 이미 처리된 것처럼 보이므로 키를 올린다.
+    var PREP_KEY = "guard402.demo.prep.v2";
     var preps = Array.prototype.slice.call(document.querySelectorAll('.prep-cell input[type="checkbox"]'));
     var saved = {};
     try { saved = JSON.parse(localStorage.getItem(PREP_KEY) || "{}") || {}; } catch (err) { saved = {}; }
