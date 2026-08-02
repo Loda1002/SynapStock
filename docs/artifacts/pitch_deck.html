@@ -337,12 +337,16 @@
     <h1>SynapStock</h1>
     <p class="sub">손을 떼려면, 누군가는 청구서를 읽어야 합니다</p>
     <!-- "승인 없는 결제" 는 제품명(승인 게이트)과 정면충돌해 읽힌다 — 랜딩과 같은 한정어를 쓴다 -->
-    <p class="claim">지출을 지키는 <b>402 Guard</b>는 AI 에이전트가 <b>서명하기 직전</b>, 이 청구서가 합의한 그 청구서인지 대조합니다. 그래서 사람이 화면을 지켜보지 않아도 됩니다. — <b>감시 없는 자율, 건건이 승인하지 않는 결제.</b></p>
+    <p class="claim"><b>402 Guard</b>는 AI 에이전트가 <b>서명하기 직전</b>, 이 청구서가 합의한 그 청구서인지 대조합니다. 그래서 사람이 화면을 지켜보지 않아도 됩니다. — <b>감시 없는 자율, 건건이 승인하지 않는 결제.</b></p>
     <div class="meta">
       <div><b>트랙</b>Track B · Autonomous On-chain Settlement</div>
       <div><b>레퍼런스 시나리오</b>토큰화 주식 자동매매</div>
       <div><b>네트워크</b>Solana devnet · localnet</div>
       <div><b>라이브 데모</b>synapstock-766888967498.asia-northeast3.run.app</div>
+      <!-- ⚠ 저장소 주소가 이 문서 어디에도 없었다(2026-08-02 점검에서 발견). 14장이
+           "직접 재현해 보십시오" 라며 `python -m scripts.red_team` 을 주는데 정작 그 코드를
+           어디서 받는지가 없었다 — PDF 는 제출 폼을 떠나 독립 문서로 돌아다닌다. -->
+      <div><b>저장소</b>github.com/Loda1002/SynapStock</div>
       <div><b>제출</b>2026-08</div>
     </div>
     <span class="slide-num mono">01 / 14</span>
@@ -719,7 +723,7 @@ GUARD_ASSET_MISMATCH — 차단(서명 전) @ guard.py:L356<span class="sum">서
       <div>
         <div class="box bad">
           <span class="tag">지금의 한계</span>
-          <h3>네 가지를 그대로 밝힙니다</h3>
+          <h3>다섯 가지를 그대로 밝힙니다</h3>
           <ul class="plain" style="margin-top:2mm">
             <li><b>수익률</b> 강한 상승장에서는 매수후보유를 이기지 못합니다(+4.90% 대 +30.19%). 저희는 알파를 팔지 않습니다.</li>
             <li><b>자산</b> devnet에는 토큰화 주식이 존재하지 않아 자체 발행 토큰으로 시연합니다.</li>
@@ -767,6 +771,7 @@ GUARD_ASSET_MISMATCH — 차단(서명 전) @ guard.py:L356<span class="sum">서
         <span class="tag">재현 절차</span>
         <h3>세 줄이면 확인됩니다</h3>
         <ul class="plain" style="margin-top:2mm">
+          <li><b>저장소</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">git clone https://github.com/Loda1002/SynapStock</span></li>
           <li><b>표준 402 응답</b><span class="mono" style="display:block; font-size:10.5px; line-height:1.5; margin-top:2px">curl -i -X POST \<br>https://synapstock-766888967498.asia-northeast3.run.app/broker/orders \<br>&nbsp;&nbsp;-H 'Content-Type: application/json' \<br>&nbsp;&nbsp;-d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200"}'</span></li>
           <li><b>공격·차단 매트릭스</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.red_team --report</span></li>
           <li><b>거부 4종 데모</b><span class="mono" style="display:block; font-size:12px; margin-top:2px">python -m scripts.demo_rejections</span></li>
