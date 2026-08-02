@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from collections import deque
 from decimal import Decimal
 from typing import List
 
@@ -21,6 +22,20 @@ from shared.models import Position
 # 의미가 없다 — 그 값을 믿고 재시도하면 하루 종일 헛호출한다. 30분마다 한 번만
 # 두드려 보고, 초기화된 뒤에는 스스로 회복하게 한다.
 _DAILY_QUOTA_COOLDOWN_SEC = 1800.0
+
+# 무료 티어 분당 한도(RPM). 429 를 한 번 맞으면 응답이 알려 주는 실측값으로 교체된다
+# (gemini-flash-lite-latest 실측 15). 그 전까지 쓰는 보수적 기본값.
+_RPM_LIMIT_DEFAULT = 15
+
+# 분당 예산 중 판단이 쓰지 않고 남겨 두는 몫 — **결제 의미 대조 자리**다.
+#
+# ⚠ 이 상수가 없으면 우선순위가 뒤집힌다. 판단은 매 틱(재생 속도가 빠르면 초당 수 회)
+#    호출되고 실패해도 규칙 폴백이 받아 주지만, 청구서 의미 대조는 결제 시도 때만 도는
+#    대신 실패하면 그 매수가 통째로 차단된다(GUARD_LLM_UNVERIFIED). 판단이 예산을 다
+#    태우고 429 로 쿨다운까지 걸어 버리면 정작 폴백이 없는 쪽이 굶어, 세션이 한 건도
+#    체결하지 못하고 총자산이 예산 그대로 멈춘다(2026-08-03 로컬 실측: 판단 80건 중
+#    Gemini 14 · 매수 판단 2건이 전부 검사 불가로 차단 · 체결 0건).
+_RPM_RESERVE = 3
 
 PROMPT = """너는 자율 주식매매 데모 시스템의 판단 모듈이다. 매수(buy)/매도(sell)/보류(hold)를
 판단한다. 이것은 테스트 토큰 데모이며 투자 조언이 아니다.
@@ -204,6 +219,9 @@ class GeminiDecider:
         self.quota_scope: str = ""
         self.quota_limit: str = ""     # 한도 값 (예: "500")
         self.quota_id: str = ""        # 예: GenerateRequestsPerDayPerProjectPerModel-FreeTier
+        # 분당 한도 자율 준수 — 최근 60초 안에 나간 호출 시각(판단·의미 대조 공통).
+        self.rpm_limit = _RPM_LIMIT_DEFAULT
+        self._call_times: deque[float] = deque()
 
     def _call(self, prompt: str) -> str:
         """Gemini 호출 → 응답 텍스트. 429 는 쿨다운을 걸고 '요약된' 예외로 바꿔 올린다.
@@ -213,6 +231,7 @@ class GeminiDecider:
         버려졌다**(분당 초과인지 일일 소진인지 화면에서 구분 불가). 여기서 한 줄로
         요약해 올리면 잘려도 사유가 남는다."""
         from google.genai import types
+        self._call_times.append(time.time())   # 분당 예산 계측 (판단·의미 대조 공통)
         try:
             resp = self.client.models.generate_content(
                 model=self.model,
@@ -249,10 +268,29 @@ class GeminiDecider:
             return
 
         self.quota_scope = "rate"
+        if self.quota_limit.isdigit():
+            # 응답이 실제 분당 한도를 알려 준다 — 기본값 대신 이 값으로 예산을 잡는다.
+            self.rpm_limit = max(1, int(self.quota_limit))
         m = (re.search(r"retry in (\d+(?:\.\d+)?)s", error_text)
              or re.search(r"retryDelay'?: '?(\d+(?:\.\d+)?)s", error_text))
         delay = float(m.group(1)) if m else 60.0
         self._cooldown_until = time.time() + max(delay, 30.0)
+
+    def recent_calls(self) -> int:
+        """최근 60초 동안 이 두뇌가 실제로 내보낸 API 호출 수 (지난 것은 버린다)."""
+        cutoff = time.time() - 60.0
+        while self._call_times and self._call_times[0] <= cutoff:
+            self._call_times.popleft()
+        return len(self._call_times)
+
+    @property
+    def decision_budget(self) -> int:
+        """판단이 1분 안에 쓸 수 있는 호출 수 — 의미 대조 몫(_RPM_RESERVE)을 뺀 값."""
+        return max(1, self.rpm_limit - _RPM_RESERVE)
+
+    def budget_message(self) -> str:
+        return (f"분당 예산 절약 — 최근 1분 {self.recent_calls()}/{self.rpm_limit}건 사용. "
+                f"결제 의미 대조 몫 {_RPM_RESERVE}건을 남기려 이번 판단은 규칙으로 대체합니다")
 
     @property
     def available(self) -> bool:
@@ -287,6 +325,11 @@ class GeminiDecider:
     ) -> Decision:
         if self._cooldown_until - time.time() > 0:
             raise RuntimeError(self.quota_message())
+        # 분당 예산 자율 준수 — 넘으면 호출하지 않고 규칙 폴백으로 보낸다.
+        # 429 를 맞고 폴백하는 것과 판단 결과는 같지만, 429 는 쿨다운(≥30초)을 걸어
+        # **결제 의미 대조까지 함께 마비**시킨다. 그 쿨다운을 만들지 않는 것이 요점이다.
+        if self.recent_calls() >= self.decision_budget:
+            raise RuntimeError(self.budget_message())
 
         ind = indicators or {}
         tp = ind.get("take_profit")

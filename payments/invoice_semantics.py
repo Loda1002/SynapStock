@@ -166,9 +166,23 @@ class InvoiceSemanticChecker:
 
     @property
     def available(self) -> bool:
+        """지금 대조를 시도할 수 있는가.
+
+        ⚠ 판단용 **분당 쿨다운은 상속하지 않는다.** 판단은 매 틱 도는 대량 호출이라
+        무료 티어 분당 한도를 금방 태우고 429 로 쿨다운을 거는데, 그 쿨다운을 여기서
+        그대로 물려받으면 정작 폴백이 없는 결제 검사가 굶는다 — 매수마다
+        GUARD_LLM_UNVERIFIED 로 막혀 세션이 한 건도 체결하지 못한다(우선순위 역전).
+        의미 대조는 결제 시도 때만 도는 소량 호출이라 분당 쿨다운 중에도 한 번
+        두드려 보는 편이 옳고, 실패하면 아래 try/except 가 '검사 불가'로 받는다.
+
+        일일 한도 소진은 그대로 존중한다 — 태평양 자정까지 안 풀려서 두드릴 값이 없다.
+        성격을 모르는 두뇌(테스트 대역 등)도 기존대로 available 을 그대로 따른다.
+        """
         if self.brain is None:
             return False
         try:
+            if getattr(self.brain, "quota_scope", "") == "rate":
+                return True
             return bool(getattr(self.brain, "available", True))
         except Exception:
             return False

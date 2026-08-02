@@ -20,8 +20,10 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+from collections import deque  # noqa: E402
+
 from agents.gemini_decider import (  # noqa: E402
-    GeminiDecider, _DAILY_QUOTA_COOLDOWN_SEC,
+    GeminiDecider, _DAILY_QUOTA_COOLDOWN_SEC, _RPM_LIMIT_DEFAULT, _RPM_RESERVE,
 )
 
 PASS, FAIL = "통과", "실패"
@@ -42,6 +44,8 @@ def _decider() -> GeminiDecider:
     d.quota_scope = ""
     d.quota_limit = ""
     d.quota_id = ""
+    d.rpm_limit = _RPM_LIMIT_DEFAULT
+    d._call_times = deque()
     return d
 
 
@@ -155,6 +159,50 @@ def test_recovery() -> None:
     check("쿨다운 경과 후 해제", d._cooldown_until - time.time() <= 0)
 
 
+def test_rpm_budget() -> None:
+    """분당 예산 자율 준수 — 판단이 예산을 다 태워 의미 대조를 굶기지 않는가.
+
+    2026-08-03 로컬 실측 결함: 재생 속도가 빠르면 판단이 매 틱 호출돼 분당 15건을
+    수 초 만에 소진하고 429 → 쿨다운(≥30초)을 건다. 그 쿨다운이 청구서 의미 대조까지
+    막아 매수가 전건 GUARD_LLM_UNVERIFIED 로 차단되고, 체결 0건이라 총자산이 예산
+    그대로 멈췄다. 판단은 폴백이 있고 의미 대조는 없으므로 예산을 판단이 다 쓰면 안 된다.
+    """
+    print("\n== 분당 예산 — 판단은 의미 대조 몫을 남긴다 ==")
+    d = _decider()
+    check("기본 판단 예산 = 분당 한도 - 예비",
+          d.decision_budget == _RPM_LIMIT_DEFAULT - _RPM_RESERVE, str(d.decision_budget))
+    check("예비 몫이 1건 이상이다 — 0 이면 의미 대조가 굶는다", _RPM_RESERVE >= 1,
+          str(_RPM_RESERVE))
+
+    now = time.time()
+    d._call_times = deque(now - 0.1 for _ in range(d.decision_budget))
+    check("예산을 채우면 판단이 더 호출하지 않는다",
+          d.recent_calls() >= d.decision_budget, f"{d.recent_calls()}건")
+    check("그래도 의미 대조 몫은 한도 안에 남아 있다",
+          d.recent_calls() + _RPM_RESERVE <= d.rpm_limit,
+          f"{d.recent_calls()}+{_RPM_RESERVE} <= {d.rpm_limit}")
+    check("예산 초과 안내에 사유가 남는다 — 규칙 폴백으로 읽힌다",
+          "규칙" in d.budget_message(), d.budget_message())
+
+    # 60초가 지난 호출은 창에서 빠져 예산이 회복된다.
+    d._call_times = deque([now - 61.0] * d.decision_budget)
+    check("60초 지난 호출은 창에서 빠진다(예산 회복)", d.recent_calls() == 0,
+          f"{d.recent_calls()}건")
+
+    # 429 가 실제 한도를 알려 주면 그 값으로 예산을 다시 잡는다.
+    d2 = _decider()
+    d2.rpm_limit = 999
+    d2._enter_cooldown(RATE_429)
+    check("분당 429 가 알려 준 실측 한도(15)로 예산을 재조정", d2.rpm_limit == 15,
+          str(d2.rpm_limit))
+
+    # 일일 소진은 분당 예산과 무관하다 — 한도 값 500 을 RPM 으로 오해하면 안 된다.
+    d3 = _decider()
+    d3._enter_cooldown(DAILY_429)
+    check("일일 429 는 분당 한도를 건드리지 않는다", d3.rpm_limit == _RPM_LIMIT_DEFAULT,
+          str(d3.rpm_limit))
+
+
 def main() -> int:
     print("Gemini 429 처리 검증 (네트워크·API 키 불필요)")
     test_daily()
@@ -162,6 +210,7 @@ def main() -> int:
     test_bare()
     test_truncation()
     test_recovery()
+    test_rpm_budget()
 
     failed = [r for r in _results if not r[1]]
     print(f"\n{'=' * 60}")

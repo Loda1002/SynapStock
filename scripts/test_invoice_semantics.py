@@ -213,6 +213,43 @@ def test_unverified_asymmetry() -> None:
     print("  · 근거: 못 사는 것은 기회비용이고 못 파는 것은 실손실 — 노출을 늘리는 방향만 잠근다")
 
 
+def test_rate_cooldown_not_inherited() -> None:
+    """판단의 '분당' 쿨다운을 의미 대조가 물려받으면 안 된다 (2026-08-03 실측 결함).
+
+    재생 속도가 빠르면 판단이 매 틱 호출돼 무료 티어 분당 한도를 수 초 만에 태우고
+    429 → 쿨다운(≥30초)을 건다. 예전에는 그 쿨다운이 그대로 여기로 전파돼, 매수마다
+    검사 자체를 시도조차 못 하고 GUARD_LLM_UNVERIFIED 로 차단됐다. 판단은 규칙 폴백이
+    받아 주지만 결제 검사는 폴백이 없으므로, 세션이 한 건도 체결하지 못하고 총자산이
+    예산 그대로 멈춘다. 분당 쿨다운은 짧고 여기 호출은 드물다 — 한 번 두드려 봐야 한다.
+    """
+    print("\n[3-1] 판단의 분당 쿨다운을 의미 대조가 상속하지 않는다")
+
+    rate = FakeBrain(MATCH, available=False)
+    rate.quota_scope = "rate"           # 분당(RPM) 초과로 판단이 쿨다운 중
+    g = guard_with(rate)
+    r = g.check_semantics(buy_required(), **sem_kw("buy"))
+    check("분당 쿨다운 중에도 실제로 대조를 시도한다", len(rate.calls) == 1,
+          f"호출 {len(rate.calls)}회")
+    check("★ 그래서 매수가 살아난다 — 예전에는 여기서 전건 차단됐다", r.ok, r.code)
+
+    daily = FakeBrain(MATCH, available=False)
+    daily.quota_scope = "daily"         # 일일 소진 — 자정까지 안 풀린다
+    gd = guard_with(daily)
+    rd = gd.check_semantics(buy_required(), **sem_kw("buy"))
+    check("일일 소진은 그대로 존중 — 헛호출하지 않는다", len(daily.calls) == 0,
+          f"호출 {len(daily.calls)}회")
+    check("일일 소진이면 매수는 종전대로 차단",
+          (not rd.ok) and rd.code == GUARD_LLM_UNVERIFIED, rd.code)
+
+    # 분당 쿨다운을 뚫고 호출했는데 그마저 실패하면 종전 정책(매수 차단)으로 돌아간다.
+    boom = FakeBrain([RuntimeError("429 RESOURCE_EXHAUSTED")])
+    boom.quota_scope = "rate"
+    gb = guard_with(boom)
+    rb = gb.check_semantics(buy_required(), **sem_kw("buy"))
+    check("두드려 보고도 실패하면 매수 차단 — 통과 권한은 여전히 없다",
+          (not rb.ok) and rb.code == GUARD_LLM_UNVERIFIED, rb.code)
+
+
 def test_system_keeps_running() -> None:
     print("\n[4] 검사기가 죽어도 시스템은 계속 돈다 (축④ — 결제를 완료하는가)")
     brain = FakeBrain([RuntimeError("429 RESOURCE_EXHAUSTED")])
@@ -394,6 +431,7 @@ def main() -> int:
     test_catches_different_product()
     test_layer_order()
     test_unverified_asymmetry()
+    test_rate_cooldown_not_inherited()
     test_system_keeps_running()
     test_broken_responses()
     test_cache_budget()
