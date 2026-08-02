@@ -397,7 +397,9 @@
   -H 'Content-Type: application/json' \
   -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'</code>
                 <b>⚠ 본문 3필드는 필수입니다</b> — 빼고 치면 402 가 아니라 <b>422</b> 가 나옵니다(<code>broker_service.py:76-83</code> 의 <code>OrderBody</code> 가 필수 필드를 요구하고 <code>extra=forbid</code> 라 402 분기에 닿기도 전에 거부된다). 2026-08-02 배포 URL 실측으로 확인했습니다.<br>
-                <b>⚠ 반드시 Git Bash 에서 치십시오</b> — 위 명령은 bash 문법(<code>\</code> 줄잇기 · 홑따옴표)이라 <b>PowerShell 에 그대로 붙이면 JSON 이 깨져 역시 422</b> 가 납니다. <b>화면이 바로 위 422 와 똑같아 원인을 오진하기 쉽습니다.</b> PowerShell 로 찍어야 하면 <code>\</code> 를 빼고 한 줄로 칩니다. 첫 줄은 Git Bash 가 <code>HTTP/2 402</code>, PowerShell 이 <code>HTTP/1.1 402 Payment Required</code> 로 <b>둘 다 정상</b>입니다(HTTP/2 는 reason phrase 를 싣지 않으므로 <code>HTTP/2 402 Payment Required</code> 라는 문자열은 어느 셸에서도 나오지 않습니다 — 결함이 아닙니다). 2026-08-02 심야 실측.</li>
+                <b>⚠ 셸 문법을 맞추십시오</b> — 위 명령은 <b>bash 문법</b>(<code>\</code> 줄잇기 · 홑따옴표)이라 <b>PowerShell 에 그대로 붙이면 JSON 이 깨져 역시 422</b> 가 납니다. <b>화면이 바로 위 422 와 똑같아 원인을 오진하기 쉽습니다.</b> <b>PowerShell 정본은 아래 한 줄</b>입니다(<code>\</code> 없이, <code>curl.exe</code> 로):<br>
+                <code style="display:block; margin-top:4px; white-space:pre-wrap; line-height:1.5">curl.exe -i -X POST "https://synapstock-766888967498.asia-northeast3.run.app/broker/orders" -H "Content-Type: application/json" -d '{"symbol":"tAAPL","spend_usdc":"10","price_usdc":"200","mode":"dry"}'</code>
+                <b>★ 촬영은 PowerShell 쪽이 낫습니다</b> — 첫 줄이 <code>HTTP/1.1 402 Payment Required</code> 로 <b>"Payment Required" 가 글자로 읽힙니다.</b> Git Bash 는 <code>HTTP/2 402</code> 만 나옵니다(HTTP/2 는 reason phrase 를 싣지 않습니다). <b>둘 다 정상이고</b>, 대본이 적던 <code>HTTP/2 402 Payment Required</code> 라는 문자열은 <b>어느 셸에서도 나오지 않습니다 — 결함이 아닙니다.</b> 2026-08-02 심야 양쪽 실측.</li>
                 <li><b>②컷 14초</b> — <code>python -m scripts.demo_delegation</code> 의 <b>④와 ⑤ 두 줄</b>. 위쪽 <code>custom program error 0x1</code> 이 <b>두 컷에서 같고</b>, 판정만 <code>GUARD_ONCHAIN_BUDGET</code> / <code>GUARD_ONCHAIN_FUNDS</code> 로 갈립니다.</li>
               </ul>
               <div class="proof"><b>자막 고정</b> <b>"레일 검증 · 제품 배선은 로드맵"</b>.<br>
