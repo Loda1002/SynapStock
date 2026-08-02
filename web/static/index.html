@@ -342,7 +342,10 @@
   </section>
 
   <section class="card card-wide hidden" data-card="symbols">
-    <h2>종목별 요약 <span class="sub" title="여러 종목을 골라도 예산과 402 Guard 는 하나입니다 — 포지션만 종목별로 독립입니다">하나의 예산 아래 독립 포지션</span></h2>
+    <!-- ⚠ 아이콘 span 이 없으면 design.css 의 `.grid > .card > h2::before` 가 그린 26px
+         연보라 사각형이 **빈 칸으로** 남는다(글리프는 .ci 가 얹는다). 이 카드만 span 이
+         빠져 있어 다른 카드에는 다 있는 아이콘이 여기서만 비어 보였다. -->
+    <h2><span class="ci ci-symbols" aria-hidden="true"></span>종목별 요약 <span class="sub" title="여러 종목을 골라도 예산과 402 Guard 는 하나입니다 — 포지션만 종목별로 독립입니다">하나의 예산 아래 독립 포지션</span></h2>
     <div class="table-wrap">
       <table>
         <thead>

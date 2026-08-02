@@ -1103,14 +1103,28 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
 .ci-mandate  { --ci: var(--ci-sliders); }   /* 하는 일은 값 조절 — 서명 글리프는 ci-ai 와 겹친다 */
 .ci-briefing { --ci: var(--ci-doc); }
 .ci-today    { --ci: var(--ci-calendar); }  /* 이 카드가 세는 단위가 '하루' */
+.ci-symbols  { --ci: var(--ci-box); }       /* 종목별로 '들고 있는 것' — 포지션 칩과 같은 상자 */
 
-/* 오늘의 결과 타일 4개 — 배경 틴트는 이미 색이 나뉘어 있으므로 글리프는 같은 계열 진한 색. */
+/* 오늘의 결과 타일 4개.
+   ⚠ 2026-08-02(2차): **글리프 색도 총자산 칸 하나(--accent)로 통일했다**(사용자 지시).
+   앞 라운드에서 배경을 연보라 하나로 이미 통일했는데, 글리프만 민트·하늘·살구로 남아
+   "배경은 같은데 글자만 제각각"이 되어 있었다. 그 색은 값의 뜻을 나르지 않았고,
+   같은 모양(.ci)을 쓰는 카드 제목 아이콘은 전부 보라 하나다.
+   구분은 색이 아니라 **글리프 모양**이 계속 진다 — 코인·위 화살표·점선 화살표·상자.
+   ⚠ 클래스 이름(-mint/-blue/-amber)은 바꾸지 않는다. index.html 이 쓰는 이름이라
+     바꾸면 마크업까지 함께 고쳐야 하고, 이름은 이제 색이 아니라 '몇 번째 칸'을 가리킨다.
+   ⚠ 손익 두 칸이 **음수일 때 빨강이 되는 규칙은 그대로 둔다**(바로 아래 :has 규칙).
+     그건 통일 대상인 장식색이 아니라 경고다. */
 .fx-chip { display: inline-flex; align-items: center; justify-content: center; }
 .fx-chip::before { width: 17px; height: 17px; }
-.fx-chip-violet { color: var(--accent);            --ci: var(--ci-coins); }      /* 총자산 = 쌓인 것 */
-.fx-chip-mint   { color: var(--ok);                --ci: var(--ci-arrow-up); }   /* 실현 = 확정된 방향 */
-.fx-chip-blue   { color: var(--fx-dca-fg);         --ci: var(--ci-arrow-dash); } /* 평가 = 아직 확정 아님 */
-.fx-chip-amber  { color: var(--fx-fallback-fg);    --ci: var(--ci-box); }        /* 포지션 = 들고 있는 것 */
+.fx-chip-violet,
+.fx-chip-mint,
+.fx-chip-blue,
+.fx-chip-amber  { color: var(--accent); }
+.fx-chip-violet { --ci: var(--ci-coins); }      /* 총자산 = 쌓인 것 */
+.fx-chip-mint   { --ci: var(--ci-arrow-up); }   /* 실현 = 확정된 방향 */
+.fx-chip-blue   { --ci: var(--ci-arrow-dash); } /* 평가 = 아직 확정 아님 */
+.fx-chip-amber  { --ci: var(--ci-box); }        /* 포지션 = 들고 있는 것 */
 
 /* 손익 두 칸은 부호를 따라 화살표가 뒤집힌다.
    app.js 가 값 span 에 pos/neg 를 찍어 주므로(`el.pnl.className`·`el.unrealized.className`)
@@ -1959,6 +1973,82 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
 
 /* 설명 줄 — 시안 12 회색 · 줄높이 20 */
 [data-card="session"] .rules { font-size: 12px; line-height: 20px; color: var(--muted); }
+
+
+/* =====================================================================
+   종목별 요약 · 살 종목 고르기 — 시안에 없는 두 자리를 카드 언어에 맞춘다
+   (사용자 지시 2026-08-02: "약간 이질감이 든다")
+
+   둘 다 시안(Desktop-6/8)에 없는 요소라 이식 때 손이 안 갔고, 그래서 이 화면에서
+   혼자만 브라우저 기본값으로 남아 있었다. 실측 차이:
+     · 종목별 요약 표 : 12px / 좌측 정렬 / padding 6·8 / th 600 · td 600
+       ↔ 거래 내역 표 : 14px / 가운데  / padding 14·8 / th 12px 400 · td 400
+       같은 화면에 표가 둘뿐이라 둘이 다르면 그대로 눈에 띈다.
+     · 제목 앞 26px 칸이 빈 연보라 사각형이었다 — `.ci` span 이 없는 유일한 카드라
+       다른 카드에는 다 있는 글리프만 빠져 보였다(span 은 index.html 에서 넣었다).
+     · 살 종목 : OS 기본 체크박스 13×13 + 맨 글자. 카드 안이 전부 둥근 칸·둥근 버튼·
+       둥근 아이콘인데 여기만 각진 시스템 위젯이었다.
+   ===================================================================== */
+
+/* ---- 종목별 요약 표 = 거래 내역 표와 같은 규칙 ---- */
+[data-card="symbols"] table { font-size: 14px; }
+[data-card="symbols"] th,
+[data-card="symbols"] td {
+  padding: 14px 8px; text-align: center; font-weight: 400;
+  border-bottom: 1px solid var(--fx-line);
+  color: var(--fx-body);
+}
+[data-card="symbols"] th { font-size: 12px; }
+/* ⚠ 위 td 규칙은 (0,1,1) 이라 skeleton 의 `.pos`·`.neg`(0,1,0)와 `tr.focus-row`(0,1,1)를
+   덮는다 — 그대로 두면 평가손익 부호 색과 '지금 보고 있는 종목' 표시가 함께 죽는다.
+   둘 다 명시로 되살린다.
+   ⚠ focus-row 에는 **색을 주지 않는다**(굵기만). `… tr.focus-row td` 는 (0,2,2) 라
+     `… td.pos`(0,2,1) 를 순서와 무관하게 이긴다 — 색을 주면 지금 보고 있는 종목의
+     평가손익만 초록·빨강을 잃고 검정이 된다(실측으로 그렇게 났다. 순서를 바꿔도 안 풀린다).
+     굵기만으로도 어느 행인지 충분히 읽힌다. */
+[data-card="symbols"] tr.focus-row td { font-weight: 700; }
+[data-card="symbols"] td.pos { color: var(--ok); }
+[data-card="symbols"] td.neg { color: var(--danger); }
+/* 마지막 행 아래 경계선은 지운다. 거래 내역은 카드를 꽉 채워 스크롤해서 그 선이 잘려
+   안 보이는데, 이 표는 종목 수만큼(2~3행)만 그려지고 아래에 여백이 남아 선이 떠 보인다. */
+[data-card="symbols"] tbody tr:last-child td { border-bottom: 0; }
+/* 종목명은 포커스를 옮기는 버튼이다(app.js 가 `.linklike` 로 만든다). 밑줄 친 링크는
+   이 화면에 이것 하나뿐이라 표 안에서 유독 튄다 → 보라 글자로 두고 밑줄은 호버에서만. */
+[data-card="symbols"] .linklike { text-decoration: none; font-weight: 700; }
+[data-card="symbols"] .linklike:hover { text-decoration: underline; }
+
+/* ---- 살 종목 = 카드 안 다른 칸과 같은 언어(둥근 칸 · 연보라 선택 틴트) ---- */
+:root {
+  /* 흰 체크. input 은 대체 요소라 ::before 를 못 붙여서 배경 이미지로 그린다. */
+  --fx-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2.4 6.3 2.6 2.6 4.6-5.2'/%3E%3C/svg%3E");
+}
+/* ⚠ 높이 28 은 눈대중이 아니라 카드 높이에서 역산한 값이다. 이 줄이 30 이면 세션 카드
+   내용이 **381** 이 되어 시안 min-height 379 를 넘고, 그리드가 늘어나 같은 줄의
+   오늘의 결과·예산·브리핑 카드까지 함께 2px 커진다(실측). 28 이면 정확히 379 에 든다. */
+[data-card="session"] .sym-opt {
+  height: 28px; padding: 0 12px; gap: 6px; border-radius: 14px;
+  background: var(--bg); color: var(--fx-body);
+  font-size: 12px; line-height: 20px; cursor: pointer; user-select: none;
+}
+[data-card="session"] .sym-opt:has(:checked) {
+  background: var(--fx-gemini-bg); color: var(--fx-gemini-fg); font-weight: 700;
+}
+/* 라이브·목 시세에서는 app.js 가 체크박스를 disabled 로 잠근다(서버가 단일 종목을 강제).
+   잠긴 티가 안 나면 "눌러도 아무 일이 없다"로 읽힌다. */
+[data-card="session"] .sym-opt:has(:disabled) { opacity: .45; cursor: not-allowed; }
+/* appearance:none 이어도 키보드 포커스는 그대로 받는다(:focus-visible 로 테두리를 준다). */
+[data-card="session"] .sym-opt input {
+  appearance: none; -webkit-appearance: none;
+  flex: none; width: 13px; height: 13px; margin: 0; border-radius: 4px;
+  background: var(--card-bg); box-shadow: inset 0 0 0 1px var(--fx-line);
+}
+[data-card="session"] .sym-opt input:checked {
+  box-shadow: none;
+  background: var(--accent) var(--fx-check) center / 9px 9px no-repeat;
+}
+[data-card="session"] .sym-opt input:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
 
 
 /* =====================================================================
