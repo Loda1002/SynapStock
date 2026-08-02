@@ -399,10 +399,19 @@ body.page-dashboard .fx-tab[aria-disabled="true"] { opacity: .5; cursor: default
   font-size: var(--fs-small); font-weight: 700; color: #5b617a; white-space: nowrap;
 }
 .fx-chip { width: 30px; height: 30px; border-radius: 8px; flex: none; }
-.fx-chip-violet { background: #edebff; }
-.fx-chip-mint   { background: #dff9f1; }
-.fx-chip-blue   { background: #e6f1ff; }
-.fx-chip-amber  { background: #fff2da; }
+/* ⚠ 2026-08-02: 네 칸의 배경을 **총자산 칸의 연보라 하나로 통일했다**(사용자 지시).
+   예전에는 칸마다 민트·하늘·살구로 달랐는데, 그 색이 값의 뜻을 나르지 않으면서
+   다른 카드 제목의 아이콘 칸(`.ci`, 전부 연보라)과도 어긋나 있었다. 구분은 배경이
+   아니라 **글리프와 글리프 색**이 계속 진다(코인·위 화살표·점선 화살표·상자).
+   ⚠ 하드코딩 #edebff 대신 토큰을 쓴다 — 라이트 값이 정확히 #edebff 라 라이트 화면은
+     한 픽셀도 안 바뀌고, 다크에서만 #2e2a55 가 되어 카드 제목 아이콘과 같아진다
+     (하드코딩으로 두면 다크에서 이 네 칸만 밝은 연보라로 남는다).
+   ⚠ 손익·평가손익이 **음수일 때 빨간 칸으로 바뀌는 규칙은 그대로 둔다**(아래 :has 규칙,
+     특정도가 높아 이 줄을 이긴다). 그건 색 구분이 아니라 경고다. */
+.fx-chip-violet,
+.fx-chip-mint,
+.fx-chip-blue,
+.fx-chip-amber { background: var(--fx-gemini-bg); }
 /* 숫자는 자르지 않는다 — 시안 값(100.00)보다 자릿수가 긴 실제 값이 들어오면
    타일 폭(약 158px)을 넘는데, 잘라 버리면 금액을 못 읽는다. 단위가 다음 줄로 내려간다. */
 /* Desktop-6 실측: Pretendard Bold · 32px · 글상자 높이 38 (`100.00 USDC` 146×38).

@@ -1988,7 +1988,7 @@
      (HTML5 드래그 앤 드롭 — 데스크톱 전용, 터치는 기본 배치 사용) */
   /* ⚠ DEFAULT_LAYOUT 을 바꾸면 이 키도 반드시 올린다. 안 올리면 이미 방문한 적 있는
      브라우저(= 촬영용 브라우저 포함)가 localStorage 에 저장된 옛 배치를 계속 쓴다. */
-  const LAYOUT_KEY = "autotrader_layout_v13";  // v13: 세션 설정 카드를 개발자 서랍에서 그리드 첫 줄 오른쪽으로 되돌림(시안 배치) — 기존 저장 배치 리셋
+  const LAYOUT_KEY = "autotrader_layout_v14";  // v14: '종목별 요약'을 거래 내역 뒤로 — 시세 옆자리를 거래 내역이 지키게 (v13: 세션 설정 카드를 그리드 첫 줄 오른쪽으로)
   // 가드 KPI 는 더 이상 카드가 아니다(상단 알림창 .guard-panel 로 이동). 나머지 흐름은 시안대로
   // (컨트롤) → 오늘의 결과 → AI 판단 근거 → 시세 → 거래 내역 → 한도/브리핑. 세션·멀티종목
   // 컨트롤은 시안에 없지만 데모에 필수라 맨 앞에 둔다(symbols 는 멀티일 때만 표시).
@@ -2007,10 +2007,15 @@
   // 4개로 합쳐져 화면에서 빠지지만(skeleton.css) 배열에는 남긴다 — 훅이 살아 있는 카드라
   // 배치 계산에서 빠지면 applyLayout 이 매번 맨 뒤로 밀어 넣는다.
   // v13: session 이 today 바로 뒤에 온다 — 시안 첫 줄이 today(span 8) + session(span 4) 이다.
+  // v14: symbols 가 price 와 trades **사이**에 있었다. 그 카드는 span 12 라, 멀티 종목
+  // 세션에서 화면에 나타나는 순간 12칸을 요구해 새 행으로 내려가고 **거래 내역까지 한 줄 더
+  // 밀려난다**(시세 옆이 비고 거래 내역이 두 줄 아래로). 시안은 시세와 거래 내역이 한 줄에
+  // 나란한 배치이므로, 그 둘을 붙여 두고 종목별 요약을 다음 줄로 보낸다.
+  // (단일 종목에서는 symbols 가 hidden 이라 예전에도 증상이 안 보였다 — 멀티에서만 드러난다.)
   const DEFAULT_LAYOUT = ["today", "session", "pnl", "valuation", "position", "ai",
                           "decisions", "log",
-                          "price", "symbols",
-                          "trades", "budget", "mandate", "briefing"];
+                          "price", "trades",
+                          "symbols", "budget", "mandate", "briefing"];
 
   const cardEls = () => Array.from(el.grid.querySelectorAll("[data-card]"));
 
