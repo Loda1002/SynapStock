@@ -167,6 +167,15 @@
 
   /* ---------- generic blocks ---------- */
   .cols { display: grid; gap: 8mm; height: 100%; }
+  /* 내용이 슬라이드 높이를 다 못 채우는 장(02·03·13)용. 행을 위쪽에 몰아 두면 아래
+     3~4할이 통째로 비어 "내용이 모자라 잘린 화면"으로 읽힌다 — 세로 가운데로 모아
+     여백이 위아래로 나뉘게 하면 같은 분량이 '의도한 여백'으로 읽힌다.
+     ⚠ 내용이 꽉 차는 장에 걸어도 아무 변화가 없다(행 높이 == 컨테이너 높이). */
+  .cols.v-center { align-content: center; }
+  /* 카드가 래퍼 <div> 안에 들어 있는 장에서 두 카드 높이를 맞춘다 — 래퍼는 그리드가
+     늘려 주지만 그 안의 .box 는 제 내용만큼만 커져서 짧은 쪽만 붕 뜬다. */
+  .cols.eq-cards > div { display: flex; }
+  .cols.eq-cards > div > .box { flex: 1 1 auto; }
   .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -362,7 +371,7 @@
     <span class="eyebrow">문제</span>
     <h2 class="headline">AI에게 지갑을 맡기면 알아서 사고팝니다.<br>그런데 AI는 가짜 영수증을 의심할 줄 모릅니다.</h2>
     <p class="deck-lead">사람이 결제하던 시절에는 청구서가 이상하면 사람이 눈치챘습니다. 에이전트가 대신 결제하면 그 마지막 확인이 사라집니다. 그리고 지금 표준 스택에는 그 자리를 메우는 주체가 없습니다.</p>
-    <div class="body cols cols-3">
+    <div class="body cols cols-3 v-center">
       <div class="box">
         <span class="tag">x402</span>
         <h3>키는 지키지만, 내용은 안 본다</h3>
@@ -388,7 +397,7 @@
     <span class="eyebrow">위협 시나리오</span>
     <h2 class="headline">한도는 지켜졌습니다. 그리고 전액을 잃습니다.</h2>
     <p class="deck-lead">악성 판매 에이전트는 한도를 넘지 않습니다. 넘을 이유가 없습니다. 금액을 한도 바로 아래로 맞추고 수취인 주소만 바꾸면 됩니다.</p>
-    <div class="body cols cols-2" style="align-items:start">
+    <div class="body cols cols-2 v-center" style="align-items:start">
       <div>
         <div class="invoice">
           <div class="row"><span class="k">건별 한도</span><span>45.00 USDC</span></div>
@@ -725,7 +734,7 @@ GUARD_ASSET_MISMATCH — 차단(서명 전) @ guard.py:L356<span class="sum">서
   <div class="frame"><section class="slide">
     <span class="eyebrow">한계와 로드맵</span>
     <h2 class="headline">숨기지 않고 적습니다</h2>
-    <div class="body cols cols-2">
+    <div class="body cols cols-2 v-center eq-cards">
       <div>
         <div class="box bad">
           <span class="tag">지금의 한계</span>
