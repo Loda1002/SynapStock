@@ -355,8 +355,12 @@
     font-size: 11.5px; font-weight: 700; line-height: 34px;
     text-decoration: none; white-space: nowrap; transition: background .2s, color .2s;
   }
-  .dv-links a:hover { background: var(--dv-accent-bg); color: var(--dv-accent); }
-  .dv-links .todo { opacity: .55; cursor: default; }   /* 아직 주소가 없는 자리 */
+  /* <button> 은 글꼴·테두리를 브라우저가 자기 값으로 덮으므로 되돌린다.
+     시안에는 링크와 버튼이 똑같이 생겼으므로 모양은 위 규칙 하나로 공유한다. */
+  .dv-links > button { font-family: inherit; border: 0; cursor: pointer; }
+  .dv-links a:hover, .dv-links button:hover { background: var(--dv-accent-bg); color: var(--dv-accent); }
+  /* 복사 직후 1.4초. 글자만 바뀌고 폭은 그대로다(min-width 107.333 안에 둘 다 들어간다). */
+  .dv-links button.is-copied { background: var(--dv-accent-bg); color: var(--dv-accent); }
 
   /* ══ 좁은 화면 ══ 시안은 데스크톱만 있다. 값을 새로 짓지 않고 여백만 줄인다. */
   @media (max-width: 1100px) {
@@ -563,12 +567,9 @@
 
       <div class="dv-foot">
         <hr>
-        <!-- TODO(사용자): 링크 주소. 지금은 모양만이다 —
-             <span class="todo"> 를 <a href="..."> 로 바꾸기만 하면 된다.
-             개수가 몇 개든 줄이 가운데로 모인다. -->
         <div class="dv-links">
-          <span class="todo">e-mail</span>
-          <span class="todo">Instagram</span>
+          <button type="button" class="dv-copy" data-copy="unaep0501@gmail.com">e-mail</button>
+          <a href="https://www.instagram.com/l33crrlo/" target="_blank" rel="noopener">Instagram</a>
         </div>
       </div>
     </article>
@@ -614,15 +615,78 @@
 
       <div class="dv-foot">
         <hr>
-        <!-- TODO(사용자): 링크 주소. 지금은 모양만이다. -->
         <div class="dv-links">
-          <span class="todo">e-mail</span>
+          <button type="button" class="dv-copy" data-copy="Yung041120@gmail.com">e-mail</button>
         </div>
       </div>
     </article>
 
   </div>
 </main>
+
+<script>
+/* 이메일 버튼 — 누르면 주소가 클립보드로 간다.
+   ⚠ navigator.clipboard 는 https 나 localhost 에서만 동작한다. 배포본은 https 라
+     정상 경로를 타지만, 그렇지 않은 환경에서도 조용히 실패하지 않도록 옛 방식
+     (숨긴 textarea + execCommand)으로 한 번 더 시도하고, 그것도 막히면 주소를
+     버튼에 띄워 눈으로 읽고 직접 복사할 수 있게 한다.
+   ⚠ 이 스크립트가 통째로 실패해도 화면은 그대로다 — 버튼이 반응만 안 한다.
+     주소는 title 에도 넣어 두므로 마우스를 올리면 언제나 보인다. */
+(function () {
+  "use strict";
+
+  /* 옛 방식 — 숨긴 textarea 를 선택해 복사한다. https 가 아니어도 동작한다. */
+  function legacyCopy(text) {
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:-9999px;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      ta.remove();
+      ok ? resolve() : reject(new Error("copy blocked"));
+    });
+  }
+
+  /* ⚠ 최신 방식이 실패해도 옛 방식을 **반드시 한 번 더** 시도한다.
+     navigator.clipboard.writeText 는 https 여도 거절될 수 있다 — 창이 포커스를 잃었거나
+     사용자 제스처가 없으면 NotAllowedError 다(실측으로 걸렸다). 처음엔 최신 방식이
+     있으면 옛 방식을 아예 건너뛰게 짜 놨는데, 그러면 그 상황에서 복사가 통째로 죽는다. */
+  function copy(text) {
+    var first = (navigator.clipboard && window.isSecureContext)
+      ? navigator.clipboard.writeText(text)
+      : Promise.reject(new Error("no clipboard api"));
+    return first.catch(function () { return legacyCopy(text); });
+  }
+
+  document.querySelectorAll("[data-copy]").forEach(function (btn) {
+    var address = btn.dataset.copy;
+    var label = btn.textContent;
+    var timer = null;
+    btn.title = address + " — 누르면 복사됩니다";
+    btn.setAttribute("aria-label", address + " 주소 복사");
+
+    btn.addEventListener("click", function () {
+      function flash(text, copied) {
+        btn.textContent = text;
+        btn.classList.toggle("is-copied", copied);
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          btn.textContent = label;
+          btn.classList.remove("is-copied");
+        }, 1400);
+      }
+      copy(address).then(
+        function () { flash("복사됨", true); },
+        function () { flash(address, false); }   // 막힌 환경 — 눈으로 읽게 한다
+      );
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
