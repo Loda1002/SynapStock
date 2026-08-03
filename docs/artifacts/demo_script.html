@@ -599,7 +599,8 @@
           <div class="prep-cell">
             <h3>화면</h3>
             <ul>
-              <li><input type="checkbox" id="p11"><label for="p11">★ <b>2창으로 나누고 OBS 는 창 B 만 캡처한다</b>(C·F 처럼 서랍을 써야 하는 컷). <code>?lab=1</code> 이면 화면 오른쪽에 <code>🛠 개발자</code> 버튼이 <b>78×32 실측 크기로 그대로 찍힙니다</b> — 개발용 조작부가 제품 영상에 남습니다.<br>
+              <li><input type="checkbox" id="p11"><label for="p11">★ <b>2창으로 나누고 OBS 는 창 B 만 캡처한다</b>(C·F 처럼 서랍을 써야 하는 컷). <code>?lab=1</code> 이면 <b>화면 <ins>좌측 하단</ins></b>에 <code>🛠 개발자</code> 버튼이 <b>78×32 로 그대로 찍힙니다</b> — 개발용 조작부가 제품 영상에 남습니다(2026-08-03 실측: <code>.dev-dock</code> 이 <code>left 24 · top 664</code>. <b>오른쪽이 아닙니다</b> — 옛 메모의 '오른쪽 손잡이' 는 낡은 표기입니다).<br>
+              ⚠ <b>반대로 <code>?lab=0</code> 창에는 그 요소가 아예 없습니다</b>(실측: <code>.dev-dock</code> 부재 · 고정 요소는 우측 하단 <code>긴급정지·메뉴</code> 플로팅 버튼 하나뿐이고 그건 제품 조작부라 찍혀도 됩니다).<br>
               <b>창 A(조작)</b> <code>http://localhost:8060/app?lab=1</code> — 서랍에서 실행 모드·재생 속도를 고르고 <b>여기서 세션을 시작</b>합니다<br>
               <b>창 B(녹화)</b> <code>http://127.0.0.1:8060/app?lab=0</code> — <kbd>F11</kbd> 전체화면. <b>OBS 는 '창 캡처'로 이 창만</b> 잡습니다(화면 전체 캡처는 창 A 가 새어 들어옵니다)<br>
               ⚠ <b>두 창의 호스트 이름을 반드시 다르게 씁니다</b>(<code>localhost</code> ↔ <code>127.0.0.1</code>). 개발자 모드는 <code>localStorage</code> 에 저장되는데 그건 <b>origin 단위</b>라, 같은 호스트로 두 창을 열면 <code>?lab=0</code> 이 그 키를 지워 <b>창 A 가 새로고침 순간 서랍을 잃습니다</b>(반대로 창 B 가 새로고침에서 개발자 버튼을 얻기도 합니다). 호스트를 나누면 두 창이 서로를 밟지 않습니다 — 실측으로 동시에 <code>lab=1</code> / <code>lab=null</code> 확인<br>
