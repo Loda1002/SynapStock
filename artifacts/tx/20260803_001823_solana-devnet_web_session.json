@@ -1,0 +1,308 @@
+{
+  "generated_at": "2026-08-03T00:18:23",
+  "source": "web-dashboard",
+  "network": "solana-devnet",
+  "rpc_url": "https://api.devnet.solana.com",
+  "wallets": {
+    "user": "E48dx73aaS6WE1WeQ4JB1Bn6hogfXeN5Ka3PkiyjxP5g",
+    "trading": "GQJo2qcr6nUVjFaHUGsb6ZS5XnQndUCDHTqGgZN5gQX6",
+    "broker": "32UBfBeTXcxwJ67Q6K1uFW5faQbS84r1DvFkrpyFKMSm"
+  },
+  "mints": {
+    "usdc": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    "stock": "37HxYLozTuzRDi1bqkqY1gKghzxbZHG8cWH1pwvAfJRG",
+    "stock_symbol": "tAAPL"
+  },
+  "strategy": {
+    "type": "trend",
+    "symbols": [
+      "tAAPL"
+    ],
+    "multi": false,
+    "spend_per_symbol_usdc": "0.60",
+    "dca_amount_per_symbol_usdc": "10",
+    "decision_mode": "strict",
+    "trend_signal": "pxma20",
+    "trend_signal_label": "가격>MA20",
+    "all_in": true,
+    "ta_mode": false,
+    "max_hold_bars": 0,
+    "dca_unit": "ticks",
+    "dca_every_ticks": 5,
+    "dca_every_minutes": 60,
+    "dca_at_time": "09:00",
+    "dca_amount_usdc": "10",
+    "schedule_label": "5틱마다"
+  },
+  "brain": "추세추종 규칙 (가격>MA20 신호 · 올인/올아웃 · Gemini 미사용)",
+  "ai": {
+    "brain": "추세추종 규칙 (가격>MA20 신호 · 올인/올아웃 · Gemini 미사용)",
+    "decisions_total": 14,
+    "by_source": {
+      "rule": 14
+    },
+    "by_action": {
+      "hold": 13,
+      "buy": 1
+    },
+    "gemini_calls": 0,
+    "gemini_decisions": 0,
+    "gemini_gated": 0,
+    "rule_fallbacks": 0,
+    "gemini_share_pct": "0.00",
+    "trades_by_decision_source": {
+      "rule": 1
+    },
+    "invoice_semantics": {
+      "enabled": false,
+      "checked": 0,
+      "llm_calls": 0,
+      "cache_hits": 0,
+      "passed": 0,
+      "blocked": 0,
+      "unverified_blocked": 0,
+      "unverified_skipped": 0
+    }
+  },
+  "feed": {
+    "type": "replay",
+    "dataset": "daily",
+    "label": "AAPL 일봉 재생 2026-03-27~2026-07-22 (80봉)",
+    "file": "data\\market\\AAPL_daily.csv",
+    "source": "Alpha Vantage 일봉 (fetch_market_data.py)",
+    "sub_bars": 1,
+    "bars_total": 80,
+    "warmup_bars": 20
+  },
+  "mandate": {
+    "user_pubkey": "E48dx73aaS6WE1WeQ4JB1Bn6hogfXeN5Ka3PkiyjxP5g",
+    "budget_total_usdc": "2",
+    "per_trade_max_usdc": "10000",
+    "signature": "4SvFiBcvMfEggwr8TLh7ZbEkCGRaPDdLDm8b5hbn1qsHbE85nshsgbBtH62JYBMbxSXgsJpuSLvXXJTeb9hAo7nz"
+  },
+  "mandate_history": [],
+  "broker_fee": {
+    "fee_bps": 30,
+    "total_fees_usdc": "0.01"
+  },
+  "guard": {
+    "attempts": 1,
+    "blocked": 0,
+    "blocked_buy": 0,
+    "blocked_sell": 0,
+    "blocked_unverified": 0,
+    "ap2_rejected": 0,
+    "leak_usdc": "0"
+  },
+  "balances_before": {
+    "trading": {
+      "sol": 14.4853038,
+      "usdc": "20.81",
+      "stock": "0.0711"
+    },
+    "broker": {
+      "sol": 5.48180292,
+      "usdc": "39.19",
+      "stock": "99.9289"
+    },
+    "user": {
+      "sol": 0.0,
+      "usdc": "0",
+      "stock": "0"
+    }
+  },
+  "balances_after": {
+    "trading": {
+      "sol": 14.4852988,
+      "usdc": "18.81",
+      "stock": "0.0789"
+    },
+    "broker": {
+      "sol": 5.48179792,
+      "usdc": "41.19",
+      "stock": "99.9211"
+    },
+    "user": {
+      "sol": 0.0,
+      "usdc": "0",
+      "stock": "0"
+    }
+  },
+  "trades": [
+    {
+      "ts": "2026-08-03T00:17:50",
+      "order_id": "ord_2508eda276",
+      "side": "buy",
+      "decision_source": "rule",
+      "decision_reason": "상승세 진입(전량 매수) — 가격≥MA20 · 가격 255.63 vs MA20 253.63",
+      "symbol": "tAAPL",
+      "quantity": "0.0078",
+      "price_usdc": "255.63",
+      "subtotal_usdc": "1.99",
+      "fee_usdc": "0.01",
+      "fee_bps": 30,
+      "total_usdc": "2.00",
+      "status": "settled",
+      "confirmed": true,
+      "payment_tx": "4cDxJBb8F34p5D7YCV1ztre4UqtGDHhSofvarfHA8q2Ffe3Zeyc4a8ynXCFdK677mZvWG3xkSedbnfpGnM7d67Sy",
+      "delivery_tx": "WnThaqpUp6P46RgaxAw9rmh9bxGWddXtbKWsYUQAm5wRXRQMUbftb7h4N1fsKT4WumxzgyoYyuhbhcXz8w8R19C",
+      "explorer_payment": "https://explorer.solana.com/tx/4cDxJBb8F34p5D7YCV1ztre4UqtGDHhSofvarfHA8q2Ffe3Zeyc4a8ynXCFdK677mZvWG3xkSedbnfpGnM7d67Sy?cluster=devnet",
+      "explorer_delivery": "https://explorer.solana.com/tx/WnThaqpUp6P46RgaxAw9rmh9bxGWddXtbKWsYUQAm5wRXRQMUbftb7h4N1fsKT4WumxzgyoYyuhbhcXz8w8R19C?cluster=devnet",
+      "realized_pnl_usdc": ""
+    }
+  ],
+  "decisions": [
+    {
+      "ts": "2026-08-03T00:17:39",
+      "tick": 1,
+      "symbol": "tAAPL",
+      "price": "248.80",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 248.80 vs MA20 255.38 · 하락세 관망(현금 보유)",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:17:42",
+      "tick": 2,
+      "symbol": "tAAPL",
+      "price": "246.63",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 246.63 vs MA20 254.47 · 하락세 관망(현금 보유)",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:17:45",
+      "tick": 3,
+      "symbol": "tAAPL",
+      "price": "253.79",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 253.79 vs MA20 253.97 · 하락세 관망(현금 보유)",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:17:48",
+      "tick": 4,
+      "symbol": "tAAPL",
+      "price": "255.63",
+      "action": "buy",
+      "source": "rule",
+      "reason": "상승세 진입(전량 매수) — 가격≥MA20 · 가격 255.63 vs MA20 253.63",
+      "spend_usdc": "2"
+    },
+    {
+      "ts": "2026-08-03T00:17:53",
+      "tick": 5,
+      "symbol": "tAAPL",
+      "price": "255.92",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 255.92 vs MA20 253.41 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:17:56",
+      "tick": 6,
+      "symbol": "tAAPL",
+      "price": "258.86",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 258.86 vs MA20 253.48 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:00",
+      "tick": 7,
+      "symbol": "tAAPL",
+      "price": "253.50",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 253.50 vs MA20 253.16 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:03",
+      "tick": 8,
+      "symbol": "tAAPL",
+      "price": "258.90",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 258.90 vs MA20 253.06 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:06",
+      "tick": 9,
+      "symbol": "tAAPL",
+      "price": "260.49",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 260.49 vs MA20 253.05 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:09",
+      "tick": 10,
+      "symbol": "tAAPL",
+      "price": "260.48",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 260.48 vs MA20 253.28 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:12",
+      "tick": 11,
+      "symbol": "tAAPL",
+      "price": "259.20",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 259.20 vs MA20 253.74 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:15",
+      "tick": 12,
+      "symbol": "tAAPL",
+      "price": "258.83",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 258.83 vs MA20 254.04 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:18",
+      "tick": 13,
+      "symbol": "tAAPL",
+      "price": "266.43",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 266.43 vs MA20 254.65 · 상승세 보유 중",
+      "spend_usdc": "0"
+    },
+    {
+      "ts": "2026-08-03T00:18:21",
+      "tick": 14,
+      "symbol": "tAAPL",
+      "price": "263.40",
+      "action": "hold",
+      "source": "rule",
+      "reason": "추세 유지 — 가격 263.40 vs MA20 255.32 · 상승세 보유 중",
+      "spend_usdc": "0"
+    }
+  ],
+  "cross_check": {
+    "usdc_net_out_onchain": "2.00",
+    "usdc_net_out_expected": "2.00",
+    "usdc_ok": true,
+    "stock_net_in_onchain": "0.0078",
+    "stock_net_in_expected": "0.0078",
+    "stock_ok": true,
+    "usdc_wallets": [
+      "trading",
+      "user"
+    ]
+  }
+}
