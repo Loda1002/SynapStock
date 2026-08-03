@@ -128,3 +128,9 @@ docs/reports/agentfabric_benchmark.md
 docs/reports/judging_2*.md
 docs/reports/bug_2*.md
 docs/reports/data_2*.md
+
+# 데모 영상 원본/편집본 — 저장소에 넣지 않는다(수십 MB). 제출은 유튜브 링크로 한다.
+*.mp4
+*.mov
+*.webm
+*.mkv
