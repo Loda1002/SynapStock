@@ -291,6 +291,11 @@
 
   .footnote { margin-top: 5mm; font-size: 11px; color: var(--ink-3); line-height: 1.6; }
   .footnote b { color: var(--ink-2); }
+  /* 인쇄된 PDF 에서도 클릭이 살아 있도록 진짜 <a> 를 쓴다. 다만 88자 base58 서명을
+     본문에 그대로 박으면 각주가 길어지므로, 링크는 축약해 보이고 전체 서명은
+     아래 .sig 줄에 따로 둔다 — 링크가 죽은 환경(종이 인쇄)에서도 손으로 확인할 수 있다. */
+  .footnote a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .footnote .sig { margin-top: 1.5mm; font-size: 10px; color: var(--ink-2); word-break: break-all; }
 
   /* ---------- print ---------- */
   @page { size: A4 landscape; margin: 0; }
@@ -580,7 +585,8 @@
         </div>
       </div>
 
-      <div class="footnote"><b>재현 명령</b> &nbsp;<span class="mono">curl -i -X POST &lt;url&gt;/broker/orders</span> → 402 <span style="font-size:10px">(본문 3필드 필수 — 전체 명령은 14장)</span> &nbsp;·&nbsp; <span class="mono">python -m scripts.red_team --report</span> &nbsp;·&nbsp; 온체인 확인 <span class="mono">explorer.solana.com/tx/&lt;sig&gt;?cluster=devnet</span></div>
+      <div class="footnote"><b>재현 명령</b> &nbsp;<span class="mono">curl -i -X POST &lt;url&gt;/broker/orders</span> → 402 <span style="font-size:10px">(본문 3필드 필수 — 전체 명령은 14장)</span> &nbsp;·&nbsp; <span class="mono">python -m scripts.red_team --report</span> &nbsp;·&nbsp; 온체인 확인 <a class="mono" href="https://explorer.solana.com/tx/3XeVWKF9XvyDrCvh7hsodNEay6McAqjCZ5Ypp7X4tT73AFXgKWB2tpnbaZaxC1tfZzw2FcCiasQ6Njt8RZbKL6E3?cluster=devnet">explorer.solana.com/tx/3XeVWKF9…?cluster=devnet</a>
+        <div class="sig mono">3XeVWKF9XvyDrCvh7hsodNEay6McAqjCZ5Ypp7X4tT73AFXgKWB2tpnbaZaxC1tfZzw2FcCiasQ6Njt8RZbKL6E3 <span style="color:var(--ink-3)">— 위 라이브 세션의 매수 ① 레그(<b>err = null</b>) · Memo 에 x402 주문번호 결박</span></div></div>
     </div>
     <span class="slide-brand mono">SYNAPSTOCK · 402 GUARD</span>
     <span class="slide-num mono">08 / 14</span>
