@@ -87,35 +87,78 @@
     background: var(--dv-sky);
   }
 
-  /* ══ 배경 ══ [시안] 그림은 1440×1920 이고 **아래가 화면 바닥에 붙는다**
-     (SVG 는 y=-739 에 두어 1181 프레임의 바닥과 맞췄다 = 아래쪽 1181px 만 보인다).
-     그래서 세로는 늘리지 않고 bottom 에 고정한다 — 위쪽이 잘리는 것이 의도다. */
+  /* ══ 배경 + 바닥 장식 ══
+     [시안] 그림은 폭 1440 · 높이 1920 이고 **아래가 문서 바닥에 붙는다**(SVG 는 y=-739 에
+     두어 1181 프레임의 바닥과 맞췄다 = 아래쪽 1181px 만 보인다). 위쪽이 잘리는 것이 의도다.
+
+     ⚠⚠ 인물은 **배경과 같은 비율로** 커져야 한다. 배경이 `폭 100%` 로 늘어나면 그림 속
+     땅바닥 선도 폭에 비례해 내려가는데, 인물을 223px 처럼 고정 크기로 두면 화면 비율이
+     바뀔 때마다 인물이 땅에서 뜨거나 파묻힌다(16:9 에서 실제로 어긋났다).
+     그래서 인물의 좌표·크기를 전부 **배경 폭(--bgw)에 대한 시안 비율**로 적는다:
+       왼쪽  = 가운데 − 그림폭/2 + 그림폭 × (시안x / 1440)
+       아래  = 그림폭 × ((1181 − 시안y − 높이) / 1440)
+       폭    = 그림폭 × (시안폭 / 1440)
+     이러면 어떤 폭에서도 발밑이 같은 자리에 붙는다.
+
+     ⚠ --bgw 를 `.dv-bg` 자신에 두면 안 된다 — 컨테이너 자신은 자기 cqw 를 못 읽는다.
+       그래서 배경 그림도 컨테이너가 아니라 자식(.dv-scene)이 그린다. */
   .dv-bg {
     position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
-    background: var(--dv-sky) url("/static/img/dev/scene-bg.webp") center bottom / 100% auto no-repeat;
+    background: var(--dv-sky);
+    container-type: inline-size;
   }
-  /* 흰색 60% — 시안의 "Rectangle 1". ::after 라 .dv-bg 의 실제 자식(소녀)보다 뒤에
-     그려진다 = 배경과 소녀가 **함께** 덮인다(시안이 그렇다. 실측으로 확인했다:
-     소녀 머리카락이 원본은 거의 검정인데 시안 PNG 에서는 #9C9B9B 다). */
+  .dv-scene {
+    --bgw: 100cqw;
+    position: absolute; inset: 0;
+    background: url("/static/img/dev/scene-bg.webp") center bottom / var(--bgw) auto no-repeat;
+  }
+  /* 흰색 60% — 시안의 "Rectangle 1". ::after 라 .dv-scene 보다 뒤에 그려진다 =
+     배경과 인물이 **함께** 덮인다(시안이 그렇다. 실측으로 확인했다: 소녀 머리카락이
+     원본은 거의 검정인데 시안 렌더에서는 #9C9B9B 다). */
   .dv-bg::after { content: ""; position: absolute; inset: 0; background: var(--dv-wash); }
 
-  /* ══ 바닥 장식 ══ [시안] 소녀 223×223 @ (978,947) · 말풍선 103.894×91 @ (1038,893).
-     가로 기준은 본문 칸(1200)의 오른쪽 끝에서 119px 안쪽이다:
-       본문 오른끝 = 50% + 600px  →  화면 오른쪽에서 (50% − 600px), 여기에 119 를 더한다.
-     좁은 화면에서 음수가 되지 않게 max() 로 바닥을 깐다. */
-  .dv-scene {
-    position: absolute; bottom: 11px; right: max(8px, calc(50% - 481px));
-    width: 223px; height: 223px;
-  }
-  .dv-scene > img { width: 100%; height: 100%; display: block; }
-  .dv-bubble { position: absolute; left: 60px; top: -54px; width: 104px; height: 91px; }
+  .dv-ch, .dv-bubble { position: absolute; }
+  .dv-ch { display: block; }
   .dv-bubble > img { width: 100%; height: 100%; display: block; }
-  /* [시안] Noto 12 / 줄간 14 / 첫 베이스라인 915.8 → 말풍선 위에서 12px.
-     줄바꿈은 <br> 로 박는다 — 폭에 맡기면 글꼴이 폴백될 때 5줄이 되어 말풍선을 넘친다. */
-  .dv-bubble p {
-    position: absolute; left: 0; right: 0; top: 12px; margin: 0;
-    text-align: center; font-size: 12px; line-height: 14px; color: #000;
+
+  /* [시안] 서 있는 사람 125×167 @ (323,959) */
+  .dv-ch-standing {
+    left: calc(50% - var(--bgw) / 2 + var(--bgw) * 0.2243056);
+    width: calc(var(--bgw) * 0.0868056); aspect-ratio: 125 / 167;
+    bottom: calc(var(--bgw) * 0.0381944);
   }
+  /* [시안] 엎드린 사람 217×217 @ (432,950) — 바닥선이 소녀와 같다(둘 다 아래 14) */
+  .dv-ch-lying {
+    left: calc(50% - var(--bgw) / 2 + var(--bgw) * 0.3);
+    width: calc(var(--bgw) * 0.1506944); aspect-ratio: 1;
+    bottom: calc(var(--bgw) * 0.0097222);
+  }
+  /* [시안] 노트북 쓰는 사람 223×223 @ (978,944) */
+  .dv-ch-girl {
+    left: calc(50% - var(--bgw) / 2 + var(--bgw) * 0.6791667);
+    width: calc(var(--bgw) * 0.1548611); aspect-ratio: 1;
+    bottom: calc(var(--bgw) * 0.0097222);
+  }
+  /* [시안] 말풍선 — 왼쪽 113×61 @ (333,900) · 오른쪽 103.894×91 @ (1038,890) */
+  .dv-bubble-left {
+    left: calc(50% - var(--bgw) / 2 + var(--bgw) * 0.23125);
+    width: calc(var(--bgw) * 0.0784722); aspect-ratio: 113 / 61;
+    bottom: calc(var(--bgw) * 0.1527778);
+  }
+  .dv-bubble-right {
+    left: calc(50% - var(--bgw) / 2 + var(--bgw) * 0.7208333);
+    width: calc(var(--bgw) * 0.0721486); aspect-ratio: 103.894 / 91;
+    bottom: calc(var(--bgw) * 0.1388889);
+  }
+  /* [시안] Noto 12 / 줄간 14. 글자도 배경과 같은 비율로 커진다.
+     ⚠ 줄바꿈은 <br> 로 박는다 — 폭에 맡기면 글꼴이 폴백될 때 한 줄 더 생겨 말풍선을 넘친다. */
+  .dv-bubble p {
+    position: absolute; left: 0; right: 0; margin: 0; text-align: center; color: #000;
+    font-size: calc(var(--bgw) * 0.0083333);
+    line-height: calc(var(--bgw) * 0.0097222);
+  }
+  .dv-bubble-left  p { top: calc(var(--bgw) * 0.0118056); }   /* 말풍선 위에서 17 */
+  .dv-bubble-right p { top: calc(var(--bgw) * 0.0083333); }   /* 말풍선 위에서 12 */
 
   /* ══ 본문 칸 ══ 상단 바는 1280(랜딩과 동일), 본문은 1200 이다([시안] 카드가 x=120 에서
      시작하고 바는 x=80 에서 시작한다 = 본문이 40px 더 안쪽). */
@@ -125,7 +168,10 @@
      본문이 1185 가 되어 카드 줄(384×3 + 24×2 = 1200)이 **한 장 아래로 접힌다**(실측).
      그래서 '1200 을 최대한 지키는' 형태로 바꿨다 — 1248 = 1200 + 좌우 24.
      레이아웃 폭이 정확히 1440 일 때 좌우 여백이 96+24 = 120 으로 시안과 같아진다. */
-  .dv-page { position: relative; z-index: 1; max-width: 1248px; margin: 0 auto; padding: 0 24px 360px; }
+  /* 아래 여백은 인물이 들어설 자리다. 인물이 화면 폭에 비례해 커지므로(위 --bgw 설명)
+     이 여백도 같이 커져야 넓은 화면에서 인물이 카드를 밟지 않는다.
+     시안 폭 1440 에서 360 = 25vw 이고, 좁은 화면은 240 에서 멈춘다. */
+  .dv-page { position: relative; z-index: 1; max-width: 1248px; margin: 0 auto; padding: 0 24px max(240px, 25vw); }
 
   /* ══ 상단 바 ══ landing.html 에서 그대로 옮겼다(값·클래스 이름 동일).
      ⚠ 3칸 그리드여야 탭이 정중앙에 선다 — 브랜드 폭이 다른 페이지와 자리가 어긋나지 않게. */
@@ -310,8 +356,6 @@
   /* ══ 좁은 화면 ══ 시안은 데스크톱만 있다. 값을 새로 짓지 않고 여백만 줄인다. */
   @media (max-width: 1100px) {
     .dv-nav  { padding: 16px 24px 0; }
-    .dv-page { padding-bottom: 300px; }
-    .dv-scene { transform: scale(.85); transform-origin: right bottom; }
   }
   @media (max-width: 900px) {
     .navbar-inner { display: flex; justify-content: space-between; gap: 12px; }
@@ -323,9 +367,8 @@
     .nav-cta a { width: 100%; }
     .dv-badge { margin-top: 32px; }
     .dv-title { font-size: 28px; line-height: 36px; }
-    .dv-page { padding: 0 16px 240px; }
+    .dv-page { padding-inline: 16px; }
     .dv-cards { margin-top: 32px; }
-    .dv-scene { transform: scale(.7); transform-origin: right bottom; }
   }
 
   /* ══════════════════════════════════════════════════════════════════
@@ -373,11 +416,18 @@
 <!-- ═══ 배경 ═══ 문서 전체 높이를 덮는다. 내용(z-index:1)보다 아래에 깔린다.
      소녀·말풍선은 흰 덮개(::after)보다 **먼저** 그려져야 하므로 이 안의 자식이다. -->
 <div class="dv-bg" aria-hidden="true">
+  <!-- 그리는 순서는 시안 레이어 순서 그대로다(엎드린 사람이 서 있는 사람 위에 온다). -->
   <div class="dv-scene">
-    <img src="/static/img/dev/scene-girl.webp" alt="" width="223" height="223" loading="lazy" decoding="async">
-    <div class="dv-bubble">
-      <img src="/static/img/dev/scene-bubble.webp" alt="" width="104" height="91" loading="lazy" decoding="async">
+    <img class="dv-ch dv-ch-girl" src="/static/img/dev/scene-girl.webp" alt="" width="223" height="223" decoding="async">
+    <div class="dv-bubble dv-bubble-right">
+      <img src="/static/img/dev/scene-bubble.webp" alt="" width="104" height="91" decoding="async">
       <p>재헌아 디자<br>인을 일주일<br>만에 어케 하<br>니ㅜㅜ</p>
+    </div>
+    <img class="dv-ch dv-ch-standing" src="/static/img/dev/scene-standing.webp" alt="" width="125" height="167" decoding="async">
+    <img class="dv-ch dv-ch-lying" src="/static/img/dev/scene-lying.webp" alt="" width="217" height="217" decoding="async">
+    <div class="dv-bubble dv-bubble-left">
+      <img src="/static/img/dev/scene-bubble-left.webp" alt="" width="113" height="61" decoding="async">
+      <p>다 울었니? 이제<br>할 일을 하자.</p>
     </div>
   </div>
 </div>
@@ -419,13 +469,11 @@
 
   <div class="dv-cards">
 
-    <!-- ── 1 · 보라 ─────────────────────────────────────────────
-         ⚠ 아바타 그림이 없다 — 시안에도 이 칸만 빈 사각형이다(다른 둘은 그림이 박혀 있다).
-           그림이 생기면 아래 .dv-avatar-frame 안에 <img> 를 넣으면 된다. -->
+    <!-- ── 1 · 보라 ───────────────────────────────────────────── -->
     <article class="dv-card is-purple">
       <div class="dv-head">
         <div class="dv-avatar">
-          <div class="dv-avatar-frame"></div>
+          <div class="dv-avatar-frame"><img src="/static/img/dev/avatar-jaeheon.webp" alt="이재헌" width="78" height="78"></div>
           <span class="dv-avatar-no">1</span>
         </div>
         <div class="dv-who">
@@ -435,17 +483,17 @@
         </div>
       </div>
 
-      <p class="dv-quote">“내가 잠을 안 자면 모든 게 해결돼”</p>
+      <p class="dv-quote">“내가 밤을 새면 모든게 해결돼”</p>
 
       <div class="dv-notes">
-        <p>밤샘의 아이콘</p>
-        <p>버그 터지는 것보다 스케줄 터지는 걸 더 무서워합니다</p>
+        <p>짝짝. 프런트~, 디자이너~</p>
+        <p>버그 터지는 것보다 스케줄 터지는 걸 더 무서워 합니다</p>
       </div>
 
       <section class="dv-sec">
         <h2><img src="/static/img/dev/icon-stats.webp" alt="" width="16" height="16">능력치</h2>
         <div class="dv-stats">
-          <span class="k">멘탈</span>   <span class="bar"><i style="width:3%"></i></span>   <span class="v">3</span>
+          <span class="k">잠</span>     <span class="bar"><i style="width:3%"></i></span>   <span class="v">3</span>
           <span class="k">추진력</span> <span class="bar"><i style="width:100%"></i></span> <span class="v">100</span>
           <span class="k">책임감</span> <span class="bar"><i style="width:100%"></i></span> <span class="v">100</span>
         </div>
@@ -453,11 +501,10 @@
 
       <section class="dv-sec">
         <h2><img src="/static/img/dev/icon-items.webp" alt="" width="16" height="16">아이템</h2>
-        <!-- TODO(사용자): 아이템 문구 — 개수는 자유다(자동 줄바꿈). -->
         <div class="dv-chips">
-          <span>3샷커피</span>
-          <span>3샷커피</span>
-          <span>3샷커피</span>
+          <span>클로드</span>
+          <span>보조배터리</span>
+          <span>디스크</span>
         </div>
       </section>
 
@@ -503,22 +550,20 @@
 
       <section class="dv-sec">
         <h2><img src="/static/img/dev/icon-items.webp" alt="" width="16" height="16">아이템</h2>
-        <!-- TODO(사용자): 아이템 문구 -->
         <div class="dv-chips">
-          <span>3샷커피</span>
-          <span>3샷커피</span>
-          <span>3샷커피</span>
+          <span>몬스터</span>
+          <span>베개</span>
         </div>
       </section>
 
       <div class="dv-foot">
         <hr>
-        <!-- TODO(사용자): 링크 주소. 개수가 몇 개든 가운데로 모인다 —
-             <span class="todo"> 를 <a href="..."> 로 바꾸기만 하면 된다. -->
+        <!-- TODO(사용자): 링크 주소. 지금은 모양만이다 —
+             <span class="todo"> 를 <a href="..."> 로 바꾸기만 하면 된다.
+             개수가 몇 개든 줄이 가운데로 모인다. -->
         <div class="dv-links">
-          <span class="todo">이메일</span>
-          <span class="todo">이메일</span>
-          <span class="todo">이메일</span>
+          <span class="todo">e-mail</span>
+          <span class="todo">Instagram</span>
         </div>
       </div>
     </article>
@@ -555,21 +600,18 @@
 
       <section class="dv-sec">
         <h2><img src="/static/img/dev/icon-items.webp" alt="" width="16" height="16">아이템</h2>
-        <!-- TODO(사용자): 아이템 문구 -->
         <div class="dv-chips">
-          <span>3샷커피</span>
-          <span>3샷커피</span>
-          <span>3샷커피</span>
+          <span>튼튼한 일렉기타</span>
+          <span>벽돌같은 맥북</span>
+          <span>거북목</span>
         </div>
       </section>
 
       <div class="dv-foot">
         <hr>
-        <!-- TODO(사용자): 링크 주소 -->
+        <!-- TODO(사용자): 링크 주소. 지금은 모양만이다. -->
         <div class="dv-links">
-          <span class="todo">이메일</span>
-          <span class="todo">이메일</span>
-          <span class="todo">이메일</span>
+          <span class="todo">e-mail</span>
         </div>
       </div>
     </article>
