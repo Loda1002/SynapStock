@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SynapStock — 만든 사람들</title>
+<meta name="description" content="SynapStock 402 Guard 를 만든 사람들 — 커닝시티 공모전 강도단.">
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     시안: 「Desktop - 11」 1440×1181 (SVG 내보내기에서 좌표·색·글꼴을 직접 읽었다)
+     값의 출처 표기:
+       [시안] = SVG 노드 좌표/속성 그대로
+       [파생] = 시안값에서 계산한 것(여백 = 좌표 차, 다크 팔레트 등)
+
+     ⚠ 프런트 작업본(developers.html)을 값의 출처로 삼지 않았다. 대조해 보니 8곳이
+       달랐다 — 아이템 칩(시안은 흰 바탕+테두리, 작업본은 색 채움) · 카드 radius 24 vs 26 ·
+       카드 padding 24 vs 26 · 아바타 78 vs 85 · 제목 외곽선 2 vs 4.49 ·
+       옅은 면 #F7F7F7 vs #F5F6FE · 구분선 1줄 vs 2줄 · 링크 글자색.
+       작업본은 **마크업 구조 참고용**으로만 썼다(랜딩에서 같은 실수를 한 적이 있다).
+
+     ⚠ 이 페이지는 skeleton.css·design.css 를 싣지 않는다. 자체 <style> 로 자족한다.
+       공용 스타일시트를 얹으면 같은 특정도 싸움이 생기는데(랜딩에서 세 번 겪었다),
+       이 화면은 공용 컴포넌트를 하나도 쓰지 않아서 얹을 이유가 없다.
+       theme.css 만 싣는다 — @font-face 6벌(Pretendard 2 · Noto Sans KR 4)이 거기 있다.
+
+     ⚠ 상단 바는 landing.html 의 것을 그대로 옮겼다(값도 클래스 이름도 동일).
+       시안의 상단 바는 탭 글자가 14px 인데 알약은 54px 이라 자기모순이다(14px 이면 56 이
+       된다). 랜딩·대시보드는 13px 로 이미 맞춰져 배포돼 있고, 세 페이지 바가 어긋나면
+       탭을 오갈 때 글자가 흔들린다. 그래서 **시안이 아니라 기존 배포본을 따랐다.**
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<link rel="stylesheet" href="/static/css/theme.css">
+<style>
+  /* ══ Jua(주아체) ══ 시안이 제목·이름·능력치 숫자·섹션 제목에 쓰는 글꼴.
+     ⚠ @font-face 를 theme.css 가 아니라 여기 두는 이유: theme.css 에 두라는 기존 규칙은
+       "랜딩이 design.css 를 안 싣는다"가 사유였는데, 이 파일은 자기 <style> 이라 그 사유가
+       없다. 쓰는 페이지가 여기 하나뿐이라 공용 파일을 건드리지 않는 쪽을 골랐다.
+     ⚠ unicode-range 는 필수다 — 없으면 브라우저가 뒤 규칙 하나만 받아 한글이나 라틴 중
+       한쪽이 통째로 폴백된다. 범위는 theme.css 의 Noto 항목과 같은 것을 쓴다.
+     출처: @fontsource/jua (SIL Open Font License 1.1) */
+  @font-face {
+    font-family: "Jua"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/static/fonts/jua-korean-400-normal.woff2") format("woff2");
+    unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
+  }
+  @font-face {
+    font-family: "Jua"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/static/fonts/jua-latin-400-normal.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+  }
+
+  :root {
+    /* ── 브랜드(랜딩과 같은 값) ── */
+    --primary: #5d4ef1;        /* [시안] 로고·활성 탭·제목 강조 */
+    --primary-ink: #5d4ef1;    /* 글자용 보라 — 다크에서만 갈라진다 */
+    --primary-light: #edebff;  /* [시안] 활성 탭 알약 */
+    --btn-shadow: 0 4px 14px 0 rgba(91, 79, 233, .3);
+    --nav-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+
+    /* ── 이 페이지 ── */
+    --dv-card: #ffffff;                       /* [시안] 카드 면 */
+    --dv-soft: #f7f7f7;                       /* [시안] 말풍선·게이지 트랙·링크 버튼 */
+    --dv-line: #eff1f8;                       /* [시안] 카드 안 구분선 */
+    --dv-name: #000000;                       /* [시안] 이름·제목 */
+    --dv-body: #717791;                       /* [시안] 카드 안 모든 보조 문구 */
+    --dv-desc: #6b728c;                       /* [시안] 페이지 설명 한 줄 */
+    --dv-stroke: #ffffff;                     /* [시안] 제목 외곽선 */
+    --dv-badge-shadow: 0 4px 12px rgba(124, 113, 240, .12);   /* [시안] filter2 */
+    --dv-card-shadow: 0 10px 30px rgba(0, 0, 0, .14);         /* [시안] filter3~5 */
+
+    /* 배경 — 시안은 픽셀아트 위에 흰색 60% 를 덮는다(SVG "Rectangle 1").
+       --dv-sky 는 그림이 닿지 않는 자리를 메우는 색이다. 실측으로 역산했다:
+       덮은 뒤 하늘이 #BFD6FB 였고 (덮인값 − 0.6×255) ÷ 0.4 = #5F99F5. */
+    --dv-sky: #5f99f5;
+    --dv-wash: rgba(255, 255, 255, .6);
+
+    --dv-font: "Noto Sans KR", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+    --dv-font-jua: "Jua", "Noto Sans KR", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0; padding: 0;
+    position: relative;            /* .dv-bg 의 기준 상자 */
+    min-height: 100vh;
+    font-family: var(--dv-font);
+    color: var(--dv-name);
+    background: var(--dv-sky);
+  }
+
+  /* ══ 배경 ══ [시안] 그림은 1440×1920 이고 **아래가 화면 바닥에 붙는다**
+     (SVG 는 y=-739 에 두어 1181 프레임의 바닥과 맞췄다 = 아래쪽 1181px 만 보인다).
+     그래서 세로는 늘리지 않고 bottom 에 고정한다 — 위쪽이 잘리는 것이 의도다. */
+  .dv-bg {
+    position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+    background: var(--dv-sky) url("/static/img/dev/scene-bg.webp") center bottom / 100% auto no-repeat;
+  }
+  /* 흰색 60% — 시안의 "Rectangle 1". ::after 라 .dv-bg 의 실제 자식(소녀)보다 뒤에
+     그려진다 = 배경과 소녀가 **함께** 덮인다(시안이 그렇다. 실측으로 확인했다:
+     소녀 머리카락이 원본은 거의 검정인데 시안 PNG 에서는 #9C9B9B 다). */
+  .dv-bg::after { content: ""; position: absolute; inset: 0; background: var(--dv-wash); }
+
+  /* ══ 바닥 장식 ══ [시안] 소녀 223×223 @ (978,947) · 말풍선 103.894×91 @ (1038,893).
+     가로 기준은 본문 칸(1200)의 오른쪽 끝에서 119px 안쪽이다:
+       본문 오른끝 = 50% + 600px  →  화면 오른쪽에서 (50% − 600px), 여기에 119 를 더한다.
+     좁은 화면에서 음수가 되지 않게 max() 로 바닥을 깐다. */
+  .dv-scene {
+    position: absolute; bottom: 11px; right: max(8px, calc(50% - 481px));
+    width: 223px; height: 223px;
+  }
+  .dv-scene > img { width: 100%; height: 100%; display: block; }
+  .dv-bubble { position: absolute; left: 60px; top: -54px; width: 104px; height: 91px; }
+  .dv-bubble > img { width: 100%; height: 100%; display: block; }
+  /* [시안] Noto 12 / 줄간 14 / 첫 베이스라인 915.8 → 말풍선 위에서 12px.
+     줄바꿈은 <br> 로 박는다 — 폭에 맡기면 글꼴이 폴백될 때 5줄이 되어 말풍선을 넘친다. */
+  .dv-bubble p {
+    position: absolute; left: 0; right: 0; top: 12px; margin: 0;
+    text-align: center; font-size: 12px; line-height: 14px; color: #000;
+  }
+
+  /* ══ 본문 칸 ══ 상단 바는 1280(랜딩과 동일), 본문은 1200 이다([시안] 카드가 x=120 에서
+     시작하고 바는 x=80 에서 시작한다 = 본문이 40px 더 안쪽). */
+  .dv-nav  { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 24px 80px 0; }
+  /* ⚠ 본문은 `max-width:1440 + padding 120`(= 시안 좌표를 그대로 옮긴 형태)으로 두면 안 된다.
+     실제 브라우저는 세로 스크롤바가 15px 을 먹어 1440 창의 레이아웃 폭이 1425 다. 그러면
+     본문이 1185 가 되어 카드 줄(384×3 + 24×2 = 1200)이 **한 장 아래로 접힌다**(실측).
+     그래서 '1200 을 최대한 지키는' 형태로 바꿨다 — 1248 = 1200 + 좌우 24.
+     레이아웃 폭이 정확히 1440 일 때 좌우 여백이 96+24 = 120 으로 시안과 같아진다. */
+  .dv-page { position: relative; z-index: 1; max-width: 1248px; margin: 0 auto; padding: 0 24px 360px; }
+
+  /* ══ 상단 바 ══ landing.html 에서 그대로 옮겼다(값·클래스 이름 동일).
+     ⚠ 3칸 그리드여야 탭이 정중앙에 선다 — 브랜드 폭이 다른 페이지와 자리가 어긋나지 않게. */
+  .navbar-inner {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center; height: 66px;
+    background: var(--dv-card); border-radius: 18px; padding: 0 26px;
+    box-shadow: var(--nav-shadow);
+  }
+  .navbar-inner > .nav-brand { justify-self: start; }
+  .navbar-inner > .nav-links { justify-self: center; }
+  .navbar-inner > .nav-cta   { justify-self: end; }
+  .nav-brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; text-decoration: none; color: inherit; }
+  .nav-logo {
+    width: 34px; height: 34px; background: var(--primary); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; color: #fff; flex: none;
+  }
+  .nav-logo svg { width: 19px; height: 19px; display: block; }
+  .nav-brand-name { font-family: "Pretendard", "Noto Sans KR", sans-serif; font-weight: 700; font-size: 18px; line-height: 1.45; }
+  .nav-brand-tag  { font-size: 12px; color: #8f96af; }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-link {
+    padding: 8px 14px; border-radius: 10px;
+    font-size: 13px; line-height: 20px; font-weight: 700;
+    color: #5b617a; text-decoration: none; white-space: nowrap;
+    transition: background .2s, color .2s;
+  }
+  a.nav-link:hover { background: var(--primary-light); color: var(--primary-ink); }
+  .nav-link.is-current { background: var(--primary-light); color: var(--primary-ink); }
+  .nav-link[aria-disabled="true"] { opacity: .5; cursor: default; }
+  .nav-cta a {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 176px; height: 42px; padding: 0 20px;
+    background: var(--primary); color: #fff; border-radius: 11px;
+    font-size: 14px; font-weight: 700; line-height: 20px; text-decoration: none;
+    box-shadow: var(--btn-shadow); white-space: nowrap; transition: opacity .2s;
+  }
+  .nav-cta a:hover { opacity: .9; }
+
+  /* ══ 제목 묶음 ══ */
+  /* [시안] 알약 153×28 @ (120,142) · 모서리 12/12/12/2 · 흰 면 · 보라 그림자.
+     왼쪽 아래만 2 인 것은 의도다(SVG path 가 그 모서리만 반지름 2 로 꺾인다). */
+  .dv-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 28px; padding: 0 16px;
+    margin: 52px 0 0;                       /* [파생] 바 아래 90 → 알약 위 142 */
+    background: var(--dv-card); border-radius: 12px 12px 12px 2px;
+    box-shadow: var(--dv-badge-shadow);
+    font-family: var(--dv-font-jua); font-size: 13px; line-height: 16px;
+    color: var(--primary-ink);
+  }
+  .dv-badge img { width: 16px; height: 16px; display: block; }
+  /* [시안] Jua 34 / 베이스라인 215.7. 흰 외곽선은 stroke-width 2(가운데 정렬)라
+     바깥으로 1px 만 보인다 — 실측 halo 1.5px(안티에일리어싱 포함)와 맞는다.
+     ⚠ paint-order 를 빼면 외곽선이 글자 위에 얹혀 획이 1px 씩 깎인다. */
+  .dv-title {
+    margin: 15px 0 0; font-family: var(--dv-font-jua); font-weight: 400;
+    font-size: 34px; line-height: 42px; color: var(--dv-name);
+    -webkit-text-stroke: 2px var(--dv-stroke);
+    paint-order: stroke fill;
+    word-break: keep-all;
+  }
+  .dv-title .hl { color: var(--primary-ink); }
+  /* [시안] Noto 14 / #6B728C / 베이스라인 251.1 */
+  .dv-desc { margin: 8px 0 0; font-size: 14px; line-height: 20px; color: var(--dv-desc); word-break: keep-all; }
+
+  /* ══ 카드 줄 ══ [시안] 384 폭 · 24 간격 · y=306.
+     그리드가 아니라 flex 인 이유: 좁아질 때 칸을 늘려 채우지 않고 **384 를 지키다 줄바꿈**
+     하고 가운데로 모이게 하려는 것이다(auto-fit 은 칸을 늘려 카드 폭이 시안과 달라진다). */
+  .dv-cards {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch;
+    gap: 24px; margin: 51px 0 0;            /* [파생] 설명 아래 255 → 카드 위 306 */
+  }
+  /* [시안] 384×(내용) · r24 · padding 24/30 · 그림자 dy10 blur30 #000 14% */
+  .dv-card {
+    flex: 0 1 384px; min-width: 0;
+    display: flex; flex-direction: column;
+    background: var(--dv-card); border-radius: 24px;
+    padding: 30px 24px; box-shadow: var(--dv-card-shadow);
+    transition: box-shadow .2s, translate .2s;
+  }
+  .dv-card:hover { box-shadow: 0 14px 36px rgba(0, 0, 0, .18); translate: 0 -3px; }
+  /* 카드별 강조색 [시안] — 테두리·게이지·번호·칩이 전부 이 한 값을 읽는다 */
+  .dv-card.is-purple { --dv-accent: #7e71f8; --dv-accent-bg: #efedff; }
+  .dv-card.is-blue   { --dv-accent: #6fb4ff; --dv-accent-bg: #e8f3ff; }
+  .dv-card.is-pink   { --dv-accent: #ff96c9; --dv-accent-bg: #ffedf6; }
+
+  /* ── 머리(아바타 + 이름) ── [시안] 아바타 78×78 r22 · 테두리 3 · 이름까지 22 간격 ── */
+  .dv-head { display: flex; align-items: center; gap: 22px; }
+  .dv-avatar { position: relative; width: 78px; height: 78px; flex: none; }
+  .dv-avatar-frame { width: 100%; height: 100%; border-radius: 22px; overflow: hidden; background: var(--dv-card); }
+  .dv-avatar-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* ⚠ 테두리를 img 에 inset 그림자로 주면 안 된다 — 교체 요소는 그림자 위에 그려져 가린다.
+     그래서 링은 형제 가상요소로 얹는다. border 를 안 쓰는 것은 78 이 80 이 되기 때문이다. */
+  .dv-avatar::before {
+    content: ""; position: absolute; inset: 0; border-radius: 22px;
+    box-shadow: inset 0 0 0 3px var(--dv-accent); pointer-events: none;
+  }
+  /* [시안] 24×24 원 @ (200,392) — 아바타 오른쪽·아래로 2px 씩 튀어나온다 */
+  .dv-avatar-no {
+    position: absolute; right: -2px; bottom: -2px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--dv-accent); color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--dv-font-jua); font-size: 13px; line-height: 1;
+  }
+  /* margin-top 4 = 시안이 이 묶음을 아바타 정가운데가 아니라 4px 아래에 뒀다(실측).
+     align-items:center 를 유지한 채 4 만 더한다 — 내용이 길어져도 대략 가운데를 지킨다. */
+  .dv-who { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin-top: 4px; }
+  .dv-who-name { font-family: var(--dv-font-jua); font-size: 20px; line-height: 24px; color: var(--dv-name); }
+  /* [시안] 22 높이 · r11 · 좌우 10 · Noto Bold 11.5 — 폭은 글자 길이를 따른다 */
+  .dv-who-role {
+    align-self: flex-start; height: 22px; padding: 0 10px; border-radius: 11px;
+    background: var(--dv-accent-bg); color: var(--dv-accent);
+    font-size: 11.5px; font-weight: 700; line-height: 22px; white-space: nowrap;
+  }
+  .dv-who-org { font-size: 11.5px; line-height: 16px; color: var(--dv-body); }
+
+  /* ── 한마디 ── [시안] 336×43 r14 #F7F7F7 · 좌우 14 · Noto 12.5 ── */
+  .dv-quote {
+    margin: 22px 0 0; padding: 12px 14px; border-radius: 14px;
+    background: var(--dv-soft);
+    font-size: 12.5px; line-height: 19px; color: var(--dv-body);
+    word-break: keep-all;
+  }
+  .dv-quote b { font-weight: 700; }
+  .dv-quote .mute { color: #a5abc4; }
+
+  /* ── 설명 두 줄 ── [시안] 왼쪽 3×17 막대(r1.5) + 12 간격 + Noto 12.5 ── */
+  .dv-notes { margin: 18px 0 0; display: flex; flex-direction: column; gap: 9px; }
+  .dv-notes p { display: flex; gap: 12px; margin: 0; font-size: 12.5px; line-height: 17px; color: var(--dv-body); word-break: keep-all; }
+  .dv-notes p::before {
+    content: ""; flex: none; align-self: stretch;
+    width: 3px; min-height: 17px; border-radius: 1.5px; background: var(--dv-accent);
+  }
+
+  /* ── 절 제목 ── [시안] 아이콘 16 + 6.35 간격 + Jua 13 #717791 ── */
+  .dv-sec { margin: 18px 0 0; }
+  .dv-sec > h2 {
+    display: flex; align-items: center; gap: 6.35px; margin: 0 0 11px;
+    font-family: var(--dv-font-jua); font-weight: 400; font-size: 13px; line-height: 16px;
+    color: var(--dv-body);
+  }
+  .dv-sec > h2 img { width: 16px; height: 16px; display: block; }
+
+  /* ── 능력치 ── [시안] 라벨칸 70 · 트랙 230×12 r6 · 값은 오른쪽 끝(카드 안쪽 480) 정렬
+     행 간격 26 = 행높이 16 + 10 ── */
+  .dv-stats { display: grid; grid-template-columns: 70px minmax(0, 1fr) 36px; align-items: center; row-gap: 10px; }
+  .dv-stats > .k { font-size: 11.5px; line-height: 16px; color: var(--dv-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dv-stats > .bar { height: 12px; border-radius: 6px; background: var(--dv-soft); overflow: hidden; }
+  .dv-stats > .bar > i { display: block; height: 100%; border-radius: 6px; background: var(--dv-accent); }
+  .dv-stats > .v { font-family: var(--dv-font-jua); font-size: 11px; line-height: 16px; color: var(--dv-body); text-align: right; }
+
+  /* ── 아이템 칩 ── [시안] 높이 25 · r12.5 · 흰 면 + 1px 강조색 테두리 + 강조색 글자
+     ⚠ 작업본은 색을 채운 칩이었다. 시안은 fill=white + stroke 다(실측). ── */
+  .dv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dv-chips span {
+    display: inline-flex; align-items: center;
+    height: 25px; padding: 0 10px; border-radius: 12.5px;
+    background: var(--dv-card); box-shadow: inset 0 0 0 1px var(--dv-accent);
+    color: var(--dv-accent); font-size: 11px; font-weight: 700; line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* ── 구분선 + 링크 ── [시안] 선 #EFF1F8 @ y741.5 · 버튼 107.333×34 r10 · 간격 7
+     ⚠ margin-top:auto 가 카드 3장의 아랫줄을 맞춘다(내용 길이가 달라도 버튼이 바닥에 붙는다).
+     ⚠ 버튼은 개수가 몇 개든 가운데로 모인다(사용자 요청). 3개일 때는 107.333×3 + 7×2 = 336
+        으로 카드 안쪽 폭과 정확히 같아서 시안과 구분이 안 된다. */
+  .dv-foot { margin-top: auto; padding-top: 18px; }
+  .dv-foot hr { height: 1px; border: 0; margin: 0; background: var(--dv-line); }
+  .dv-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 15px; }
+  .dv-links > * {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 107.333px; height: 34px; padding: 0 12px; border-radius: 10px;
+    background: var(--dv-soft); color: var(--dv-body);
+    font-size: 11.5px; font-weight: 700; line-height: 34px;
+    text-decoration: none; white-space: nowrap; transition: background .2s, color .2s;
+  }
+  .dv-links a:hover { background: var(--dv-accent-bg); color: var(--dv-accent); }
+  .dv-links .todo { opacity: .55; cursor: default; }   /* 아직 주소가 없는 자리 */
+
+  /* ══ 좁은 화면 ══ 시안은 데스크톱만 있다. 값을 새로 짓지 않고 여백만 줄인다. */
+  @media (max-width: 1100px) {
+    .dv-nav  { padding: 16px 24px 0; }
+    .dv-page { padding-bottom: 300px; }
+    .dv-scene { transform: scale(.85); transform-origin: right bottom; }
+  }
+  @media (max-width: 900px) {
+    .navbar-inner { display: flex; justify-content: space-between; gap: 12px; }
+  }
+  @media (max-width: 640px) {
+    .navbar-inner { height: auto; flex-wrap: wrap; padding: 14px 16px; row-gap: 12px; }
+    .nav-links { flex-wrap: wrap; }
+    .nav-cta { flex: 1 1 100%; }
+    .nav-cta a { width: 100%; }
+    .dv-badge { margin-top: 32px; }
+    .dv-title { font-size: 28px; line-height: 36px; }
+    .dv-page { padding: 0 16px 240px; }
+    .dv-cards { margin-top: 32px; }
+    .dv-scene { transform: scale(.7); transform-origin: right bottom; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     다크 — 요소별 보정
+     ⚠ 이 절은 반드시 스타일시트 **맨 아래**에 있어야 한다. :root 다크 블록 안에
+       요소 규칙을 넣으면 뒤에 오는 같은 특정도의 기본 규칙이 이겨서 안 먹는다
+       (랜딩에서 실제로 세 번 겪었다).
+     시안에 다크 판이 없어 theme.css 가 같은 라이트 색에 이미 정해 둔 다크 값을 가져왔다.
+     ⚠ --primary(보라 '면')는 안 바꾼다 — 그 위에 흰 글자가 얹혀 있어 밝히면 대비가 무너진다.
+       글자용 보라는 --primary-ink 가 따로 맡는다.
+     ══════════════════════════════════════════════════════════════════ */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary-ink: #8b7dff;    /* = theme.css --accent(dark) */
+      --primary-light: #2e2a55;  /* = theme.css --fx-gemini-bg(dark) */
+      --dv-card: #1c1e28;        /* = theme.css --card-bg(dark) */
+      --dv-soft: #24262f;        /* 파생 — 라이트에서 카드보다 한 단 어두웠으니 다크는 한 단 밝게 */
+      --dv-line: #2b2e3c;        /* = theme.css --border(dark) */
+      --dv-name: #f2f3f7;        /* = theme.css --text(dark) */
+      --dv-body: #b9c0d6;        /* = theme.css --fx-body(dark) */
+      --dv-desc: #b9c0d6;
+      --dv-stroke: #14151d;      /* 제목 외곽선 — 어두운 바탕에서는 흰 테두리가 튄다 */
+      --dv-sky: #1b2a44;         /* 파생 — 하늘색의 색조는 두고 명도만 내렸다 */
+      --dv-wash: rgba(20, 21, 29, .72);   /* 흰 덮개 → 어두운 덮개 */
+      --dv-badge-shadow: 0 4px 12px rgba(0, 0, 0, .4);
+      --dv-card-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    }
+    .nav-brand-tag { color: #9299b3; }         /* = theme.css --muted(dark) */
+    .nav-link { color: #b9c0d6; }
+    .dv-card:hover { box-shadow: 0 14px 36px rgba(0, 0, 0, .55); }
+    /* 카드 강조색 자체는 그대로 둔다 — 파스텔 3색이 이 페이지의 정체성이고
+       어두운 면 위에서 대비가 오히려 올라간다. 배지 바탕만 낮춘다. */
+    .dv-card.is-purple { --dv-accent-bg: #2e2a55; }
+    .dv-card.is-blue   { --dv-accent-bg: #1e2f45; }
+    .dv-card.is-pink   { --dv-accent-bg: #3d2536; }
+    /* ⚠ 말풍선 글자는 다크에서도 검정 그대로 둔다. 말풍선은 **그림**이라 테마를 안 따라가고,
+       덮개(.dv-bg::after)가 글자와 그림에 똑같이 걸린다 — 글자를 밝게 바꾸면
+       덮개를 통과한 뒤 말풍선 면(#565b5c 부근)과 거의 같은 밝기가 되어 안 보인다.
+       검정으로 두면 대비 2.7:1 로 라이트(2.9:1)와 비슷하게 유지된다. */
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ 배경 ═══ 문서 전체 높이를 덮는다. 내용(z-index:1)보다 아래에 깔린다.
+     소녀·말풍선은 흰 덮개(::after)보다 **먼저** 그려져야 하므로 이 안의 자식이다. -->
+<div class="dv-bg" aria-hidden="true">
+  <div class="dv-scene">
+    <img src="/static/img/dev/scene-girl.webp" alt="" width="223" height="223" loading="lazy" decoding="async">
+    <div class="dv-bubble">
+      <img src="/static/img/dev/scene-bubble.webp" alt="" width="104" height="91" loading="lazy" decoding="async">
+      <p>재헌아 디자<br>인을 일주일<br>만에 어케 하<br>니ㅜㅜ</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 상단 바 ═══ 네 탭 중 '개발자'가 이 페이지다.
+     ⚠ 시안은 '소개'가 활성으로 그려져 있는데 그건 랜딩 바를 복사해 온 흔적이다.
+       활성 탭은 "지금 보고 있는 화면"을 가리키는 표시라 여기서는 '개발자'가 맞다. -->
+<nav class="dv-nav" aria-label="주요 메뉴">
+  <div class="navbar-inner">
+    <a class="nav-brand" href="/">
+      <!-- 랜딩·대시보드와 **같은 방패**다. 모양을 고칠 때 세 곳을 함께 고쳐야 한다
+           (landing.html 인라인 svg · design.css --ci-shield · 여기). -->
+      <span class="nav-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.2 19.5 6.6v5.1c0 4.3-3 7.2-7.5 8.6-4.5-1.4-7.5-4.3-7.5-8.6V6.6Z"/>
+        </svg>
+      </span>
+      <span class="nav-brand-name">SynapStock</span>
+      <span class="nav-brand-tag">402 Guard</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link">소개</a>
+      <a href="/app" class="nav-link">대시보드</a>
+      <span class="nav-link" aria-disabled="true" title="준비 중입니다">리포트</span>
+      <span class="nav-link is-current" aria-current="page">개발자</span>
+    </div>
+    <div class="nav-cta"><a href="/connect">지갑 연결하고 시작하기</a></div>
+  </div>
+</nav>
+
+<main class="dv-page">
+
+  <p class="dv-badge">
+    <img src="/static/img/dev/icon-party.webp" alt="" width="16" height="16">PARTY MEMBERS
+  </p>
+  <h1 class="dv-title">커닝시티 <span class="hl">공모전 강도단</span></h1>
+  <p class="dv-desc">AI가 돈 함부로 못 쓰게 막는 사람들 (근데 정작 본인들 통장은 안 막힘)</p>
+
+  <div class="dv-cards">
+
+    <!-- ── 1 · 보라 ─────────────────────────────────────────────
+         ⚠ 아바타 그림이 없다 — 시안에도 이 칸만 빈 사각형이다(다른 둘은 그림이 박혀 있다).
+           그림이 생기면 아래 .dv-avatar-frame 안에 <img> 를 넣으면 된다. -->
+    <article class="dv-card is-purple">
+      <div class="dv-head">
+        <div class="dv-avatar">
+          <div class="dv-avatar-frame"></div>
+          <span class="dv-avatar-no">1</span>
+        </div>
+        <div class="dv-who">
+          <span class="dv-who-name">이재헌</span>
+          <span class="dv-who-role">Back-end · PM</span>
+          <span class="dv-who-org">홍익대학교 컴퓨터공학과</span>
+        </div>
+      </div>
+
+      <p class="dv-quote">“내가 잠을 안 자면 모든 게 해결돼”</p>
+
+      <div class="dv-notes">
+        <p>밤샘의 아이콘</p>
+        <p>버그 터지는 것보다 스케줄 터지는 걸 더 무서워합니다</p>
+      </div>
+
+      <section class="dv-sec">
+        <h2><img src="/static/img/dev/icon-stats.webp" alt="" width="16" height="16">능력치</h2>
+        <div class="dv-stats">
+          <span class="k">멘탈</span>   <span class="bar"><i style="width:3%"></i></span>   <span class="v">3</span>
+          <span class="k">추진력</span> <span class="bar"><i style="width:100%"></i></span> <span class="v">100</span>
+          <span class="k">책임감</span> <span class="bar"><i style="width:100%"></i></span> <span class="v">100</span>
+        </div>
+      </section>
+
+      <section class="dv-sec">
+        <h2><img src="/static/img/dev/icon-items.webp" alt="" width="16" height="16">아이템</h2>
+        <!-- TODO(사용자): 아이템 문구 — 개수는 자유다(자동 줄바꿈). -->
+        <div class="dv-chips">
+          <span>3샷커피</span>
+          <span>3샷커피</span>
+          <span>3샷커피</span>
+        </div>
+      </section>
+
+      <div class="dv-foot">
+        <hr>
+        <div class="dv-links">
+          <a href="mailto:teddleekid@gmail.com">e-mail</a>
+          <a href="https://github.com/Loda1002/SynapStock" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://loda1002.github.io/" target="_blank" rel="noopener">CV</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- ── 2 · 파랑 ───────────────────────────────────────────── -->
+    <article class="dv-card is-blue">
+      <div class="dv-head">
+        <div class="dv-avatar">
+          <div class="dv-avatar-frame"><img src="/static/img/dev/avatar-daeun.webp" alt="이다은" width="78" height="78"></div>
+          <span class="dv-avatar-no">2</span>
+        </div>
+        <div class="dv-who">
+          <span class="dv-who-name">이다은</span>
+          <span class="dv-who-role">Front-end · Healer</span>
+          <span class="dv-who-org">홍익대학교 컴퓨터공학과</span>
+        </div>
+      </div>
+
+      <p class="dv-quote">“안 돼도 되게 하겠습니다. <span class="mute">(살려주세요.)</span>”</p>
+
+      <div class="dv-notes">
+        <p>컴공의 나이팅게일(정신과)</p>
+        <p>‘이거 구현 돼요?’라는 질문을 가장 무서워합니다</p>
+      </div>
+
+      <section class="dv-sec">
+        <h2><img src="/static/img/dev/icon-stats.webp" alt="" width="16" height="16">능력치</h2>
+        <div class="dv-stats">
+          <span class="k">멘탈</span>   <span class="bar"><i style="width:80%"></i></span> <span class="v">80</span>
+          <span class="k">치유력</span> <span class="bar"><i style="width:46%"></i></span> <span class="v">46</span>
+          <span class="k">잠</span>     <span class="bar"><i style="width:99%"></i></span> <span class="v">99</span>
+        </div>
+      </section>
+
+      <section class="dv-sec">
+        <h2><img src="/static/img/dev/icon-items.webp" alt="" width="16" height="16">아이템</h2>
+        <!-- TODO(사용자): 아이템 문구 -->
+        <div class="dv-chips">
+          <span>3샷커피</span>
+          <span>3샷커피</span>
+          <span>3샷커피</span>
+        </div>
+      </section>
+
+      <div class="dv-foot">
+        <hr>
+        <!-- TODO(사용자): 링크 주소. 개수가 몇 개든 가운데로 모인다 —
+             <span class="todo"> 를 <a href="..."> 로 바꾸기만 하면 된다. -->
+        <div class="dv-links">
+          <span class="todo">이메일</span>
+          <span class="todo">이메일</span>
+          <span class="todo">이메일</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ── 3 · 분홍 ───────────────────────────────────────────── -->
+    <article class="dv-card is-pink">
+      <div class="dv-head">
+        <div class="dv-avatar">
+          <div class="dv-avatar-frame"><img src="/static/img/dev/avatar-seoyoon.webp" alt="여서윤" width="78" height="78"></div>
+          <span class="dv-avatar-no">3</span>
+        </div>
+        <div class="dv-who">
+          <span class="dv-who-name">여서윤</span>
+          <span class="dv-who-role">UI/UX Design</span>
+          <span class="dv-who-org">홍익대학교 시각디자인과</span>
+        </div>
+      </div>
+
+      <p class="dv-quote">“편하게 피드백 주세요. 네? 아 수정할게요…”</p>
+
+      <div class="dv-notes">
+        <p>개발자 둘의 아이디어를 시각화합니다</p>
+        <p>디자인으로 코드의 빈자리를 채웁니다</p>
+      </div>
+
+      <section class="dv-sec">
+        <h2><img src="/static/img/dev/icon-stats.webp" alt="" width="16" height="16">능력치</h2>
+        <div class="dv-stats">
+          <span class="k">멘탈</span>   <span class="bar"><i style="width:48%"></i></span>  <span class="v">48</span>
+          <span class="k">집착력</span> <span class="bar"><i style="width:100%"></i></span> <span class="v">100</span>
+          <span class="k">체력</span>   <span class="bar"><i style="width:12%"></i></span>  <span class="v">12</span>
+        </div>
+      </section>
+
+      <section class="dv-sec">
+        <h2><img src="/static/img/dev/icon-items.webp" alt="" width="16" height="16">아이템</h2>
+        <!-- TODO(사용자): 아이템 문구 -->
+        <div class="dv-chips">
+          <span>3샷커피</span>
+          <span>3샷커피</span>
+          <span>3샷커피</span>
+        </div>
+      </section>
+
+      <div class="dv-foot">
+        <hr>
+        <!-- TODO(사용자): 링크 주소 -->
+        <div class="dv-links">
+          <span class="todo">이메일</span>
+          <span class="todo">이메일</span>
+          <span class="todo">이메일</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</main>
+
+</body>
+</html>

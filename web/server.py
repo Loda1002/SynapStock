@@ -6,6 +6,7 @@ Cloud Run 배포(P2)에서는 WEB_HOST=0.0.0.0, PORT 환경변수를 쓰게 된�
 from __future__ import annotations
 import asyncio
 import html
+import mimetypes
 import os
 from contextlib import asynccontextmanager
 from decimal import Decimal, InvalidOperation
@@ -26,6 +27,13 @@ from web.events import EventBus
 from web.store import build_store
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+# `.webp` 를 파이썬 표준 mimetypes 가 아는 것은 3.11 부터다(윈도우에서는 레지스트리를 읽어
+# 3.11 이어도 모를 수 있다). 등록하지 않으면 StaticFiles 가 `application/octet-stream` 으로
+# 내보내는데(로컬에서 실측했다), 개발자 소개 페이지의 그림 8개가 전부 webp 다.
+# 브라우저는 대개 내용을 보고 알아서 그리지만 인터프리터·OS 에 따라 달라지는 것을 남길
+# 이유가 없어 명시한다.
+mimetypes.add_type("image/webp", ".webp")
 
 bus = EventBus()
 store = build_store()          # Firestore(FIRESTORE_ENABLED=1) 또는 no-op
@@ -110,7 +118,7 @@ async def _revalidate_ui(request: Request, call_next):
     304 로 응답하므로 대역폭 이점은 유지된다. API·SSE 는 건드리지 않는다."""
     response = await call_next(request)
     path = request.url.path
-    if path in ("/", "/app", "/login", "/connect") or path.startswith("/static/"):
+    if path in ("/", "/app", "/login", "/connect", "/developers") or path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
 
@@ -136,7 +144,8 @@ async def _not_found(request: Request, exc):
         "<p>이 주소에는 페이지가 없습니다.</p>"
         f"<p><code>{html.escape(path)}</code></p>"
         "<p style='margin-top:1.6em'><a href='/'>소개 페이지</a> · "
-        "<a href='/app'>대시보드</a> · <a href='/connect'>지갑 연결</a></p></div>"
+        "<a href='/app'>대시보드</a> · <a href='/developers'>만든 사람들</a> · "
+        "<a href='/connect'>지갑 연결</a></p></div>"
     )
     return HTMLResponse(body, status_code=404)
 
@@ -157,6 +166,16 @@ async def dashboard() -> FileResponse:
     """대시보드(운영 화면). 예전 경로 `/static/index.html` 도 StaticFiles 로 계속 열린다 —
     랜딩의 '데모 대시보드 보기' 링크가 그 경로를 쓰고 있어 깨지지 않는다."""
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+@app.get("/developers")
+async def developers() -> FileResponse:
+    """만든 사람들 — 상단 바 '개발자' 탭이 가리키는 화면.
+
+    ⚠ 이 경로를 위 `_revalidate_ui` 의 목록에도 넣어야 한다. 빼면 재배포 뒤에도
+    브라우저가 옛 화면을 계속 보여준다(2026-07-27 에 `/` 에서 실제로 겪은 결함이다).
+    ⚠ 오른쪽 개발자 서랍(`.dev-dock`, `?lab=1`)과는 무관한 화면이다 — 이름만 겹친다."""
+    return FileResponse(os.path.join(STATIC_DIR, "developers.html"))
 
 
 @app.get("/connect")
