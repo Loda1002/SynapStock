@@ -229,13 +229,17 @@
     color: var(--primary-ink);
   }
   .dv-badge img { width: 16px; height: 16px; display: block; }
-  /* [시안] Jua 34 / 베이스라인 215.7. 흰 외곽선은 stroke-width 2(가운데 정렬)라
-     바깥으로 1px 만 보인다 — 실측 halo 1.5px(안티에일리어싱 포함)와 맞는다.
-     ⚠ paint-order 를 빼면 외곽선이 글자 위에 얹혀 획이 1px 씩 깎인다. */
+  /* [시안] Jua 34 / 베이스라인 215.7.
+     ⚠⚠ 외곽선 값은 SVG 의 `stroke-width="2"` 를 그대로 쓰면 안 된다 — **절반으로 보인다**.
+     Figma 는 글자 외곽선을 **바깥쪽**에 그리는데 CSS `-webkit-text-stroke` 는 **획 중앙
+     정렬**이라, 2px 를 주면 바깥으로 1px 만 남고 안쪽 1px 은 fill 이 덮는다.
+     시안 렌더와 배포본의 흰 띠를 픽셀로 재 확인했다(표본 360개, 중앙값): 시안 2.00px vs
+     당시 배포본 1.00px = 정확히 절반. 그래서 **바깥 2px 을 얻으려면 4px** 을 준다.
+     ⚠ paint-order 를 빼면 외곽선이 글자 위에 얹혀 획이 2px 씩 깎인다(4px 이라 더 티가 난다). */
   .dv-title {
     margin: 15px 0 0; font-family: var(--dv-font-jua); font-weight: 400;
     font-size: 34px; line-height: 42px; color: var(--dv-name);
-    -webkit-text-stroke: 2px var(--dv-stroke);
+    -webkit-text-stroke: 4px var(--dv-stroke);
     paint-order: stroke fill;
     word-break: keep-all;
   }
